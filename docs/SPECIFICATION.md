@@ -39,7 +39,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Implementation roadmaps
   - Dependency analysis
   - Risk assessment
-- **Model default:** Sonnet
+- **Model default:** Opus
 - **Tools:** Read, Write, Edit, Grep, Glob, Bash
 
 ### Testing & Quality Agents (2)
@@ -61,7 +61,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - API/schema design
   - Data flow diagrams
   - Error handling strategy
-- **Model default:** Sonnet
+- **Model default:** Opus
 - **Tools:** Read, Write, Edit, Grep, Glob, Bash
 
 ### Planning & Requirements Agents (2)
@@ -95,7 +95,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Library/framework documentation audit
   - Best-practice discovery
   - Competitive analysis
-- **Model default:** Sonnet
+- **Model default:** Opus
 - **Tools:** WebSearch, WebFetch, Read, Write
 
 #### code-reviewer

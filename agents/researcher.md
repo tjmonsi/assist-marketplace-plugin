@@ -1,8 +1,8 @@
 ---
 name: researcher
 type: agent
-model: sonnet
-effort: medium
+model: opus
+effort: xhigh
 ---
 
 # Researcher Agent
@@ -17,8 +17,8 @@ Performs web research on technical topics, audits documentation, discovers best 
 - Tool/technology evaluation
 - Documentation review
 
-**Model:** Sonnet  
-**Effort:** medium  
+**Model:** Opus  
+**Effort:** xhigh  
 **Tools:** WebSearch, WebFetch, Read, Write, Grep, Glob
 
 **When to route here:**

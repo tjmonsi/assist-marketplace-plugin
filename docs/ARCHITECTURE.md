@@ -84,9 +84,9 @@ assist-plugin follows these core principles:
 
 | Tier | Model | Agents | Use Cases |
 |------|-------|--------|-----------|
-| **Haiku** (low) | Haiku 4.5 | explore, (branch, commit) | Search, simple operations |
-| **Sonnet** (medium) | Sonnet 5 | developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker | Most development work |
-| **Opus** (high) | Opus 5 | orchestrator (`do`), reviewer, code-reviewer | Complex decisions, security, review |
+| **Haiku** (low) | Haiku 4.5 | explore | Code search, fast lookup |
+| **Sonnet** (medium) | Sonnet 5 | developer, qa, requirements-gatherer, devops, general-purpose, worker | Implementation, testing, DevOps |
+| **Opus** (high) | Opus 5 | orchestrator (`do`), reviewer, code-reviewer, planner, solutions-architect, researcher | Architecture, design, research, security, decisions |
 
 ---
 
@@ -221,9 +221,19 @@ assist-plugin follows these core principles:
 4. **Prose only for logic:** `do` skill procedure, review gates (essential flow)
 5. **Consolidate references:** 4 key files vs. 20+ in original plugin
 
+### Model Tier Optimization
+
+**Updated distribution (Opus-prioritized for decisions):**
+- **Haiku:** 1 agent (search only)
+- **Sonnet:** 6 agents (implementation, testing, DevOps, requirements)
+- **Opus:** 7 agents (orchestration, architecture, design, research, security, review)
+
+**Rationale:** Premium models for architectural decisions (planner, solutions-architect, researcher) because these determine project quality and downstream costs.
+
 ### Result
 - **Base plugin:** ~2.5k tokens
-- **Full load (agents + skills + docs):** ~8-10k tokens
+- **Full load (agents + skills + docs):** ~10-12k tokens
+- **Model mix:** Opus-heavy for foundational decisions, Sonnet for execution
 - **Comparison:** software-development plugin ~12-15k tokens
-- **Savings:** ~30% token reduction vs. original while maintaining feature parity
+- **Cost vs. Quality:** Higher token cost for better architecture/design/research quality
 

@@ -8,12 +8,12 @@ Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 |-------|------------------|----------------|-------|----------------------|
 | **developer** | Write/fix/refactor code; implement features; apply approved fixes | Sonnet | Read, Edit, Write, Grep, Glob, Bash, LSP | "implement X", "fix bug in Y", "refactor Z" |
 | **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, Bash, LSP | "review this PR", "check for security", "OWASP compliance" |
-| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
+| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Opus | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
 | **qa** | Test planning; manual/automated test design; acceptance validation; coverage | Sonnet | Read, Write, Edit, Grep, Glob, Bash, LSP | "create test plan", "write automated tests", "validate acceptance" |
-| **solutions-architect** | API/schema design; data flows; error handling; specs | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "design API", "what should schema be", "data flow for X" |
+| **solutions-architect** | API/schema design; data flows; error handling; specs | Opus | Read, Write, Edit, Grep, Glob, Bash | "design API", "what should schema be", "data flow for X" |
 | **requirements-gatherer** | Requirements elicitation; BRD/URD; FR+NFR; acceptance criteria | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "gather requirements", "create BRD", "define acceptance criteria" |
 | **devops** | CI/CD pipelines; infrastructure (Terraform/Docker); deployment; monitoring | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "set up CI/CD", "create Terraform", "deploy X" |
-| **researcher** | Web research; documentation audit; best practices; competitive analysis | Sonnet | WebSearch, WebFetch, Read, Write | "research X library", "best practices for Y", "compare solutions" |
+| **researcher** | Web research; documentation audit; best practices; competitive analysis | Opus | WebSearch, WebFetch, Read, Write | "research X library", "best practices for Y", "compare solutions" |
 | **code-reviewer** | Formal line-by-line review; critical sign-off; architectural evaluation | Opus | Read, Grep, Glob, Bash, LSP | "formal review", "critical change approval", "senior review needed" |
 | **explore** | Code search; find definitions; grep symbols; locate callers | Haiku | Read, Grep, Glob | "find where X defined", "who calls this", "search for pattern" |
 | **general-purpose** | Catch-all for unmatched tasks; ad-hoc analysis; experimentation | Sonnet | All (except Artifact) | "what's the best approach", "help me understand X" |

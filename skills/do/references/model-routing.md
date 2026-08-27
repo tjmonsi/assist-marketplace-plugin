@@ -7,18 +7,18 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | Agent | Default Model | Can Override | Conditions |
 |-------|---------------|--------------|-----------|
 | **orchestrator** (`do` skill) | Opus | No | Always use Opus for orchestration |
-| **developer** | Sonnet | Yes | Use Opus if architectural decisions needed |
+| **developer** | Sonnet | Yes | Can downgrade to Haiku for trivial changes |
 | **reviewer** | Opus | No | Always Opus (security/quality gate) |
-| **planner** | Sonnet | Yes | Upgrade to Opus for complex architecture |
-| **qa** | Sonnet | Yes | Upgrade for critical test planning |
-| **solutions-architect** | Sonnet | Yes | Upgrade to Opus for complex APIs |
+| **planner** | Opus | Yes | Can downgrade to Sonnet if architecture is straightforward |
+| **qa** | Sonnet | Yes | Can upgrade to Opus for critical test planning |
+| **solutions-architect** | Opus | Yes | Can downgrade to Sonnet for simple specs |
 | **requirements-gatherer** | Sonnet | No | Sonnet sufficient for most requirements |
-| **devops** | Sonnet | Yes | Upgrade to Opus for complex infrastructure |
-| **researcher** | Sonnet | No | Sonnet + web search is sufficient |
+| **devops** | Sonnet | Yes | Can upgrade to Opus for complex infrastructure |
+| **researcher** | Opus | No | Opus + web search for comprehensive research |
 | **code-reviewer** | Opus | No | Always use Opus for critical sign-off |
 | **explore** | Haiku | No | Always Haiku (pure search, no reasoning) |
-| **general-purpose** | Sonnet | Yes | Upgrade based on task complexity |
-| **worker** | Sonnet | Yes | Upgrade for complex cross-cutting work |
+| **general-purpose** | Sonnet | Yes | Can upgrade based on task complexity |
+| **worker** | Sonnet | Yes | Can upgrade for complex cross-cutting work |
 
 ---
 
@@ -29,17 +29,17 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 - **Agent:** explore only
 - **Use case:** Code search, finding locations
 
-### Medium Cost (Sonnet) — Default
-- 80% of development tasks
-- Complex enough to need reasoning, but not critical
-- **Agents:** developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker
+### Medium Cost (Sonnet) — Core Development
+- Implementation, testing, requirements, DevOps
+- Good reasoning + cost efficiency balance
+- **Agents:** developer, qa, requirements-gatherer, devops, general-purpose, worker
 - **Strategy:** Iterate + refine if first pass incomplete
 
-### High Cost (Opus) — Gate-Keepers
-- Security, quality, and approval decisions
-- Complex architectural choices
-- **Agents:** orchestrator, reviewer, code-reviewer
-- **Strategy:** Use once per task (gate-keepers)
+### High Cost (Opus) — Decisions & Architecture
+- Architecture, design, quality gates, research, approval
+- Critical decisions that determine project direction
+- **Agents:** orchestrator, reviewer, code-reviewer, planner, solutions-architect, researcher
+- **Strategy:** Premium quality for foundational decisions
 
 ---
 
@@ -50,12 +50,12 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | orchestrator (`do`) | xhigh | Plan creation, routing, synthesis |
 | developer | high | Implementation, testing, debugging |
 | reviewer | xhigh | Security + code quality (critical) |
-| planner | high | Architecture, roadmap, risk analysis |
+| planner | xhigh | Architecture, roadmap, risk analysis (Opus tier) |
 | qa | high | Test design, coverage, validation |
-| solutions-architect | high | API/schema design, complex specs |
+| solutions-architect | xhigh | API/schema design, complex specs (Opus tier) |
 | requirements-gatherer | medium | Requirements elicitation |
 | devops | high | Infrastructure, deployment, monitoring |
-| researcher | medium | Research, documentation, best practices |
+| researcher | xhigh | Research, documentation, best practices (Opus tier) |
 | code-reviewer | xhigh | Formal review, sign-off authority |
 | explore | low | Pure search, no complex reasoning |
 | general-purpose | medium | Ad-hoc, experimentation |
@@ -67,21 +67,21 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 
 When should you override the default model?
 
-### ✓ YES, Upgrade to Opus
-- **developer:** Complex architectural decisions in code
-- **planner:** System redesign with multiple trade-offs
-- **qa:** Performance or security testing strategy
-- **solutions-architect:** Mission-critical API design
-- **devops:** Distributed system infrastructure
-- **general-purpose:** Complex problem-solving needed
+### ✓ YES, Can Downgrade to Sonnet
+- **planner:** Straightforward architecture (no complex trade-offs)
+- **solutions-architect:** Simple, well-defined specifications
+- **developer:** Complex architectural decisions benefit from Opus, but Sonnet + iteration works
+- **qa:** Non-critical testing strategy
+- **devops:** Standard infrastructure setup
+- **general-purpose:** Simple problems, Sonnet sufficient
 
-### ✗ NO, Keep Default
+### ✗ NO, Keep Default (Non-Negotiable)
+- **orchestrator:** Always Opus (non-negotiable)
 - **reviewer:** Always Opus (non-negotiable)
 - **code-reviewer:** Always Opus (non-negotiable)
 - **explore:** Always Haiku (non-negotiable)
-- **researcher:** Sonnet + web search sufficient
-- **requirements-gatherer:** Sonnet captures requirements well
-- **orchestrator:** Always Opus (non-negotiable)
+- **researcher:** Now Opus by default (comprehensive research quality)
+- **requirements-gatherer:** Sonnet by default (straightforward elicitation)
 
 ### Guidance
 - Cost optimization: Sonnet + iterate beats one Opus pass for 80% of tasks

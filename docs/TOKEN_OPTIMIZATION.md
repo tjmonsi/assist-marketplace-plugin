@@ -128,7 +128,9 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 | Skills | 6 | 20+ | 30% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
-| **Total tokens** | ~2.5k | ~4.0k | **62%** |
+| **Plugin size** | ~2.5k | ~4.0k | **62%** |
+| **Model mix** | Opus-heavy (quality) | Mixed | Higher token cost |
+| **Total execution tokens** | ~10-12k | ~12-15k | ~80% |
 
 ---
 
@@ -139,8 +141,10 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 | No DevOps skills | Smaller, focused | Use external plugin for bkt-jira |
 | No meta-skills | Reduced scope | Manual skill creation (rare need) |
 | No hooks | Simpler | Implement in your CI/CD |
-| Link-based docs | ~30% token saving | Need to read external docs |
+| Link-based docs | ~30% token saving on docs | Need to read external docs |
 | Compact format | Faster parsing | Less verbose explanations |
+| **Opus for architecture** | Better quality decisions | Higher token cost per task |
+| **Sonnet for execution** | Cost-effective implementation | May iterate more on fixes |
 
 ---
 
@@ -156,10 +160,28 @@ To add capabilities without bloating token count:
 
 ---
 
+## Model Tier Strategy (Updated)
+
+**Architecture-First Approach:**
+- **Premium models (Opus)** for foundational decisions: planner, solutions-architect, researcher, orchestrator, reviewer, code-reviewer
+- **Efficient models (Sonnet)** for execution: developer, qa, requirements-gatherer, devops, worker
+- **Fast models (Haiku)** for pure search: explore
+
+**Why this costs more but saves overall:**
+- Better architecture prevents rework (saved tokens from fewer iterations)
+- Good specs reduce implementation time (Sonnet can execute faster)
+- Research quality reduces dependency issues (fewer emergency fixes)
+- Security review quality prevents vulnerabilities (less forensic debugging)
+
+**Cost comparison:**
+- Naive approach: All Sonnet (cheaper initially, more iterations/fixes = more tokens total)
+- This approach: Opus for decisions, Sonnet for work (higher per-task cost, lower total lifecycle cost)
+
 ## Verification
 
 To measure token efficiency:
 1. Use `/token-audit` on this plugin
-2. Compare to `software-development` plugin size
-3. Run test plan on common tasks (should invoke <10 agents per typical task)
+2. Track tokens per task and compare iteration count
+3. Compare total project cost (architecture quality affects maintenance burden)
+4. Override models per-task to optimize for cost vs. quality trade-off
 

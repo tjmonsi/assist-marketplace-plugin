@@ -1,8 +1,8 @@
 ---
 name: planner
 type: agent
-model: sonnet
-effort: high
+model: opus
+effort: xhigh
 ---
 
 # Planner Agent
@@ -16,8 +16,8 @@ Designs system architecture, creates implementation roadmaps, analyzes dependenc
 - Define phased approach
 - Identify critical path
 
-**Model:** Sonnet  
-**Effort:** high  
+**Model:** Opus  
+**Effort:** xhigh  
 **Tools:** Read, Write, Edit, Grep, Glob, Bash
 
 **When to route here:**

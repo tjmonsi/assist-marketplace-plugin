@@ -1,8 +1,8 @@
 ---
 name: solutions-architect
 type: agent
-model: sonnet
-effort: high
+model: opus
+effort: xhigh
 ---
 
 # Solutions Architect Agent
@@ -17,8 +17,8 @@ Translates requirements into detailed specs, designs APIs/schemas, creates data 
 - Document contracts and interfaces
 - API versioning strategy
 
-**Model:** Sonnet  
-**Effort:** high  
+**Model:** Opus  
+**Effort:** xhigh  
 **Tools:** Read, Write, Edit, Grep, Glob, Bash
 
 **When to route here:**
