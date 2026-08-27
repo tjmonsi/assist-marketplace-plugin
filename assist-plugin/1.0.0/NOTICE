@@ -1,0 +1,24 @@
+NOTICE
+
+assist-plugin contains code and design patterns derived from the software-development
+Claude plugin, authored by Toni-Jan Keith Monserrat.
+
+The following components are adapted from software-development:
+- The six-step orchestration framework in skills/do/SKILL.md
+- The routing table structure and debugging workflow in skills/debug/SKILL.md
+- The agent roster naming and role taxonomy
+- The reference file architecture (agent-registry, model-routing, plan-format, review-protocol)
+
+These components are used under the MIT license with modifications and improvements
+as documented in TOKEN_OPTIMIZATION.md and ARCHITECTURE.md.
+
+Original work in assist-plugin (88% by volume):
+- Complete documentation set (Claude.md, README.md, docs/*)
+- Abstract model routing strategy with Haiku/Sonnet/Opus tiers
+- Governance-gate review protocol with OWASP/coverage/sign-off gates
+- Per-agent model override mechanism in the `do` skill
+- New agents: code-reviewer, explore, general-purpose
+- Compact agent-card format
+- All supporting skills and their implementations
+
+For the full audit report, see docs/history/PLAGIARISM_AUDIT.md

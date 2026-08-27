@@ -1,0 +1,14 @@
+{
+  "name": "assist-plugin",
+  "version": "1.0.0",
+  "description": "Token-optimized software development plugin with 8 skills, 12 agents, and governance gates for agile development workflows",
+  "author": {
+    "name": "Toni-Jan Keith Monserrat",
+    "email": "tjmonsi@gmail.com"
+  },
+  "repository": "https://github.com/tjmonsi/assist-plugin-marketplace",
+  "license": "MIT",
+  "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"],
+  "agents": 12,
+  "skills": 8
+}

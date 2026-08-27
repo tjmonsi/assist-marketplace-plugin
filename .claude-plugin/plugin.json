@@ -1,13 +1,19 @@
 {
-  "name": "assist-plugin",
+  "name": "assist-plugin-marketplace",
   "version": "1.0.0",
-  "description": "Token-optimized software development plugin with orchestration, agents, and specialized skills for agile development workflows",
+  "description": "Token-optimized marketplace for Claude development plugins with orchestration, agents, and specialized skills",
+  "type": "marketplace",
   "author": {
     "name": "Toni-Jan Keith Monserrat",
     "email": "tjmonsi@gmail.com"
   },
-  "repository": "https://github.com/tjmonsi/assist-plugin",
+  "repository": "https://github.com/tjmonsi/assist-plugin-marketplace",
   "license": "MIT",
-  "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"],
-  "marketplace": "self-hosted"
+  "keywords": ["marketplace", "plugins", "software-development", "agents", "skills", "token-optimized"],
+  "plugins": [
+    {
+      "name": "assist-plugin",
+      "versions": ["1.0.0"]
+    }
+  ]
 }

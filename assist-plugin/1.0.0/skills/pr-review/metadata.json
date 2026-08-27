@@ -1,0 +1,7 @@
+{
+  "name": "pr-review",
+  "description": "Review pull requests with auto-detection of GitHub or Bitbucket. Fetches PR details, changes, comments, and submits reviews with approval or changes-requested verdict.",
+  "effort": "medium",
+  "allowed-tools": ["Read", "Grep", "Glob", "Bash"],
+  "argument-hint": "[PR#|branch-name] [--approve|--changes-requested|--comment] [--message TEXT]"
+}
