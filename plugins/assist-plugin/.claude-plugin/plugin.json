@@ -6,9 +6,9 @@
     "name": "Toni-Jan Keith Monserrat",
     "email": "tjmonsi@gmail.com"
   },
+  "homepage": "https://github.com/tjmonsi/assist-plugin-marketplace",
   "repository": "https://github.com/tjmonsi/assist-plugin-marketplace",
   "license": "MIT",
-  "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"],
-  "agents": 12,
-  "skills": 8
+  "category": "development",
+  "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"]
 }

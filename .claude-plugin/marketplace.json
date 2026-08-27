@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "assist-plugin-marketplace",
+  "description": "Token-optimized marketplace for Claude development plugins with orchestration, agents, and specialized skills",
+  "owner": {
+    "name": "Toni-Jan Keith Monserrat",
+    "email": "tjmonsi@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "assist-plugin",
+      "source": "./plugins/assist-plugin",
+      "description": "Token-optimized software development plugin with 8 skills, 12 agents, and governance gates for agile development workflows",
+      "version": "1.0.0",
+      "author": {
+        "name": "Toni-Jan Keith Monserrat",
+        "email": "tjmonsi@gmail.com"
+      },
+      "homepage": "https://github.com/tjmonsi/assist-plugin-marketplace",
+      "license": "MIT",
+      "category": "development",
+      "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"]
+    }
+  ]
+}

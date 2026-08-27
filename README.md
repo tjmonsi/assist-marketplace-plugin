@@ -7,7 +7,8 @@ Claude marketplace for token-optimized development plugins.
 Install the marketplace and enable assist-plugin:
 
 ```bash
-/plugin install assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
 
@@ -49,10 +50,10 @@ Then use the `/do` orchestrator:
 
 ## Documentation
 
-- **[assist-plugin/1.0.0/Claude.md](assist-plugin/1.0.0/Claude.md)** — Quick reference
-- **[assist-plugin/1.0.0/docs/SPECIFICATION.md](assist-plugin/1.0.0/docs/SPECIFICATION.md)** — Full agent/skill catalog
-- **[assist-plugin/1.0.0/docs/ARCHITECTURE.md](assist-plugin/1.0.0/docs/ARCHITECTURE.md)** — System design
-- **[assist-plugin/1.0.0/docs/TOKEN_OPTIMIZATION.md](assist-plugin/1.0.0/docs/TOKEN_OPTIMIZATION.md)** — Optimization strategy
+- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)** — Quick reference
+- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)** — Full agent/skill catalog
+- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)** — System design
+- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)** — Optimization strategy
 - **[MARKETPLACE.md](MARKETPLACE.md)** — Marketplace overview
 
 ## Installation
@@ -60,7 +61,8 @@ Then use the `/do` orchestrator:
 ### Option 1: Claude Code Plugin Command
 
 ```bash
-/plugin install assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
 
@@ -68,25 +70,23 @@ Then use the `/do` orchestrator:
 
 ```bash
 git clone https://github.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/assist-plugin-marketplace
-claude plugins reload
 ```
 
 ### Option 3: Manual Git Clone (Self-Hosted)
 
 ```bash
 git clone ssh://git@git.tjmonsi.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/assist-plugin-marketplace
-claude plugins reload
 ```
 
 ## Marketplace Structure
 
 ```
 assist-plugin-marketplace/
-├── .claude-plugin/plugin.json (marketplace definition)
+├── .claude-plugin/marketplace.json (marketplace definition)
 ├── MARKETPLACE.md (marketplace overview)
 ├── README.md (this file)
-├── assist-plugin/
-│   └── 1.0.0/
+├── plugins/
+│   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
 │       ├── agents/ (12 agent definitions)
 │       ├── skills/ (8 skill implementations)
