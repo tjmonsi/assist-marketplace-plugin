@@ -1,5 +1,6 @@
 ---
 name: solutions-architect
+description: "Translate requirements to specs, design APIs and schemas, create data flows, define error handling."
 type: agent
 model: opus
 effort: xhigh

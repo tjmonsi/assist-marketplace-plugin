@@ -1,5 +1,6 @@
 ---
 name: explore
+description: "Fast read-only code search. Find files, grep symbols, locate definitions, discover code locations."
 type: agent
 model: haiku
 effort: low

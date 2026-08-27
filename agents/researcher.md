@@ -1,5 +1,6 @@
 ---
 name: researcher
+description: "Research topics, audit documentation, discover best practices, analyze solutions."
 type: agent
 model: opus
 effort: xhigh

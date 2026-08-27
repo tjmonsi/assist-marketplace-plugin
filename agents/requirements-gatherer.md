@@ -1,5 +1,6 @@
 ---
 name: requirements-gatherer
+description: "Elicit requirements, create BRD/URD, define FR and NFR, specify acceptance criteria."
 type: agent
 model: sonnet
 effort: medium

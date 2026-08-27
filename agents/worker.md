@@ -1,5 +1,6 @@
 ---
 name: worker
+description: "Multi-discipline generalist. Code + test + review combined for small features and cross-cutting work."
 type: agent
 model: sonnet
 effort: high

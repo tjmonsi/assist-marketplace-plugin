@@ -1,5 +1,6 @@
 ---
 name: reviewer
+description: "Code review for bugs, security, and quality. Perform OWASP analysis, identify issues, approve or request revisions."
 type: agent
 model: opus
 effort: xhigh

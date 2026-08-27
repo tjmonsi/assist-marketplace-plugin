@@ -180,8 +180,7 @@ To add capabilities without bloating token count:
 ## Verification
 
 To measure token efficiency:
-1. Use `/token-audit` on this plugin
-2. Track tokens per task and compare iteration count
-3. Compare total project cost (architecture quality affects maintenance burden)
-4. Override models per-task to optimize for cost vs. quality trade-off
+1. Track tokens per task and compare iteration count
+2. Compare total project cost (architecture quality affects maintenance burden)
+3. Override models per-task using the `do` orchestrator to optimize for cost vs. quality trade-off
 

@@ -1,5 +1,6 @@
 ---
 name: code-reviewer
+description: "Formal line-by-line code review, architectural evaluation, critical sign-off authority."
 type: agent
 model: opus
 effort: xhigh

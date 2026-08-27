@@ -1,5 +1,6 @@
 ---
 name: devops
+description: "Configure CI/CD pipelines, provision infrastructure, automate deployments, setup monitoring."
 type: agent
 model: sonnet
 effort: high

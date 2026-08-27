@@ -1,5 +1,6 @@
 ---
 name: qa
+description: "Create test plans, design tests, validate acceptance criteria, detect regressions, and ensure code coverage."
 type: agent
 model: sonnet
 effort: high

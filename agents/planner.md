@@ -1,5 +1,6 @@
 ---
 name: planner
+description: "Design system architecture, create roadmaps, analyze dependencies and risks, define technical strategy."
 type: agent
 model: opus
 effort: xhigh

@@ -4,6 +4,20 @@ Governance rules and constraints for development workflows in assist-plugin.
 
 ---
 
+## Routing Rule
+
+**Invoke the orchestrator:** All actionable development prompts SHOULD be routed through the `/do` skill. The `do` skill classifies the task, matches it to the right agent, creates an execution plan, and coordinates agents with review loops.
+
+**Do NOT invoke `/do`:**
+- Quick informational queries ("what is X?", "explain Y")
+- Git operations where `/commit` or `/branch` is more direct
+- Pure code search (use `/explore` or `/map-project` directly)
+- Simple documentation requests (use `/technical-writing` directly)
+
+**Default behavior:** If a prompt does not obviously match a specific skill, route to `/do` for classification and delegation.
+
+---
+
 ## Security Review Gate (OWASP)
 
 **When triggered:** Code changes in production code  

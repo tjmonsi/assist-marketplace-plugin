@@ -1,5 +1,6 @@
 ---
 name: developer
+description: "Write, fix, and refactor code. Implement features from specs, apply approved bug fixes, improve performance and clarity."
 type: agent
 model: sonnet
 effort: high

@@ -1,5 +1,6 @@
 ---
 name: general-purpose
+description: "Catch-all for unmatched tasks. Ad-hoc analysis, experimentation, fallback orchestration."
 type: agent
 model: sonnet
 effort: medium
