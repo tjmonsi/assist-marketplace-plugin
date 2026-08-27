@@ -1,7 +1,0 @@
-{
-  "name": "map-project",
-  "description": "Discover and document repository structure, identify stack and modules.",
-  "effort": "medium",
-  "allowed-tools": ["Read", "Glob", "Bash"],
-  "argument-hint": ""
-}

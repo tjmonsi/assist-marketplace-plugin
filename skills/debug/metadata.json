@@ -1,7 +1,0 @@
-{
-  "name": "debug",
-  "description": "Root cause analysis and iterative fix cycles. Supports analyze, fix, and review subcommands.",
-  "effort": "high",
-  "allowed-tools": ["Read", "Grep", "Glob", "Bash", "LSP"],
-  "argument-hint": "[analyze | fix | review] [description | file:line]"
-}

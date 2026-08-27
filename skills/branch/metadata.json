@@ -1,7 +1,0 @@
-{
-  "name": "branch",
-  "description": "Manage git branches with creation, switching, and remote tracking.",
-  "effort": "low",
-  "allowed-tools": ["Bash"],
-  "argument-hint": "[create | switch | list] [branch-name]"
-}

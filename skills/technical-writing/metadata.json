@@ -1,7 +1,0 @@
-{
-  "name": "technical-writing",
-  "description": "Generate and update documentation, READMEs, user guides, and API docs.",
-  "effort": "medium",
-  "allowed-tools": ["Read", "Write", "Edit", "Grep", "Glob"],
-  "argument-hint": "[docs | readme | guide] [topic]"
-}
