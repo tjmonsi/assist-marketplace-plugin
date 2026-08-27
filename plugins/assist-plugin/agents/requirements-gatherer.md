@@ -4,6 +4,7 @@ description: "Elicit requirements, create BRD/URD, define FR and NFR, specify ac
 type: agent
 model: sonnet
 effort: medium
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # Requirements Gatherer Agent

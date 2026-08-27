@@ -20,6 +20,36 @@ Before submitting a review, check:
 **GitHub:** Conflicts and CI status shown in PR view
 **Bitbucket:** Use "Merge check" section
 
+## Confirmation Gate (Required Before Any State Change)
+
+`--approve`, `--changes-requested` (and their platform equivalents `gh pr review --request-changes`, `bkt pr approve`, `bkt pr decline`) change state visible to the whole team: they can unblock or block a merge and notify the author. **They are never executed without an explicit, affirmative confirmation from the human user in the current turn** — even when:
+
+- the verdict flag (`--approve` / `--changes-requested`) was already supplied on the command line,
+- the `reviewer` agent is fully confident in its own analysis,
+- a previous PR in the same session was already confirmed (each PR/verdict needs its own confirmation).
+
+**Protocol:**
+
+1. **Analyze only.** Fetch PR details, diff, comments, and CI status. Do not run any command that mutates review state yet.
+2. **Draft, don't post.** Compose the verdict and the exact comment body as plain text — e.g. *"Recommend approval because: tests cover the new branch, no security issues found, matches project conventions."* Write the draft body to a temp file (see [Injection-Safe Posting](#injection-safe-posting) below); do not post it anywhere yet.
+3. **Present and ask.** Show the user the draft verdict and the exact text that would be posted, then ask directly: **"Do you approve this verdict? (yes/no)"**
+4. **Wait for an explicit answer.** Only a clear affirmative ("yes", "approve it", "go ahead") counts as confirmation. Silence, an ambiguous reply, or the user changing the subject is **not** confirmation — re-ask or treat it as "no" and take no action.
+5. **Execute only after "yes".** Run the actual `gh pr review` / `bkt pr approve` / `bkt pr decline` command using the confirmed draft text (via `--body-file` / `--message-file`), unmodified from what the user saw.
+6. **On "no" or requested edits:** revise the draft and return to step 3. Never execute the state-changing command as a fallback.
+
+This gate applies regardless of entry point — standalone `/pr-review`, `/do review PR #123`, or the reviewer agent calling the skill internally.
+
+### Injection-Safe Posting
+
+Model-drafted or user-drafted review text must **never** be interpolated directly into a shell command string (e.g. `gh pr review 123 --body "$DRAFT"` or `bkt pr comment ... --message "$DRAFT"`). Arbitrary text can contain quotes, backticks, `$()`, `&&`, newlines, or other shell metacharacters that would be interpreted by the shell instead of treated as literal content.
+
+Instead:
+
+1. Write the confirmed draft text to a temp file (e.g. `/tmp/pr-review-body.txt`) using the Write tool — never via shell string concatenation.
+2. Pass the file to the CLI with a file-based flag: `gh pr review 123 --body-file /tmp/pr-review-body.txt`, `bkt pr comment ... --message-file /tmp/pr-review-body.txt`.
+3. If a given CLI/subcommand has no file-based flag, pass the text as a single argument through the tool's native argument array (not a shell string built by concatenation), so no shell re-parses its contents. Never hand-build a quoted string containing untrusted or model-generated content and execute it via a shell.
+4. Delete or ignore the temp file after use; never reuse a stale draft file for a different PR or verdict.
+
 ## Review Workflow Steps
 
 ### Step 1: Fetch PR Information
@@ -55,23 +85,25 @@ Use the `reviewer` agent for deep analysis:
 → Routes to reviewer agent
 → Agent fetches details and changes
 → Agent analyzes for bugs, security, performance
-→ Agent submits verdict
+→ Agent drafts a verdict + rationale (does not submit yet)
 ```
 
-### Step 4: Submit Review
+### Step 4: Confirm, Then Submit Review
 
-After analysis, submit verdict:
+Follow the [Confirmation Gate](#confirmation-gate-required-before-any-state-change) before running any of these. The agent presents the draft verdict and message, asks "Do you approve this verdict? (yes/no)", and only on "yes" runs the command below — with the draft text passed via a temp file, never a raw quoted string:
 
 ```bash
-# Approve
+# Approve (message optional; confirmed with the user first)
 /pr-review 123 --approve --message "Looks good, well tested!"
 
-# Request changes
+# Request changes (message shown to and confirmed by the user first)
 /pr-review 123 --changes-requested --message "See comments below"
 
-# Comment only (no verdict)
+# Comment only (no verdict; exact text shown to the user first)
 /pr-review 123 --comment --message "Consider using pattern X here"
 ```
+
+The `--message` text above is the **confirmed draft**, not raw unreviewed model output — see [Injection-Safe Posting](#injection-safe-posting) for how it's carried from draft to the underlying `gh`/`bkt` call.
 
 ## Review Verdicts
 
@@ -185,7 +217,8 @@ Verdict: Changes Requested (if breaking) or Approve
 /pr-review 123
 → Shows PR info
 → You manually analyze
-→ You submit verdict
+→ You draft a verdict
+→ You confirm ("yes") before it's submitted
 ```
 
 ### Agent-Assisted Review
@@ -193,18 +226,23 @@ Verdict: Changes Requested (if breaking) or Approve
 ```bash
 /do review PR #123
 → do skill invokes reviewer agent
-→ reviewer fetches details via /pr-review
-→ reviewer analyzes code
-→ reviewer submits /pr-review 123 --approve (or changes-requested)
+→ reviewer fetches details via /pr-review (read-only)
+→ reviewer analyzes code and drafts a verdict + message
+→ reviewer asks: "Do you approve this verdict? (yes/no)"
+→ user answers "yes"
+→ only then: reviewer submits /pr-review 123 --approve (or --changes-requested)
 ```
+
+The reviewer agent's own confidence is never sufficient — the human confirmation in the last two steps is mandatory every time, per the [Confirmation Gate](#confirmation-gate-required-before-any-state-change).
 
 ### Two-Stage Review
 
 ```
-Stage 1: Quick feedback
+Stage 1: Quick feedback (still requires the user to see the exact text before posting)
 /pr-review 123 --comment --message "Looks interesting, let me review more carefully"
 
-Stage 2: Formal verdict
+Stage 2: Formal verdict (requires a fresh "yes" confirmation — Stage 1's
+confirmation does not carry over)
 /pr-review 123 --approve
 ```
 
@@ -256,6 +294,8 @@ Stage 2: Formal verdict
 
 ## GitHub-Specific Workflow
 
+All commands below that post text run only **after** the [Confirmation Gate](#confirmation-gate-required-before-any-state-change): the body text is a user-confirmed draft written to a temp file and passed via `--body-file`, never a raw quoted string built from model output (see [Injection-Safe Posting](#injection-safe-posting) — a literal `--body "$DRAFT"` is unsafe because `$DRAFT` can contain quotes, backticks, `$()`, or other shell metacharacters).
+
 ```bash
 # View PR and diffs
 gh pr view 123
@@ -264,20 +304,22 @@ gh pr diff 123
 # Leave comment on specific commit
 gh pr comment 123 --edit
 
-# Request changes
-gh pr review 123 --request-changes --body "See comments"
+# Request changes (confirmed draft passed via --body-file)
+gh pr review 123 --request-changes --body-file /tmp/pr-review-body.txt
 
-# Approve
-gh pr review 123 --approve --body "Approved"
+# Approve (confirmed draft passed via --body-file)
+gh pr review 123 --approve --body-file /tmp/pr-review-body.txt
 
-# Dismiss previous review
-gh pr review 123 --dismiss --body "Reconsidering..."
+# Dismiss previous review (also a state change — confirm first, then use --body-file)
+gh pr review 123 --dismiss --body-file /tmp/pr-review-body.txt
 
 # List all reviews
 gh api repos/OWNER/REPO/pulls/123/reviews
 ```
 
 ## Bitbucket-Specific Workflow
+
+Same rule applies: confirmed draft text goes to a temp file first, then a file-based flag (`--message-file`) — never a raw quoted string built from model output.
 
 ```bash
 # View PR
@@ -286,14 +328,14 @@ bkt pr get PROJECT/REPO/123
 # List files changed
 bkt pr diff PROJECT/REPO/123
 
-# Leave comment
-bkt pr comment PROJECT/REPO/123 --message "Feedback"
+# Leave comment (confirmed draft passed via --message-file)
+bkt pr comment PROJECT/REPO/123 --message-file /tmp/pr-review-body.txt
 
-# Approve
+# Approve — only after user confirmation
 bkt pr approve PROJECT/REPO/123
 
-# Decline (request changes)
-bkt pr decline PROJECT/REPO/123 --message "Needs work"
+# Decline (request changes) — only after user confirmation, message via --message-file
+bkt pr decline PROJECT/REPO/123 --message-file /tmp/pr-review-body.txt
 
 # List reviewers
 bkt pr reviewers PROJECT/REPO/123

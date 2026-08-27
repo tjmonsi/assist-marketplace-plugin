@@ -4,6 +4,7 @@ description: "Formal line-by-line code review, architectural evaluation, critica
 type: agent
 model: opus
 effort: xhigh
+tools: [Read, Grep, Glob]
 ---
 
 # Code Reviewer Agent

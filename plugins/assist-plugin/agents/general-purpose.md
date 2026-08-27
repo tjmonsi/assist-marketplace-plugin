@@ -4,6 +4,7 @@ description: "Catch-all for unmatched tasks. Ad-hoc analysis, experimentation, f
 type: agent
 model: sonnet
 effort: medium
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # General-Purpose Agent

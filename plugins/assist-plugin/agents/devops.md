@@ -4,6 +4,7 @@ description: "Configure CI/CD pipelines, provision infrastructure, automate depl
 type: agent
 model: sonnet
 effort: high
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # DevOps Agent

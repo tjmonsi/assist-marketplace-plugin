@@ -4,6 +4,7 @@ description: "Code review for bugs, security, and quality. Perform OWASP analysi
 type: agent
 model: opus
 effort: xhigh
+tools: [Read, Grep, Glob]
 ---
 
 # Reviewer Agent

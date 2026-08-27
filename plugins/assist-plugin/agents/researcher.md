@@ -4,6 +4,7 @@ description: "Research topics, audit documentation, discover best practices, ana
 type: agent
 model: opus
 effort: xhigh
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # Researcher Agent

@@ -4,6 +4,7 @@ description: "Fast read-only code search. Find files, grep symbols, locate defin
 type: agent
 model: haiku
 effort: low
+tools: [Read, Grep, Glob]
 ---
 
 # Explore Agent

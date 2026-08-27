@@ -4,6 +4,7 @@ description: "Multi-discipline generalist. Code + test + review combined for sma
 type: agent
 model: sonnet
 effort: high
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # Worker Agent

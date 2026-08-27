@@ -4,6 +4,7 @@ description: "Design system architecture, create roadmaps, analyze dependencies 
 type: agent
 model: opus
 effort: xhigh
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # Planner Agent

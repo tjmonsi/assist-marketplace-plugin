@@ -4,6 +4,7 @@ description: "Translate requirements to specs, design APIs and schemas, create d
 type: agent
 model: opus
 effort: xhigh
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # Solutions Architect Agent

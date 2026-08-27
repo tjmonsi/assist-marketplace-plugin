@@ -4,6 +4,7 @@ description: "Write, fix, and refactor code. Implement features from specs, appl
 type: agent
 model: sonnet
 effort: high
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # Developer Agent

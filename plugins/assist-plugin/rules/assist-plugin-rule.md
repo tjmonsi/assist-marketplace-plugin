@@ -80,6 +80,37 @@ Code MUST pass ALL checks before approval:
 
 ---
 
+## LLM Security Review Gate
+
+**When triggered:** Changes to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`, `rules/*.md`, `CLAUDE.md`, or `.claude/settings*.json`  
+**Who reviews:** `reviewer` or `code-reviewer` agent  
+**Authority:** Blocks merge
+
+### Scope
+
+These files are not documentation — they are executable instructions handed to a model with tool
+access (agent prompts, skill definitions, routing logic, permission grants). They MUST be reviewed
+with the same rigor as production application code, and this gate applies **in addition to**, not
+instead of, the OWASP Top 10 gate above.
+
+### OWASP Top 10 for LLM Checklist
+
+Full checklist with per-category attack surface and verification items:
+[llm-security-checklist.md](llm-security-checklist.md)
+
+Covers: LLM01 Prompt Injection, LLM02 Sensitive Information Disclosure, LLM03 Supply Chain,
+LLM04 Data and Model Poisoning, LLM05 Improper Output Handling, LLM06 Excessive Agency,
+LLM07 System Prompt Leakage, LLM09 Misinformation/Overreliance, LLM10 Unbounded Consumption.
+(LLM08 Vector/Embedding Weaknesses is out of scope — no vector store or RAG layer in this plugin.)
+
+**Not fast-trackable:** This gate cannot be skipped under the Fast-Track Review rules below, even
+for changes that look like "docs-only." Files under `agents/`, `skills/`, and `rules/` are this
+plugin's executable surface.
+
+**Approval:** Must sign: `✓ LLM Security Clear`
+
+---
+
 ## Testing Coverage Gate (>70%)
 
 **When triggered:** Code changes in production code  
@@ -143,6 +174,8 @@ Escalate to code-reviewer if:
 |------|-----------|-----|
 | Security (OWASP) | Low (no issues) | ~5 min |
 | Security (OWASP) | High (multiple issues) | ~15 min |
+| Security (OWASP for LLM) | Low (no issues) | ~5 min |
+| Security (OWASP for LLM) | High (multiple issues) | ~15 min |
 | Testing (>70%) | Low (high coverage) | ~3 min |
 | Testing (>70%) | High (low coverage) | ~10 min |
 | Code Review | Low (small change) | ~10 min |
@@ -155,6 +188,7 @@ Escalate to code-reviewer if:
 **Before merge, ALL gates must be passed:**
 
 - [ ] Security review: ✓ OWASP Clear
+- [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `CLAUDE.md`, or `.claude/settings*.json`)
 - [ ] Testing: ✓ >70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
 - [ ] Commit format: ✓ Conventional Commits
@@ -166,6 +200,10 @@ Escalate to code-reviewer if:
 - Conflicts with main
 - Author has < 2 hours since last commit (prevents race conditions)
 
+Changes to agents, skills, or rules are only mergeable once **both** the OWASP (application) gate
+and the OWASP for LLM gate are signed off — `✓ OWASP Clear` and `✓ LLM Security Clear` must both
+appear in the commit message or plan file for traceability.
+
 ---
 
 ## Fast-Track Review
@@ -173,8 +211,11 @@ Escalate to code-reviewer if:
 For low-risk changes (docs, tests, refactoring):
 
 1. **Security gate:** Can skip if no production code changes
-2. **Testing gate:** Always required if logic changes
-3. **Code review:** Optional if change is obvious/non-critical
+2. **LLM security gate:** Cannot be skipped for changes to `agents/*.md`, `skills/**/SKILL.md`,
+   `skills/**/references/*.md`, `rules/*.md`, `CLAUDE.md`, or `.claude/settings*.json` — these are
+   the plugin's executable surface, not documentation, regardless of how the change looks
+3. **Testing gate:** Always required if logic changes
+4. **Code review:** Optional if change is obvious/non-critical
 
 Mark in plan: `**Review:** Low-risk (no production code)`
 
@@ -184,6 +225,7 @@ Mark in plan: `**Review:** Low-risk (no production code)`
 
 - **Automated:** CI/CD pipeline enforces coverage gates
 - **Manual:** Agents enforce OWASP checks
+- **Manual:** Agents enforce OWASP for LLM checks ([llm-security-checklist.md](llm-security-checklist.md)) on every change to `agents/`, `skills/`, `rules/`, `CLAUDE.md`, or `.claude/settings*.json`
 - **Manual:** code-reviewer gives formal sign-off
 - **Escalation:** code-reviewer makes final call on disputes
 

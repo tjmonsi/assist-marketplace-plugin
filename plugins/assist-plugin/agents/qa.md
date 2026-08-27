@@ -4,6 +4,7 @@ description: "Create test plans, design tests, validate acceptance criteria, det
 type: agent
 model: sonnet
 effort: high
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 ---
 
 # QA Agent

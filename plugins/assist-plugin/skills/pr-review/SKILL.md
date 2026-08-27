@@ -7,9 +7,11 @@ description: >-
 effort: medium
 allowed-tools:
   - Read
+  - Write
   - Grep
   - Glob
   - Bash
+  - AskUserQuestion
 argument-hint: "[PR#|branch-name] [--approve|--changes-requested|--comment] [--message TEXT]"
 ---
 
@@ -35,6 +37,8 @@ Review pull requests with intelligent platform detection and CLI automation.
 # Review by branch name (if on feature branch)
 /pr-review feature/user-auth --approve
 ```
+
+> **Note:** Passing `--approve` or `--changes-requested` states your *intended* verdict — it does not skip confirmation. The skill still fetches the PR, drafts the verdict text, and asks "Do you approve this verdict? (yes/no)" before running any state-changing command. See [Review Submission](#4-review-submission-confirmation-required) below.
 
 ## How It Works
 
@@ -73,17 +77,23 @@ Three ways to specify PR:
 - **Current reviewers** and approval status
 - **Conflicts** (if any)
 
-### 4. Review Submission
+### 4. Review Submission (Confirmation Required)
 
-Submit review with one of three verdicts:
+`--approve` and `--changes-requested` are **state-changing commands and are never executed automatically** — not even when the flag was passed on the command line, and not even when the `reviewer` agent decided the verdict itself. The skill always pauses for explicit human confirmation before running them:
 
-| Verdict | Command | Effect |
-|---------|---------|--------|
-| **Approve** | `--approve` | Marks PR approved, ready to merge |
-| **Changes Requested** | `--changes-requested` | Blocks merge, requires changes |
-| **Comment** | `--comment` | Leaves feedback, doesn't block |
+1. Fetch the PR and analyze it (read-only; no state-changing command runs yet).
+2. Draft the verdict and reasoning as plain text, e.g. *"Recommend approval because: tests cover the new branch, no security issues found, matches project conventions."*
+3. Present the draft verdict — and, for changes-requested/comment, the exact comment body — to the user and ask: **"Do you approve this verdict? (yes/no)"**
+4. Only on an explicit "yes" (or clear affirmative) does the skill run the actual `gh pr review <n> --approve` / `--request-changes` (or `bkt pr approve` / `bkt pr decline`) command.
+5. On "no", or if the user requests edits, revise the draft and re-confirm. Never fall back to executing the command anyway.
 
-Optional message: `--message "Your feedback here"`
+| Verdict | Command | Effect | Requires Confirmation? |
+|---------|---------|--------|--------------------------|
+| **Approve** | `--approve` | Marks PR approved, ready to merge | Yes — always, before every execution |
+| **Changes Requested** | `--changes-requested` | Blocks merge, requires changes | Yes — always, before every execution |
+| **Comment** | `--comment` | Leaves feedback, doesn't block | Yes — user must see the exact text before it's posted |
+
+Optional message: `--message "Your feedback here"` is treated as a **draft** to confirm, never auto-posted. Draft text is written to a temp file and passed to the CLI via `--body-file` / `--message-file` — it is never interpolated directly into a shell command string. See [references/review-workflow.md](references/review-workflow.md) for the full confirmation flow and injection-safe posting mechanics.
 
 ## Commands by Platform
 
@@ -99,10 +109,12 @@ gh pr diff 123
 # List reviews
 gh api repos/{owner}/{repo}/pulls/123/reviews
 
-# Submit review
+# Submit review — only after the user confirms the draft verdict (see step 4 above).
+# Draft body text is written to a temp file first; never interpolate model output
+# directly into the command string.
 gh pr review 123 --approve
-gh pr review 123 --request-changes --body "Needs work"
-gh pr review 123 --comment --body "Nice!"
+gh pr review 123 --request-changes --body-file /tmp/pr-review-body.txt
+gh pr review 123 --comment --body-file /tmp/pr-review-body.txt
 
 # Comment on line (in diff)
 gh pr review 123 --request-changes --comment-last
@@ -117,14 +129,16 @@ bkt pr get <project>/<repo>/<id>
 # List reviewers
 bkt pr reviewers <project>/<repo>/<id>
 
-# Approve
+# Approve — only after the user confirms the draft verdict (see step 4 above)
 bkt pr approve <project>/<repo>/<id>
 
-# Decline (request changes)
-bkt pr decline <project>/<repo>/<id>
+# Decline (request changes) — only after the user confirms the draft verdict.
+# Draft body text is written to a temp file first; never interpolate model
+# output directly into the command string.
+bkt pr decline <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
 
 # Comment
-bkt pr comment <project>/<repo>/<id> --message "Feedback"
+bkt pr comment <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
 ```
 
 ## Options
@@ -132,9 +146,9 @@ bkt pr comment <project>/<repo>/<id> --message "Feedback"
 | Option | Description | Default |
 |--------|-------------|---------|
 | `PR#` | PR number (GitHub/Bitbucket) | Required (or use current branch) |
-| `--approve` | Approve PR | — |
-| `--changes-requested` | Request changes | — |
-| `--comment` | Leave feedback only | — |
+| `--approve` | Approve PR (requires user confirmation of drafted verdict before executing) | — |
+| `--changes-requested` | Request changes (requires user confirmation of drafted verdict before executing) | — |
+| `--comment` | Leave feedback only (requires user to see exact text before posting) | — |
 | `--message TEXT` | Review message | (empty if not provided) |
 | `--diff` | Show file diff inline | False |
 | `--no-comment` | Show PR info, don't submit review | False |
@@ -147,10 +161,14 @@ Pair with `/do` orchestrator:
 /do review PR #123
 → Routes to reviewer agent
 → reviewer invokes /pr-review 123 --no-comment
-→ Fetches PR details and changes
-→ reviewer analyzes code
-→ reviewer submits verdict: /pr-review 123 --approve
+→ Fetches PR details and changes (read-only)
+→ reviewer analyzes code and drafts a verdict + rationale
+→ reviewer presents the draft to the user: "Do you approve this verdict? (yes/no)"
+→ user confirms "yes"
+→ only now does reviewer submit: /pr-review 123 --approve
 ```
+
+The reviewer agent never submits `--approve` or `--changes-requested` on its own judgment alone — confirmation from the user is required every time, regardless of how confident the analysis is.
 
 Or standalone:
 
@@ -158,7 +176,8 @@ Or standalone:
 /pr-review 123
 → Fetches PR details
 → Shows files changed, comments, existing reviews
-→ Waits for your decision
+→ Drafts a verdict and asks: "Do you approve this verdict? (yes/no)"
+→ Waits for your explicit confirmation before submitting anything
 ```
 
 ## Platform Detection Reference
@@ -176,7 +195,7 @@ See [references/review-workflow.md](references/review-workflow.md) for:
 - Pre-review checks (conflicts, build status)
 - Common review patterns
 - Comment best practices
-- Approval gates
+- Confirmation gate (required before `--approve` / `--changes-requested`) and injection-safe posting
 - Integration with CI/CD
 
 ## Constraints
@@ -187,3 +206,5 @@ See [references/review-workflow.md](references/review-workflow.md) for:
 - Cannot review own PR (returns error)
 - Cannot approve if already approved (optional override flag)
 - Cannot request changes if already declined (optional override flag)
+- **Never executes `--approve`, `--changes-requested` (or `bkt pr approve` / `bkt pr decline`) without explicit user confirmation of the drafted verdict** — applies even when invoked by the `reviewer` agent or with the flag pre-supplied on the command line
+- **Never interpolates model-generated text directly into a shell command.** Draft body/message text is written to a temp file and passed via `--body-file` / `--message-file` (or the closest equivalent flag); see [references/review-workflow.md](references/review-workflow.md)
