@@ -1,0 +1,7 @@
+{
+  "name": "do",
+  "description": "Route task to specialized agent, create execution plan with model override options, coordinate agents with review loops.",
+  "effort": "xhigh",
+  "allowed-tools": ["Read", "Edit", "Write", "Grep", "Glob", "Bash", "Agent", "AskUserQuestion"],
+  "argument-hint": "[task description or prompt]"
+}
