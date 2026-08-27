@@ -35,6 +35,7 @@ Use `/do` to route any development task to the right agent:
 |-------|---------|---------|
 | **do** | `/do <task>` | Route task to best agent + orchestrate |
 | **debug** | `/debug [analyze\|fix\|review]` | Root cause analysis & iterative fixes |
+| **bump** | `/bump [patch\|minor\|major\|auto]` | Semantic versioning & changelog generation |
 | **commit** | `/commit` | Conventional commit with git |
 | **branch** | `/branch [create\|switch]` | Branch management |
 | **map-project** | `/map-project` | Discover repo structure |

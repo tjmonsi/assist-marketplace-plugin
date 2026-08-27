@@ -1,0 +1,7 @@
+{
+  "name": "bump",
+  "description": "Semantic version bumping with changelog generation. Detects patch/minor/major from commits or explicit input, updates version files, generates changelog, and creates commit + tag.",
+  "effort": "medium",
+  "allowed-tools": ["Read", "Write", "Edit", "Grep", "Glob", "Bash"],
+  "argument-hint": "[patch | minor | major | auto] [--path PATH] [--no-tag] [--no-commit]"
+}
