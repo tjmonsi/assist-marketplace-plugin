@@ -111,6 +111,60 @@ plugin's executable surface.
 
 ---
 
+## Planning Document Review Gate
+
+**When triggered:** Output from planning-related tasks:
+- `planner` agent: Architecture decisions, task planning documents, roadmaps
+- `solutions-architect` agent: API specifications, data flows, schema designs, implementation contracts
+- `requirements-gatherer` agent: Business Requirements Document (BRD), User Requirements Document (URD), Feature/Non-functional requirements lists
+
+**Who reviews:** `reviewer` or `code-reviewer` agent
+
+**Authority:** Blocks next step if review incomplete; creator must fix feedback or escalate after 10 iterations
+
+### Review and Iteration Process
+
+1. **Creator Self-Reflection (1 pass):** Creator reviews own document for completeness, clarity, feasibility
+2. **Reviewer Audit:** Reviewer checks for:
+   - Clarity and completeness
+   - Technical feasibility (for solutions-architect docs)
+   - Requirement coverage (for requirements-gatherer docs)
+   - Alignment with architecture (for planning docs)
+3. **Iteration Loop:**
+   - Reviewer signs off with changes requested OR approval
+   - If changes requested: Creator fixes → Reviewer re-checks
+   - Track iterations (1, 2, 3, ... up to 10)
+   - Exit condition #1: **2 consecutive LGTMs** from reviewer → Approved (document ready for next step)
+   - Exit condition #2: **10 iterations reached** → Escalate to `code-reviewer` for final decision
+4. **Approval:** Document is approved when reviewer signs: `✓ LGTM #2` (second consecutive approval)
+
+### Iteration Tracking in Plan Files
+
+Mark each iteration in the plan:
+
+```
+**Review:** Planning Document (Architecture)
+- Iteration 1: Reviewer requests clarification on [X], add [Y]
+- Iteration 2: Creator fixes → Reviewer LGTM #1
+- Iteration 3: Creator adds [Z] detail → Reviewer LGTM #2
+- Final: ✓ Approved (2 consecutive LGTMs)
+```
+
+### Approval Signatures
+
+- `✓ Document Review Clear` — Reviewer has audited the document
+- `✓ LGTM #1` — First approval (one more needed for gate clearance)
+- `✓ LGTM #2` — Second consecutive approval (gate cleared)
+
+### Escalation
+
+If creator and reviewer cannot reach consensus after 10 iterations:
+1. Escalate to `code-reviewer` agent
+2. `code-reviewer` makes final judgment call: approve document or reject
+3. Decision is final; proceed or abort based on code-reviewer verdict
+
+---
+
 ## Testing Coverage Gate (>70%)
 
 **When triggered:** Code changes in production code  

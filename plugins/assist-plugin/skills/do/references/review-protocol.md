@@ -78,30 +78,66 @@ A step REQUIRES review if:
 
 ---
 
+### Planning Document Review Gate
+
+**Triggered by:** Output from planning-related agents (planner, solutions-architect, requirements-gatherer)
+
+**Reviewed by:** reviewer or code-reviewer
+
+**Process:**
+
+1. **Creator Self-Reflection** — Creator audits own work for:
+   - Completeness (all sections present?)
+   - Clarity (would a reader understand this?)
+   - Feasibility (are requirements realistic? Is architecture sound?)
+   - Alignment (does this match project context?)
+
+2. **Reviewer Audit** — Reviewer checks:
+   - Technical soundness
+   - Completeness against requirements
+   - Clarity and organization
+   - Feasibility and risk assessment
+
+3. **Iteration Loop**
+   - Reviewer approves OR requests changes
+   - If changes: Creator fixes → Reviewer re-audits
+   - Track iterations (max 10)
+   - Exit when: 2 consecutive LGTMs OR 10 iterations (escalate)
+
+**Approval:** `✓ LGTM #2` (two consecutive LGTMs)
+
+**Escalation:** After 10 iterations, escalate to `code-reviewer` for final decision
+
+---
+
 ## Review Workflow
 
+**Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard security → testing → code review sequence below.
+
 ```
-Developer submits code
-  ↓
-Security Gate Review (reviewer)
-  ├─ OWASP check
-  ├─ Approve or request revision
-  └─ If approved: continue
-     If revision: developer fixes, re-review
-  ↓
-Testing Gate Review (qa)
-  ├─ Coverage >70%?
-  ├─ Approve or request test additions
-  └─ If approved: continue
-     If revision: qa/developer add tests, re-review
-  ↓
-Code Review Gate (code-reviewer, optional but recommended)
-  ├─ Line-by-line review
-  ├─ Approve or request changes
-  └─ If approved: ready to merge
-     If revision: developer fixes, re-review
-  ↓
-Merge approved ✓
+Developer/Writer submits code/document
+  ├─ [Planning Document?] → Planning Document Review (reviewer)
+  │   └─ Iteration loop: max 10 or 2 consecutive LGTMs → Continue
+  │
+  └─ [Production Code?] → Security Gate Review (reviewer)
+      ├─ OWASP check
+      ├─ Approve or request revision
+      └─ If approved: continue
+         If revision: developer fixes, re-review
+      ↓
+      Testing Gate Review (qa)
+      ├─ Coverage >70%?
+      ├─ Approve or request test additions
+      └─ If approved: continue
+         If revision: qa/developer add tests, re-review
+      ↓
+      Code Review Gate (code-reviewer, optional but recommended)
+      ├─ Line-by-line review
+      ├─ Approve or request changes
+      └─ If approved: ready to merge
+         If revision: developer fixes, re-review
+      ↓
+      Merge approved ✓
 ```
 
 ---
