@@ -48,6 +48,39 @@ Then use the `/do` orchestrator:
 - Bitbucket Cloud (auto-detect, use `bkt` CLI)
 - Bitbucket Server/DC (auto-detect)
 
+## Token Efficiency
+
+The assist-plugin uses several strategies to reduce orchestration token overhead while maintaining feature parity or exceeding capability:
+
+### Defensible Claims (Verified by Analysis)
+
+- **~64% savings** on typical implementation tasks (e.g., user authentication, feature development)
+- **~65–70% savings** on design and architecture workflows  
+- **Up to 82% savings** on fast read-only operations (e.g., repository mapping)
+- **83% reduction** in static plugin footprint vs. software-development
+- **36.6% average savings** across multi-step orchestrated workflows
+
+See [plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md) for methodology and per-scenario breakdowns.
+
+### Where assist-plugin Costs More (And Why)
+
+Some skills intentionally use more tokens to provide capabilities the baseline lacks:
+
+**PR Review (`/pr-review`)**: Consolidates GitHub and Bitbucket detection + platform-specific workflows in one skill (~16.6KB). software-development provides only Bitbucket support (review-bkt-pr). The token cost increase reflects support for both platforms.
+
+**Semantic Versioning (`/bump`)**: Generates a full categorized CHANGELOG.md with sections for features, fixes, and breaking changes. software-development's release-version only bumps version numbers. The token cost increase reflects added functionality.
+
+These trade-offs are intentional: **higher token cost reflects added capability, not inefficiency.**
+
+### Understanding Model Routing
+
+The 3-tier model routing (Haiku/Sonnet/Opus) reduces **inference cost and latency**, not token context:
+- Haiku processes the same context as Opus, but at lower cost (~99% less) and faster inference
+- Switching models changes the price-per-token and response time, not the tokens-read
+- See [plugins/assist-plugin/skills/do/references/model-routing.md](plugins/assist-plugin/skills/do/references/model-routing.md) for details
+
+For a full breakdown of token savings by scenario, cost implications, and methodology, see [plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md).
+
 ## Documentation
 
 - **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)** — Quick reference

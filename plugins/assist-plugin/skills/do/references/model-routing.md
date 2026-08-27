@@ -89,3 +89,20 @@ When should you override the default model?
 - Time-sensitive: Use Opus for faster first-pass accuracy
 - Exploratory: Start Sonnet, upgrade if needed
 
+---
+
+### Cost Savings vs. Token Context
+
+The 3-tier routing strategy (Haiku/Sonnet/Opus) optimizes **cost and latency**, not token footprint:
+
+- **Token context is identical**: Haiku reads the same instruction context as Opus. Routing only changes which model processes it.
+- **Cost difference is significant**: 
+  - Haiku: ~$0.08 per 1M input tokens
+  - Opus: ~$15 per 1M input tokens
+  - For a 10K-token task: Haiku = $0.0008, Opus = $0.15
+- **Latency also improves**: Smaller models typically return responses faster than Opus.
+
+**Example:** Routing the `explore` agent (pure search, no reasoning) to Haiku saves ~$0.10 per typical call vs. routing to Opus, while reading identical documentation/agent context.
+
+For per-scenario token measurements and optimization strategy, see [../../../docs/TOKEN_OPTIMIZATION.md](../../../docs/TOKEN_OPTIMIZATION.md).
+

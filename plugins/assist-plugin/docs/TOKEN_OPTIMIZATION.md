@@ -16,14 +16,20 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
-### Skills (6)
+### Skills (8)
 - `do` (orchestrator) — replaces `run` with streamlined logic
 - `debug` — replaces `debug-code` with token-optimized workflow
+- `bump` — semantic versioning & changelog generation
+- `pr-review` — GitHub/Bitbucket PR review with auto-detection
 - `commit`, `branch` — essential git operations
 - `map-project` — project discovery
 - `technical-writing` — documentation generation
 
 **Why:** Minimal viable skill set covering 80% of common tasks.
+
+> **Note:** `pr-review` supports both GitHub and Bitbucket in a single skill (~16.6KB). software-development only provides Bitbucket (`review-bkt-pr`). The higher token cost reflects broader platform support.
+>
+> **Note:** `bump` generates a full categorized CHANGELOG.md. software-development's `release-version` only bumps version numbers. The extra token cost reflects added functionality.
 
 ### References (Consolidated)
 - `agent-registry.md` — 1 source of truth for all agents
@@ -62,7 +68,7 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 - **Format:** Each skill references comprehensive examples in SPECIFICATION.md
 
 ### Verbose Reference Documentation
-- **Why excluded:** Consolidated into 4 key reference files
+- **Why excluded:** Consolidated references (12 files spanning skills: do (4), debug (4), bump (2), pr-review (2))
 - **Original approach:** Separate reference file per agent/skill + examples
 - **This approach:** Table-driven data + link-based structure
 
@@ -125,7 +131,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
 | Agents | 12 | 12 | 100% |
-| Skills | 6 | 20+ | 30% |
+| Skills | 8 | 20+ | 40% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
 | **Plugin size** | ~2.5k | ~4.0k | **62%** |
