@@ -15,7 +15,7 @@ Token-optimized software development plugin with 8 specialized skills, 12 expert
 - Auto-detection: GitHub/Bitbucket platform detection
 - Full documentation: SPECIFICATION, ARCHITECTURE, TOKEN_OPTIMIZATION
 
-**Location:** `assist-plugin/1.0.0/`
+**Location:** `plugins/assist-plugin/`
 
 **Quick start:**
 ```bash
@@ -29,20 +29,19 @@ Token-optimized software development plugin with 8 specialized skills, 12 expert
 
 ```
 assist-plugin-marketplace/
-├── .claude-plugin/plugin.json (marketplace metadata)
+├── .claude-plugin/marketplace.json (marketplace metadata)
 ├── MARKETPLACE.md (this file)
 ├── README.md (marketplace overview)
-├── assist-plugin/
-│   └── 1.0.0/
-│       ├── .claude-plugin/plugin.json (plugin metadata)
-│       ├── agents/ (12 agent definitions)
-│       ├── skills/ (8 skill implementations)
-│       ├── rules/ (governance)
-│       ├── docs/ (comprehensive documentation)
-│       ├── Claude.md (quick reference)
-│       ├── NOTICE (attribution)
-│       └── LICENSE (MIT)
-└── (future plugins)
+└── plugins/
+    └── assist-plugin/
+        ├── .claude-plugin/plugin.json (plugin metadata)
+        ├── agents/ (12 agent definitions)
+        ├── skills/ (8 skill implementations)
+        ├── rules/ (governance)
+        ├── docs/ (comprehensive documentation)
+        ├── Claude.md (quick reference)
+        ├── NOTICE (attribution)
+        └── LICENSE (MIT)
 ```
 
 ## Installation
@@ -50,22 +49,23 @@ assist-plugin-marketplace/
 ### Method 1: From Claude Code
 
 ```bash
-/plugin install assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
 
-### Method 2: Manual Installation
+### Method 2: Manual Git Clone
 
 ```bash
-git clone https://github.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/assist-plugin-marketplace
-claude plugins reload
+git clone https://github.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/marketplaces/assist-plugin-marketplace
+/plugin reload
 ```
 
 ## Versioning
 
-Each plugin follows semantic versioning. Version 1.0.0 is available in `assist-plugin/1.0.0/`.
+Each plugin follows semantic versioning. Version 1.0.0 is available in `plugins/assist-plugin/`.
 
-Future versions will be added as `assist-plugin/1.1.0/`, `assist-plugin/2.0.0/`, etc.
+Future versions will follow the same pattern: a single `plugins/assist-plugin/` directory with versioning managed through git tags (e.g., `assist-plugin--v1.1.0`, `assist-plugin--v2.0.0`).
 
 ## License
 

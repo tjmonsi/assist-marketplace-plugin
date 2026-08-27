@@ -9,6 +9,5 @@
   "homepage": "https://github.com/tjmonsi/assist-plugin-marketplace",
   "repository": "https://github.com/tjmonsi/assist-plugin-marketplace",
   "license": "MIT",
-  "category": "development",
   "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized"]
 }
