@@ -2,6 +2,42 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.2.0] - 2026-08-28
+
+### Governance Enhancements
+
+- **Planning Document Review Gates with Iteration Loops**
+  - Add review gates for planner, solutions-architect, requirements-gatherer outputs
+  - Creator self-reflection → Reviewer audit → Iteration loop (max 10 or 2 consecutive LGTMs)
+  - Reference: planning-review-agents.md with typical iteration counts per agent/document type
+
+- **Developer Code Review Iteration Loops**
+  - Extend iteration-based review to OWASP and Code Review gates (same as planning docs)
+  - Developer self-reflection step before reviewer audit
+  - Exit conditions: 2 consecutive LGTMs OR 10 iterations (escalate to code-reviewer)
+  - Reference: developer-self-review.md with pre-submission checklist
+
+- **Reviewer Adversarial Self-Reflection**
+  - Add adversarial self-reflection phase for reviewers (before formal audit)
+  - Five-category checklist: Errors, Inconsistencies, Assumptions/Edge Cases, Security/Performance, Clarity
+  - Applied to all review gates (OWASP, Code Review, Planning Documents)
+  - Reference: reviewer-adversarial-reflection.md with examples and workflow
+
+### Documentation & References
+
+- Create planning-review-agents.md: Map planning agents to document types and typical iterations
+- Create developer-self-review.md: Pre-submission checklist for developer code quality
+- Create reviewer-adversarial-reflection.md: Guide for deliberate issue-finding before formal audit
+- Update assist-plugin-rule.md: Add Planning Document Review Gate and Reviewer Adversarial Self-Reflection sections
+- Update review-protocol.md: Integrate self-reflection phases into all review workflows
+
+### Improvements
+
+- Unified review process across all deliverables (code and documents)
+- Quality improves through multiple iteration cycles (typical: 2-3, max: 10)
+- Earlier issue detection via adversarial self-reflection phase
+- Clear escalation path after 10 iterations
+
 ## [1.1.0] - 2026-08-27
 
 ### Security
