@@ -12,6 +12,29 @@ Review happens AFTER implementation steps. Goals:
 
 ---
 
+## Reviewer Adversarial Self-Reflection
+
+All review gates include a dedicated adversarial self-reflection phase where the reviewer deliberately tries to find issues BEFORE conducting the formal audit.
+
+**What reviewers look for:**
+- Errors: syntax, logic, type mismatches, variable scope
+- Inconsistencies: with codebase patterns, requirements, architecture, naming
+- Assumptions & edge cases: null checks, boundary conditions, error paths, concurrency
+- Security & performance: injection vectors, credential leaks, N+1 patterns, memory issues
+- Clarity: unclear naming, missing explanations, confusing logic flow
+
+**Why it matters:**
+- Catches problems earlier (before formal audit)
+- Improves review quality and thoroughness
+- Reduces iteration count (issues found in self-reflection phase)
+- Provides structured feedback to creators
+
+**When:** Applied in all review gates — OWASP, Code Review, Planning Documents
+
+See [governance rule: Reviewer Adversarial Self-Reflection](../rules/assist-plugin-rule.md#reviewer-adversarial-self-reflection) for detailed checklist.
+
+---
+
 ## Review Triggers
 
 A step REQUIRES review if:
@@ -29,6 +52,16 @@ A step REQUIRES review if:
 
 **Triggered by:** Code changes in developer, devops agents  
 **Reviewed by:** reviewer or code-reviewer  
+
+### Reviewer Adversarial Self-Reflection
+
+Before formal audit, reviewer deliberately:
+- Looks for syntax/logic errors, type mismatches
+- Checks for inconsistencies with codebase patterns
+- Questions assumptions: What if input is null? What if it fails?
+- Spot-checks security: injection vectors, credential leaks
+- Tests mental model: Can I follow the logic?
+
 **Checklist:**
 
 1. **Injection** — SQL, command, script injection prevented?
@@ -75,6 +108,16 @@ A step REQUIRES review if:
 
 **Triggered by:** Merge-ready code  
 **Reviewed by:** code-reviewer  
+
+### Reviewer Adversarial Self-Reflection
+
+Before formal audit, reviewer deliberately:
+- Looks for syntax/logic errors, type mismatches
+- Checks for inconsistencies with codebase patterns
+- Questions assumptions: What if input is null? What if it fails?
+- Spot-checks security: injection vectors, credential leaks
+- Tests mental model: Can I follow the logic?
+
 **Checklist:**
 
 1. **Correctness** — Logic sound? No bugs?
@@ -101,6 +144,15 @@ A step REQUIRES review if:
 **Triggered by:** Output from planning-related agents (planner, solutions-architect, requirements-gatherer)
 
 **Reviewed by:** reviewer or code-reviewer
+
+### Reviewer Adversarial Self-Reflection
+
+Before formal audit, reviewer deliberately:
+- Looks for syntax/logic errors, type mismatches
+- Checks for inconsistencies with codebase patterns
+- Questions assumptions: What if input is null? What if it fails?
+- Spot-checks security: injection vectors, credential leaks
+- Tests mental model: Can I follow the logic?
 
 **Process:**
 
@@ -133,27 +185,19 @@ A step REQUIRES review if:
 **Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard security → testing → code review sequence below.
 
 ```
-Developer submits code
+Developer/Planner submits code/document
   ↓
-Developer self-reviews against OWASP
+Creator self-reviews
   ↓
-Security Gate Review (reviewer) + Iteration Loop
-  ├─ Iteration 1: Reviewer requests [X, Y, Z]
-  ├─ Iteration 2: Developer fixes → Reviewer LGTM #1
-  ├─ Iteration 3: Developer refines → Reviewer LGTM #2
-  └─ Exit: 2 consecutive LGTMs OR escalate after 10 iterations
+Reviewer adversarially self-reflects (tries to find issues)
   ↓
-Testing Gate Review (qa)
-  ├─ Coverage >70%?
-  └─ Approve or request test additions
-  ↓
-Developer self-reviews code quality
-  ↓
-Code Review Gate (code-reviewer) + Iteration Loop
-  ├─ Iteration 1: Reviewer requests [correctness, perf, readability]
-  ├─ Iteration 2: Developer fixes → Reviewer LGTM #1
-  └─ Iteration 3: Developer refines → Reviewer LGTM #2
-  └─ Exit: 2 consecutive LGTMs OR escalate after 10 iterations
+Reviewer conducts formal audit
+  ├─ OWASP check (if code) OR gate-specific checklist
+  ├─ Approve or request revision
+  └─ If revision: iterate
+     - Creator fixes
+     - Reviewer repeats adversarial self-reflection + formal audit
+     - Exit: 2 consecutive LGTMs or 10 iterations (escalate)
   ↓
 Merge approved ✓
 ```
@@ -199,6 +243,19 @@ In plan file, mark review outcomes:
   - Testing: ✓ 82% coverage
   - Code Review: Iteration 3 → ✓ Approved for merge
   - Tracked: Max 10 iterations; exited at 3 (2 consecutive LGTMs)
+```
+
+```markdown
+### Step 3: Review with Adversarial Self-Reflection
+
+**Status:** completed  
+**Done:** [YYYY-MM-DD HH:mm]  
+**Review:** Code Review with Adversarial Self-Reflection
+  - Reviewer self-reflects: Found 2 potential null-pointer issues, 1 unclear variable name
+  - Reviewer audit: Confirmed both edge cases unhandled, variable naming confusing
+  - Iteration 1: Developer adds null checks → Reviewer LGTM #1
+  - Iteration 2: Developer renames variables → Reviewer LGTM #2
+  - Final: ✓ Approved for merge
 ```
 
 ---

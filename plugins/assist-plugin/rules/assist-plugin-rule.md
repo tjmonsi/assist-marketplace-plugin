@@ -183,6 +183,67 @@ If creator and reviewer cannot reach consensus after 10 iterations:
 
 ---
 
+## Reviewer Adversarial Self-Reflection
+
+All review gates include a dedicated adversarial self-reflection phase for the reviewer, executed BEFORE the formal audit.
+
+**Purpose:** Deliberately find issues (errors, inconsistencies, edge cases) to improve review quality and catch problems earlier.
+
+### Checklist: What Reviewers Deliberately Look For
+
+**Errors & Syntax:**
+- [ ] Syntax errors (typos, malformed code/JSON/YAML)
+- [ ] Logic errors (off-by-one, null pointer, infinite loop)
+- [ ] Type mismatches (wrong type passed, return type inconsistent)
+- [ ] Variable scope issues (shadowing, uninitialized variables)
+
+**Inconsistencies:**
+- [ ] Inconsistent with codebase (differs from project patterns)
+- [ ] Inconsistent with requirements (doesn't match spec)
+- [ ] Inconsistent with prior decisions (contradicts architecture)
+- [ ] Inconsistent naming (mixes camelCase/snake_case, unclear terms)
+
+**Assumptions & Edge Cases:**
+- [ ] Questionable assumptions (is this guaranteed? what if it's null?)
+- [ ] Missing null/empty checks (what if input is empty?)
+- [ ] Boundary conditions (off-by-one in loops, fence-post errors)
+- [ ] Error paths (what happens on failure? is it handled?)
+- [ ] Concurrency issues (race conditions, deadlocks if concurrent)
+
+**Security & Performance:**
+- [ ] Injection vectors (SQL, command, script injection)
+- [ ] Credential leaks (hardcoded secrets, PII in logs)
+- [ ] N+1 query patterns (inefficient database access)
+- [ ] Memory issues (leaks, unbounded growth)
+
+**Clarity & Maintainability:**
+- [ ] Unclear naming (variable/function names confusing)
+- [ ] Missing comments (why is this done this way?)
+- [ ] Over-commented code (comment states obvious)
+- [ ] Can I follow the logic? (does it flow coherently)
+
+### Reviewer Workflow
+
+1. **Adversarial Self-Reflection** (before formal audit)
+   - Read through entire submission
+   - Deliberately try to find each category of issue above
+   - Note potential problems/questions
+   - Document findings
+
+2. **Formal Audit** (using checklists)
+   - Systematically check all items
+   - Combine self-reflection findings + formal checklist
+   - Make approval or revision decision
+
+3. **Iteration Loop**
+   - Creator addresses feedback
+   - Reviewer repeats: adversarial self-reflection + formal audit
+   - Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+
+**Note:** Adversarial self-reflection is not a separate gate. It is a pre-audit step to improve the quality of the formal review.
+
+---
+
 ## Testing Coverage Gate (>70%)
 
 **When triggered:** Code changes in production code  
