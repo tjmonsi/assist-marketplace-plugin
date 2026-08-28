@@ -76,7 +76,25 @@ Code MUST pass ALL checks before approval:
     - [ ] Logs retained for audit trail
     - [ ] Alerts set for suspicious activity
 
-**Approval:** Must sign: `✓ OWASP Clear`
+### Iteration Process
+
+1. **Developer Self-Review** — Developer audits own code for:
+   - Logic correctness and edge cases
+   - OWASP compliance (no injection, auth sound, secrets protected)
+   - Test coverage adequate
+   - Readability and naming
+   - Performance issues (N+1 queries, etc.)
+
+2. **Reviewer Audit** — Reviewer checks all 10 OWASP categories
+
+3. **Iteration Loop:**
+   - If issues found: Developer fixes → Reviewer re-checks
+   - Count iterations (max 10)
+   - Exit when: 2 consecutive LGTMs from reviewer OR 10 iterations (escalate to code-reviewer)
+
+**Approval:** `✓ OWASP Clear` only after iteration loop complete
+
+**Approval:** Must sign: `✓ OWASP Clear` (after iteration loop)
 
 ---
 
@@ -206,7 +224,20 @@ npm run test:coverage  # or equivalent
 4. **Architecture** — Follows conventions?
 5. **Testability** — Code is testable?
 
-**Approval:** Must sign: `✓ Approved for merge`
+### Iteration Process
+
+1. **Developer Self-Review** — Developer audits own code against the 5 review dimensions
+
+2. **Code Reviewer Audit** — Line-by-line review on all dimensions
+
+3. **Iteration Loop:**
+   - If changes requested: Developer fixes → Code reviewer re-audits
+   - Count iterations (max 10)
+   - Exit when: 2 consecutive LGTMs from code-reviewer OR 10 iterations (escalate to architecture review)
+
+**Approval:** `✓ Approved for merge` only after iteration loop complete
+
+**Approval:** Must sign: `✓ Approved for merge` (after iteration loop)
 
 ---
 
@@ -245,6 +276,7 @@ Escalate to code-reviewer if:
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `CLAUDE.md`, or `.claude/settings*.json`)
 - [ ] Testing: ✓ >70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
+- [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
 - [ ] Commit format: ✓ Conventional Commits
 - [ ] Commits squashed: ✓ Clean history (if requested)
 

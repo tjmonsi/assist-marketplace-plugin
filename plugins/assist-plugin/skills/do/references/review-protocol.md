@@ -42,7 +42,16 @@ A step REQUIRES review if:
 9. **Using Components** — Dependencies up-to-date? Known vulns checked?
 10. **Logging & Monitoring** — Security events logged?
 
-**Approval:** Reviewer must sign off: ✓ OWASP Clear
+### Iteration Process
+
+1. **Developer Self-Review** — Developer checks code against OWASP categories
+2. **Reviewer Audit** — Reviewer checks all 10 categories
+3. **Iteration Loop** — If issues found: Developer fixes → Reviewer re-checks
+4. **Exit Conditions:**
+   - 2 consecutive LGTMs from reviewer → Approved
+   - 10 iterations reached → Escalate to code-reviewer for final call
+
+**Approval:** `✓ OWASP Clear` (after iteration complete)
 
 ---
 
@@ -74,7 +83,16 @@ A step REQUIRES review if:
 4. **Architecture** — Follows project conventions?
 5. **Testability** — Code is testable?
 
-**Approval:** Formal sign-off: ✓ Approved for merge
+### Iteration Process
+
+1. **Developer Self-Review** — Self-check on all 5 dimensions
+2. **Code Reviewer Audit** — Line-by-line review on all dimensions
+3. **Iteration Loop** — If changes requested: Developer fixes → Reviewer re-audits
+4. **Exit Conditions:**
+   - 2 consecutive LGTMs from code-reviewer → Approved
+   - 10 iterations reached → Escalate to architecture review
+
+**Approval:** `✓ Approved for merge` (after iteration complete)
 
 ---
 
@@ -115,29 +133,29 @@ A step REQUIRES review if:
 **Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard security → testing → code review sequence below.
 
 ```
-Developer/Writer submits code/document
-  ├─ [Planning Document?] → Planning Document Review (reviewer)
-  │   └─ Iteration loop: max 10 or 2 consecutive LGTMs → Continue
-  │
-  └─ [Production Code?] → Security Gate Review (reviewer)
-      ├─ OWASP check
-      ├─ Approve or request revision
-      └─ If approved: continue
-         If revision: developer fixes, re-review
-      ↓
-      Testing Gate Review (qa)
-      ├─ Coverage >70%?
-      ├─ Approve or request test additions
-      └─ If approved: continue
-         If revision: qa/developer add tests, re-review
-      ↓
-      Code Review Gate (code-reviewer, optional but recommended)
-      ├─ Line-by-line review
-      ├─ Approve or request changes
-      └─ If approved: ready to merge
-         If revision: developer fixes, re-review
-      ↓
-      Merge approved ✓
+Developer submits code
+  ↓
+Developer self-reviews against OWASP
+  ↓
+Security Gate Review (reviewer) + Iteration Loop
+  ├─ Iteration 1: Reviewer requests [X, Y, Z]
+  ├─ Iteration 2: Developer fixes → Reviewer LGTM #1
+  ├─ Iteration 3: Developer refines → Reviewer LGTM #2
+  └─ Exit: 2 consecutive LGTMs OR escalate after 10 iterations
+  ↓
+Testing Gate Review (qa)
+  ├─ Coverage >70%?
+  └─ Approve or request test additions
+  ↓
+Developer self-reviews code quality
+  ↓
+Code Review Gate (code-reviewer) + Iteration Loop
+  ├─ Iteration 1: Reviewer requests [correctness, perf, readability]
+  ├─ Iteration 2: Developer fixes → Reviewer LGTM #1
+  └─ Iteration 3: Developer refines → Reviewer LGTM #2
+  └─ Exit: 2 consecutive LGTMs OR escalate after 10 iterations
+  ↓
+Merge approved ✓
 ```
 
 ---
@@ -169,6 +187,18 @@ In plan file, mark review outcomes:
   - Security: ✓ OWASP clear
   - Testing: ✓ 85% coverage
   - Code Review: ✓ Approved
+```
+
+```markdown
+### Step 3: Implementation (Code)
+
+**Status:** completed  
+**Done:** [YYYY-MM-DD HH:mm] — [Summary]  
+**Review:** Code Review with Iterations
+  - Security (OWASP): Iteration 2 → ✓ OWASP Clear
+  - Testing: ✓ 82% coverage
+  - Code Review: Iteration 3 → ✓ Approved for merge
+  - Tracked: Max 10 iterations; exited at 3 (2 consecutive LGTMs)
 ```
 
 ---
