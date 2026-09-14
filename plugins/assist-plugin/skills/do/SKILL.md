@@ -37,7 +37,9 @@ If ambiguous, ask the user for clarification.
 
 ## Step 2 — Match to agents
 
-Read [references/agent-registry.md](references/agent-registry.md).
+Check the ask agent first: if the primary intent from Step 1 is question-answering, repo research, or documentation lookup (not implementation, review, or planning), route directly to the **ask** agent and skip the table below. See [Plugin & Skill Discovery](#plugin--skill-discovery).
+
+Otherwise, read [references/agent-registry.md](references/agent-registry.md).
 
 Use the FIRST agent whose responsibilities match the primary intent. If multiple tasks: identify one agent per task, plan sequencing.
 
@@ -47,8 +49,27 @@ Read [references/model-routing.md](references/model-routing.md).
 
 Apply the priority chain:
 1. **Opus** → orchestrator, reviewer, code-reviewer
-2. **Sonnet** → developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker
+2. **Sonnet** → ask, developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker
 3. **Haiku** → explore, (commit, branch)
+
+## Plugin & Skill Discovery
+
+The router is not limited to the fixed agent registry. It can discover available plugins and skills at runtime and use them to route or enrich a task.
+
+- Before finalizing agent selection, the orchestrator may scan installed plugins (`plugins/*/skills/*/SKILL.md`, `plugins/*/agents/*.md`) to find skills or agents whose frontmatter `description` matches the task, beyond what is listed in the static registry.
+- Subagents can be handed suggested plugins/skills that match their task context. For example, if a `developer` step will touch documentation, the orchestrator can note in that agent's task prompt: "Consider using the `technical-writing` skill for the README update."
+- Discovery never replaces the approval flow: any newly discovered agent/skill still goes through Step 4 (user approval) before execution.
+
+For the full discovery mechanism and examples, see [references/routing-with-discovery.md](references/routing-with-discovery.md).
+
+### Ask skill routing
+
+Use the **ask** agent for question-answering, repo research, or documentation lookup tasks (for example: "how does X work", "where is Y documented", "research this in the repo"). It is Sonnet-tier and read-only (Read, Grep, Glob, WebSearch, WebFetch) — it answers questions rather than changing code.
+
+Routing order:
+1. Classify primary intent (Step 1).
+2. If intent is a question/research/documentation lookup → route to **ask** (checked AFTER primary intent matching, BEFORE the agent-registry table).
+3. Otherwise → proceed with Step 2 matching against [references/agent-registry.md](references/agent-registry.md).
 
 ## Step 3 — Create plan
 

@@ -2,10 +2,11 @@
 
 Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 
-## All Agents (12)
+## All Agents (13)
 
 | Agent | Responsibilities | Default Model | Tools | Primary Intent Match |
 |-------|------------------|----------------|-------|----------------------|
+| **ask** | Answer questions using repo search + web research | Sonnet | Read, Grep, Glob, WebSearch, WebFetch | "answer my question", "research this in repo", "find documentation" |
 | **developer** | Write/fix/refactor code; implement features; apply approved fixes | Sonnet | Read, Edit, Write, Grep, Glob, Bash, LSP | "implement X", "fix bug in Y", "refactor Z" |
 | **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, Bash, LSP | "review this PR", "check for security", "OWASP compliance" |
 | **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Opus | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
@@ -27,6 +28,9 @@ Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 User task → /do
   ↓
 Classify primary intent:
+
+Is it a QUESTION, or does it need REPO/WEB RESEARCH TO ANSWER (not implement)?
+  └─ Answer question / find documentation / look something up? → ask
 
 Is it about CODE IMPLEMENTATION?
   ├─ Large feature? → developer + qa + reviewer (split)
@@ -75,7 +79,7 @@ No clear match?
 | Tier | Model | When to Use | Agents |
 |------|-------|-----------|--------|
 | **Low** | Haiku | Simple operations, pure search | explore |
-| **Medium** | Sonnet | Most development work, analysis | developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker |
+| **Medium** | Sonnet | Most development work, analysis | ask, developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker |
 | **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer |
 
 ---

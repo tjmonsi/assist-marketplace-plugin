@@ -204,6 +204,57 @@ Merge approved ✓
 
 ---
 
+## Fix Phase Rules
+
+Applies whenever a reviewer requests changes at any gate (OWASP, Testing, Code Review, Planning Document).
+
+Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
+
+### Model Constraint
+
+- Fix phase ALWAYS uses Sonnet
+- Never use Opus for fixes, even if the review gate itself uses Opus (reviewer, code-reviewer)
+- Never use Haiku for fixes, even for single-line changes
+- Applies to every agent performing a fix (developer, planner, solutions-architect, requirements-gatherer)
+
+### Scope Constraint
+
+- Developer/creator fixes ONLY items explicitly identified by the reviewer
+- No scope creep: no unrelated refactors, no drive-by cleanup, no "while I'm here" changes
+- If additional issues are spotted during the fix, flag them to the orchestrator — do not fix them unilaterally
+- Reviewer re-audit checks two things: (1) listed items resolved, (2) no unrelated changes introduced
+
+### Fix Phase Procedure
+
+1. Reviewer produces an itemized findings list (file, line number, issue description)
+2. Orchestrator routes findings to the fixing agent with `Model: Sonnet` (non-negotiable)
+3. Fixing agent changes ONLY the code/content tied to a listed finding
+4. Fixing agent self-reviews the fix against the findings list only (not a full-file pass)
+5. Reviewer re-audits: confirms each finding resolved AND scans for unrelated diffs
+6. If unrelated changes are present: reject the fix, re-iterate the fix phase
+7. If fix is correctly scoped: proceed to next review iteration
+
+### Plan Tracking: Review Iterations vs. Fix Iterations
+
+Track review passes and fix passes as separate counters in the plan file:
+
+```markdown
+**Review:** Code Review with Iterations
+  - Review Iteration 1 (code-reviewer, Opus): Finds 2 issues — null check L42, unclear naming L88
+  - Fix Iteration 1 (developer, Sonnet): Fixes L42, L88 only — no other lines touched
+  - Review Iteration 2 (code-reviewer, Opus): Confirms both fixes, no unrelated changes → LGTM #1
+  - Review Iteration 3 (code-reviewer, Opus): Re-audit → LGTM #2
+  - Exited: 2 consecutive LGTMs
+  - Fix Model: Sonnet (all fix iterations, non-negotiable)
+```
+
+- **Review iteration** — a reviewer audit pass (model per gate: Opus for reviewer/code-reviewer)
+- **Fix iteration** — a fixing-agent pass (model always Sonnet)
+- Counters are independent: a review iteration with no findings needs no matching fix iteration
+- Max 10 combined iterations per gate before escalation (see Iteration Process per gate)
+
+---
+
 ## Revision Workflow
 
 If reviewer requests changes:
