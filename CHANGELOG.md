@@ -2,6 +2,51 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.3.0] - 2026-09-14
+
+### New Features
+
+- **Ask Skill & Agent**
+  - Add `/ask [--web] <question>` skill for answering questions using repository + optional web research
+  - New `ask` agent to handle research and information retrieval across codebase and internet
+  - Integration with router discovery for intelligent agent selection
+
+### Router & Model Optimization
+
+- **Router Plugin Discovery**
+  - Enhanced router to auto-discover plugin capability and route complex tasks across specialized agents
+  - Improved model assignment strategy based on task complexity and agent role
+
+- **Model Routing Optimization**
+  - Assign Sonnet tier to planner agent for better architectural reasoning
+  - Assign Haiku tier to commit skill for efficient git message composition
+  - Right-size model selection across all agents for token efficiency
+
+### Governance Improvements
+
+- **Review-Fix Protocol Enhancement**
+  - Streamline resolution of code review blockers with adversarial self-reflection
+  - Apply iteration-loop review process to developer code changes
+  - Consistent exit criteria across all review gates
+
+### Documentation Standards
+
+- **Documentation Standard Formalization**
+  - Add DOCUMENTATION_STANDARD.md covering AI-slop removal, conciseness, and clarity
+  - Establish consistent writing guidelines across all plugin documentation
+  - Remove unnecessary verbosity from documentation and specifications
+
+### Breaking Changes
+
+- **LLM Co-Authorship Removal**
+  - Remove Claude/AI tool co-authorship tags from commit messages (human-focused commits)
+  - Streamline Git history for better human readability and compliance
+
+### Agent & Skill Count Updates
+
+- Total agents increased to 13 (added `ask` agent)
+- Total skills increased to 9 (added `ask` skill)
+
 ## [1.2.0] - 2026-08-28
 
 ### Governance Enhancements
