@@ -103,13 +103,15 @@ Execute approved plan step by step. Follow [references/review-protocol.md](refer
 For each step:
 1. **Delegate** — Invoke matched agent with:
    - Self-contained task prompt
-   - Model parameter per routing table
+   - Model parameter per routing table (or always Sonnet if fix phase — see [references/fix-phase-rules.md](references/fix-phase-rules.md))
    - Effort level stated explicitly
    - `run_in_background: true` if independent
 2. **Collect result** — Wait for completion
 3. **Review** — If step produces files AND agent ≠ reviewer → trigger review loop
 4. **Tag done** — Use Edit tool to update plan status to `completed` + timestamp + review outcome
 5. **Proceed** — Only after plan file updated
+
+**Fix Phase:** All fix-phase agents run on Sonnet model (non-negotiable). See [references/fix-phase-rules.md](references/fix-phase-rules.md) for scope constraints and procedure.
 
 ## Step 6 — Synthesize
 

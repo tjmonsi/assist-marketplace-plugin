@@ -255,20 +255,6 @@ Track review passes and fix passes as separate counters in the plan file:
 
 ---
 
-## Revision Workflow
-
-If reviewer requests changes:
-
-1. **Note revision:** Add note to plan: "**Review:** Revision requested — [reason]"
-2. **Route back:** Return to original agent with specific requests
-3. **Re-implement:** Agent makes changes
-4. **Re-review:** Reviewer checks again
-5. **Repeat:** Until approval
-
-**Plan status:** Stay at step until all revisions cleared, then mark `completed`
-
----
-
 ## Approval Tracking
 
 In plan file, mark review outcomes:

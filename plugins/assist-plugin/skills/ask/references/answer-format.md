@@ -11,8 +11,8 @@ Template for `/ask` responses. Fill every section. Omit "Code" if no snippet app
 
 ## Found In
 
-- `path/to/file.ext` (line N) — <one-line reason this file matters>
-- https://example.com/docs/page — <one-line reason this source matters>
+- `path/to/file.ext` (line N): <one-line reason this file matters>
+- https://example.com/docs/page: <one-line reason this source matters>
 
 ## Code
 
@@ -47,8 +47,8 @@ The `debug` skill routes subcommands by reading `$0` and matching it against a t
 
 ## Found In
 
-- `plugins/assist-plugin/skills/debug/SKILL.md` (lines 25-33) — defines the routing table
-- `plugins/assist-plugin/skills/debug/references/fix.md` — details the `fix` subcommand gate
+- `plugins/assist-plugin/skills/debug/SKILL.md` (lines 25-33): defines the routing table
+- `plugins/assist-plugin/skills/debug/references/fix.md`: details the `fix` subcommand gate
 
 ## Code
 

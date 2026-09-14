@@ -92,6 +92,12 @@ When should you override the default model?
 - **researcher:** Always Opus (comprehensive research quality)
 - **requirements-gatherer:** Sonnet by default (straightforward elicitation)
 
+### Fix Phase (Non-Negotiable)
+- **All fixing agents:** Always Sonnet (non-negotiable)
+- **Rationale:** Sonnet provides sufficient precision for applying specific identified fixes while saving cost
+- **Scope constraint:** Fix phase only modifies code/docs related to reviewer's identified findings
+- **See:** [fix-phase-rules.md](fix-phase-rules.md) for complete constraints and procedure
+
 ### Guidance
 - Cost optimization: Sonnet + iterate beats one Opus pass for 80% of tasks
 - Risk-critical work: Pay for Opus (security, architecture, approval)

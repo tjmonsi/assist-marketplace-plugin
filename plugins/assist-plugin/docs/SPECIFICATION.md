@@ -2,13 +2,13 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 12 specialized agents, and 6 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 9 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
 ---
 
-## Agents (12 Total)
+## Agents (13 Total)
 
 ### Core Development Agents (3)
 
@@ -39,7 +39,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Implementation roadmaps
   - Dependency analysis
   - Risk assessment
-- **Model default:** Opus
+- **Model default:** Sonnet
 - **Tools:** Read, Write, Edit, Grep, Glob, Bash
 
 ### Testing & Quality Agents (2)

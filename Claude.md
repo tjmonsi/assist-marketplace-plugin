@@ -34,6 +34,7 @@ Use `/do` to route any development task to the right agent:
 | Skill | Command | Purpose |
 |-------|---------|---------|
 | **do** | `/do <task>` | Route task to best agent + orchestrate |
+| **ask** | `/ask [--web] <question>` | Answer questions using repo + optional web research |
 | **debug** | `/debug [analyze\|fix\|review]` | Root cause analysis & iterative fixes |
 | **bump** | `/bump [patch\|minor\|major\|auto]` | Semantic versioning & changelog generation |
 | **pr-review** | `/pr-review [PR#] [--approve\|--changes-requested]` | Auto-detect GitHub/Bitbucket, review PRs |
@@ -47,6 +48,7 @@ Use `/do` to route any development task to the right agent:
 - **[SPECIFICATION.md](docs/SPECIFICATION.md)** — Full agent/skill catalog
 - **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Design rationale and structure
+- **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)** — Writing standards, AI-slop removal, conciseness checklist
 
 ## Getting Started
 

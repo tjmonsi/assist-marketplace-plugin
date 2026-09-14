@@ -2,7 +2,7 @@
 name: planner
 description: "Design system architecture, create roadmaps, analyze dependencies and risks, define technical strategy."
 type: agent
-model: opus
+model: sonnet
 effort: xhigh
 tools: [Read, Write, Edit, Grep, Glob]
 ---
@@ -18,9 +18,9 @@ Designs system architecture, creates implementation roadmaps, analyzes dependenc
 - Define phased approach
 - Identify critical path
 
-**Model:** Opus  
+**Model:** Sonnet  
 **Effort:** xhigh  
-**Tools:** Read, Write, Edit, Grep, Glob, Bash
+**Tools:** Read, Write, Edit, Grep, Glob
 
 **When to route here:**
 - "Design the architecture for X"

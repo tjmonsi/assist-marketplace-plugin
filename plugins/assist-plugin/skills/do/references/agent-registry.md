@@ -9,7 +9,7 @@ Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 | **ask** | Answer questions using repo search + web research | Sonnet | Read, Grep, Glob, WebSearch, WebFetch | "answer my question", "research this in repo", "find documentation" |
 | **developer** | Write/fix/refactor code; implement features; apply approved fixes | Sonnet | Read, Edit, Write, Grep, Glob, Bash, LSP | "implement X", "fix bug in Y", "refactor Z" |
 | **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, Bash, LSP | "review this PR", "check for security", "OWASP compliance" |
-| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Opus | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
+| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
 | **qa** | Test planning; manual/automated test design; acceptance validation; coverage | Sonnet | Read, Write, Edit, Grep, Glob, Bash, LSP | "create test plan", "write automated tests", "validate acceptance" |
 | **solutions-architect** | API/schema design; data flows; error handling; specs | Opus | Read, Write, Edit, Grep, Glob, Bash | "design API", "what should schema be", "data flow for X" |
 | **requirements-gatherer** | Requirements elicitation; BRD/URD; FR+NFR; acceptance criteria | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "gather requirements", "create BRD", "define acceptance criteria" |
@@ -81,6 +81,8 @@ No clear match?
 | **Low** | Haiku | Simple operations, pure search | explore |
 | **Medium** | Sonnet | Most development work, analysis | ask, developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker |
 | **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer |
+
+Planner moved from the High/Opus tier to the Medium/Sonnet tier — see [model-routing.md](model-routing.md#planner-cost-savings-sonnet-default) for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
 
 ---
 
