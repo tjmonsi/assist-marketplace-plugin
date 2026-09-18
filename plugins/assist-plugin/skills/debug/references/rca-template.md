@@ -1,49 +1,37 @@
 # RCA Template
 
-Root Cause Analysis template output for `/debug analyze`.
+Root Cause Analysis template output for `/debug analyze`. Structure the report in three parts: what happened, why it matters, what to do next. Fill every required field; state each fact once.
 
 ---
 
-## What Is the Bug?
+## What Happened
+
+**Root Cause:** [The single, fundamental reason this bug exists]
+
+**Code Location:** [File path and line number(s)]
 
 **Observed Behavior:** [What actually happened / what user sees]
 
 **Expected Behavior:** [What should have happened]
 
-**Impact:** [Severity: critical/high/medium/low; affects how many users]
+**Evidence:**
 
----
-
-## Root Cause
-
-**Primary Cause:** [The single, fundamental reason this bug exists]
-
-**Why It Happened:** [Explanation of the logic flaw or misunderstanding]
-
-**Code Location:** [File path and line number(s)]
-
----
-
-## Evidence
-
-**Error Messages:**
+Error messages:
 ```
 [Full error message or stack trace]
 ```
 
-**Relevant Code:**
+Relevant code:
 ```typescript
 [Code snippet showing the bug]
 ```
 
-**Logs:**
+Logs:
 ```
 [Relevant log output]
 ```
 
----
-
-## Reproduction Steps
+**Reproduction Steps:**
 
 1. [Step 1]
 2. [Step 2]
@@ -52,19 +40,22 @@ Root Cause Analysis template output for `/debug analyze`.
 
 ---
 
-## Suggested Fix
+## Why It Matters
 
-[Brief description of how to fix this bug]
+**Impact:** [Severity: critical/high/medium/low; how many users/flows affected]
 
-**Risk Level:** [low/medium/high — how risky is the fix?]
-
----
-
-## Affected Components
-
+**Affected Components:**
 - [Component 1]
 - [Component 2]
 - [Any dependent code that might be affected]
+
+---
+
+## What To Do Next
+
+**Suggested Fix:** [Concrete description of how to fix this bug; do not repeat the root cause, state the action]
+
+**Risk Level:** [low/medium/high — how risky is the fix?]
 
 ---
 
@@ -72,4 +63,3 @@ Root Cause Analysis template output for `/debug analyze`.
 
 - [ ] User reviewed and approved
 - [ ] Ready for `/debug fix`
-

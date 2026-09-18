@@ -104,6 +104,29 @@ Before formal audit, reviewer deliberately:
 
 ---
 
+### Report Quality Gate
+
+**Triggered by:** Any step whose output is a markdown report (RCA, plan, PR review verdict, answer, findings doc, generated documentation) — regardless of which agent produced it.
+
+**Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
+
+**Process:**
+
+1. **Invoke `review-md`** on the report file (or in-memory draft) immediately after it is produced, before it reaches the user.
+2. **Findings check** — `review-md` returns either "No issues found" or a findings document ordered by factual soundness, then consistency, then conciseness.
+3. **Iteration Loop** — If findings exist:
+   - Route the findings back to the producing agent (same model tier as its original task; no model upgrade for this fix)
+   - Producing agent fixes only the flagged issues (no unrelated rewrites)
+   - Re-run `review-md` on the revised report
+   - Repeat until `review-md` reports no issues, or 3 iterations reached (escalate to orchestrator for a manual pass)
+4. **Exit Conditions:**
+   - `review-md` reports no issues → Approved
+   - 3 iterations reached with unresolved findings → Escalate; orchestrator presents the report to the user with the outstanding findings attached
+
+**Approval:** `✓ Report Quality Clear` (after `review-md` finds no issues)
+
+---
+
 ### Code Review Gate (Sign-Off)
 
 **Triggered by:** Merge-ready code  

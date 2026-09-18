@@ -116,9 +116,11 @@ The `--message` text above is the **confirmed draft**, not raw unreviewed model 
 - Bitbucket: PR marked as approved
 - Counts toward merge requirements if configured
 
-**Message example:**
+**Message example (what happened, why it matters, what to do next):**
 ```
-Looks great! Tests are comprehensive, code is clean.
+Tests cover the new auth branch, including the empty-token edge case. Code follows
+the project's existing service/controller split. No blocking issues found.
+
 Ready to merge.
 ```
 
@@ -131,15 +133,18 @@ Ready to merge.
 - Bitbucket: Blocks merge until resolved
 - Prevents auto-merge
 
-**Message example:**
+**Message example (each item as what happened, why it matters, what to do next):**
 ```
-A few things to address:
+Line 42 mixes token parsing and validation in one function, which hides which
+step failed when a request is rejected. Split into parseToken() and validateToken().
 
-1. The auth module needs refactoring (see line 42)
-2. Add test for edge case (empty token)
-3. Update the CHANGELOG entry
+The empty-token case has no test, and an empty string currently passes validation,
+letting unauthenticated requests through. Add a test asserting rejection.
 
-After fixes, I'll re-review.
+The CHANGELOG has no entry for this change, so the release notes will miss it.
+Add one under Unreleased before merge.
+
+I'll re-review once these are addressed.
 ```
 
 ### Comment Only 💬
@@ -151,11 +156,11 @@ After fixes, I'll re-review.
 - Leaves comment for visibility
 - Does not block merge
 
-**Message example:**
+**Message example (what happened, why it matters, what to do next):**
 ```
-Nice refactoring! Wondering if we should also
-update the similar pattern in the payment module?
-Not required, just a thought.
+The retry logic here now handles partial failures correctly. The payment module
+has the same unhandled-partial-failure pattern at payment.ts:88, so it will hit
+the same bug under load. Not required for this PR; consider a follow-up.
 ```
 
 ## Common Review Patterns

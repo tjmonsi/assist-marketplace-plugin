@@ -84,6 +84,14 @@ Brief 1-2 sentence summary of what this plan accomplishes.
 - **Done:** Completion timestamp + summary (added by orchestrator when step finishes)
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)
 
+### Writing the Summary and Details Fields
+
+- **Summary:** State what the plan accomplishes, not that a plan exists. State the outcome, not "This plan will..."
+- **Details:** Each bullet states one fact once. Do not repeat a bullet's content in the Goal field above it or in the Done summary below it.
+- Use active voice with the important subject first: "Developer implements JWT signing" not "JWT signing will be implemented by the developer."
+- No hedges ("this should probably cover..."), no filler, no em-dashes.
+- The **Done** field follows the three-part pattern when it reports a non-trivial outcome: what was done, why it matters (if not obvious), what remains (if anything).
+
 ### Review Gates
 - **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`)
 - **Testing (>70% coverage):** Code coverage must meet minimum (validated by `qa`)

@@ -29,14 +29,17 @@ Template for `/ask` responses. Fill every section. Omit "Code" if no snippet app
 
 ## Rules
 
-- **Answer:** State the conclusion first. Skip "Great question" or similar filler. Two to three sentences max.
-- **Found In:** List every file or URL the answer relies on. Use relative repo paths (e.g., `plugins/assist-plugin/skills/ask/SKILL.md`), not absolute paths. Use full URLs for web sources.
+- **Answer:** Lead with the conclusion. Skip "Great question" or similar filler. Two to three sentences max, and the first sentence must state the answer, not restate the question.
+- **Found In:** List every file or URL the answer relies on. Use relative repo paths (e.g., `plugins/assist-plugin/skills/ask/SKILL.md`), not absolute paths. Use full URLs for web sources. No claim in "Answer" without a matching entry here.
 - **Code:** Quote the exact snippet from the file. Include the file path and line range under the block. Skip this section entirely if no code applies.
 - **Learn More:** Link 1-4 related resources (docs, related skills, external references). Skip if nothing further applies.
-- **No em-dashes.** Use a period or parentheses instead.
-- **No AI-slop.** Cut phrases like "it's important to note", "in conclusion", "leverage", "delve into", "robust solution". State facts plainly.
-- **Active, imperative voice.** "Grep parses the config" not "The config is parsed by Grep".
-- **Short paragraphs.** 2-3 sentences per paragraph, no walls of text.
+- **Active voice, important subject first.** "Grep parses the config" not "The config is parsed by Grep".
+- **No em-dashes.** Use a period, comma, or parentheses instead.
+- **No hedges or contrastive filler.** Cut "it should be noted," "arguably," "This is X, not Y." State the fact directly.
+- **No AI-slop.** Cut phrases like "it's important to note", "in conclusion", "leverage", "delve into", "robust solution".
+- **No meta-headers.** Section headers state content ("Root cause"), never the act of writing ("What follows").
+- **State each fact once.** Do not repeat the same conclusion across "Answer" and "Found In" in different words.
+- **Never restate the user's question or assumptions as fact.** Report the verified answer only.
 
 ## Example
 

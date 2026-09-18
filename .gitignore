@@ -396,3 +396,5 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+.agent/main-plan
+

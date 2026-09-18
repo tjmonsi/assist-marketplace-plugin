@@ -107,7 +107,7 @@ For each step:
    - Effort level stated explicitly
    - `run_in_background: true` if independent
 2. **Collect result** — Wait for completion
-3. **Review** — If step produces files AND agent ≠ reviewer → trigger review loop
+3. **Review** — If step produces files AND agent ≠ reviewer → trigger review loop. If the step's output is a markdown report, also run the **Report Quality Gate** (see [references/review-protocol.md](references/review-protocol.md#report-quality-gate)), which invokes `review-md`.
 4. **Tag done** — Use Edit tool to update plan status to `completed` + timestamp + review outcome
 5. **Proceed** — Only after plan file updated
 
@@ -131,4 +131,17 @@ No agent matched? This is valid. Handle directly using full generalist capabilit
 - Never invoke agent without task breakdown + context files
 - Never proceed past failed review without re-invoking agent
 - Keep each agent's task focused
+
+## Report Writing Standard
+
+- Lead with the most important finding; never write "this is the more important of the two."
+- Every finding has three parts: what happened, why it matters, what to do next.
+- State each conclusion once. One optional summary line at the end for multi-finding reports; never repeat findings there.
+- Use active voice, important subject before the verb ("Validation is skipped" not "The validation was skipped by...").
+- Cut hedges ("it should be noted," "arguably") and contrastive filler ("This is X, not Y" — state what it is).
+- No meta-headers about the act of writing ("What follows," "Key takeaway," "In conclusion").
+- No em-dashes; use a period, comma, parentheses, or semicolon.
+- No severity badges, remediation blocks, or summary sections unless the reader would be lost without them.
+- Never restate the user's prompt or an assumption as fact; report the tested result.
+- The first sentence of every paragraph must add new information.
 

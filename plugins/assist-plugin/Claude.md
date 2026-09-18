@@ -43,6 +43,7 @@ Use `/do` to route any development task to the right agent:
 | **branch** | `/branch [create\|switch]` | Branch management |
 | **map-project** | `/map-project` | Discover repo structure |
 | **technical-writing** | `/technical-writing [docs\|readme]` | Generate documentation |
+| **review-md** | `/review-md <path-to-report.md>` | Review reports for consistency, conciseness, and factual accuracy |
 
 ## Documentation
 
@@ -50,6 +51,7 @@ Use `/do` to route any development task to the right agent:
 - **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
 - **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Design rationale and structure
 - **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)** — Writing standards, AI-slop removal, conciseness checklist
+- **[TRACING_MARKERS.md](docs/TRACING_MARKERS.md)** — Requirement/spec traceability marker convention
 
 ## Getting Started
 

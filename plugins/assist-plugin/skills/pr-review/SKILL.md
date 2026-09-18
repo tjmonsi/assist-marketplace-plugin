@@ -208,3 +208,16 @@ See [references/review-workflow.md](references/review-workflow.md) for:
 - Cannot request changes if already declined (optional override flag)
 - **Never executes `--approve`, `--changes-requested` (or `bkt pr approve` / `bkt pr decline`) without explicit user confirmation of the drafted verdict** — applies even when invoked by the `reviewer` agent or with the flag pre-supplied on the command line
 - **Never interpolates model-generated text directly into a shell command.** Draft body/message text is written to a temp file and passed via `--body-file` / `--message-file` (or the closest equivalent flag); see [references/review-workflow.md](references/review-workflow.md)
+
+## Report Writing Standard
+
+- Lead with the most important finding; never write "this is the more important of the two."
+- Every finding has three parts: what happened, why it matters, what to do next.
+- State each conclusion once. One optional summary line at the end for multi-finding reports; never repeat findings there.
+- Use active voice, important subject before the verb ("Validation is skipped" not "The validation was skipped by...").
+- Cut hedges ("it should be noted," "arguably") and contrastive filler ("This is X, not Y" — state what it is).
+- No meta-headers about the act of writing ("What follows," "Key takeaway," "In conclusion").
+- No em-dashes; use a period, comma, parentheses, or semicolon.
+- No severity badges, remediation blocks, or summary sections unless the reader would be lost without them.
+- Never restate the user's prompt or an assumption as fact; report the tested result.
+- The first sentence of every paragraph must add new information.

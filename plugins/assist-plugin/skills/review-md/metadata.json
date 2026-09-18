@@ -1,0 +1,7 @@
+{
+  "name": "review-md",
+  "description": "Review markdown reports for consistency, conciseness, and factual accuracy. Flags issues without editing the source file.",
+  "effort": "medium",
+  "allowed-tools": ["Read", "Grep", "Glob", "Write"],
+  "argument-hint": "<path-to-report.md>"
+}

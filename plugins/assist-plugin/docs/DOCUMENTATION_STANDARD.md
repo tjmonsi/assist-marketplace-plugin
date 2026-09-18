@@ -1,84 +1,139 @@
 # Documentation Standard
 
-Writing standard for all assist-plugin docs, reports, and command output. Goal: remove AI-slop, cut tokens, keep meaning.
+Writing standard for all reports, findings, documentation, and human-readable output produced by assist-plugin agents and skills.
+
+## Principle: Direct, Token-Minimal Communication
+
+Write for clarity and brevity. Every word must earn its place. State the most important finding first, never bury it. Do not write to publish — write to be understood.
 
 ---
 
-## What Is AI-Slop?
+## Three-Part Finding Structure
 
-Patterns that pad text without adding value. Avoid these:
+Every finding follows this structure:
 
-| Pattern | Example (bad) | Fix |
-|---------|----------------|-----|
-| Em-dashes | "Fast — but risky" | "Fast. Risky though." |
-| Verbose transitions | "It's important to note that tests failed" | "Tests failed" |
-| Flowery descriptors | "an elegant, sophisticated, powerful solution" | "a solution" |
-| Hedging language | "This could arguably perhaps improve speed" | "This improves speed" |
-| Unneeded passive voice | "Agents are matched by the router" | "The router matches agents" |
-| Overcomplicated sentences | 30-word sentence with 3 clauses | Split into 2 sentences |
-| Unnecessary adverbs | "This truly really actually works" | "This works" |
-| Multi-paragraph run-ons | One 6-sentence paragraph | 2-3 short paragraphs |
-| Oxford-comma lists in prose | "supports X, Y, and Z" inline | Bullet list of X, Y, Z |
-| Verbose bullets | 4-line bullet explaining one idea | 1-2 line bullet |
+1. **What happened** — the concrete observation or result
+2. **Why it matters** — the consequence or impact
+3. **What to do next** — the action, if any
+
+State each conclusion once. Never repeat a finding in different words. If a multi-finding report needs one summary line at the end, place it after all findings; do not repeat findings within it.
 
 ---
 
-## Writing Principles
+## Active Voice, Important Subject First
 
-- **Be brief.** Aim for short, direct sentences. Long sentences bury the point.
-- **Use active voice.** "The router matches agents" not "Agents are matched by the router."
-- **Be direct.** "Use Sonnet for cost savings" not "Sonnet can be utilized for potential cost optimization."
-- **Be concrete.** Show code or examples. Skip abstract description.
-- **One idea per sentence.** One topic per paragraph.
+Subject position is the most prominent real estate in a sentence. Put the most important noun there, before the verb.
 
----
+**Bad:** "The validation was skipped when the flag was not set."  
+**Good:** "Validation is skipped when the flag is not set."
 
-## Formatting Standards
-
-- **Headings:** 2-4 words, imperative when possible. "Configure routing" not "Configuration of Routing."
-- **Paragraphs:** Max 3 sentences.
-- **Lists:** Use bullets, not prose lists.
-- **Code:** Show real format. Never "[your code here]."
-- **Links:** Relative paths, not absolute URLs.
+Or, if the agent/actor is more important:  
+**Bad:** "The code can leak credentials if an exception occurs."  
+**Good:** "Credentials leak if an exception occurs."
 
 ---
 
-## Conciseness Checklist
+## Banned Phrases
 
-Run this before publishing any doc:
+Cut these entirely — they add no meaning:
 
-- [ ] No em-dashes? Use periods or parentheses instead
-- [ ] Sentences under 25 words?
-- [ ] Headings 4 words max?
-- [ ] Each bullet 1-2 lines?
-- [ ] Active voice throughout?
-- [ ] Concrete examples present?
-- [ ] No hedge words (arguably, perhaps, could, might)?
-- [ ] Paragraph count matches topic count?
+**Hedges (add no information):**
+- "it should be noted"
+- "arguably"
+- "in one further way"
+- "it is worth noting"
+- "to some extent"
+
+**Contrastive filler ("This is X, not Y"):**
+- "This is a coverage issue, not a logic bug." → "Coverage is missing."
+- "This is more of a performance concern than a correctness issue." → "Performance degrades in concurrent workloads."
+- "This is not a hard failure but a soft degradation." → "Latency increases under load."
+
+**Meta-headers (headers should state content, not the act of writing):**
+- "What follows" → remove, let the header speak
+- "What this means" → replace with substantive header
+- "Key takeaway" → replace with substantive header
+- "In conclusion" → state it directly
+
+**AI-slop:**
+- "leverage" (use, employ, adopt)
+- "delve into"
+- "robust solution"
+- "at the end of the day"
+- "in today's fast-paced world"
 
 ---
 
-## Token Cost Awareness
+## Formatting Rules
 
-Every word costs tokens. Verbose docs cost more to read, store, and re-process.
+- **No em-dashes.** Use a period, comma, parentheses, or semicolon instead.
+  - Bad: "The cache eviction is inefficient — it scans all entries on every miss."
+  - Good: "The cache eviction scans all entries on every miss, causing inefficiency."
 
-Concise rewrites typically cut 20-30% of tokens with no loss of meaning.
+- **No severity badges, remediation blocks, or summary sections by default.** Add them only if the reader would be lost without them. A well-structured finding with three parts rarely needs extra structure.
 
-**Before (42 words):**
-> It's important to note that the router is arguably a rather sophisticated and elegant component which is responsible for the task of matching incoming tasks to the most appropriate agent based on a variety of different factors.
-
-**After (14 words):**
-> The router matches incoming tasks to the best agent based on task type.
-
-Review pass: remove every word that doesn't change the meaning.
+- **First sentence of every paragraph must add new information.** If a paragraph's first sentence only repeats what you just said, rewrite or delete the paragraph.
 
 ---
 
-## When to Apply
+## No Fabrication
 
-- All new documentation
-- Technical reports
-- Help text and command descriptions
-- Answer outputs (from `ask` skill)
-- PR descriptions
-- Commit footers
+Never state the user's prompt or your assumptions as fact in the output.
+
+**Bad:** "As you requested, we have implemented X."  
+**Good:** "X is implemented."
+
+If you received an assumption in the task (e.g., "I think the bug is in the cache layer"), test it as a hypothesis. Report the result, not the assumption.
+
+**Bad:** "You were right; the bug is in the cache."  
+**Good:** "The bug is in the cache layer, triggered by stale entries after a concurrent write."
+
+---
+
+## Headers and Section Naming
+
+Headers convey the actual meaning, not a label or meta-statement.
+
+**Bad:**
+```
+## What This Means
+The function will fail if called with null input.
+```
+
+**Good:**
+```
+## Null Input Causes Function Failure
+Input validation is missing at function entry.
+```
+
+---
+
+## Citation and Evidence
+
+Every factual claim must be traceable to evidence (code snippet, log line, test result, external standard). Do not cite from the user's prompt.
+
+- Quote exact code or log output when possible.
+- Link to files and line ranges: `path/to/file.ts:N-M`.
+- Link to external standards or documentation with full URLs.
+- If you cannot find evidence, do not state it as fact — either investigate further or flag it as unverified.
+
+---
+
+## Token Optimization
+
+- Cut redundancy: say each thing once.
+- Cut qualifiers that don't change meaning: "arguably," "in some cases," "it could be said."
+- Cut adverbs that don't sharpen meaning: "very," "quite," "somewhat."
+- Use short, concrete words: "use" not "utilize," "break" not "fail to maintain," "now" not "at the present time."
+- Combine short related sentences: "A causes B. B causes C." → "A causes B, which causes C."
+
+---
+
+## When to Use This Standard
+
+- Agent and skill output reports (RCA, PR reviews, findings, plans)
+- Technical documentation generated by agents
+- Error messages and advice from skills
+- Any human-readable text produced by a subagent
+
+**Exception:** Commit messages, changelog entries, and formal governance checklists follow their own conventions (Conventional Commits, Keep a Changelog format, etc.) — apply this standard lightly to prose sections only.

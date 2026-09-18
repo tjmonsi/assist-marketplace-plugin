@@ -110,8 +110,10 @@ assist-plugin follows these core principles:
  │   └─► Use /commit for deployment tracking
  ├─► Route to researcher
  │   └─► Use /map-project for stack discovery
- └─► Route to others
-     └─► Agent-specific workflows
+ ├─► Route to others
+ │   └─► Agent-specific workflows
+ └─► Report Quality Gate (all report-producing steps)
+     └─► /review-md checks the drafted report before it reaches the user
 ```
 
 ---

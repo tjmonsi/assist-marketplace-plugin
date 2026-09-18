@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 9 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 10 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
@@ -140,7 +140,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 ---
 
-## Skills (6 Total)
+## Skills (7 Documented Here; 10 Total — see [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) for the full table including `ask`, `bump`, `pr-review`)
 
 ### do
 **Command:** `/do <task description>`  
@@ -242,6 +242,23 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 **Model:** Sonnet  
 **Effort:** medium
+
+---
+
+### review-md
+**Command:** `/review-md <path-to-report.md>`  
+**Purpose:** Review markdown reports for factual soundness, consistency, and conciseness
+
+**Modes:**
+- Manual — invoked directly on any report file
+- Automated — auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
+
+**Model:** Sonnet  
+**Effort:** medium
+
+**Constraints:**
+- Read-only on the reviewed file; never edits it
+- Produces a separate findings artifact using the three-part structure (what's wrong, why it matters, what to change)
 
 ---
 

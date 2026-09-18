@@ -10,7 +10,7 @@
     {
       "name": "assist-plugin",
       "source": "./plugins/assist-plugin",
-      "description": "Token-optimized software development plugin with 9 skills, 13 agents, and governance gates for agile development workflows",
+      "description": "Token-optimized software development plugin with 10 skills, 13 agents, and governance gates for agile development workflows",
       "version": "1.3.0",
       "author": {
         "name": "Toni-Jan Keith Monserrat",
