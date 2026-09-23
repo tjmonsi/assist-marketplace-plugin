@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 10 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 12 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
@@ -140,7 +140,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 ---
 
-## Skills (7 Documented Here; 10 Total — see [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) for the full table including `ask`, `bump`, `pr-review`)
+## Skills (9 Documented Here; 12 Total — see [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) for the full table including `ask`, `bump`, `pr-review`)
 
 ### do
 **Command:** `/do <task description>`  
@@ -242,6 +242,58 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 **Model:** Sonnet  
 **Effort:** medium
+
+---
+
+### gather-requirements
+**Command:** `/gather-requirements [elicit | document | review] [topic | file]`  
+**Purpose:** Gather and document business, user, and technical requirements
+
+**Subcommands:**
+
+| Mode | Action | Output |
+|------|--------|--------|
+| `elicit` | Six-phase interactive elicitation with batched questions | Requirements summary |
+| `document` | Categorize into BR/UR/FR/NFR, apply IEEE 29148 sentence forms | `BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, optional JSON |
+| `review` | Quality, completeness, consistency, and traceability audit | PASS / NEEDS REVISION report |
+
+**Model:** Sonnet  
+**Effort:** high
+
+**Key features:**
+- `BR-NNN → UR-NNN → FR-NNN`/`NFR-NNN` traceability chain, cited by specs and code markers
+- RFC 2119 binding language (SHALL/MUST/SHOULD/MAY) in every FR and NFR
+- Acceptance criteria as GIVEN/WHEN/THEN scenarios, one happy path and one failure path per FR
+- Nine-criterion quality checklist plus a banned-words list
+
+**Used by:** requirements-gatherer agent
+
+---
+
+### spec-from-requirements
+**Command:** `/spec-from-requirements [create | delta | review] [feature-name | file-path]`  
+**Purpose:** Turn requirements into specification files under `specs/`
+
+**Modes:**
+
+| Mode | Action | Output |
+|------|--------|--------|
+| `create` | Classify the requirement, apply the matching template, write the spec | `specs/spec-[feature].md` |
+| `delta` | Record an incremental change without rewriting the file | `## Change Log` section with ADDED/MODIFIED/REMOVED |
+| `review` | Completeness, correctness, and coherence audit | CRITICAL / WARNING / SUGGESTION findings |
+
+**Model:** Opus  
+**Effort:** high
+
+**Key features:**
+- Classify-first: Architecture, API endpoint, Frontend action, Functionality, UI/UX design, General (first match wins, never mix templates)
+- Behavior written as `### Requirement:` plus `#### Scenario:` GIVEN/WHEN/THEN blocks with RFC 2119 keywords
+- Every spec traces to at least one `BR/UR/FR/NFR-NNN` ID from `gather-requirements`
+- OpenAPI 3.1 fragment for API endpoint specs; JSON projection for any spec
+- GCP/AWS cloud pattern library and the five cloud-boundary rules
+- Pseudo-code gate: agent-suggested blocks keep the spec at Draft until approved
+
+**Used by:** solutions-architect agent
 
 ---
 

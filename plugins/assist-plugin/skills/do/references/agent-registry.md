@@ -22,6 +22,19 @@ Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 
 ---
 
+## Agent-Specific Skills
+
+Skills the orchestrator should name in the task prompt when it routes to these agents.
+
+| Agent | Skill | What it provides |
+|-------|-------|------------------|
+| **requirements-gatherer** | `gather-requirements` (`plugins/assist-plugin/skills/gather-requirements`) | Elicitation methodology, BRD/URD/FR-NFR templates, quality checklist, `BR/UR/FR/NFR-NNN` IDs, GIVEN/WHEN/THEN acceptance criteria, JSON output |
+| **solutions-architect** | `spec-from-requirements` (`plugins/assist-plugin/skills/spec-from-requirements`) | Classify-first spec templates (Architecture, API endpoint, Frontend action, Functionality, UI/UX design, General), Requirement/Scenario format, ADDED/MODIFIED/REMOVED delta mode, OpenAPI and JSON output, cloud patterns |
+
+The two chain: `gather-requirements` emits the `BR/UR/FR/NFR-NNN` IDs that every `spec-from-requirements` spec cites in its **Requirement refs** field, and that code comments cite per [TRACING_MARKERS.md](../../../docs/TRACING_MARKERS.md). Route requirements work before spec work when both appear in one task.
+
+---
+
 ## Routing Decision Tree
 
 ```

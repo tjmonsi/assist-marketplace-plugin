@@ -1,0 +1,7 @@
+{
+  "name": "spec-from-requirements",
+  "description": "Create and update technical specifications from requirements. Classify the requirement type, write to specs/, support ADDED/MODIFIED/REMOVED delta specs. Modes: create, delta, review.",
+  "effort": "high",
+  "allowed-tools": ["Read", "Write", "Edit", "Grep", "Glob"],
+  "argument-hint": "[create | delta | review] [feature-name | file-path]"
+}

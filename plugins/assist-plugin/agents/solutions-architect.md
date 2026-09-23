@@ -19,6 +19,8 @@ Translates requirements into detailed specs, designs APIs/schemas, creates data 
 - Document contracts and interfaces
 - API versioning strategy
 
+Use the `spec-from-requirements` skill's classify-first templates and delta mode for specifications.
+
 **Model:** Opus  
 **Effort:** xhigh  
 **Tools:** Read, Write, Edit, Grep, Glob, Bash

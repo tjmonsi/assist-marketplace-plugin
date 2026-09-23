@@ -8,25 +8,25 @@ Convention for linking code comments to requirements and specifications.
 
 Use square brackets with pipe-separated tags at the start of a comment:
 
-- `[REQ-123]` — Single requirement marker
-- `[SPEC-45]` — Single specification marker
-- `[REQ-123|SPEC-45]` — Combined marker when both apply
+- `[FR-045]` — Single requirement marker (`BR`, `UR`, `FR`, or `NFR`)
+- `[SPEC-003]` — Single specification marker
+- `[FR-045|SPEC-003]` — Combined marker when both apply
 
 Examples:
 
 ```typescript
-// [REQ-123] Validate JWT signature before accepting token
+// [FR-045] Validate JWT signature before accepting token
 const verified = crypto.verify(token, secret);
 
-// [SPEC-45] Implement OAuth2 implicit flow per RFC 6749
+// [SPEC-003] Implement OAuth2 implicit flow per RFC 6749
 const redirectUri = oauth.getAuthorizationUrl();
 
-// [REQ-123|SPEC-45] Session tokens expire after 1 hour per req and spec
+// [FR-045|SPEC-003] Session tokens expire after 1 hour per req and spec
 const expiresAt = now + 3600000;
 ```
 
 ```python
-# [REQ-88] Rate limit authentication attempts to 5 per minute
+# [NFR-012] Rate limit authentication attempts to 5 per minute
 def check_rate_limit(user_id):
     return cache.get(f"attempts:{user_id}") < 5
 ```
@@ -51,9 +51,22 @@ Add a marker when:
 
 Valid sources for an ID:
 
-1. **Requirements/Specification Document** — A formal BRD, URD, or spec doc already in the repo with a numbered requirement or specification section. Example: `docs/requirements.md` states "REQ-123: Authentication must validate JWT signatures."
+1. **Requirements document** — A BRD, URD, or FR-NFR file produced by the `gather-requirements` skill. These carry the concrete ID families:
 
-2. **Task Prompt** — An ID stated by the user in the task prompt or user's original request. Example: User says "Implement REQ-88 (rate limiting)" when assigning the task.
+   | Marker | Source | Meaning |
+   |---|---|---|
+   | `[BR-NNN]` | `BRD-<slug>.md` | Business requirement |
+   | `[UR-NNN]` | `URD-<slug>.md` | User requirement |
+   | `[FR-NNN]` | `FR-NFR-<slug>.md` | Functional requirement |
+   | `[NFR-NNN]` | `FR-NFR-<slug>.md` | Non-functional requirement |
+
+   Example: `FR-NFR-checkout.md` states "FR-045: The checkout service SHALL validate JWT signatures."
+
+2. **Specification document** — A `specs/spec-[feature].md` file produced by the `spec-from-requirements` skill. Cite its per-spec requirement ID as `[SPEC-NNN]` (the spec's own `REQ-spec-NNN` numbering, which is local to that file). Prefer the requirement ID when both apply, since it is stable across spec rewrites. Combine them when the code implements a spec decision that refines a requirement: `[FR-045|SPEC-003]`.
+
+3. **Task prompt** — An ID stated by the user in the task prompt or original request. Example: User says "Implement FR-088 (rate limiting)" when assigning the task.
+
+Legacy `[REQ-NNN]` markers already in a codebase remain valid. New markers use the families above.
 
 **Never invent an ID.** If no document or task prompt provides the ID, write the comment without a marker.
 
@@ -64,8 +77,8 @@ Valid sources for an ID:
 ### Good (ID from requirements doc)
 
 ```typescript
-// docs/requirements.md states REQ-123: "Validate token signature"
-// [REQ-123] Reject tampered tokens
+// FR-NFR-auth.md states FR-045: "The system SHALL validate token signatures"
+// [FR-045] Reject tampered tokens
 if (!crypto.verify(token, secret)) {
   throw new AuthError("Invalid token");
 }
@@ -73,10 +86,10 @@ if (!crypto.verify(token, secret)) {
 
 ### Good (ID from task prompt)
 
-User said: "Implement REQ-88: rate limiting for login attempts."
+User said: "Implement FR-088: rate limiting for login attempts."
 
 ```python
-# [REQ-88] Enforce rate limit
+# [FR-088] Enforce rate limit
 if attempts_in_last_minute >= 5:
     raise RateLimitError()
 ```

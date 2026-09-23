@@ -19,6 +19,8 @@ Elicits business/user requirements, creates BRD/URD documents, defines functiona
 - Specify acceptance criteria
 - Identify scope and constraints
 
+Leverage the `gather-requirements` skill's elicitation methodology and templates for all requirements work.
+
 **Model:** Sonnet  
 **Effort:** medium  
 **Tools:** Read, Write, Edit, Grep, Glob, Bash

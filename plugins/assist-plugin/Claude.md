@@ -44,6 +44,8 @@ Use `/do` to route any development task to the right agent:
 | **map-project** | `/map-project` | Discover repo structure |
 | **technical-writing** | `/technical-writing [docs\|readme]` | Generate documentation |
 | **review-md** | `/review-md <path-to-report.md>` | Review reports for consistency, conciseness, and factual accuracy |
+| **gather-requirements** | `/gather-requirements [elicit\|document\|review]` | Elicit and document BR/UR/FR/NFR with IEEE 29148 templates and GIVEN/WHEN/THEN criteria |
+| **spec-from-requirements** | `/spec-from-requirements [create\|delta\|review]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
 
 ## Documentation
 
