@@ -48,6 +48,28 @@ A step REQUIRES review if:
 
 ## Review Gate Checklist
 
+### Pre-Test Code Review Gate
+
+**Triggered by:** After `developer` implements code (before `developer-tester`/`qa` run tests)  
+**Reviewed by:** reviewer or code-reviewer  
+
+**Purpose:** Syntactic + semantic consistency check on both implementation and any test files already present.
+
+**Process:**
+1. Developer self-reviews implementation against syntax, type checking, and semantic consistency
+2. Reviewer conducts adversarial self-reflection (see below)
+3. Reviewer audits code for:
+   - Syntactic correctness (compiles, no parse errors)
+   - Semantic consistency (follows project patterns, naming conventions, code style)
+   - Coherence with specs and task-plan steps
+   - Any test files already present are included in this review
+4. If issues found: Developer fixes → Reviewer re-audits
+5. Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+
+**Approval:** `✓ Pre-Test Review Clear` (after iteration complete)
+
+---
+
 ### Security Gate (OWASP Top 10)
 
 **Triggered by:** Code changes in developer, devops agents  
@@ -109,6 +131,12 @@ Before formal audit, reviewer deliberately:
 **Triggered by:** Any step whose output is a markdown report (RCA, plan, PR review verdict, answer, findings doc, generated documentation) — regardless of which agent produced it.
 
 **Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
+
+**Scope of `review-md`:**
+- Writing-standard consistency (per [DOCUMENTATION_STANDARD.md](../../../docs/DOCUMENTATION_STANDARD.md))
+- Factual soundness and accuracy
+- Consistency with other documents and the codebase
+- **New:** Flags when a document/report cites a file path, requirement ID (BR/UR/FR/NFR), or spec ID that doesn't actually exist in the repo — ensures claims are verifiable and traceable
 
 **Process:**
 
@@ -205,22 +233,33 @@ Before formal audit, reviewer deliberately:
 
 ## Review Workflow
 
-**Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard security → testing → code review sequence below.
+**Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard pre-test → security → testing → code review sequence below.
 
 ```
-Developer/Planner submits code/document
+Developer submits code
+  ↓
+Pre-Test Code Review Gate
+  ├─ Developer self-reviews
+  ├─ Reviewer adversarially self-reflects + audits
+  ├─ Iterate until: 2 consecutive LGTMs or 10 iterations (escalate)
+  └─ Approval: ✓ Pre-Test Review Clear
+  ↓
+Developer-Tester writes tests; QA runs tests + security
   ↓
 Creator self-reviews
   ↓
 Reviewer adversarially self-reflects (tries to find issues)
   ↓
 Reviewer conducts formal audit
-  ├─ OWASP check (if code) OR gate-specific checklist
+  ├─ OWASP/Security check (if code) OR gate-specific checklist
+  ├─ Testing gate (>70% coverage)
   ├─ Approve or request revision
   └─ If revision: iterate
      - Creator fixes
      - Reviewer repeats adversarial self-reflection + formal audit
      - Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+  ↓
+Code Review Gate (sign-off)
   ↓
 Merge approved ✓
 ```

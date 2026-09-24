@@ -2,15 +2,15 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 13 specialized agents, and 12 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 14 specialized agents, and 18 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
 ---
 
-## Agents (13 Total)
+## Agents (14 Total)
 
-### Core Development Agents (3)
+### Core Development Agents (4)
 
 #### developer
 - **Purpose:** Write, fix, and refactor code
@@ -19,8 +19,20 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Bug fixes from approved RCAs
   - Refactoring for clarity/performance
   - Local testing before review
+  - Apply task-plan and code skill standards
 - **Model default:** Sonnet
 - **Tools:** Read, Edit, Write, Grep, Glob, Bash, LSP
+
+#### developer-tester
+- **Purpose:** Create black-box tests from acceptance criteria
+- **Responsibilities:**
+  - Write tests based only on spec acceptance criteria
+  - Test input/output behavior, never implementation
+  - No reading implementation files
+  - Enumerate input space per acceptance criterion (valid, invalid, boundary, null/empty, type-mismatch, security-adjacent)
+  - Apply traceability markers to test cases
+- **Model default:** Sonnet
+- **Tools:** Read, Write, Grep, Glob (no Bash, no Edit)
 
 #### reviewer
 - **Purpose:** Code review, quality, and security checks
@@ -45,12 +57,16 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 ### Testing & Quality Agents (2)
 
 #### qa
-- **Purpose:** Testing, validation, acceptance criteria
+- **Purpose:** Testing, validation, acceptance criteria, security testing
 - **Responsibilities:**
-  - Test plan creation
-  - Manual/automated test design
+  - Orchestrate test execution (unit, integration, e2e, security)
+  - Run pentest (via `pentest` skill)
+  - Run integration/E2E tests (via `integrated-test` skill)
+  - Run all test suites and collect coverage (via `run-test` skill)
   - Acceptance criteria validation
   - Regression detection
+  - Playwright availability check before frontend testing
+  - Report output uses consolidated test report template
 - **Model default:** Sonnet
 - **Tools:** Read, Write, Edit, Grep, Glob, Bash, LSP
 
@@ -140,7 +156,9 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 ---
 
-## Skills (9 Documented Here; 12 Total — see [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) for the full table including `ask`, `bump`, `pr-review`)
+## Skills (18 Total)
+
+The full skill list appears in the [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) table. Below are skill categories with detailed specifications.
 
 ### do
 **Command:** `/do <task description>`  

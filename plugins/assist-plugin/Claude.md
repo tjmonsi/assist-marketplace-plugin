@@ -12,16 +12,17 @@ Use `/do` to route any development task to the right agent:
 /do design the API schema for the new feature
 ```
 
-## Agents
+## Agents (14)
 
 | Agent | Purpose |
 |-------|---------|
 | **ask** | Answer questions using repo + web research |
 | **developer** | Write, fix, refactor code |
+| **developer-tester** | Create black-box tests from acceptance criteria |
 | **reviewer** | Code review, security, quality checks |
 | **planner** | Architecture, design, planning |
-| **qa** | Testing, validation, acceptance |
-| **solutions-architect** | Feature specs, data flow, contracts |
+| **qa** | Testing, validation, acceptance; run pentest, integration, security tests |
+| **solutions-architect** | Feature specs, data flow, contracts, architecture diagrams |
 | **requirements-gatherer** | Elicitation, BRD/URD, FR+NFR |
 | **devops** | CI/CD, infrastructure, deployment |
 | **researcher** | Web research, documentation audit |
@@ -30,7 +31,7 @@ Use `/do` to route any development task to the right agent:
 | **explore** | Fast read-only code search |
 | **worker** | Multi-discipline fallback |
 
-## Skills
+## Skills (18)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
@@ -46,6 +47,12 @@ Use `/do` to route any development task to the right agent:
 | **review-md** | `/review-md <path-to-report.md>` | Review reports for consistency, conciseness, and factual accuracy |
 | **gather-requirements** | `/gather-requirements [elicit\|document\|review]` | Elicit and document BR/UR/FR/NFR with IEEE 29148 templates and GIVEN/WHEN/THEN criteria |
 | **spec-from-requirements** | `/spec-from-requirements [create\|delta\|review]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
+| **task-plan** | `/task-plan <spec-file>` | Generate ordered coding steps from feature specs |
+| **code** | (loaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
+| **create-test** | (via developer-tester) | Create black-box tests from acceptance criteria only |
+| **pentest** | (via qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
+| **integrated-test** | (via qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
+| **run-test** | (via qa) | Execute test suites, collect coverage, produce consolidated test report |
 
 ## Documentation
 

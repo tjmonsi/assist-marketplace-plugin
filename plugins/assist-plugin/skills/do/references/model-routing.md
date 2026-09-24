@@ -8,6 +8,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 |-------|---------------|--------------|-----------|
 | **orchestrator** (`do` skill) | Opus | No | Always use Opus for orchestration |
 | **developer** | Sonnet | Yes | Can downgrade to Haiku for trivial changes |
+| **developer-tester** | Sonnet | Yes | Creates black-box tests from acceptance criteria only |
 | **reviewer** | Opus | No | Always Opus (security/quality gate) |
 | **planner** | Sonnet | Yes | Can upgrade to Opus for high-stakes or highly ambiguous architecture |
 | **qa** | Sonnet | Yes | Can upgrade to Opus for critical test planning |
@@ -33,7 +34,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 ### Medium Cost (Sonnet) — Core Development
 - Implementation, testing, requirements, DevOps, planning
 - Good reasoning + cost efficiency balance
-- **Agents:** developer, qa, requirements-gatherer, devops, general-purpose, worker, planner
+- **Agents:** developer, developer-tester, qa, requirements-gatherer, devops, general-purpose, worker, planner
 - **Strategy:** Iterate + refine if first pass incomplete
 
 ### High Cost (Opus) — Decisions & Architecture
@@ -51,6 +52,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 |-------|--------|--------|
 | orchestrator (`do`) | xhigh | Plan creation, routing, synthesis |
 | developer | high | Implementation, testing, debugging |
+| developer-tester | high | Test design (black-box), acceptance criteria coverage |
 | reviewer | xhigh | Security + code quality (critical) |
 | planner | xhigh | Architecture, roadmap, risk analysis (Sonnet tier + iteration) |
 | commit | low | Message formatting, staging (no reasoning) |

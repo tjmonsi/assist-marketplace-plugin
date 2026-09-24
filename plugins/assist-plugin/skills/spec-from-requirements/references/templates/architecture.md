@@ -40,6 +40,8 @@ Status values: Draft, Review, Approved, Implemented.
 
 ## Data flow
 
+Required: Start-to-end data-flow flowchart (Mermaid; PNG if mmdc available). See [../diagram-generation.md](../diagram-generation.md).
+
 Each flow is a Requirement with Scenarios. Cover the primary path, the retry path, and the failure path.
 
 ### Requirement: [Flow name, e.g. Message routing from producer to consumer]
@@ -71,8 +73,18 @@ Repeat per distinct flow.
 
 ## Topology
 
-[ASCII diagram or structured description showing how components connect, with direction of data flow.]
+Required: Mermaid diagram showing component connections and data flow direction. See [../diagram-generation.md](../diagram-generation.md) for conventions. If mmdc (mermaid-cli) is available, render to PNG; otherwise embed the Mermaid source.
 
+```mermaid
+flowchart LR
+  A["Component A<br/>Producer"] -->|REST| GW["API Gateway"]
+  GW -->|gRPC| B["Component B<br/>Processor"]
+  GW -->|event| EB["Event Bus"]
+  EB --> C["Component C<br/>Consumer"]
+  B --> DB[(Database)]
+```
+
+Alternative (if using ASCII or text description):
 ```
 [Component A] --REST--> [API Gateway] --gRPC--> [Component B]
                                       --event--> [Event Bus] --> [Component C]

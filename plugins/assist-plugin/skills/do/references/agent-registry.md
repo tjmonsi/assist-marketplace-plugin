@@ -2,12 +2,13 @@
 
 Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 
-## All Agents (13)
+## All Agents (14)
 
 | Agent | Responsibilities | Default Model | Tools | Primary Intent Match |
 |-------|------------------|----------------|-------|----------------------|
 | **ask** | Answer questions using repo search + web research | Sonnet | Read, Grep, Glob, WebSearch, WebFetch | "answer my question", "research this in repo", "find documentation" |
 | **developer** | Write/fix/refactor code; implement features; apply approved fixes | Sonnet | Read, Edit, Write, Grep, Glob, Bash, LSP | "implement X", "fix bug in Y", "refactor Z" |
+| **developer-tester** | Create black-box tests from acceptance criteria; test input/output only, never implementation knowledge | Sonnet | Read, Write, Grep, Glob | "write tests for X", "create test plan from acceptance criteria" |
 | **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, Bash, LSP | "review this PR", "check for security", "OWASP compliance" |
 | **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
 | **qa** | Test planning; manual/automated test design; acceptance validation; coverage | Sonnet | Read, Write, Edit, Grep, Glob, Bash, LSP | "create test plan", "write automated tests", "validate acceptance" |

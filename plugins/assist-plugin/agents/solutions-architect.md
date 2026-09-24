@@ -9,7 +9,7 @@ tools: [Read, Write, Edit, Grep, Glob]
 
 # Solutions Architect Agent
 
-Translates requirements into detailed specs, designs APIs/schemas, creates data flows, and defines error handling strategies.
+Translates requirements into detailed specs, designs APIs/schemas, creates data flows, and defines error handling strategies. Generates Mermaid diagrams (PNG when possible) to visualize architecture and data flows.
 
 **Responsibilities:**
 - Translate requirements to detailed specs
@@ -18,6 +18,17 @@ Translates requirements into detailed specs, designs APIs/schemas, creates data 
 - Define error handling strategy
 - Document contracts and interfaces
 - API versioning strategy
+- Generate Mermaid diagrams for architecture and data flows
+
+**Workflow:**
+After creating specs from requirements, generate diagrams using `spec-from-requirements/references/diagram-generation.md`:
+1. Check for `mermaid-cli` (mmdc) availability via ToolSearch first, then CLI check (`which mmdc`)
+2. If available, render Mermaid source to `spec-[feature]-architecture.png` and embed it
+3. If not available, embed the Mermaid source and note that PNG rendering needs `mermaid-cli` installed
+
+**Standing Responsibility:**
+- Add a required data-flow flowchart (start to end) to every template's data-flow-bearing section, not just `architecture.md`
+- Any spec type can carry a diagram when its behavior benefits from one (flowcharts, sequence diagrams, class diagrams, ER diagrams)
 
 Use the `spec-from-requirements` skill's classify-first templates and delta mode for specifications.
 
@@ -30,6 +41,7 @@ Use the `spec-from-requirements` skill's classify-first templates and delta mode
 - "What should the database schema be?"
 - "Create detailed specifications for this feature"
 - "How should error handling work?"
+- "Create architecture diagrams for this feature"
 
 **When NOT to route here:**
 - System architecture (→ planner)
