@@ -2,6 +2,66 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.5.0] - 2026-09-24
+
+### New Features
+
+- **Complete Spec-to-Shipped Pipeline**
+  - Add `task-plan` skill: Convert feature specifications to ordered implementation steps with file names, requirement IDs, and code skill references
+  - Add `code` skill: Shared standards library for developer agent covering 7 languages, 7 frameworks, 35 patterns, plus mandatory logging and error-handling standards
+  - Add `create-test` skill: Black-box test generation from acceptance criteria with no implementation knowledge
+  - Add `developer-tester` agent: Specialized test writer using create-test skill for behavior-driven testing
+
+- **Security & Quality Assurance Enhancement**
+  - Add `pentest` skill: OWASP Top 10 and LLM OWASP Top 10 security testing with numbered reproduction steps
+  - Add `integrated-test` skill: Integration and E2E testing patterns with Playwright detection (CLI/MCP availability check)
+  - Add `run-test` skill: Test execution, coverage capture (90% target), and consolidated test report generation
+
+### Standards & Doctrines
+
+- **Code Standards (code skill)**
+  - Mandatory structured logging with PII/secret redaction (Pino/logging/slog/tracing per language)
+  - Defensive error handling at system boundaries with process-level handlers (Node/Python/Go/Rust/C++/Kotlin)
+  - Full-chain code traceability comments: `[SPEC-NNN -> FR-NNN -> UC-NNN -> AC-N]`
+  - 7 language guides (Go, Rust, Python, TypeScript, JavaScript, Kotlin, C++)
+  - 7 framework guides (FastAPI, Fastify, Go-Fiber, NestJS, Nuxt, Vue, Vite)
+  - 35 idiomatic patterns covering CRUD, pagination, retry, auth, and background jobs
+
+- **Testing Standards (create-test skill)**
+  - Input-space enumeration: valid, invalid, boundary, null/empty, type-mismatch, injection payloads
+  - Black-box methodology: test acceptance criteria only, never implementation details
+  - Traceability to AC/SPEC/FR/UC requirement IDs in test comments
+
+- **Diagram Generation (solutions-architect enhancement)**
+  - Mermaid flowcharts for architecture and data flows (PNG via mermaid-cli when available)
+  - Required diagrams in all feature specs with start-to-end data flow visualization
+
+### Agent Enhancements
+
+- **developer agent**: Added persona ("Code is maintainable, readable, elegant"), workflow with code skill standards, pre-test review gate
+- **qa agent**: Added pentest/integrated-test/run-test orchestration, Playwright availability detection
+- **solutions-architect agent**: Added diagram generation with mermaid-cli detection and fallback
+
+### Governance & Routing
+
+- **Pre-Test Code Review Gate**: Syntactic and semantic consistency check after developer implements, before tester/qa
+- **Agent Registry Update**: All 6 new skills documented in agent-registry.md routing table
+- **Model Routing**: developer-tester assigned to Sonnet/high effort tier
+
+### Agent & Skill Count Updates
+
+- Total agents increased to 14 (added `developer-tester` agent)
+- Total skills increased to 18 (added `task-plan`, `code`, `create-test`, `pentest`, `integrated-test`, `run-test`)
+- Version bumped to 1.5.0
+
+## [1.4.0] - 2026-09-24
+
+### Agent & Skill Count Updates
+
+- Total agents increased to 14 (added `developer-tester` agent)
+- Total skills increased to 18 (added task-plan, code, create-test, pentest, integrated-test, run-test)
+- (Note: Version was immediately bumped to 1.5.0 on same day)
+
 ## [1.3.0] - 2026-09-14
 
 ### New Features
