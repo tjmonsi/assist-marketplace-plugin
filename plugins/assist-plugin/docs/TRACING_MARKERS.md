@@ -6,7 +6,11 @@ Convention for linking code comments to requirements and specifications.
 
 ## Format
 
-Use square brackets with pipe-separated tags at the start of a comment:
+Two formats are supported:
+
+### Pairwise Format (Legacy, Still Valid)
+
+Use square brackets with pipe-separated tags:
 
 - `[FR-045]` — Single requirement marker (`BR`, `UR`, `FR`, or `NFR`)
 - `[SPEC-003]` — Single specification marker
@@ -30,6 +34,33 @@ const expiresAt = now + 3600000;
 def check_rate_limit(user_id):
     return cache.get(f"attempts:{user_id}") < 5
 ```
+
+### Chained Arrow Format (Preferred for Full Traceability)
+
+Use arrows to show the full requirement chain from specification through use cases to acceptance criteria:
+
+- `[SPEC-003]` — Only spec ID
+- `[FR-045]` — Only functional requirement
+- `[SPEC-003 -> FR-045]` — Spec refined by requirement
+- `[FR-045 -> UC-012]` — Requirement implements use case
+- `[FR-045 -> UC-012 -> AC-2]` — Full chain to acceptance criterion
+- `[SPEC-003 -> FR-045 -> UC-012 -> AC-2]` — Complete chain from spec to AC
+
+Examples:
+
+```typescript
+// [SPEC-003 -> FR-045 -> UC-012 -> AC-2] Reject expired or tampered tokens
+if (!crypto.verify(token, secret) || token.expiry < now()) {
+  throw new UnauthorizedError('Invalid token')
+}
+```
+
+```python
+# [FR-045 -> UC-012] Log authentication attempt for audit trail
+logger.info('auth_attempt', user_id=user.id, result=success)
+```
+
+**Prefer the chained format** when the full chain is available, as it provides complete traceability from business requirement through implementation. Use the pairwise format when only partial information is available or for existing code with established markers.
 
 ---
 
