@@ -36,16 +36,16 @@ which playwright
 Get-Command playwright -ErrorAction SilentlyContinue
 ```
 
-**Or use the standard npm command (works cross-platform):**
+**Or use the npm command (works cross-platform; `--no` stops npx from downloading a package that is not installed):**
 ```bash
-npx playwright --version
+npx --no playwright --version
 ```
 
 ### Step 3: Handle Not Found
 
 If neither MCP nor CLI is available:
 
-1. **Report exactly what is needed:**
+1. **Report exactly what is needed (the user runs these; the agent never installs):**
    ```
    E2E testing needs Playwright installed. Run:
    npm install -D @playwright/test
@@ -54,7 +54,7 @@ If neither MCP nor CLI is available:
 
 2. **Stop before writing tests:** Do not proceed with E2E test creation if Playwright is not available.
 
-3. **Offer to install:** Ask the user whether to install Playwright before proceeding.
+3. **Show the install command; the user runs it:** Do not install Playwright yourself. Wait until the user confirms it is installed before proceeding.
 
 ---
 
@@ -67,13 +67,13 @@ Before running integrated-test for E2E:
   1. Attempt ToolSearch('playwright') for MCP tools
   2. If found: Use MCP server, proceed with E2E writing
   3. If not found:
-     4. Run: npx playwright --version
+     4. Run: npx --no playwright --version
      5. Parse stdout/stderr for version number
      6. If exit code 0 and version found: Playwright is installed, proceed
      7. If exit code != 0 or no version: Playwright not found
         8. Report: "E2E testing needs Playwright installed. Run: npm install -D @playwright/test && npx playwright install"
         9. Stop — do not write E2E tests
-        10. Ask user: "Install Playwright now?" or "Continue without E2E tests?"
+        10. Show the install command for the user to run, and ask whether to continue without E2E tests
 ```
 
 ### In a Node.js script
@@ -83,7 +83,7 @@ async function checkPlaywright() {
   const { execSync } = require('child_process')
   
   try {
-    const version = execSync('npx playwright --version', {
+    const version = execSync('npx --no playwright --version', {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'] // Suppress stderr
     }).trim()
@@ -101,8 +101,8 @@ async function checkPlaywright() {
 
 ```bash
 check_playwright() {
-  if npx playwright --version &>/dev/null; then
-    echo "Playwright is installed: $(npx playwright --version)"
+  if npx --no playwright --version &>/dev/null; then
+    echo "Playwright is installed: $(npx --no playwright --version)"
     return 0
   else
     echo "ERROR: Playwright not found."
@@ -136,7 +136,7 @@ Run:
   npm install -D @playwright/test
   npx playwright install
 
-Then retry.
+Then retry. (The user runs the install commands; the agent never does.)
 ```
 
 **Do not continue without explicit user confirmation.**
@@ -150,12 +150,13 @@ When Playwright is not available:
 1. **Be explicit:** "Playwright is not installed" — not "E2E tests skipped"
 2. **Provide exact command:** Copy-paste ready installation instructions
 3. **Explain why:** "Playwright is required for browser automation E2E tests"
-4. **Ask for confirmation:** "Would you like to install now?" — give the user choice
+4. **The user runs it:** Show the command and ask the user to run it and confirm; the agent never installs
 
 Never:
 - Silently skip E2E tests
 - Suggest using a different tool without asking
-- Assume user will install manually without confirmation
+- Assume the user installed it without their confirmation
+- Run the install command yourself
 - Continue as if tests will run without Playwright
 
 ---

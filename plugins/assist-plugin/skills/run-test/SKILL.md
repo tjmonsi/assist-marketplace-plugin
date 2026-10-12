@@ -4,15 +4,39 @@ description: >-
   Run existing test suites (unit and integration), capture coverage metrics,
   and produce consolidated test reports. Used by QA to validate implementations.
 user-invocable: false
-disable-model-invocation: true
-effort: xhigh
+effort: high
 allowed-tools:
   - Read
   - Write
-  - Edit
   - Grep
   - Glob
-  - Bash
+  - Bash(command -v uv)
+  - Bash(pytest)
+  - Bash(uv run --no-sync --no-python-downloads pytest)
+  - Bash(pytest tests/)
+  - Bash(uv run --no-sync --no-python-downloads pytest tests/)
+  - Bash(pytest --cov=src --cov-report=term-missing)
+  - Bash(uv run --no-sync --no-python-downloads pytest --cov=src --cov-report=term-missing)
+  - Bash(npm test)
+  - Bash(npm run test)
+  - Bash(vitest)
+  - Bash(vitest --coverage)
+  - Bash(npx --no vitest run)
+  - Bash(npx --no vitest run --coverage)
+  - Bash(jest)
+  - Bash(jest --coverage)
+  - Bash(npx --no jest)
+  - Bash(npx --no jest --coverage)
+  - Bash(go test ./...)
+  - Bash(go test -v ./...)
+  - Bash(go test -cover ./...)
+  - Bash(go test -coverprofile=coverage.out ./...)
+  - Bash(cargo test)
+  - Bash(cargo test --lib)
+  - Bash(cargo tarpaulin --out Html)
+  - Bash(cargo tarpaulin --out Html --output-dir coverage/)
+  - Bash(./gradlew test)
+  - Bash(./gradlew testDebugUnitTest jacocoTestDebugUnitTestReport)
 ---
 
 # Run Test
@@ -35,7 +59,7 @@ Detect the project language from the codebase and run appropriate test commands:
 
 | Signal | Test Command | Coverage Command |
 |--------|--------------|------------------|
-| Python (`pytest`, `pyproject.toml`) | `pytest tests/` | `pytest --cov=src --cov-report=term-missing` |
+| Python (`pytest`, `pyproject.toml`) | uv: `uv run --no-sync --no-python-downloads pytest tests/`<br>else: `pytest tests/` | uv: `uv run --no-sync --no-python-downloads pytest --cov=src --cov-report=term-missing`<br>else: `pytest --cov=src --cov-report=term-missing` |
 | TypeScript/Node (`vitest`, `package.json`) | `npm run test` or `vitest` | `vitest --coverage` |
 | JavaScript (`jest`, `package.json`) | `npm test` or `jest` | `jest --coverage` |
 | Go (`go.mod`) | `go test -v ./...` | `go test -cover ./...` |
@@ -49,7 +73,9 @@ Detect the project language from the codebase and run appropriate test commands:
 Execute the full test suite (unit + integration):
 
 ```bash
-# Python
+# Python (uv first; needs an existing .venv, create it with `uv sync`)
+uv run --no-sync --no-python-downloads pytest tests/
+# Python without uv (activated virtual environment)
 pytest tests/
 
 # TypeScript/JavaScript
@@ -64,6 +90,8 @@ cargo test
 # Kotlin
 ./gradlew test
 ```
+
+**Python and uv:** detect uv with `command -v uv` (also `uv.lock` or `[tool.uv]` in `pyproject.toml`). With uv, run tests as `uv run --no-sync --no-python-downloads pytest ...`: it neither installs packages nor downloads Python, but it needs an existing `.venv`. Before running it, Glob for `.venv/bin/pytest` (`.venv/Scripts/pytest.exe` on Windows); if missing, show the user `uv sync` and stop. Plain `uv run` syncs the environment first, so agents do not use it. If a test dependency is missing, show the user `uv add --dev pytest pytest-cov` then `uv sync`; without uv, show `python -m pip install pytest pytest-cov` for the project's virtual environment. Agents never run these.
 
 ### Capture test results
 
@@ -168,4 +196,4 @@ Apply the Report Writing Standard:
 
 ### Tests don't run at all
 - **Check:** Are test dependencies installed? Is the test framework configured?
-- **Solution:** Verify test setup, install missing dependencies, check configuration files.
+- **Solution:** Verify test setup and check configuration files. If dependencies are missing, show the install command; the user runs it (agents never install).

@@ -6,13 +6,18 @@ Reference for running coverage tools and interpreting output for each language.
 
 ## Python (pytest + coverage.py)
 
-### Install coverage tool
+### Install coverage tool (user-run; agents never install, show this command to the user)
 ```bash
-pip install pytest-cov
+uv add --dev pytest-cov        # uv (preferred); then `uv sync` if .venv is missing
+python -m pip install pytest-cov   # only when uv is absent, inside the project's virtual environment
 ```
 
 ### Run with coverage
 ```bash
+# uv (no install; needs an existing .venv)
+uv run --no-sync --no-python-downloads pytest --cov=src --cov-report=term-missing --cov-report=html
+
+# without uv (activated virtual environment)
 pytest --cov=src --cov-report=term-missing --cov-report=html
 ```
 
@@ -41,7 +46,7 @@ start htmlcov/index.html # Windows
 
 ## TypeScript/JavaScript (Vitest with coverage)
 
-### Install coverage (integrated with vitest)
+### Install coverage (integrated with vitest) (user-run; agents never install, show this command to the user)
 ```bash
 npm install -D @vitest/coverage-v8
 ```
@@ -123,7 +128,7 @@ go tool cover -func=coverage.out | grep -E "^(total|github.com)"
 
 ## Rust (cargo tarpaulin)
 
-### Install
+### Install (user-run; agents never install, show this command to the user)
 ```bash
 cargo install cargo-tarpaulin
 ```

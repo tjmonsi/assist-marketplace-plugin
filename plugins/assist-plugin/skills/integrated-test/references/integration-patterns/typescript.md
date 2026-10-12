@@ -43,12 +43,12 @@ const execAsync = promisify(exec)
 
 beforeAll(async () => {
   // Create and migrate test database
-  await execAsync('npx prisma migrate deploy')
+  await execAsync('npx --no prisma migrate deploy')
 })
 
 afterAll(async () => {
   // Optional: reset database after all tests
-  // await execAsync('npx prisma migrate reset --force')
+  // await execAsync('npx --no prisma migrate reset --force')
 })
 
 // Or per-test cleanup

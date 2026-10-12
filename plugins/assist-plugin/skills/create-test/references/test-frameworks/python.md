@@ -119,6 +119,8 @@ def function_db():
 
 ## Running Tests
 
+Detect uv with `command -v uv`. With uv, run `uv run --no-sync --no-python-downloads pytest ...` (needs an existing `.venv`; the user creates it with `uv sync`) instead of bare `pytest`. Agents show install commands (`uv add --dev pytest`, else `python -m pip install pytest` in the project's venv) and never run them.
+
 ```bash
 pytest                        # Run all tests
 pytest -v                     # Verbose

@@ -23,6 +23,8 @@ Playwright testing conventions for web applications.
 
 Before installing Playwright, **run the availability check** in [references/playwright-availability-check.md](playwright-availability-check.md).
 
+User-run (agents never install; show these commands to the user):
+
 ```bash
 npm install -D @playwright/test
 npx playwright install
@@ -232,7 +234,7 @@ await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.01 })
 
 Update baselines after intentional visual changes:
 ```bash
-npx playwright test --update-snapshots
+npx --no playwright test --update-snapshots
 ```
 
 ---
@@ -358,7 +360,7 @@ export default defineConfig({
 
 ## CI Integration
 
-### Install browsers
+### Install browsers (user-run)
 
 ```bash
 npx playwright install --with-deps chromium
@@ -368,19 +370,19 @@ npx playwright install --with-deps chromium
 
 ```bash
 # All tests
-npx playwright test
+npx --no playwright test
 
 # Specific file
-npx playwright test e2e/login.spec.ts
+npx --no playwright test e2e/login.spec.ts
 
 # Specific project
-npx playwright test --project=chromium
+npx --no playwright test --project=chromium
 
 # Debug mode
-npx playwright test --debug
+npx --no playwright test --debug
 
 # View HTML report
-npx playwright show-report
+npx --no playwright show-report
 ```
 
 ---

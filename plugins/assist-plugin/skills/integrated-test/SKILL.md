@@ -5,15 +5,51 @@ description: >-
   Covers testcontainers-based database testing, semantic locators for Playwright E2E,
   monorepo test organization, and Playwright availability detection. Used by QA.
 user-invocable: false
-disable-model-invocation: true
-effort: xhigh
+effort: high
 allowed-tools:
   - Read
   - Write
   - Edit
   - Grep
   - Glob
-  - Bash
+  - Bash(command -v uv)
+  - Bash(pytest)
+  - Bash(uv run --no-sync --no-python-downloads pytest)
+  - Bash(pytest tests/)
+  - Bash(uv run --no-sync --no-python-downloads pytest tests/)
+  - Bash(pytest --cov=src --cov-report=term-missing)
+  - Bash(uv run --no-sync --no-python-downloads pytest --cov=src --cov-report=term-missing)
+  - Bash(npm test)
+  - Bash(npm run test)
+  - Bash(vitest)
+  - Bash(vitest --coverage)
+  - Bash(npx --no vitest run)
+  - Bash(npx --no vitest run --coverage)
+  - Bash(jest)
+  - Bash(jest --coverage)
+  - Bash(npx --no jest)
+  - Bash(npx --no jest --coverage)
+  - Bash(go test ./...)
+  - Bash(go test -v ./...)
+  - Bash(go test -cover ./...)
+  - Bash(go test -coverprofile=coverage.out ./...)
+  - Bash(cargo test)
+  - Bash(cargo test --lib)
+  - Bash(cargo tarpaulin --out Html)
+  - Bash(cargo tarpaulin --out Html --output-dir coverage/)
+  - Bash(pytest --cov=app --cov-report=term-missing tests/)
+  - Bash(uv run --no-sync --no-python-downloads pytest --cov=app --cov-report=term-missing tests/)
+  - Bash(pytest -m integration)
+  - Bash(uv run --no-sync --no-python-downloads pytest -m integration)
+  - Bash(npm run test:integration)
+  - Bash(go test -tags=integration ./...)
+  - Bash(go test -tags=integration -cover ./...)
+  - Bash(./gradlew test)
+  - Bash(./gradlew testDebugUnitTest)
+  - Bash(./gradlew testDebugUnitTest jacocoTestDebugUnitTestReport)
+  - Bash(npx --no playwright --version)
+  - Bash(npx --no playwright test)
+  - Bash(npx --no playwright show-report)
 ---
 
 # Integrated Test
@@ -70,7 +106,7 @@ Each reference covers:
 ### Framework-Specific Patterns
 
 See language-specific references for:
-- **Python (pytest + AsyncClient):** Testcontainers PostgreSQL, transaction rollback pattern, async fixtures, respx for HTTP mocking.
+- **Python (pytest + AsyncClient):** Testcontainers PostgreSQL, transaction rollback pattern, async fixtures, respx for HTTP mocking. uv first (`uv add --dev ...`, `uv sync`, `uv run --no-sync --no-python-downloads pytest`), pip when uv is absent; agents show install commands and never run them.
 - **TypeScript (vitest + supertest):** Fastify inject(), Prisma test database, MSW for HTTP mocking, Nuxt test utils.
 - **JavaScript:** Similar to TypeScript patterns, native test runners (Jest, Vitest).
 - **Go (testcontainers + testify):** Testcontainers PostgreSQL, TestMain pattern, assert/require helpers.
@@ -94,7 +130,7 @@ For projects with multiple submodules (e.g., frontend + backend, mobile + API):
 - Real-time communication (WebSocket client → server)
 - Cross-service workflow validation
 
-For detailed setup patterns and cross-submodule test examples, see [references/integration-patterns/README.md](references/integration-patterns/) (each language's file covers monorepo setup for that language).
+For detailed setup patterns and cross-submodule test examples, see [references/integration-patterns/](references/integration-patterns/) (each language's file covers monorepo setup for that language).
 
 ---
 
@@ -130,8 +166,8 @@ For web applications, use Playwright for browser automation E2E tests. See [refe
 
 The check sequence:
 1. **Try MCP first:** `ToolSearch` for Playwright-related MCP tools (prefer if available).
-2. **Fall back to CLI:** If no MCP, try `npx playwright --version` (or `which playwright` on Unix).
-3. **If neither found:** Report exactly what to install (`npm install -D @playwright/test && npx playwright install`) and **stop before writing any E2E tests**. Never assume Playwright is installed.
+2. **Fall back to CLI:** If no MCP, try `npx --no playwright --version` (or `which playwright` on Unix).
+3. **If neither found:** Report exactly what to install (`npm install -D @playwright/test && npx playwright install`; the user runs it, the agent never installs) and **stop before writing any E2E tests**. Never assume Playwright is installed.
 
 If the check fails, the report should be: "E2E testing needs Playwright installed. Run: `npm install -D @playwright/test && npx playwright install`."
 

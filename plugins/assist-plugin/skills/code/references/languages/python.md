@@ -15,12 +15,12 @@
 |------|---------|------------------------|
 | Python 3.12 | Runtime | < 3.11 |
 | `ruff` | Lint + format | black, isort, flake8, pylint |
-| `uv` | Project management, dependencies, execution, packaging — replaces ALL of the alternatives | `python` (for execution), `pyenv`, `pip`, `pip-tools`, `venv`, `poetry`, `pipx` |
+| `uv` | Project management, dependencies, execution, packaging — replaces ALL of the alternatives when uv is present | `python` (for execution), `pyenv`, `pip`, `pip-tools`, `venv`, `poetry`, `pipx` (use these only when uv is absent) |
 | Pydantic v2 | Data validation | dataclasses for validation, Pydantic v1 |
 | `mypy` or `pyright` | Static type checking | Skipping type checks in CI |
 | `pytest` | Testing | `unittest` for new projects |
 
-Gate: `uv run ruff check . && uv run ruff format --check .` must pass before commit.
+Gate: `uv run --no-sync --no-python-downloads ruff check . && uv run --no-sync --no-python-downloads ruff format --check .` must pass before commit (the no-install form needs an existing `.venv`; users may run plain `uv run ...`).
 
 ## UV Workflow
 
@@ -60,11 +60,17 @@ uv tool install ruff                  # Persistent tool install
 ```
 
 **Key rules:**
-- Never activate the venv manually — always use `uv run`
-- Never use `uv pip install` for project dependencies — use `uv add`
+- When uv is present, never activate the venv manually — use `uv run`
+- When uv is present, never use `uv pip install` for project dependencies — use `uv add`
 - `uv.lock` and `.python-version` must be committed to version control
 - `uv run pytest` not `uvx pytest` — tests need project access
 - UV auto-downloads Python versions — no pyenv needed
+
+**Detect uv and never install on the user's behalf:**
+- Detect uv with `command -v uv`. When it is present, show the uv commands above (`uv add`, `uv add --dev`, `uv sync`, `uv run pytest`) and let the user run any that install packages or fetch Python (`uv add`, `uv sync`, `uv tool install`, `uv python install`, and plain `uv run`, which syncs the environment first).
+- To verify without installing, `uv run --no-sync --no-python-downloads <cmd>` runs inside an existing `.venv` and neither installs packages nor downloads Python (`--no-sync` alone can still download a Python when none matches).
+- Global CLI tools: `uv tool install [--python X] <pkg>`; per-project tools: `uv add --dev <pkg>` then `uv run <cmd>`.
+- When uv is absent, show the pip form instead, inside the project's virtual environment: `python -m pip install <pkg>`, with `python -m venv .venv` to create it and `python -m pytest` to run tests. Recommend installing uv (https://docs.astral.sh/uv/getting-started/installation/) rather than building a pip workflow.
 
 ## Code Style Rules
 
@@ -99,8 +105,8 @@ uv tool install ruff                  # Persistent tool install
 | `print()` for logging | Use `logging` module |
 | Catching `Exception` without re-raise or log | Log and re-raise |
 | `python script.py` | Use `uv run script.py` |
-| `pip install X` | Use `uv add X` |
-| `python -m venv .venv` | UV manages venvs automatically |
+| `pip install X` | When uv is present: use `uv add X` (`uv add --dev X` for dev tools); pip only when uv is absent |
+| `python -m venv .venv` | When uv is present: UV manages venvs automatically |
 | `source .venv/bin/activate` | Not needed with `uv run` |
 | `pyenv install 3.12` | Use `uv python install 3.12` |
 | `pipx run tool` | Use `uvx tool` |
