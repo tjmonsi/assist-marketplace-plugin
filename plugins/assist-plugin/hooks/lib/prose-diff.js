@@ -92,11 +92,21 @@ function tmpdirs(options) {
   return dirs;
 }
 
-// Files the prose hooks never judge: scratch files under the system temp directory, and paths matching an
-// allowlist entry ("*" matches every path). options: {allowlist, tmpdir} replace the defaults (tests).
+// True when file, resolved against the hook input's cwd (the session's working directory, which can differ from
+// the project root), sits inside <cwd>/docs/tts/. Paths are normalized first, so docs/tts/../README.md is
+// outside. No cwd (missing, empty, or relative) exempts nothing. Symlinks are not resolved.
+function isVoiceScript(file, cwd) {
+  if (typeof cwd !== "string" || cwd.length === 0 || !path.isAbsolute(cwd)) return false;
+  return isUnder(path.resolve(cwd, file), path.join(path.resolve(cwd), "docs", "tts"));
+}
+
+// Files the prose hooks never judge: scratch files under the system temp directory, voice scripts under
+// <cwd>/docs/tts/, and paths matching an allowlist entry ("*" matches every path). options: {allowlist, tmpdir}
+// replace the defaults (tests); {cwd} is the hook input's working directory.
 function isExempt(file, options) {
   const opts = options || {};
   if (tmpdirs(opts).some((dir) => isUnder(file, dir))) return true;
+  if (isVoiceScript(file, opts.cwd)) return true;
   const allowlist = Array.isArray(opts.allowlist) ? opts.allowlist : loadAllowlist();
   const slashed = file.replace(/\\/g, "/");
   return allowlist.some((entry) => entry === ALLOW_ALL || file.indexOf(entry) !== -1 || slashed.indexOf(entry) !== -1);
@@ -230,13 +240,14 @@ function notebookPairs(input, file, phase, readFile) {
 
 // Returns null when the call writes no prose, else {file, pairs: [{before, after, where}]}.
 // options: {phase: "pre" | "post", readFile(file) -> string | null, allowlist, tmpdir}; a call that targets
-// a temp-directory or allowlisted path writes no judged prose (null).
+// a temp-directory, <input.cwd>/docs/tts/, or allowlisted path writes no judged prose (null).
 function changes(input, options) {
-  const opts = options || {};
+  const opts = Object.assign({}, options);
   const phase = opts.phase === "post" ? "post" : "pre";
   const readFile = typeof opts.readFile === "function" ? opts.readFile : readText;
   if (!isObject(input) || !isObject(input.tool_input) || EDIT_TOOLS.indexOf(input.tool_name) === -1) return null;
   const tool = input.tool_name;
+  opts.cwd = input.cwd; // the docs/tts/ exemption is relative to the hook input's cwd, not CLAUDE_PROJECT_DIR
   if (tool === "NotebookEdit") {
     const notebook = targetPath(input, "notebook_path");
     if (!notebook || !isProseNotebook(notebook) || isExempt(notebook, opts)) return null;
@@ -379,6 +390,7 @@ module.exports = {
   ALLOWLIST_FILE,
   changes,
   isExempt,
+  isVoiceScript,
   loadAllowlist,
   addedFindings,
   byFamily,

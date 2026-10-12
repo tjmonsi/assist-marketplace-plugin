@@ -4,7 +4,8 @@
 // advisory-tier tells from lib/prose-rules.js (hedges, intensifiers, AI vocabulary, throat-clearing, binary
 // contrast, en dashes, prose arrows, spaced double hyphens) in the text the call added, and returns them to
 // Claude as additionalContext: each family once, with one example and its fix, at most 10 lines. Silent when
-// the added text is clean. Text already in the file is not judged (see lib/prose-diff.js).
+// the added text is clean. Text already in the file is not judged (see lib/prose-diff.js). Voice scripts under
+// <cwd>/docs/tts/ get no advice.
 // Fail-open: it never blocks or changes the write; any failure emits nothing but a systemMessage (see
 // ../lib/health.js). Never exits 2.
 "use strict";
@@ -36,7 +37,7 @@ function describe(file, findings) {
 
 // Pure decision apart from reading the written file. Returns null (emit nothing) or {stdout}.
 // options: {readFile, allowlist, tmpdir} replace the disk read and the exemptions (tests and the health check).
-// Temp-directory and allowlisted paths (the prose-gate allowlist) get no advice.
+// Temp-directory, <cwd>/docs/tts/, and allowlisted paths (the prose-gate allowlist) get no advice.
 function evaluate(input, options) {
   if (!input || input.hook_event_name !== "PostToolUse") return null;
   const opts = options || {};

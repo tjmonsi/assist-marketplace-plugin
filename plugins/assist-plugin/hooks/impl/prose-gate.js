@@ -4,9 +4,10 @@
 // and markdown notebook cells). It denies a call only when the text the call adds holds a block-tier tell from
 // lib/prose-rules.js: an em dash, chatbot residue, a curly quote, or a summary label. Advisory tells never
 // deny (prose-advisor reports them after the write). Text already in the file is not judged (see
-// lib/prose-diff.js), so files with old tells stay editable. The deny reason lists each hit with its line,
-// rule id, and fix so the next attempt rewrites only the flagged text. Files under the system temp directory
-// and paths in ${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json ("*" = every path) are never judged.
+// lib/prose-diff.js), so files with old tells stay editable. The deny reason lists each hit with its line, rule
+// id, and fix so the next attempt rewrites only the flagged text. Files under the system temp directory, voice
+// scripts under <cwd>/docs/tts/ (em dashes there are pause marks), and paths in
+// ${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json ("*" = every path) are never judged.
 // Fail-open: evaluate(input) -> {deny, reason}; any failure lets the write proceed (see ../lib/health.js).
 // It never rewrites the write itself and never exits 2.
 "use strict";
