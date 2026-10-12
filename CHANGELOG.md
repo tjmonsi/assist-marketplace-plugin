@@ -2,6 +2,12 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [Unreleased]
+
+### License
+
+- Relicense the marketplace and assist-plugin from MIT to the GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`): both LICENSE files carry the verbatim AGPL v3 text, manifests use the SPDX identifier, hook sources carry SPDX headers, and NOTICE keeps the original MIT notice for derived components. Releases up to and including v1.6.1 remain available under MIT.
+
 ## [1.6.1] - 2026-10-12
 
 ### Bug Fixes

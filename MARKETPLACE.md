@@ -31,6 +31,8 @@ Token-optimized software development plugin with 19 skills (15 user-invocable, 4
 ```
 assist-marketplace-plugin/
 ├── .claude-plugin/marketplace.json (marketplace metadata)
+├── LICENSE (AGPL-3.0-or-later)
+├── NOTICE (attribution)
 ├── CHANGELOG.md (release history)
 ├── CLAUDE.md (repo quick reference)
 ├── MARKETPLACE.md (this file)
@@ -45,7 +47,7 @@ assist-marketplace-plugin/
         ├── docs/ (comprehensive documentation)
         ├── Claude.md (quick reference)
         ├── NOTICE (attribution)
-        └── LICENSE (MIT)
+        └── LICENSE (AGPL-3.0-or-later)
 ```
 
 ## Installation
@@ -73,7 +75,7 @@ Future versions will follow the same pattern: a single `plugins/assist-plugin/` 
 
 ## License
 
-All plugins in this marketplace are licensed under MIT. See individual plugin LICENSE files for details.
+All plugins in this marketplace are licensed under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](LICENSE) and each plugin's LICENSE and NOTICE files. Releases up to and including v1.6.1 were published under the MIT License.
 
 ## Support
 

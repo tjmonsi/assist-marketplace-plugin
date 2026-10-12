@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Toni-Jan Keith Monserrat
 // PreToolUse guard: restrict the solutions-architect agent's Bash tool to mermaid-cli (mmdc).
 // Other agents and the main session are untouched (allowed, no output).
 // Fail-open: this module exports a pure evaluate(input) -> {deny, reason}; the command is blocked only

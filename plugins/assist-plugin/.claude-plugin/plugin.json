@@ -8,6 +8,6 @@
   },
   "homepage": "https://github.com/tjmonsi/assist-marketplace-plugin",
   "repository": "https://github.com/tjmonsi/assist-marketplace-plugin",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized", "testing", "security", "requirements", "specifications"]
 }

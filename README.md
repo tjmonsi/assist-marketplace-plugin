@@ -248,6 +248,8 @@ The two PreToolUse guards block a command only when they positively match a proh
 ```
 assist-marketplace-plugin/
 ├── .claude-plugin/marketplace.json (marketplace definition)
+├── LICENSE (AGPL-3.0-or-later)
+├── NOTICE (attribution)
 ├── CHANGELOG.md (release history)
 ├── CLAUDE.md (repo quick reference)
 ├── MARKETPLACE.md (marketplace overview)
@@ -268,20 +270,24 @@ assist-marketplace-plugin/
 │       ├── docs/ (comprehensive documentation)
 │       ├── Claude.md (quick reference)
 │       ├── NOTICE (attribution)
-│       └── LICENSE (MIT)
+│       └── LICENSE (AGPL-3.0-or-later)
 └── (future plugins will be added here)
 ```
 
 ## License
 
-MIT — See individual plugin LICENSE files for details.
+Copyright (C) 2026 Toni-Jan Keith Monserrat
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+Releases up to and including v1.6.1 were published under the MIT License. See [NOTICE](NOTICE) for attribution of components derived from earlier MIT-licensed work.
 
 ## Support
 
 - **Documentation:** See [MARKETPLACE.md](MARKETPLACE.md) and plugin docs
 - **Repository:** https://github.com/tjmonsi/assist-marketplace-plugin
 - **Issues:** Open an issue on GitHub or check plugin documentation
-
----
-
-**Status:** Ready for Kollab IP sign-off → GitHub publication → Claude marketplace registration

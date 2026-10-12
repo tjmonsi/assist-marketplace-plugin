@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Toni-Jan Keith Monserrat
 // Shared fail-open runtime and health log for assist-plugin hooks.
 // ES5 syntax only so it parses on any Node version (the launcher loads it before the version gate).
 //

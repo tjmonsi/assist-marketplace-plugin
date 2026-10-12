@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Toni-Jan Keith Monserrat
 // PreToolUse guard: guard the documentation CLIs (firecrawl, ctx7) for every agent.
 // The skill allowed-tools rules use "*" wildcards, which match any characters including flags
 // and shell operators, so this hook denies the dangerous forms the wildcards would let through:

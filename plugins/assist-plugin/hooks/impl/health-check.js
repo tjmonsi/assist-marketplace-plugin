@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Toni-Jan Keith Monserrat
 // Health check for the assist-plugin PreToolUse guards.
 //
 // Self-tests each guard's evaluate() with fixed known-allow and known-deny commands:

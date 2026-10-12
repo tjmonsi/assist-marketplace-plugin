@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Toni-Jan Keith Monserrat
 // Entry-point launcher for every assist-plugin hook command.
 // ES5 syntax only (var, function, no arrow functions, no template literals): this file must
 // parse on any Node version so an old Node prints a warning instead of a SyntaxError.
