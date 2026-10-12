@@ -27,7 +27,7 @@ Then use the `/do` orchestrator:
 
 ### assist-plugin v1.9.0
 
-**16 user-invocable skills:**
+**18 user-invocable skills:**
 - `do`: Task orchestration and routing
 - `ask`: Repo and web Q&A with citations
 - `debug`: Root cause analysis + iterative fixes
@@ -44,6 +44,8 @@ Then use the `/do` orchestrator:
 - `create-test`: Black-box acceptance-criteria tests
 - `health`: Hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 - `deslop`: Remove AI writing tells from prose; `/deslop [edit | detect] <file-or-text>` (edit returns cleaned text, detect lists findings)
+- `voice-script`: Paste-ready text-to-speech script for a chosen TTS model with its own tags; `/voice-script [topic | draft-file]` (saves to `docs/tts/`)
+- `clarify`: Explain unclear points from the discussion with evidence and ask the user about points only the user can settle; `/clarify [what is unclear]` (appends to `.agent/clarify/clarify-YYYYMMDD.md`)
 
 **4 internal skills (loaded by agents):**
 - `code`: Coding standards and conventions (developer)
@@ -139,7 +141,7 @@ The plugin works without these tools, but agents fall back or skip steps when on
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
 | git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
-| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/fsa-write-bar.js`, `hooks/fsa-log.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/commit-attribution-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/fsa-write-bar.js`, `hooks/fsa-log.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
 | uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
 | Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
 
@@ -243,13 +245,34 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfo
 
 ## Hook health
 
-The two Bash guards and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, the prose hooks, and the FSA hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), subagent reports with terminal-block problems (`fsa-log.jsonl`), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
+The three Bash guards (`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`) and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, the prose hooks, and the FSA hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), subagent reports with terminal-block problems (`fsa-log.jsonl`), disabled guards, and Claude Code's attribution setting (see [Commit attribution](#commit-attribution)). `/assist-plugin:health --clear` empties the failure log after showing it.
 
 ### Injection filter
 
 The `injection-filter` hook is a defensive filter for untrusted content. It runs after `WebFetch`, `WebSearch`, `mcp__*` tools, subagent (`Agent`) results, and Bash commands that run `firecrawl`, `curl`, `wget`, or `ctx7`; it never touches `Read`, `Grep`, or other Bash output. Sentences that match a fixed set of prompt-injection rules (instruction override, role reassignment, system-prompt or secret exfiltration, fake chat delimiters, hidden-instruction carriers, tool hijack, data-exfiltration links, concealment) are replaced with `[assist-plugin removed possible prompt injection: <rule-id>]`, invisible Unicode (zero-width, bidi override, tag characters) is stripped, and Claude gets a factual note listing the rule ids. All other text is returned unchanged. A subagent prompt that matches is rewritten the same way and Claude Code asks you to confirm it. A typed prompt that matches is never changed or blocked: you get a warning and Claude gets a note.
 
 The filter fails open (any error returns the original content with a one-line warning), never blocks, and is a pattern filter, not a security boundary: it does not decode base64, does not map look-alike letters from other scripts, and does not read non-English text. Content from the plugin's own files is skipped. To skip other sources, list substrings in `injection-allowlist.json` in the plugin data directory, for example `["docs.example.com", "/home/me/notes/"]`: a URL matches when its host (or a parent domain) or host and path start with the entry; a file path matches when it contains the entry.
+
+### Commit attribution
+
+No commit or pull request made with assist-plugin carries AI attribution. The `commit-attribution-guard` hook (PreToolUse on `Bash` and `PowerShell`) denies a command whose commit message or PR body holds one of these lines, and the commit and bump skills state the same rule.
+
+- **Covered commands:** `git commit` (including `--amend`) and `git merge` with `-m`, `--message`, `-F`, `--file`, or `--trailer`; `gh pr create` and `gh pr edit` with `--body`, `-b`, `--body-file`, or `-F`. Chained commands, heredocs, and PowerShell are read too.
+- **Denied lines:** a Co-Authored-By trailer that names an AI tool or vendor (human co-authors pass; an address at anthropic.com or openai.com counts only when it is a noreply address); a "Generated with" or "Generated by" footer that names an AI tool; an Assisted-by or Generated-by trailer that names an AI tool; a `*-Session:` trailer that points at an AI host; a bare AI session link. Lines inside a closed code fence are skipped, and a sentence that only mentions a trailer passes.
+- **Not covered:** `git tag`. `git revert` and `git cherry-pick` take no message on the command line. A message built from a variable or piped through stdin is not visible to the hook.
+- **On a match:** the hook denies with a reason that lists up to 5 lines to remove. It never rewrites the command and fails open.
+
+#### Attribution settings
+
+Claude Code adds its own Co-Authored-By trailer to commits and a footer to pull requests unless the attribution settings are empty. Set both to empty strings in `~/.claude/settings.json` (or `$CLAUDE_CONFIG_DIR/settings.json`), the project `.claude/settings.json`, or `.claude/settings.local.json`:
+
+```json
+{"attribution": {"commit": "", "pr": ""}}
+```
+
+Source: https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts
+
+`/assist-plugin:health` reports, read-only, when `attribution.commit` or `attribution.pr` is unset or not `""` in those files. It names the file and key to change and never edits settings.
 
 ### Writing standard hooks
 
@@ -259,7 +282,7 @@ The filter fails open (any error returns the original content with a one-line wa
 - **`prose-advisor`** (PostToolUse on the same tools): adds a short advisory note about hedges, intensifiers, AI vocabulary, throat-clearing, and similar tells in the added text. It never blocks.
 - **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent.
 
-Both per-write hooks skip files under the system temp directory. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
+Both per-write hooks skip files under the system temp directory and files under `docs/tts/` in the session's working directory (the hook's working directory, not the git root), where voice scripts from `/voice-script` may use em dashes as pause marks. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
 
 All three fail open. The per-write hooks add about 80 to 110 ms to each write. The plugin also ships an opt-in output style, `assist-plugin:terse`: answer-first replies with no preamble, recap, or sign-off. Select it with `/output-style`; subagents do not use it.
 
@@ -293,11 +316,12 @@ assist-marketplace-plugin/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
 │       ├── agents/ (15 agent definitions)
-│       ├── skills/ (20 skills: 16 user-invocable, 4 internal)
+│       ├── skills/ (22 skills: 18 user-invocable, 4 internal)
 │       ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
 │       │   ├── hooks.json (hook registration)
 │       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
+│       │   ├── commit-attribution-guard.js (entry: denies AI attribution lines in commit messages and PR bodies)
 │       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
 │       │   ├── prose-gate.js (entry: denies added block-tier tells in prose writes)
 │       │   ├── prose-advisor.js (entry: advisory note on added tells after a prose write)

@@ -6,10 +6,10 @@ Token-optimized Claude marketplace for development plugins.
 
 ### assist-plugin v1.9.0
 
-Token-optimized software development plugin with 20 skills (16 user-invocable, 4 internal), 15 expert agents, and governance gates.
+Token-optimized software development plugin with 22 skills (18 user-invocable, 4 internal), 15 expert agents, and governance gates.
 
 **Features:**
-- 16 user-invocable skills: do, ask, debug, bump, pr-review, commit, branch, map-project, technical-writing, review-md, gather-requirements, spec-from-requirements, task-plan, create-test, health, deslop
+- 18 user-invocable skills: do, ask, debug, bump, pr-review, commit, branch, map-project, technical-writing, review-md, gather-requirements, spec-from-requirements, task-plan, create-test, health, deslop, voice-script, clarify
 - 4 internal skills (loaded by agents): code, pentest, integrated-test, run-test
 - 15 agents: ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
 - Writing standard: `rules/writing-standard.md`, applied by the fail-open `prose-gate`, `prose-advisor`, and `writing-context` hooks; opt-in `assist-plugin:terse` output style
@@ -42,7 +42,7 @@ assist-marketplace-plugin/
     └── assist-plugin/
         ├── .claude-plugin/plugin.json (plugin metadata)
         ├── agents/ (15 agent definitions)
-        ├── skills/ (20 skills: 16 user-invocable, 4 internal)
+        ├── skills/ (22 skills: 18 user-invocable, 4 internal)
         ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
         ├── output-styles/ (terse.md)
         ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)

@@ -2,6 +2,33 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [Unreleased]
+
+### New Features
+
+- **New user-invocable `voice-script` skill**: `/voice-script [topic | draft-file]` writes a paste-ready text-to-speech script for a chosen TTS model
+  - Asks for the model, voice, length, delivery, and a topic or draft, then saves `docs/tts/voice-<slug>-YYYYMMDD-HHmm.md` with that model's own paralinguistic tags
+  - Catalog of Chatterbox-Turbo, 32 OpenRouter speech models, and OpenAI gpt-audio and gpt-audio-mini, with a live OpenRouter check
+- **New user-invocable `clarify` skill**: `/clarify [what is unclear]` turns unclear points in the current discussion into explanations and settled answers
+  - Explains Claude's own unclear output with evidence, then asks the user about points only the user can settle through `AskUserQuestion`
+  - Appends each clarification to `.agent/clarify/clarify-YYYYMMDD.md`, a daily append-only log; never writes `/do` plan files or `DECISIONS.md`
+  - The plugin now has 22 skills (18 user-invocable)
+- **`commit-attribution-guard` hook**: PreToolUse on `Bash` and `PowerShell` denies a `git commit`, `git merge`, `gh pr create`, or `gh pr edit` command whose commit message or PR body holds AI attribution
+  - Denies a Co-Authored-By trailer that names an AI tool or vendor (human co-authors pass), a "Generated with/by" footer, an Assisted-by or Generated-by trailer naming an AI tool, and a `*-Session:` trailer or bare session link at an AI host
+  - Reads `-m`, `--message`, `-F`, `--file`, `--trailer`, `--body`, `-b`, `--body-file`, chained commands, heredocs, and PowerShell; does not cover `git tag` or a message built from a variable or stdin
+  - Lists up to 5 lines to remove, never rewrites the command, and fails open
+- **Health check reports Claude Code's attribution setting**: `/assist-plugin:health` runs the new guard's self-test and reports, read-only, when `attribution.commit` or `attribution.pr` is unset or not `""` in the user, project, or local settings file; the README shows the snippet `{"attribution": {"commit": "", "pr": ""}}`
+
+### Changes
+
+- `prose-gate` and `prose-advisor` skip files under `docs/tts/` in the hook's working directory (not the git root), so voice scripts may use em dashes as pause marks
+- The `health` skill now lists `docs/tts/` among the paths the prose hooks skip
+- The `commit` and `bump` skills and `rules/assist-plugin-rule.md` state the no-AI-attribution rule: no Co-Authored-By trailer or other attribution line for an AI tool in a commit message or PR body; human co-authors are fine
+- The `gather-requirements`, `technical-writing`, and `spec-from-requirements` skills pre-approve writes only to their documented output paths through scoped `Edit(...)` rules in `allowed-tools`, replacing plain `Write` and `Edit`; a write to any other path now asks the user first
+  - `gather-requirements`: `./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json`
+  - `spec-from-requirements`: `./specs/spec-*.md`, `./specs/spec-*.json`, `./specs/openapi/*.json`, `./specs/openapi/*.yaml`, `./*/specs/spec-*.md`, `./*/specs/spec-*.json`
+  - `technical-writing`: `./README.md` only
+
 ## [1.9.0] - 2026-10-12
 
 ### New Features

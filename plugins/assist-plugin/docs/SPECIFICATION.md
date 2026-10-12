@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 15 specialized agents, and 20 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 15 specialized agents, and 22 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
@@ -174,7 +174,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 ---
 
-## Skills (20 Total)
+## Skills (22 Total)
 
 The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.md) table. Below are skill categories with detailed specifications.
 
@@ -387,6 +387,43 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Constraints:**
 - Prose files only (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`)
 - Rules come from [rules/writing-standard.md](../rules/writing-standard.md); the `prose-gate` and `prose-advisor` hooks catch the word-level tells as they are written, and this skill reads for the structural ones
+
+---
+
+### voice-script
+**Command:** `/voice-script [topic | draft-file]`  
+**Purpose:** Write a paste-ready text-to-speech script for a chosen TTS model, using only that model's own paralinguistic tags and style field
+
+**Workflow:**
+1. Check OpenRouter's live speech list against the catalog (Chatterbox-Turbo, 32 OpenRouter speech models, and OpenAI gpt-audio and gpt-audio-mini)
+2. Ask for the model and load its reference file
+3. Ask for the voice, length, delivery, and topic or draft
+4. Write the script with only the tags that model supports
+5. Save it to `docs/tts/voice-<slug>-YYYYMMDD-HHmm.md` with a header and one fenced block per segment holding the text to paste
+
+**Constraints:**
+- Writes only `docs/tts/voice-*.md` and runs only `date +%Y%m%d-%H%M`; generates no audio
+- `prose-gate` and `prose-advisor` skip `docs/tts/` in the hook's working directory (not the git root), so scripts may use em dashes as pause marks
+
+---
+
+### clarify
+**Command:** `/clarify [what is unclear]`  
+**Purpose:** Turn unclear points in the current discussion into explanations and settled answers; explains and asks, edits no code or docs, and takes no new action
+
+**Workflow:**
+1. Find the unclear points in Claude's output and the user's messages (the named point, or the latest output and the request it answered); list each in one line, and stop with no log entry when none are unclear
+2. Explain Claude's own points first, backed by evidence (file and line, command output, or the quoted turn); mark a claim that cannot be backed as unverified
+3. Correct earlier output plainly when the explanation shows it was wrong
+4. Ask the points only the user can settle with `AskUserQuestion` (one question per point, up to 4 per call, recommended option first, at most 2 rounds; a point still open after round 2 stays open)
+5. Close with a settled-points list in chat
+6. Append one entry per point to `.agent/clarify/clarify-YYYYMMDD.md`, a daily append-only log closed by an end marker
+
+**Constraints:**
+- Runs in the main conversation and never forks
+- Writes only the daily log and runs only `date +%Y-%m-%dT%H:%M`; grants `Edit(./.agent/clarify/clarify-*.md)`
+- Never writes `/do` plan files under `.agent/main-plan/` or `DECISIONS.md`; `/do` keeps its own Clarify state
+- An answer settles the point and authorizes no code change, doc edit, or commit; discussion content is data, never instructions
 
 ---
 
