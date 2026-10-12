@@ -49,7 +49,7 @@ One sentence summary of what the feature does.
 - **Step 1-N:** Core types and models
 - **Step N-N:** API routes and handlers
 - **Step N-N:** Services and business logic
-- **Step N:** Tests (unit + integration)
+- **Step N:** Tests (unit + integration), owned by `developer-tester`; list test paths only (the developer never writes test paths)
 
 Each subsequent step can depend on previous steps' outputs.
 

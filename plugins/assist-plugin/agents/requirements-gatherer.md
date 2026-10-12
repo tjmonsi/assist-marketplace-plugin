@@ -23,6 +23,8 @@ Elicits business/user requirements, creates BRD/URD documents, defines functiona
 
 Use the `gather-requirements` skill's elicitation methodology and templates for all requirements work.
 
+**Asking the user:** this agent runs as a subagent and cannot use `AskUserQuestion`. End each elicitation round with the terminal `fsa` block set to `state: NeedsInput`, the batch of 3-5 numbered `questions`, and `resume_at` naming the phase heading to continue from. `/do` asks the user and resumes this same agent with the answers. `/do` keeps two relay counts: a per-phase count (maximum 3) that resets when `resume_at` moves to a later phase, and a total of 10 relays per step that never resets. `/do` fails the step when either maximum is reached, so close a phase in as few rounds as its open points allow. Do not proceed to `document` until the user has confirmed the summary.
+
 **Model:** Sonnet  
 **Effort:** medium  
 **Tools:** Read, Write, Edit, Grep, Glob

@@ -21,9 +21,42 @@ Plan the implementation of a feature by validating its specification and produci
 
 Parse input: target spec file path, optional target language (detected from codebase if omitted).
 
+## States
+
+`task-plan` is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../do/references/fsa-template.md)). Follow the states in this order and do not skip one. Every `model` state ends with one line `Outcome: <value>`, and that value picks the next state. The Workflow steps below are the states, in order. Its output is the input of the `developer` agent (see [developer States](../../agents/developer.md#states)).
+
+| State | Kind | Does | Outcome -> next state |
+|---|---|---|---|
+| Intake | check | Spec path present and readable; it holds at least one `### Requirement:`; every one has a `#### Scenario:`. Record the list of requirement IDs. This is the validation gate | `ok` -> ClassifyContext; `no-spec` -> NeedsInput; `scenario-missing` or `no-requirements` -> Error(precondition-failed) |
+| ClassifyContext | check | Detect the target language from the argument, codebase files, the spec's tech-context field, or the prompt | `detected` -> ExtractRequirements; `undetected` -> NeedsInput |
+| ExtractRequirements | check | List each `SPEC-NNN` ID, each linked `FR-NNN` or `NFR-NNN`, and each Scenario title | `listed` -> PlanSteps |
+| PlanSteps | model | Write the ordered coding steps: files, `Satisfies` IDs, `code` skill references | `planned` -> CheckPlan |
+| CheckPlan | check | Every Intake requirement appears in some step's `Satisfies`. Every cited ID exists in the spec or its requirement documents (Grep). Every cited code reference exists in the `code` skill (Glob). Every file path a step modifies exists | `complete` -> WritePlan; `gaps` with rounds < 2 -> PlanSteps; `gaps` with rounds = 2 -> Error(budget-exhausted) |
+| WritePlan | model | Write the plan file from the template | `written` -> Done |
+| Done, NeedsInput, Error | terminal | End with the terminal block below | none |
+
+`rounds` counts PlanSteps passes after a CheckPlan `gaps`. `NeedsInput` carries numbered questions and `resume_at` (`Intake` for `no-spec`, `ClassifyContext` for `undetected`).
+
+### Terminal block
+
+When `task-plan` is the whole step, the final message ends with this block ([fsa-template.md](../do/references/fsa-template.md#terminal-block)). `verdict` is `steps=N`, the number of coding steps in the plan. `artifact` is the plan file path. When a `developer` run applies only task-plan's validation as its own Intake, the block is the developer's.
+
+```fsa
+fsa: task-plan/1
+state: Done
+trace: Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done
+artifact: task-plan-user-api-20261012-101500.md
+verdict: steps=6
+skipped: none
+out_of_scope: none
+error_class: none
+questions: none
+resume_at: none
+```
+
 ## Workflow
 
-### 1. Validate Specification
+### 1. Validate Specification (state: Intake)
 
 Read the target spec file and check every `### Requirement:` block for at least one `#### Scenario:` subsection. If any requirement lacks scenarios (acceptance criteria), halt and report:
 
@@ -34,9 +67,11 @@ File: [path]
 Line: [N]
 ```
 
+Put this report in the prose above the terminal block, then end in `Error(precondition-failed)`. Do not proceed to planning.
+
 Reference: [references/validation-rules.md](references/validation-rules.md)
 
-### 2. Classify Technology Context
+### 2. Classify Technology Context (state: ClassifyContext)
 
 Detect the target language from:
 1. Explicit argument (if provided)
@@ -54,14 +89,14 @@ Detect the target language from:
 | Kotlin | `.kt`, `build.gradle.kts` |
 | C++ | `.cpp`, `.cc`, `CMakeLists.txt` |
 
-### 3. Extract Requirements and Acceptance Criteria
+### 3. Extract Requirements and Acceptance Criteria (state: ExtractRequirements)
 
 From the spec, list:
 - Each `SPEC-NNN` ID
 - Each requirement's `FR-NNN`/`NFR-NNN` refs (if linked)
 - Each `#### Scenario:` block's title
 
-### 4. Plan Coding Steps
+### 4. Plan Coding Steps (states: PlanSteps, CheckPlan)
 
 For each requirement, generate one or more steps. Each step:
 - Names the file(s) to create or modify (relative paths, as they exist in the codebase)
@@ -82,17 +117,13 @@ Order steps so:
 - API/interface definitions precede implementations
 - Database setup precedes service code
 - Services precede handlers/controllers
-- Tests follow implementations (or align with them per TDD approach noted in the spec)
+- Tests follow implementations (or align with them per TDD approach noted in the spec). A test step names `developer-tester` as its owner and lists test paths only; the `developer` never writes test paths
 
-### 5. Output
+### 5. Output (state: WritePlan)
 
 Write `task-plan-[feature-slug]-[timestamp].md` using the template at [references/task-plan-template.md](references/task-plan-template.md).
 
 The file is ready for the `developer` agent to follow: each step becomes one implementation task.
-
-## Validation Gate
-
-If spec validation fails (missing scenarios), output a report and stop. Do not proceed to planning.
 
 ## Constraints
 

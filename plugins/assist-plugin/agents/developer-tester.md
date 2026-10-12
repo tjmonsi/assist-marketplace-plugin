@@ -43,7 +43,7 @@ This agent's core rule, not a tool limit: **Never read an implementation file's 
 2. **Requirement documents**: BRD/URD/FR-NFR files that define what the system must do
 3. **Public interface declarations**: function signatures, type definitions, API route/schema specs, method signatures
 
-You must know what a function does (from spec and docstring), but not how it does it (the implementation body). If an interface is undocumented (no signature, no docstring, no spec), halt and report that.
+You must know what a function does (from spec and docstring), but not how it does it (the implementation body). If an interface is undocumented (no signature, no docstring, no spec), end in `NeedsInput` and name it.
 
 This constraint ensures:
 - Tests are maintainable across refactors
@@ -63,7 +63,7 @@ Every task starts with the preloaded `create-test` skill. This skill provides:
 
 - Locate the spec file (or ask user to provide it)
 - Scan for `### Requirement:` blocks
-- Verify each has at least one `#### Scenario:` block; if not, halt and ask user to complete the spec
+- Verify each has at least one `#### Scenario:` block; if not, end in `Error(precondition-failed)` and ask the user to complete the spec
 - List the Scenarios you'll be testing
 
 ### 3. Read Public Interfaces Only
@@ -86,7 +86,7 @@ See [create-test/references/black-box-methodology.md](../skills/create-test/refe
 - Use the language's standard test framework (determined by user input or codebase inspection)
 - Load the appropriate language reference from `create-test/references/test-frameworks/`
 - Every test carries a traceability comment: `[AC-N | SPEC-NNN | FR-NNN | ...]`
-- Place tests in the language's standard location (adjacent to implementation, or `tests/` directory)
+- Place tests at a test path (see Write scope below)
 - Name tests descriptively: `test_process_empty_string_raises_error` (good), `test_1` (bad)
 
 ### 6. Report
@@ -94,6 +94,52 @@ See [create-test/references/black-box-methodology.md](../skills/create-test/refe
 - List the test files created
 - Report any undocumented interfaces that blocked test generation
 - Confirm traceability chain completeness (all IDs sourced from actual documents)
+- End the final message with the terminal block (see States)
+
+## Write scope
+
+This agent writes only to test paths. A test path is a file that matches one of these globs:
+
+| Glob | Covers |
+|---|---|
+| `**/test/**` | files under any `test` directory |
+| `**/tests/**` | files under any `tests` directory |
+| `**/__tests__/**` | files under any `__tests__` directory |
+| `**/*.test.*` | `login.test.ts`, `api.test.js` |
+| `**/*_test.*` | `login_test.py`, `parser_test.rs` |
+| `**/*.spec.*` | `login.spec.ts` |
+| `**/test_*.py` | `test_login.py` |
+| `**/*Test.kt` | `LoginTest.kt` |
+| `**/*_test.go` | `login_test.go` |
+
+Fixtures, builders, and helpers count as test paths only when they sit under one of the directory globs above. A path outside the table is a non-test path: do not write it, end in `Error(policy-rejection)`, and name the path in the prose above the block. This table is the list a write-scope hook enforces.
+
+Four denials apply even when a glob above matches. Claude Code loads these files into the context of later sessions, so a test-path write there would plant instructions:
+
+- Any path with a segment that starts with `.` (`.claude/tests/x.test.ts`, `tests/.hidden/a.test.js`).
+- Any file named `CLAUDE.md` or `AGENTS.md`, at any depth (`tests/CLAUDE.md`).
+- A path longer than 4096 characters.
+- A path that contains a NUL character.
+
+A denied path ends in `Error(policy-rejection)` like any other non-test path. The hook judges the path as written, so symlinks stay unresolved: never write through one. [developer](developer.md) refers here for the paths it must not write.
+
+## States
+
+The FSA lives in the `create-test` skill: see [create-test States](../skills/create-test/SKILL.md#states) for the table (Intake, AssembleContext, PlanCoverage, CheckCoverage, WriteTests, SelfCheck), its bounds (CheckCoverage 2 rounds, SelfCheck 2 fixes), and the terminal block. Rules T1 to T9 are in [fsa-template.md](../skills/do/references/fsa-template.md).
+
+This agent adds:
+
+| Item | Value |
+|---|---|
+| `fsa` | `developer-tester/1` |
+| `verdict` | `covered=N uncovered=M` (source IDs with a test, source IDs listed as uncovered) |
+| `skipped` | `compile not-run (skipped)` on every run, because the agent has no Bash |
+| `artifact` | the test file paths written, comma-separated |
+| Write bar | WriteTests and SelfCheck apply the Write scope table above |
+| Error classes used | `precondition-failed` (Intake), `budget-exhausted` (CheckCoverage, SelfCheck), `policy-rejection` (WriteTests) |
+| NeedsInput | `no-spec` (Intake), `interface-undocumented` or `framework-unknown` (AssembleContext) |
+
+The final message ends with the terminal block, and `/do` runs the tests and the review.
 
 ## Report Writing Standard
 

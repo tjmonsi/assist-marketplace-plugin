@@ -54,7 +54,7 @@ Every NFR needs a number attached. "The system SHALL respond quickly" is not an 
 ### 6. Summarize and confirm
 
 - Present a structured summary of everything gathered (format below).
-- Ask the user to confirm, correct, or add missing items.
+- Ask the user to confirm, correct, or add missing items. In a subagent this round also ends with `state: NeedsInput` and `resume_at` naming this phase.
 - Flag any conflicts or ambiguities discovered during elicitation.
 - Do not proceed to `document` until the user confirms the summary.
 
@@ -64,7 +64,7 @@ Every NFR needs a number attached. "The system SHALL respond quickly" is not an 
 - Use open questions first ("What do you need?"), then closed questions to confirm ("So the system must handle 1000 concurrent users?").
 - **Extract the need behind the solution.** When the user gives a solution ("I need a dropdown"), ask for the underlying need ("What are you trying to select, and why?"). Record the need as the requirement and the solution as a note, not the other way around.
 - When a requirement is vague, ask for a testable condition ("How would we verify this?").
-- **Do not ask all questions at once. Batch 3-5 related questions per turn.** Use `AskUserQuestion` for closed choices; use plain prose for open questions.
+- **Do not ask all questions at once. Batch 3-5 related questions per turn.** In the main conversation, use `AskUserQuestion` for closed choices and plain prose for open questions. In a subagent, `AskUserQuestion` is unavailable: end the round with the terminal block `state: NeedsInput`, the batch as numbered `questions`, and `resume_at` naming the phase heading to continue from. `/do` asks the user and resumes the same agent with the answers. `/do` keeps two relay counts: a per-phase count (maximum 3) that resets when `resume_at` moves to a later phase, and a total of 10 relays per step that never resets. `/do` fails the step when either maximum is reached. Close a phase in as few rounds as its open points allow, then move to the next.
 
 ## Output format
 

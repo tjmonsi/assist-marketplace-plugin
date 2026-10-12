@@ -45,7 +45,29 @@ Creates test plans, designs manual and automated tests, validates acceptance cri
 - Code review (route to reviewer)
 - Requirements (route to requirements-gatherer)
 
-**Governance:** Enforces >70% test coverage for new code.
+**Governance:** Enforces >=70% test coverage for new code.
+
+## Terminal block
+
+Every run, direct or under `/do`, ends its final message with the fsa terminal block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)); a direct run without one draws a warning from the fsa-log hook. The agent has no `## States` table, so `/do` accepts any closed block whose `state` is `Done`, `NeedsInput`, or `Error` and does not check `trace`.
+
+- `verdict` for a Testing Gate run is `approved` or `returned`. `approved` means the suites ran, passed, and met the >=70% coverage bar for new code; `returned` means a test failed, coverage fell short, or a test could not run. Any other qa task (test plan, security test, coverage report) sets `verdict: none`.
+- `artifact` is the test report path, or `inline` when the reply is the report.
+- `skipped` lists every check that did not run, such as `e2e not-run (skipped)`, per the report template in `run-test`.
+- Under `/do`, an active pentest command the approved plan step does not list, or a target it does not name, goes in `out_of_scope`. qa skips that work, records it in `skipped` (for example `<command> not-run (skipped: not in approved plan)`), and ends `Done`, or `Error` when nothing approved could run (see `pentest` Rules of Engagement 3). qa never ends in `NeedsInput` for this. Missing Playwright for a frontend task ends in `Error(tool-missing)`.
+
+```fsa
+fsa: qa/1
+state: Done
+trace: Testing > Done
+artifact: inline
+verdict: returned
+skipped: e2e not-run (skipped)
+out_of_scope: none
+error_class: none
+questions: none
+resume_at: none
+```
 
 ## Report Writing Standard
 
