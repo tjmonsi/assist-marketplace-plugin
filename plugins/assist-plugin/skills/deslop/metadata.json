@@ -1,0 +1,7 @@
+{
+  "name": "deslop",
+  "description": "Remove AI writing tells from prose. edit returns the cleaned text only; detect lists findings without editing.",
+  "effort": "high",
+  "allowed-tools": ["Read", "Grep", "Glob"],
+  "argument-hint": "[edit | detect] <file-or-text>"
+}
