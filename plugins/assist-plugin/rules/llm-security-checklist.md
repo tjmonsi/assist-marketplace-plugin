@@ -9,7 +9,7 @@ documentation — they are executable instructions handed to a model with tool a
 with the same rigor as production code.
 
 **When triggered:** Any change to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`,
-`rules/*.md`, `CLAUDE.md`, or `.claude/settings*.json`.
+`rules/*.md`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`.
 **Who reviews:** `reviewer` or `code-reviewer` agent.
 **Authority:** Blocks merge.
 **Approval signature:** `✓ LLM Security Clear`
@@ -262,7 +262,7 @@ the model emitting a literal string, so a hallucinated sign-off is indistinguish
 - [ ] The agent that produced an artifact cannot record its own approval; review status is written
       by the orchestrator or a distinct reviewer agent.
 - [ ] Fast-track eligibility explicitly **excludes** changes to `agents/`, `skills/`, `rules/`,
-      `CLAUDE.md`, and `.claude/settings*.json` — prompt files are production code for this plugin.
+      `hooks/`, `CLAUDE.md`, and `.claude/settings*.json` — prompt and hook files are production code for this plugin.
 - [ ] Review findings cite concrete file:line evidence; unsupported "looks good" approvals are
       rejected.
 
@@ -301,7 +301,7 @@ Add to the Merge Policy in `assist-plugin-rule.md`:
 
 - [ ] LLM security review: `✓ LLM Security Clear`
 
-Required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `CLAUDE.md`, or
+Required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `hooks/**`, `CLAUDE.md`, or
 `.claude/settings*.json`. This gate is **not fast-trackable** — those files are the plugin's
 executable surface.
 

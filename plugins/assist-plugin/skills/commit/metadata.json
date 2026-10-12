@@ -2,6 +2,8 @@
   "name": "commit",
   "description": "Create conventional commits with git staging, messaging, and optional squash/amend.",
   "effort": "low",
-  "allowed-tools": ["Bash"],
-  "argument-hint": "[options]"
+  "allowed-tools": [
+    "Bash"
+  ],
+  "argument-hint": "[--squash] [--amend] [--scope SCOPE] [TYPE: message]"
 }

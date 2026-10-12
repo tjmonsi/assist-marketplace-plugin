@@ -4,16 +4,17 @@ Token-optimized Claude marketplace for development plugins.
 
 ## Plugins
 
-### assist-plugin v1.0.0
+### assist-plugin v1.5.0
 
-Token-optimized software development plugin with 8 specialized skills, 12 expert agents, and governance gates.
+Token-optimized software development plugin with 19 skills (15 user-invocable, 4 internal), 14 expert agents, and governance gates.
 
 **Features:**
-- 8 skills: do, debug, bump, pr-review, commit, branch, map-project, technical-writing
-- 12 agents: developer, reviewer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, code-reviewer, explore, general-purpose, worker
+- 15 user-invocable skills: do, ask, debug, bump, pr-review, commit, branch, map-project, technical-writing, review-md, gather-requirements, spec-from-requirements, task-plan, create-test, health
+- 4 internal skills (loaded by agents): code, pentest, integrated-test, run-test
+- 14 agents: ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
 - Governance: OWASP security, >70% test coverage, code review gates
 - Auto-detection: GitHub/Bitbucket platform detection
-- Full documentation: SPECIFICATION, ARCHITECTURE, TOKEN_OPTIMIZATION
+- Full documentation: SPECIFICATION, ARCHITECTURE, TOKEN_OPTIMIZATION, DOCUMENTATION_STANDARD, TRACING_MARKERS
 
 **Location:** `plugins/assist-plugin/`
 
@@ -28,15 +29,18 @@ Token-optimized software development plugin with 8 specialized skills, 12 expert
 ## Marketplace Structure
 
 ```
-assist-plugin-marketplace/
+assist-marketplace-plugin/
 ├── .claude-plugin/marketplace.json (marketplace metadata)
+├── CHANGELOG.md (release history)
+├── CLAUDE.md (repo quick reference)
 ├── MARKETPLACE.md (this file)
 ├── README.md (marketplace overview)
 └── plugins/
     └── assist-plugin/
         ├── .claude-plugin/plugin.json (plugin metadata)
-        ├── agents/ (12 agent definitions)
-        ├── skills/ (8 skill implementations)
+        ├── agents/ (14 agent definitions)
+        ├── skills/ (19 skills: 15 user-invocable, 4 internal)
+        ├── hooks/ (fail-open PreToolUse guards and health check)
         ├── rules/ (governance)
         ├── docs/ (comprehensive documentation)
         ├── Claude.md (quick reference)
@@ -49,7 +53,7 @@ assist-plugin-marketplace/
 ### Method 1: From Claude Code
 
 ```bash
-/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-marketplace-plugin
 /plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
@@ -57,13 +61,13 @@ assist-plugin-marketplace/
 ### Method 2: Manual Git Clone
 
 ```bash
-git clone https://github.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/marketplaces/assist-plugin-marketplace
+git clone https://github.com/tjmonsi/assist-marketplace-plugin.git ~/.claude/plugins/marketplaces/assist-plugin-marketplace
 /plugin reload
 ```
 
 ## Versioning
 
-Each plugin follows semantic versioning. Version 1.0.0 is available in `plugins/assist-plugin/`.
+Each plugin follows semantic versioning. Version 1.5.0 is available in `plugins/assist-plugin/`.
 
 Future versions will follow the same pattern: a single `plugins/assist-plugin/` directory with versioning managed through git tags (e.g., `assist-plugin--v1.1.0`, `assist-plugin--v2.0.0`).
 

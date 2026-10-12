@@ -31,28 +31,29 @@ Use `/do` to route any development task to the right agent:
 | **explore** | Fast read-only code search |
 | **worker** | Multi-discipline fallback |
 
-## Skills (18)
+## Skills (19)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| **do** | `/do <task>` | Route task to best agent + orchestrate |
+| **do** | `/do [task description or prompt]` | Route task to best agent + orchestrate |
 | **ask** | `/ask [--web] <question>` | Answer questions using repo + optional web research |
-| **debug** | `/debug [analyze\|fix\|review]` | Root cause analysis & iterative fixes |
-| **bump** | `/bump [patch\|minor\|major\|auto]` | Semantic versioning & changelog generation |
-| **pr-review** | `/pr-review [PR#] [--approve\|--changes-requested]` | Auto-detect GitHub/Bitbucket, review PRs |
-| **commit** | `/commit` | Conventional commit with git |
-| **branch** | `/branch [create\|switch]` | Branch management |
+| **debug** | `/debug [analyze \| fix \| review] [description \| file:line]` | Root cause analysis & iterative fixes |
+| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit]` | Semantic versioning & changelog generation |
+| **pr-review** | `/pr-review [PR#\|branch-name] [--approve\|--changes-requested\|--comment] [--message TEXT]` | Auto-detect GitHub/Bitbucket, review PRs |
+| **commit** | `/commit [--squash] [--amend] [--scope SCOPE] [TYPE: message]` | Conventional commit with git |
+| **branch** | `/branch [create \| switch \| list \| cleanup] [branch-name \| --dry-run]` | Branch management and merged worktree cleanup |
 | **map-project** | `/map-project` | Discover repo structure |
-| **technical-writing** | `/technical-writing [docs\|readme]` | Generate documentation |
+| **technical-writing** | `/technical-writing [docs \| readme \| guide \| api] [topic \| file]` | Generate documentation |
 | **review-md** | `/review-md <path-to-report.md>` | Review reports for consistency, conciseness, and factual accuracy |
-| **gather-requirements** | `/gather-requirements [elicit\|document\|review]` | Elicit and document BR/UR/FR/NFR with IEEE 29148 templates and GIVEN/WHEN/THEN criteria |
-| **spec-from-requirements** | `/spec-from-requirements [create\|delta\|review]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
-| **task-plan** | `/task-plan <spec-file>` | Generate ordered coding steps from feature specs |
-| **code** | (loaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
-| **create-test** | (via developer-tester) | Create black-box tests from acceptance criteria only |
-| **pentest** | (via qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
-| **integrated-test** | (via qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
-| **run-test** | (via qa) | Execute test suites, collect coverage, produce consolidated test report |
+| **gather-requirements** | `/gather-requirements [elicit \| document \| review] [topic \| file]` | Elicit and document BR/UR/FR/NFR with IEEE 29148 templates and GIVEN/WHEN/THEN criteria |
+| **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
+| **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
+| **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard self-tests, recent hook failures, disabled guards |
+| **code** | (preloaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
+| **pentest** | (preloaded by qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
+| **integrated-test** | (preloaded by qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
+| **run-test** | (preloaded by qa) | Execute test suites, collect coverage, produce consolidated test report |
 
 ## Documentation
 

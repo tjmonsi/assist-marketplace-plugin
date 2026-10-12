@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 14 specialized agents, and 18 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 14 specialized agents, and 19 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
@@ -21,7 +21,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Local testing before review
   - Apply task-plan and code skill standards
 - **Model default:** Sonnet
-- **Tools:** Read, Edit, Write, Grep, Glob, Bash, LSP
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP
 
 #### developer-tester
 - **Purpose:** Create black-box tests from acceptance criteria
@@ -32,7 +32,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Enumerate input space per acceptance criterion (valid, invalid, boundary, null/empty, type-mismatch, security-adjacent)
   - Apply traceability markers to test cases
 - **Model default:** Sonnet
-- **Tools:** Read, Write, Grep, Glob (no Bash, no Edit)
+- **Tools:** Read, Write, Grep, Glob
 
 #### reviewer
 - **Purpose:** Code review, quality, and security checks
@@ -42,7 +42,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Performance and scalability review
   - Approve or request revisions
 - **Model default:** Opus
-- **Tools:** Read, Grep, Glob, Bash, LSP (no write)
+- **Tools:** Read, Grep, Glob, LSP
 
 #### planner
 - **Purpose:** Architecture, design, and planning
@@ -52,7 +52,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Dependency analysis
   - Risk assessment
 - **Model default:** Sonnet
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash
+- **Tools:** Read, Write, Edit, Grep, Glob
 
 ### Testing & Quality Agents (2)
 
@@ -68,7 +68,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Playwright availability check before frontend testing
   - Report output uses consolidated test report template
 - **Model default:** Sonnet
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash, LSP
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP
 
 #### solutions-architect
 - **Purpose:** Feature spec, data flow, API contracts
@@ -78,7 +78,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Data flow diagrams
   - Error handling strategy
 - **Model default:** Opus
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash (Bash is limited to mermaid-cli `mmdc` commands, enforced by `hooks/sa-mermaid-only.js`)
 
 ### Planning & Requirements Agents (2)
 
@@ -90,7 +90,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Define FR + NFR
   - Acceptance criteria specification
 - **Model default:** Sonnet
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash
+- **Tools:** Read, Write, Edit, Grep, Glob
 
 #### devops
 - **Purpose:** CI/CD, infrastructure, deployment
@@ -100,9 +100,9 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Deployment automation
   - Monitoring & alerting
 - **Model default:** Sonnet
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
-### Specialized & Support Agents (4)
+### Specialized & Support Agents (6)
 
 #### researcher
 - **Purpose:** Web research, documentation audit
@@ -112,7 +112,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Best-practice discovery
   - Competitive analysis
 - **Model default:** Opus
-- **Tools:** WebSearch, WebFetch, Read, Write
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell, WebSearch, WebFetch
 
 #### code-reviewer
 - **Purpose:** Formal code review (specialized)
@@ -122,7 +122,16 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Best-practice enforcement
   - Sign-off on critical changes
 - **Model default:** Opus
-- **Tools:** Read, Grep, Glob, Bash (no write)
+- **Tools:** Read, Grep, Glob, LSP
+
+#### ask
+- **Purpose:** Answer questions from repository search and optional web research
+- **Responsibilities:**
+  - Search repository documents for answers
+  - Route to explore for code lookup and to researcher for external research (`--web`)
+  - Provide concise, sourced answers
+- **Model default:** Sonnet
+- **Tools:** Read, Grep, Glob, WebSearch, WebFetch
 
 #### explore
 - **Purpose:** Fast read-only code search
@@ -132,7 +141,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Locate definitions/callers
   - Code location discovery
 - **Model default:** Haiku
-- **Tools:** Read, Grep, Glob (no write)
+- **Tools:** Read, Grep, Glob
 
 #### general-purpose
 - **Purpose:** Catch-all for unmatched tasks
@@ -142,7 +151,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Experimentation
   - Fallback orchestration
 - **Model default:** Sonnet
-- **Tools:** All (except Artifact)
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 #### worker
 - **Purpose:** Multi-discipline generalist
@@ -152,13 +161,13 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Cross-cutting concerns
   - When coordination overhead exceeds benefit
 - **Model default:** Sonnet
-- **Tools:** All (except Artifact)
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 ---
 
-## Skills (18 Total)
+## Skills (19 Total)
 
-The full skill list appears in the [plugins/assist-plugin/CLAUDE.md](../CLAUDE.md) table. Below are skill categories with detailed specifications.
+The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.md) table. Below are skill categories with detailed specifications.
 
 ### do
 **Command:** `/do <task description>`  
@@ -221,14 +230,15 @@ The full skill list appears in the [plugins/assist-plugin/CLAUDE.md](../CLAUDE.m
 ---
 
 ### branch
-**Command:** `/branch [create | switch]`  
-**Purpose:** Branch creation and switching
+**Command:** `/branch [create | switch | list | cleanup] [branch-name | --dry-run]`  
+**Purpose:** Branch creation, switching, and merged worktree cleanup
 
 **Features:**
 - Create feature/bugfix/release branches
 - Naming conventions (feature/*, bugfix/*, release/*)
 - Switch with stash support
 - Track remote branches
+- Clean up merged worktrees, their branches, and Go build caches (`cleanup`)
 
 **Model:** Haiku  
 **Effort:** low
@@ -329,6 +339,26 @@ The full skill list appears in the [plugins/assist-plugin/CLAUDE.md](../CLAUDE.m
 **Constraints:**
 - Read-only on the reviewed file; never edits it
 - Produces a separate findings artifact using the three-part structure (what's wrong, why it matters, what to change)
+
+---
+
+### health
+**Command:** `/health [--clear]`  
+**Purpose:** Report assist-plugin hook health: Node version, guard self-tests, recent hook failures, disabled guards
+
+**Workflow:**
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only` and `doc-cli-guard` against fixed allow and deny cases)
+2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
+3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
+4. With `--clear`, truncate `hook-health.jsonl` after showing it
+
+**Model:** Sonnet  
+**Effort:** low
+
+**Constraints:**
+- Hooks fail open: a failure lets the command run with a `systemMessage` warning; only a positive guard match denies
+- A guard whose self-test denies a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes
+- The health log never holds command text, arguments, environment values, or stdin
 
 ---
 

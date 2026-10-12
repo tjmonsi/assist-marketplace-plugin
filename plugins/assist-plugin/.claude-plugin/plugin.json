@@ -1,13 +1,13 @@
 {
   "name": "assist-plugin",
   "version": "1.5.0",
-  "description": "Token-optimized software development plugin with 18 skills, 14 agents, and governance gates for full lifecycle development from requirements to shipping",
+  "description": "Token-optimized software development plugin with 19 skills, 14 agents, and governance gates for full lifecycle development from requirements to shipping",
   "author": {
     "name": "Toni-Jan Keith Monserrat",
     "email": "tjmonsi@gmail.com"
   },
-  "homepage": "https://github.com/tjmonsi/assist-plugin-marketplace",
-  "repository": "https://github.com/tjmonsi/assist-plugin-marketplace",
+  "homepage": "https://github.com/tjmonsi/assist-marketplace-plugin",
+  "repository": "https://github.com/tjmonsi/assist-marketplace-plugin",
   "license": "MIT",
   "keywords": ["software-development", "agents", "skills", "orchestration", "token-optimized", "testing", "security", "requirements", "specifications"]
 }

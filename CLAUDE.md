@@ -1,0 +1,108 @@
+# assist-marketplace-plugin
+
+Claude Code marketplace hosting `assist-plugin`, a token-optimized software development plugin that orchestrates specialized agents and skills across the full development lifecycle.
+
+## Repository
+
+- **GitHub repo:** `tjmonsi/assist-marketplace-plugin`
+- **Marketplace name:** `assist-plugin-marketplace` (from `.claude-plugin/marketplace.json`)
+- **Install id:** `assist-plugin@assist-plugin-marketplace`
+- **Plugin:** `plugins/assist-plugin` (v1.5.0)
+
+GitHub URLs and `/plugin marketplace add` use the repo path (`tjmonsi/assist-marketplace-plugin`). Install ids (`/plugin install assist-plugin@assist-plugin-marketplace`) use the marketplace name (`assist-plugin-marketplace`). Do not rename the marketplace; it breaks existing installs.
+
+## Quick Start
+
+Use `/do` to route any development task to the right agent:
+
+```
+/do implement user authentication in the backend
+/do review this PR for security issues
+/do design the API schema for the new feature
+```
+
+## Agents (14)
+
+| Agent | Purpose |
+|-------|---------|
+| **ask** | Answer questions using repo search and optional web research |
+| **code-reviewer** | Formal line-by-line code review and sign-off |
+| **developer** | Write, fix, and refactor code from specs |
+| **developer-tester** | Write black-box acceptance-criteria tests without reading implementation |
+| **devops** | CI/CD, infrastructure, deployment, monitoring |
+| **explore** | Fast read-only code search |
+| **general-purpose** | Catch-all for unmatched tasks |
+| **planner** | Architecture, roadmaps, dependency and risk analysis |
+| **qa** | Test plans, acceptance validation, pentest, integration and coverage checks |
+| **requirements-gatherer** | Requirements elicitation, BRD/URD, FR and NFR |
+| **researcher** | Web research, documentation audit, best practices |
+| **reviewer** | Code review for bugs, security (OWASP), and quality |
+| **solutions-architect** | Requirements to specs, APIs, schemas, data flows |
+| **worker** | Multi-discipline generalist for small features |
+
+## Skills (19)
+
+### User-invocable (15)
+
+| Skill | Command | Purpose |
+|-------|---------|---------|
+| **do** | `/do [task description or prompt]` | Route a task to the best agent and orchestrate with review loops |
+| **ask** | `/ask [--web] <question>` | Answer questions from the repo, optionally with web research |
+| **debug** | `/debug [analyze \| fix \| review] [description \| file:line]` | Root cause analysis and iterative fixes |
+| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit]` | Semantic version bump with changelog generation |
+| **pr-review** | `/pr-review [PR#\|branch-name] [--approve\|--changes-requested\|--comment] [--message TEXT]` | Review GitHub or Bitbucket PRs with platform auto-detection |
+| **commit** | `/commit [--squash] [--amend] [--scope SCOPE] [TYPE: message]` | Create conventional commits |
+| **branch** | `/branch [create \| switch \| list \| cleanup] [branch-name \| --dry-run]` | Create, switch, and list git branches; clean up merged worktrees and branches, and clear the Go build cache |
+| **map-project** | `/map-project` | Discover repo structure, tech stack, and dependencies |
+| **technical-writing** | `/technical-writing [docs \| readme \| guide \| api] [topic \| file]` | Generate and update technical documentation |
+| **review-md** | `/review-md <path-to-report.md>` | Review markdown reports for consistency, conciseness, and accuracy |
+| **gather-requirements** | `/gather-requirements [elicit \| document \| review] [topic \| file]` | Elicit and document requirements (IEEE 29148, RFC 2119) |
+| **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Write feature specs and delta change logs from requirements |
+| **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Turn a spec into ordered coding steps |
+| **create-test** | `/create-test [spec-file \| feature-name] [language]` | Generate black-box acceptance-criteria tests (also used by developer-tester) |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard self-tests, recent hook failures, disabled guards |
+
+### Internal (4)
+
+| Skill | Preloaded by | Purpose |
+|-------|-----------|---------|
+| **code** | developer | Language and framework standards, logging, error handling, traceability |
+| **pentest** | qa | OWASP Top 10 and LLM guardrail security testing |
+| **integrated-test** | qa | Integration and E2E testing patterns (testcontainers, Playwright) |
+| **run-test** | qa | Run test suites, capture coverage, produce consolidated reports |
+
+## Documentation
+
+- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)** — Plugin quick reference
+- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)** — Full agent/skill catalog
+- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)** — Design rationale and structure
+- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
+- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)** — Writing standards and conciseness checklist
+- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)** — Requirement/spec traceability marker convention
+- **[README.md](README.md)** — Marketplace overview and installation
+- **[MARKETPLACE.md](MARKETPLACE.md)** — Marketplace details and versioning
+- **[CHANGELOG.md](CHANGELOG.md)** — Release history
+
+## Governance
+
+- **Security:** OWASP top 10 review on code changes
+- **Testing:** >70% coverage required for new code
+- **Review:** Code reviewer sign-off required before merge
+- **LLM security:** OWASP for LLM gate on changes to `agents/`, `skills/`, `rules/`, `hooks/`, or `CLAUDE.md` (see [plugins/assist-plugin/rules/llm-security-checklist.md](plugins/assist-plugin/rules/llm-security-checklist.md))
+- See [plugins/assist-plugin/rules/assist-plugin-rule.md](plugins/assist-plugin/rules/assist-plugin-rule.md)
+
+## Keeping counts in sync
+
+When adding or removing a skill or agent, update the counts and lists in:
+
+- [ ] `plugins/assist-plugin/.claude-plugin/plugin.json` (description)
+- [ ] `.claude-plugin/marketplace.json` (description)
+- [ ] `README.md`
+- [ ] `MARKETPLACE.md`
+- [ ] `CLAUDE.md`
+- [ ] `plugins/assist-plugin/Claude.md`
+- [ ] `plugins/assist-plugin/docs/SPECIFICATION.md`
+- [ ] `plugins/assist-plugin/skills/do/references/agent-registry.md`
+- When an agent depends on a skill, list it in the agent's `skills:` frontmatter; never set `disable-model-invocation: true` on a skill an agent preloads.
+
+When releasing, update the version in `plugins/assist-plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.

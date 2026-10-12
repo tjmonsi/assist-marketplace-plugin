@@ -100,7 +100,7 @@ Code MUST pass ALL checks before approval:
 
 ## LLM Security Review Gate
 
-**When triggered:** Changes to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`, `rules/*.md`, `CLAUDE.md`, or `.claude/settings*.json`  
+**When triggered:** Changes to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`, `rules/*.md`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`  
 **Who reviews:** `reviewer` or `code-reviewer` agent  
 **Authority:** Blocks merge
 
@@ -122,7 +122,7 @@ LLM07 System Prompt Leakage, LLM09 Misinformation/Overreliance, LLM10 Unbounded 
 (LLM08 Vector/Embedding Weaknesses is out of scope — no vector store or RAG layer in this plugin.)
 
 **Not fast-trackable:** This gate cannot be skipped under the Fast-Track Review rules below, even
-for changes that look like "docs-only." Files under `agents/`, `skills/`, and `rules/` are this
+for changes that look like "docs-only." Files under `agents/`, `skills/`, `rules/`, and `hooks/` are this
 plugin's executable surface.
 
 **Approval:** Must sign: `✓ LLM Security Clear`
@@ -334,7 +334,7 @@ Escalate to code-reviewer if:
 **Before merge, ALL gates must be passed:**
 
 - [ ] Security review: ✓ OWASP Clear
-- [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `CLAUDE.md`, or `.claude/settings*.json`)
+- [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`)
 - [ ] Testing: ✓ >70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
 - [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
@@ -359,7 +359,7 @@ For low-risk changes (docs, tests, refactoring):
 
 1. **Security gate:** Can skip if no production code changes
 2. **LLM security gate:** Cannot be skipped for changes to `agents/*.md`, `skills/**/SKILL.md`,
-   `skills/**/references/*.md`, `rules/*.md`, `CLAUDE.md`, or `.claude/settings*.json` — these are
+   `skills/**/references/*.md`, `rules/*.md`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json` — these are
    the plugin's executable surface, not documentation, regardless of how the change looks
 3. **Testing gate:** Always required if logic changes
 4. **Code review:** Optional if change is obvious/non-critical
@@ -368,11 +368,42 @@ Mark in plan: `**Review:** Low-risk (no production code)`
 
 ---
 
+## Worktree and Cache Cleanup
+
+**Rule:** After a task done in a git worktree is merged, remove the finished worktree, delete its merged branch, and clear the Go build cache. `/do` runs this automatically (Step 7) and only for the exact worktrees its steps created; `/branch cleanup` sweeps all linked worktrees on demand.
+
+**Guards:**
+- Never touch the main worktree, the current worktree, or the default, `main`, `master`, or `develop` branches
+- Remove only worktrees whose branch or commit is an ancestor of the default branch, that are clean (untracked files count as dirty), unlocked, and have names matching `^[A-Za-z0-9._/-]+$`
+- Squash-merged and rebase-merged branches show as `not merged` and are kept
+- Never use `git worktree remove --force`, `git branch -D`, `git clean`, or `rm -rf`; if git refuses, report and keep the item
+- Stale worktree entries are listed from `git worktree prune --dry-run --verbose`, not pruned
+
+**Cache scope:** `(cd "$HOME" && go clean -cache -testcache)` only (module cache untouched). Rust (`CARGO_TARGET_DIR`) and Gradle clean commands are reported for the user, not run. In-worktree directories go away with the worktree, and ignored files are listed before removal.
+
+Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md)
+
+---
+
+## Hook Fail-Open Rule
+
+**Rule:** Plugin hooks (`hooks/`) block a tool call only when the guard logic positively matches a prohibited command. Every other outcome lets the command proceed: a thrown error, uncaught exception, unhandled rejection, stdin or input error, timeout, unsupported Node version, health-log write failure, or a guard disabled by `hooks-disabled.json`.
+
+**Requirements for hook code:**
+- Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the pure `evaluate(input)` of a guard; never exit 2 and never exit non-zero to block
+- On any failure print only `{"systemMessage": "..."}` to stdout and exit 0; if that write fails, exit 0 silently
+- Every hook command goes through an ES5 entry file (`hooks/*.js`) that gates the Node version before loading the real module; set `timeout` in `hooks.json`
+- Record failures in `${CLAUDE_PLUGIN_DATA}/hook-health.jsonl` without command text, arguments, environment values, or stdin
+- A guard whose self-test denies a known-safe command is auto-disabled (with a warning) until a later self-test passes; `/assist-plugin:health` shows the state
+
+---
+
 ## Governance Enforcement
 
 - **Automated:** CI/CD pipeline enforces coverage gates
 - **Manual:** Agents enforce OWASP checks
-- **Manual:** Agents enforce OWASP for LLM checks ([llm-security-checklist.md](llm-security-checklist.md)) on every change to `agents/`, `skills/`, `rules/`, `CLAUDE.md`, or `.claude/settings*.json`
+- **Manual:** Agents enforce OWASP for LLM checks ([llm-security-checklist.md](llm-security-checklist.md)) on every change to `agents/`, `skills/`, `rules/`, `hooks/`, `CLAUDE.md`, or `.claude/settings*.json`
 - **Manual:** code-reviewer gives formal sign-off
+- **Automated:** the SessionStart health check self-tests the hook guards and warns only when something is wrong ([Hook Fail-Open Rule](#hook-fail-open-rule))
 - **Escalation:** code-reviewer makes final call on disputes
 

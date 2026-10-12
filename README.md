@@ -2,12 +2,14 @@
 
 Claude marketplace for token-optimized development plugins.
 
+GitHub repo: `tjmonsi/assist-marketplace-plugin`. Marketplace name: `assist-plugin-marketplace`.
+
 ## Quick Start
 
 Install the marketplace and enable assist-plugin:
 
 ```bash
-/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-marketplace-plugin
 /plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
@@ -23,20 +25,33 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.0.0
+### assist-plugin v1.5.0
 
-**8 specialized skills:**
+**15 user-invocable skills:**
 - `do` — Task orchestration and routing
+- `ask` — Repo and web Q&A with citations
 - `debug` — Root cause analysis + iterative fixes
 - `bump` — Semantic versioning & changelog generation
 - `pr-review` — GitHub/Bitbucket PR review with auto-detection
 - `commit` — Conventional commits
-- `branch` — Git branch management
+- `branch` — Git branch management and merged worktree cleanup
 - `map-project` — Repository discovery
 - `technical-writing` — Documentation generation
+- `review-md` — Markdown report review
+- `gather-requirements` — Requirements elicitation and documentation
+- `spec-from-requirements` — Feature specs and delta change logs
+- `task-plan` — Ordered coding steps from specs
+- `create-test` — Black-box acceptance-criteria tests
+- `health` — Hook health: Node version, guard self-tests, recent hook failures, disabled guards
 
-**12 expert agents:**
-- developer, reviewer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, code-reviewer, explore, general-purpose, worker
+**4 internal skills (loaded by agents):**
+- `code` — Coding standards and conventions (developer)
+- `pentest` — OWASP and LLM security testing (qa)
+- `integrated-test` — Integration and E2E testing patterns (qa)
+- `run-test` — Test execution and coverage reports (qa)
+
+**14 expert agents:**
+- ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
 
 **Governance gates:**
 - OWASP Top 10 security review
@@ -87,6 +102,8 @@ For a full breakdown of token savings by scenario, cost implications, and method
 - **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)** — Full agent/skill catalog
 - **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)** — System design
 - **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)** — Optimization strategy
+- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)** — Writing standards and conciseness checklist
+- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)** — Traceability marker convention
 - **[MARKETPLACE.md](MARKETPLACE.md)** — Marketplace overview
 
 ## Installation
@@ -94,7 +111,7 @@ For a full breakdown of token savings by scenario, cost implications, and method
 ### Option 1: Claude Code Plugin Command
 
 ```bash
-/plugin marketplace add tjmonsi/assist-plugin-marketplace
+/plugin marketplace add tjmonsi/assist-marketplace-plugin
 /plugin install assist-plugin@assist-plugin-marketplace
 /plugin enable assist-plugin
 ```
@@ -102,27 +119,151 @@ For a full breakdown of token savings by scenario, cost implications, and method
 ### Option 2: Manual Git Clone
 
 ```bash
-git clone https://github.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/assist-plugin-marketplace
+git clone https://github.com/tjmonsi/assist-marketplace-plugin.git ~/.claude/plugins/marketplaces/assist-plugin-marketplace
 ```
 
 ### Option 3: Manual Git Clone (Self-Hosted)
 
 ```bash
-git clone ssh://git@git.tjmonsi.com/tjmonsi/assist-plugin-marketplace.git ~/.claude/plugins/assist-plugin-marketplace
+git clone ssh://git@git.tjmonsi.com/tjmonsi/assist-marketplace-plugin.git ~/.claude/plugins/marketplaces/assist-plugin-marketplace
 ```
+
+## Recommended CLI Tools
+
+The plugin works without these tools, but agents fall back or skip steps when one is missing; agents detect each tool before use. Install only what your workflow needs. Agents never run installs themselves.
+
+### Core
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
+| Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
+
+#### Python tooling: uv preferred
+
+Every Python command in this plugin shows the uv form first and the pip or pipx form second. Detect uv with `command -v uv`; use the pip or pipx form only when uv is absent. Agents show these commands and never run them; you run the installs. Agents run tests with the no-install form `uv run --no-sync --no-python-downloads pytest ...`, which needs an existing `.venv` (create it with `uv sync`).
+
+- **Global CLI** (one machine-wide tool in its own environment): `uv tool install [--python X] <pkg>`; fallback `pipx install [--python X] <pkg>`, which also isolates the tool. Plain `pip install` outside a virtual environment is not recommended.
+- **Per-repo** (dev dependency of a Python project you test): `uv add --dev <pkg>`, then `uv run <command>`; fallback `python -m pip install <pkg>` inside the project's virtual environment. The project's `requires-python` lower bound must be at least 3.11 for garak (3.10 for PyRIT). uv ignores dependency upper bounds, so the project's `.venv` must also use Python 3.13 or lower for garak.
+
+### PR platforms
+
+Install only the one you use. Authenticate with `gh auth login` or `bkt auth login` (check with `gh auth status` or `bkt auth status`).
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| `gh` (GitHub) | `brew install gh` or `winget install GitHub.cli` | `pr-review` | One of `gh` or `bkt` |
+| `bkt` (Bitbucket, [avivsinai/bitbucket-cli](https://github.com/avivsinai/bitbucket-cli)) | `brew install avivsinai/tap/bitbucket-cli`, `winget install AvivSinai.Bitbucket-CLI`, or `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest` | `pr-review` | One of `gh` or `bkt` |
+
+### Docs lookup
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| `ctx7` | `npm i -g ctx7`; optional `CONTEXT7_API_KEY` for higher rate limits | `code` skill (developer) | Optional |
+| `firecrawl` | `npm i -g firecrawl-cli`; authenticate with `firecrawl login` or set `FIRECRAWL_API_KEY` | `code` skill, researcher | Optional |
+
+### Diagrams
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| `mmdc` | `npm i -g @mermaid-js/mermaid-cli` | solutions-architect, `spec-from-requirements` (PNG rendering) | Optional |
+
+### Testing
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| Playwright | `npm install -D @playwright/test && npx playwright install` (run by you) | `integrated-test` (E2E) | For E2E tests |
+| Docker | Your OS package manager or docker.com | `integrated-test` (testcontainers), ZAP | For container-backed tests |
+
+`run-test` uses your project's own runner (`pytest`, `npm test`, `vitest`, `jest`, `go test`, `cargo test`, `./gradlew test`).
+
+### LLM security testing
+
+Used by the `pentest` skill (qa). See [tooling.md](plugins/assist-plugin/skills/pentest/references/tooling.md) for commands and versions.
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| promptfoo | `npm install -g promptfoo` (Node.js 22.22.0+) | `pentest` (LLM/bot) | Optional |
+| garak | Global: `uv tool install --python 3.13 garak` (garak needs Python 3.11 to 3.13), else `pipx install --python python3.13 garak`<br>Per-repo: `uv add --dev garak`, run with `uv run garak`; else pip into the project venv | `pentest` (LLM/bot) | Optional |
+| PyRIT | Global: `uv tool install --python 3.13 pyrit` (console script `pyrit_scan`; Python 3.10 to 3.14), else `pipx install --python python3.13 pyrit`<br>Per-repo: `uv add --dev pyrit`, run with `uv run pyrit_scan`; else pip into the project venv | `pentest` (LLM/bot) | Optional |
+
+### Web security scanning
+
+Run only against an authorized target. See [tooling.md](plugins/assist-plugin/skills/pentest/references/tooling.md).
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| OWASP ZAP | `docker pull zaproxy/zap-stable`, then `mkdir -p "$HOME/zap-wrk" && chmod 777 "$HOME/zap-wrk"` (outside any repo; the container runs as user `zap`); see [zap.md](plugins/assist-plugin/skills/pentest/references/zap.md) | `pentest` (web, dynamic) | Optional |
+| Nuclei | `go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest` or `brew install nuclei` | `pentest` (web, dynamic) | Optional |
+| Semgrep | `uv tool install semgrep`, else `pipx install semgrep` | `pentest` (web, static) | Optional |
+| CodeQL | Download `codeql-bundle-PLATFORM.tar.zst` from [codeql-action releases](https://github.com/github/codeql-action/releases) | `pentest` (web, static) | Optional |
+
+CodeQL is not open source. GitHub licenses its CLI for public repositories on GitHub.com and for organization repositories with GitHub Code Security; confirm your repository qualifies before use.
+
+### Dependency audit
+
+Used by the `pentest` skill ([Dependency Audit](plugins/assist-plugin/skills/pentest/SKILL.md#dependency-audit)). Install only the tools for ecosystems your projects use.
+
+| Ecosystem | Tool | Install |
+|-----------|------|---------|
+| npm, pnpm, Bun | `npm audit`, `pnpm audit`, `bun audit` | Built in (Bun 1.2.15+) |
+| Yarn | Yarn 1: `yarn audit` (prompts for permission). Yarn 2+: `yarn npm audit` (prompts for permission: runs the repo's `yarnPath` binary and plugins) | Built in |
+| PHP | `composer audit` | Built in |
+| .NET | `dotnet list package --vulnerable` (SDK 9 and earlier) or `dotnet package list --vulnerable` (SDK 10+). Prompts for permission: `global.json` `sdk.paths` and restore (MSBuild) run repo-controlled code | Built in |
+| Elixir | `mix hex.audit` | Built in |
+| Elixir | `mix_audit` | `mix escript.install hex mix_audit` (flag parity unverified) |
+| Python | `pip-audit` | `uv tool install pip-audit`, else `pipx install pip-audit` (Python 3.10+) |
+| Python (uv) | `uv audit` (experimental) | Ships with uv |
+| Go | `govulncheck` | `go install golang.org/x/vuln/cmd/govulncheck@latest` |
+| Rust | `cargo-audit` (run as the direct binary `cargo-audit audit --file Cargo.lock`, which skips repo `.cargo/config.toml` alias lookup; `cargo audit` prompts) | `cargo install cargo-audit` |
+| Rust | `cargo deny` (prompts for permission: repo `.cargo/config.toml` aliases) | `cargo install --locked cargo-deny` |
+| Ruby | `bundle-audit` | `gem install bundler-audit` |
+| C/C++ (Conan) | `conan audit` (experimental) | Conan 2.14.0+ |
+| Java/Kotlin | OWASP dependency-check | Gradle or Maven plugin |
+| Poetry, SwiftPM (unverified), Dart/Flutter, any lockfile | `osv-scanner` | `brew install osv-scanner` or `go install github.com/google/osv-scanner/v2/cmd/osv-scanner@latest` |
+| Cross-ecosystem | `trivy` (prompts for permission: repo `trivy.yaml` can set output paths) | `brew install trivy`. Pin the version and verify signatures: Trivy v0.69.4 binaries, Docker images 0.69.5 and 0.69.6, and the `trivy-action` and `setup-trivy` tags were malicious in March 2026. |
+| Cross-ecosystem | `grype` (prompts for permission: repo `.grype.yaml` or `.grype/config.yaml` can set output paths) | `curl -sSfL https://get.anchore.io/grype \| sudo sh -s -- -b /usr/local/bin` |
+
+### Optional
+
+| Tool | Install | Used by | Required? |
+|------|---------|---------|-----------|
+| `pwsh` (PowerShell 7) | [Install PowerShell](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) | The PowerShell tool on Linux and macOS (developer, qa, researcher, worker, general-purpose, devops) | Optional |
+| LSP code-intelligence plugins | Install a code-intelligence (language server) plugin for your language | The LSP tool (developer, qa, reviewer, code-reviewer) | Optional |
+
+### Check what you have
+
+```bash
+for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfoo garak pyrit_scan semgrep pip-audit osv-scanner; do command -v "$t" >/dev/null && echo "ok      $t" || echo "missing $t"; done
+```
+
+## Hook health
+
+The two PreToolUse guards block a command only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
 
 ## Marketplace Structure
 
 ```
-assist-plugin-marketplace/
+assist-marketplace-plugin/
 ├── .claude-plugin/marketplace.json (marketplace definition)
+├── CHANGELOG.md (release history)
+├── CLAUDE.md (repo quick reference)
 ├── MARKETPLACE.md (marketplace overview)
 ├── README.md (this file)
 ├── plugins/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
-│       ├── agents/ (12 agent definitions)
-│       ├── skills/ (8 skill implementations)
+│       ├── agents/ (14 agent definitions)
+│       ├── skills/ (19 skills: 15 user-invocable, 4 internal)
+│       ├── hooks/ (fail-open PreToolUse guards and health check)
+│       │   ├── hooks.json (hook registration)
+│       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc)
+│       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
+│       │   ├── health-check.js (entry: SessionStart self-test and /health report)
+│       │   ├── impl/ (guard and health-check logic)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log)
 │       ├── rules/ (governance)
 │       ├── docs/ (comprehensive documentation)
 │       ├── Claude.md (quick reference)
@@ -138,7 +279,7 @@ MIT — See individual plugin LICENSE files for details.
 ## Support
 
 - **Documentation:** See [MARKETPLACE.md](MARKETPLACE.md) and plugin docs
-- **Repository:** https://github.com/tjmonsi/assist-plugin-marketplace
+- **Repository:** https://github.com/tjmonsi/assist-marketplace-plugin
 - **Issues:** Open an issue on GitHub or check plugin documentation
 
 ---

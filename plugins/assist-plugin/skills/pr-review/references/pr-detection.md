@@ -101,9 +101,9 @@ Authentication: `gh auth login`
 ### Bitbucket (`bkt`)
 
 **Bitbucket Cloud:**
-- Install: `pip install bitbucket-cli` or from source
+- Install ([avivsinai/bitbucket-cli](https://github.com/avivsinai/bitbucket-cli)): `brew install avivsinai/tap/bitbucket-cli`, `winget install AvivSinai.Bitbucket-CLI`, or `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest`
 - Verify: `bkt --version`
-- Auth: `bkt auth` or via OAuth
+- Auth: `bkt auth login`; check with `bkt auth status`
 
 **Bitbucket Server/DC:**
 - May require custom scripts or Bitbucket REST API
@@ -216,7 +216,8 @@ gh auth login
 
 ```bash
 # Bitbucket Cloud
-bkt auth
+bkt auth login
+bkt auth status
 
 # Bitbucket Server (via SSH key)
 SSH_KEY_PATH=~/.ssh/id_rsa

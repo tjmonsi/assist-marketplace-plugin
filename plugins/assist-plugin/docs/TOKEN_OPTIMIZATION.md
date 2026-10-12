@@ -8,15 +8,15 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ## Included ✓
 
-### Agents (12)
-- **All core agents:** developer, reviewer, planner
+### Agents (14)
+- **All core agents:** developer, developer-tester, reviewer, planner
 - **All testing agents:** qa, solutions-architect
 - **All planning agents:** requirements-gatherer, devops
-- **All support agents:** researcher, code-reviewer, explore, general-purpose, worker
+- **All support agents:** ask, researcher, code-reviewer, explore, general-purpose, worker
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
-### Skills (8)
+### Skills (18)
 - `do` (orchestrator) — replaces `run` with streamlined logic
 - `debug` — replaces `debug-code` with token-optimized workflow
 - `bump` — semantic versioning & changelog generation
@@ -24,6 +24,8 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 - `commit`, `branch` — essential git operations
 - `map-project` — project discovery
 - `technical-writing` — documentation generation
+- `ask`, `gather-requirements`, `spec-from-requirements`, `task-plan`, `review-md`, `create-test` — user-invocable Q&A, requirements, spec, planning, review, and test skills
+- `code`, `pentest`, `integrated-test`, `run-test` — internal skills loaded by developer and qa
 
 **Why:** Minimal viable skill set covering 80% of common tasks.
 
@@ -59,9 +61,10 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 - **Why excluded:** create-agent, create-skill expand plugin scope unnecessarily
 - **Alternative:** Edit SKILL.md directly for custom skills
 
-### Hooks & Governance Infrastructure
-- **Why excluded:** Hooks are project-specific; governance is in rules only
-- **Alternative:** Implement hooks in your git repo or CI/CD
+### Project-Specific Hooks & CI Infrastructure
+- **Why excluded:** Git hooks, CI pipelines, and project-specific automation belong to each project; governance is in rules
+- **Included instead:** Two small PreToolUse guard hooks in `hooks/`, registered in `hooks/hooks.json`: `sa-mermaid-only.js` restricts the solutions-architect agent's Bash to mermaid-cli (`mmdc`), and `doc-cli-guard.js` denies output/endpoint flags, endpoint overrides, shell metacharacters, and config subcommands for `firecrawl` and `ctx7`. Both are guardrails (fail-open if `node` is missing), not security boundaries
+- **Alternative:** Implement other hooks in your git repo or CI/CD
 
 ### Examples & Tutorials
 - **Why excluded:** Links to docs instead of inline examples save tokens
@@ -130,8 +133,8 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
-| Agents | 12 | 12 | 100% |
-| Skills | 8 | 20+ | 40% |
+| Agents | 14 | 12 | 117% |
+| Skills | 18 | 20+ | 90% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
 | **Plugin size** | ~2.5k | ~4.0k | **62%** |
@@ -146,7 +149,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 |----------|---------|------|
 | No DevOps skills | Smaller, focused | Use external plugin for bkt-jira |
 | No meta-skills | Reduced scope | Manual skill creation (rare need) |
-| No hooks | Simpler | Implement in your CI/CD |
+| Two PreToolUse guard hooks only | Guardrails for `mmdc`, `firecrawl`, and `ctx7` without project-specific hooks; needs Node | Implement other hooks in your CI/CD |
 | Link-based docs | ~30% token saving on docs | Need to read external docs |
 | Compact format | Faster parsing | Less verbose explanations |
 | **Opus for architecture** | Better quality decisions | Higher token cost per task |
@@ -169,8 +172,8 @@ To add capabilities without bloating token count:
 ## Model Tier Strategy (Updated)
 
 **Architecture-First Approach:**
-- **Premium models (Opus)** for foundational decisions: planner, solutions-architect, researcher, orchestrator, reviewer, code-reviewer
-- **Efficient models (Sonnet)** for execution: developer, qa, requirements-gatherer, devops, worker
+- **Premium models (Opus)** for foundational decisions: solutions-architect, researcher, orchestrator, reviewer, code-reviewer
+- **Efficient models (Sonnet)** for execution: developer, developer-tester, planner (Opus available as override), ask, qa, requirements-gatherer, devops, general-purpose, worker
 - **Fast models (Haiku)** for pure search: explore
 
 **Why this costs more but saves overall:**

@@ -69,6 +69,7 @@ assist-plugin follows these core principles:
 
 #### Quality Tier
 - **qa** — Test planning, acceptance validation
+- **developer-tester** — Black-box tests from acceptance criteria
 - **requirements-gatherer** — Requirements, BRD/URD, FR+NFR
 
 #### Infrastructure Tier
@@ -77,6 +78,7 @@ assist-plugin follows these core principles:
 #### Support Tier
 - **researcher** — Web research, documentation, best practices
 - **explore** — Fast code search and location discovery
+- **ask** — Repository and optional web Q&A
 - **general-purpose** — Catch-all for unmatched tasks
 - **worker** — Multi-discipline (code + review + test combined)
 
@@ -85,8 +87,8 @@ assist-plugin follows these core principles:
 | Tier | Model | Agents | Use Cases |
 |------|-------|--------|-----------|
 | **Haiku** (low) | Haiku 4.5 | explore | Code search, fast lookup |
-| **Sonnet** (medium) | Sonnet 5 | developer, qa, requirements-gatherer, devops, general-purpose, worker | Implementation, testing, DevOps |
-| **Opus** (high) | Opus 5 | orchestrator (`do`), reviewer, code-reviewer, planner, solutions-architect, researcher | Architecture, design, research, security, decisions |
+| **Sonnet** (medium) | Sonnet 5 | developer, developer-tester, planner (Opus available as override), ask, qa, requirements-gatherer, devops, general-purpose, worker | Implementation, testing, planning, DevOps |
+| **Opus** (high) | Opus 5 | orchestrator (`do`), reviewer, code-reviewer, solutions-architect, researcher | Architecture, design, research, security, decisions |
 
 ---
 
@@ -135,7 +137,7 @@ assist-plugin follows these core principles:
    ```
    ## Step 1: Design API Schema
    Agent: solutions-architect
-   Model: Sonnet
+   Model: Opus
    Files: docs/api.md
    
    ## Step 2: Implement Authentication
@@ -227,10 +229,10 @@ assist-plugin follows these core principles:
 
 **Updated distribution (Opus-prioritized for decisions):**
 - **Haiku:** 1 agent (search only)
-- **Sonnet:** 6 agents (implementation, testing, DevOps, requirements)
-- **Opus:** 7 agents (orchestration, architecture, design, research, security, review)
+- **Sonnet:** 9 agents (developer, developer-tester, planner, ask, qa, requirements-gatherer, devops, general-purpose, worker)
+- **Opus:** 4 agents (reviewer, code-reviewer, solutions-architect, researcher), plus the orchestrator (`do`) counted separately
 
-**Rationale:** Premium models for architectural decisions (planner, solutions-architect, researcher) because these determine project quality and downstream costs.
+**Rationale:** Premium models for architectural decisions (solutions-architect, researcher) because these determine project quality and downstream costs. The planner runs on Sonnet by default; Opus is available as an override for complex planning.
 
 ### Result
 - **Base plugin:** ~2.5k tokens
