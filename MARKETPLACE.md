@@ -4,7 +4,7 @@ Token-optimized Claude marketplace for development plugins.
 
 ## Plugins
 
-### assist-plugin v1.5.0
+### assist-plugin v1.6.0
 
 Token-optimized software development plugin with 19 skills (15 user-invocable, 4 internal), 14 expert agents, and governance gates.
 
@@ -67,7 +67,7 @@ git clone https://github.com/tjmonsi/assist-marketplace-plugin.git ~/.claude/plu
 
 ## Versioning
 
-Each plugin follows semantic versioning. Version 1.5.0 is available in `plugins/assist-plugin/`.
+Each plugin follows semantic versioning. Version 1.6.0 is available in `plugins/assist-plugin/`.
 
 Future versions will follow the same pattern: a single `plugins/assist-plugin/` directory with versioning managed through git tags (e.g., `assist-plugin--v1.1.0`, `assist-plugin--v2.0.0`).
 

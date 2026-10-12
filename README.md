@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.5.0
+### assist-plugin v1.6.0
 
 **15 user-invocable skills:**
 - `do` — Task orchestration and routing

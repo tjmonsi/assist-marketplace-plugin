@@ -2,6 +2,36 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.6.0] - 2026-10-12
+
+### New Features
+
+- **Fail-open guard hooks and health reporting**
+  - Add PreToolUse guards: `sa-mermaid-only` (solutions-architect may run only mermaid-cli with allowlisted flags and relative paths) and `doc-cli-guard` (blocks firecrawl/ctx7 output, endpoint, and shell-operator forms)
+  - Guards deny only on a positive match; crashes, unsupported Node (below 6), timeouts, and disabled guards let the command run with a `systemMessage` warning and never exit 2
+  - Add SessionStart self-test (silent when healthy; auto-disables a guard that blocks known-safe commands) and `health` skill (`/assist-plugin:health [--clear]`)
+- **Worktree and cache cleanup**
+  - Add `/branch cleanup [--dry-run]`: removes only merged, clean, unlocked, non-protected worktrees; never `--force` or `-D`; clears the Go build and test cache
+  - `/do` runs targeted cleanup for worktrees its own steps created and checks free disk space (asks under 2G) before dispatching agents
+- **Pentest references**
+  - Web checklist moves to OWASP Top 10:2025 and LLM checklist to the 2026 OWASP LLM Top 10, with mapping tables
+  - Dependency-audit table for every ecosystem with read-only commands and mutating flags to avoid
+  - Add `tooling.md` (ZAP, Nuclei, Semgrep, CodeQL, garak, promptfoo, PyRIT) and `zap.md` (Docker runbook)
+
+### Changes
+
+- Agents preload dependent skills via `skills:`; internal skills drop `disable-model-invocation`
+- researcher gains WebSearch/WebFetch; solutions-architect gains mmdc-only Bash; developer, qa, reviewer, code-reviewer gain LSP; Tools lines match frontmatter
+- researcher and solutions-architect route as Opus; planner documented as Sonnet
+- Pre-approved commands narrowed to exact forms; anything that runs repo code or installs software prompts; `npx --no` everywhere
+- Python guidance prefers uv with pip/pipx fallback; garak and PyRIT documented as global tools and per-repo dev dependencies
+
+### Documentation
+
+- GitHub URLs use `tjmonsi/assist-marketplace-plugin`; root `Claude.md` renamed to `CLAUDE.md` and rewritten
+- README adds Recommended CLI Tools, hook health, and corrected installs (bkt from avivsinai/bitbucket-cli, ZAP via Docker)
+- Counts updated to 14 agents and 19 skills (15 user-invocable)
+
 ## [1.5.0] - 2026-09-24
 
 ### New Features
