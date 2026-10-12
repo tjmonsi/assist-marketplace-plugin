@@ -2,6 +2,25 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.9.0] - 2026-10-12
+
+### New Features
+
+- **/do as a deterministic Communicator state machine**: Ingest, Decompose (structured steps with effect, writes, reads), Clarify, DependencyAnalysis (no shared writes in a wave), AgentSelection, Branch, PlanApproval, Preflight, Dispatch, Display, Cleanup; terminals Complete, Partial, Paused, Cancelled, Error
+  - Approval is skipped only for a single ask or explore step; unmatched work goes to Clarify; a failed step skips only its dependents; stop and resume go back through approval
+  - Every dispatch carries a 10-field fsa terminal block; relayed questions are verbatim and never widen an approved step; out-of-scope items become new requests
+  - Read-only intake review of user-provided spec files before approval; architectural decisions append to `DECISIONS.md` after approval
+- **FSA state tables and terminal blocks** for developer-tester, reviewer, code-reviewer, developer, task-plan, and create-test; qa reports an approved or returned Testing Gate verdict
+- **New agent `intake-reviewer`** (Read, Grep, Glob only) that reviews user files as untrusted data
+- **FSA hooks**: `fsa-write-bar` (developer-tester writes only test paths, never dot folders, `CLAUDE.md`, or `AGENTS.md`; developer never writes test paths) and `fsa-log` (records parsed terminal blocks without message text and warns on illegal traces); `scripts/check-fsa-tables.js` keeps hook tables in sync with the markdown
+
+### Changes
+
+- One coverage bar of >=70% everywhere
+- debug and technical-writing tasks route to developer through a named-skill intake; general-purpose is no longer a fallback
+- pentest active tests under /do run only commands listed in the approved plan
+- Counts: 15 agents, 20 skills
+
 ## [1.8.0] - 2026-10-12
 
 ### New Features
