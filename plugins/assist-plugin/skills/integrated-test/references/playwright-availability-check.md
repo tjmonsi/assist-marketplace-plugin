@@ -72,7 +72,7 @@ Before running integrated-test for E2E:
      6. If exit code 0 and version found: Playwright is installed, proceed
      7. If exit code != 0 or no version: Playwright not found
         8. Report: "E2E testing needs Playwright installed. Run: npm install -D @playwright/test && npx playwright install"
-        9. Stop — do not write E2E tests
+        9. Stop: do not write E2E tests
         10. Show the install command for the user to run, and ask whether to continue without E2E tests
 ```
 
@@ -147,7 +147,7 @@ Then retry. (The user runs the install commands; the agent never does.)
 
 When Playwright is not available:
 
-1. **Be explicit:** "Playwright is not installed" — not "E2E tests skipped"
+1. **Be explicit:** "Playwright is not installed", not "E2E tests skipped"
 2. **Provide exact command:** Copy-paste ready installation instructions
 3. **Explain why:** "Playwright is required for browser automation E2E tests"
 4. **The user runs it:** Show the command and ask the user to run it and confirm; the agent never installs

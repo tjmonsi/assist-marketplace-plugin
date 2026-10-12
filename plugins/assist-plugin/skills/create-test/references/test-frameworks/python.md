@@ -26,7 +26,7 @@ def test_none_input_raises_type_error():
 
 ## Naming Conventions
 
-- `test_[function_name]_[scenario]` — e.g., `test_payment_process_valid_card_succeeds`
+- `test_[function_name]_[scenario]`: e.g., `test_payment_process_valid_card_succeeds`
 - Use descriptive suffixes: `_succeeds`, `_raises_error`, `_returns_none`, `_blocked_by_validation`
 - Filename: `test_*.py` or `*_test.py`
 

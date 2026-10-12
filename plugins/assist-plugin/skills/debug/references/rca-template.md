@@ -55,7 +55,7 @@ Logs:
 
 **Suggested Fix:** [Concrete description of how to fix this bug; do not repeat the root cause, state the action]
 
-**Risk Level:** [low/medium/high — how risky is the fix?]
+**Risk Level:** [low/medium/high: how risky is the fix?]
 
 ---
 

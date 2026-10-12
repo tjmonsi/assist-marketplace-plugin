@@ -37,12 +37,12 @@ flowchart TD
 ```
 
 **Mermaid syntax:**
-- `flowchart TD` — Top-down direction (or `LR` for left-right)
-- `[rectangle]` — Process/action
-- `{diamond}` — Decision (yes/no)
-- `(rounded)` — Start/end
-- `-->` — Flow arrow
-- `-->|Label|` — Labeled arrow
+- `flowchart TD`: Top-down direction (or `LR` for left-right)
+- `[rectangle]`: Process/action
+- `{diamond}`: Decision (yes/no)
+- `(rounded)`: Start/end
+- `-->`: Flow arrow
+- `-->|Label|`: Labeled arrow
 
 ### Sequence Diagram
 **Use for:** Multi-actor interactions, API request/response, protocol flows, authentication sequences
@@ -64,12 +64,12 @@ sequenceDiagram
 ```
 
 **Mermaid syntax:**
-- `sequenceDiagram` — Opens diagram
-- `Actor->>Actor: Message` — Synchronous call
-- `Actor-->>Actor: Response` — Return/async
-- `alt / else` — Conditional blocks
-- `par` — Parallel calls
-- `loop` — Repeated calls
+- `sequenceDiagram`: Opens diagram
+- `Actor->>Actor: Message`: Synchronous call
+- `Actor-->>Actor: Response`: Return/async
+- `alt / else`: Conditional blocks
+- `par`: Parallel calls
+- `loop`: Repeated calls
 
 ### Class Diagram
 **Use for:** Object-oriented design, domain models, type hierarchies, relationships between entities
@@ -111,10 +111,10 @@ classDiagram
 ```
 
 **Mermaid syntax:**
-- `class ClassName { attributes methods }` — Class definition
-- `Class1 "cardinality" --> "cardinality" Class2 : relationship` — Associations
-- `-|>` — Inheritance
-- `--` — Association
+- `class ClassName { attributes methods }`: Class definition
+- `Class1 "cardinality" --> "cardinality" Class2 : relationship`: Associations
+- `-|>`: Inheritance
+- `--`: Association
 
 ### ER Diagram (Entity-Relationship)
 **Use for:** Database schema, data relationships, cardinality, normalization
@@ -153,12 +153,12 @@ erDiagram
 ```
 
 **Mermaid syntax:**
-- `entity || relationship {} : label` — Entity with relationship
-- `PK` — Primary key
-- `FK` — Foreign key
-- `UK` — Unique key
-- `||--o{` — One-to-many (cardinality)
-- `||--||` — One-to-one
+- `entity || relationship {} : label`: Entity with relationship
+- `PK`: Primary key
+- `FK`: Foreign key
+- `UK`: Unique key
+- `||--o{`: One-to-many (cardinality)
+- `||--||`: One-to-one
 
 ---
 

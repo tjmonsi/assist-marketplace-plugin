@@ -31,7 +31,7 @@ The `bump` skill searches for version files in this order:
 6. **Git tags**
    - Pattern: `v*` or `release-*`
    - Latest tag is current version
-   - Example: `v1.2.3` → version is 1.2.3
+   - Example: `v1.2.3` means version 1.2.3
 
 ### Multiple Version Files
 
@@ -41,15 +41,15 @@ If multiple files exist, `bump` updates ALL of them atomically. If they conflict
 
 **Format:** `MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]`
 
-- **MAJOR** (X.0.0) — Breaking changes, incompatible API changes
-- **MINOR** (0.X.0) — New features, backwards-compatible
-- **PATCH** (0.0.X) — Bug fixes, backwards-compatible
+- **MAJOR** (X.0.0): Breaking changes, incompatible API changes
+- **MINOR** (0.X.0): New features, backwards-compatible
+- **PATCH** (0.0.X): Bug fixes, backwards-compatible
 
 **Examples:**
-- `1.0.0` → `1.1.0` (minor: new feature)
-- `1.0.0` → `2.0.0` (major: breaking change)
-- `1.0.0` → `1.0.1` (patch: bug fix)
-- `1.0.0-alpha.1` → `1.0.0` (release candidate to stable)
+- `1.0.0` to `1.1.0` (minor: new feature)
+- `1.0.0` to `2.0.0` (major: breaking change)
+- `1.0.0` to `1.0.1` (patch: bug fix)
+- `1.0.0-alpha.1` to `1.0.0` (release candidate to stable)
 
 ## Commit Parsing (Auto Mode)
 
@@ -66,14 +66,14 @@ The `bump` skill uses **Conventional Commits** to auto-detect bump type:
 ```
 
 **Types:**
-- `feat:` — New feature → **MINOR** bump
-- `fix:` — Bug fix → **PATCH** bump
-- `refactor:`, `style:`, `docs:`, `test:` — No version bump (or PATCH if significant)
-- `perf:` — Performance improvement → **PATCH** or **MINOR**
+- `feat:` (new feature): **MINOR** bump
+- `fix:` (bug fix): **PATCH** bump
+- `refactor:`, `style:`, `docs:`, `test:` need no version bump (or PATCH if significant)
+- `perf:` (performance improvement): **PATCH** or **MINOR**
 
 **Breaking Changes:**
-- If **any** commit includes `BREAKING CHANGE:` in body → **MAJOR** bump
-- If **any** commit includes `!` after type (e.g., `feat!:`) → **MAJOR** bump
+- If **any** commit includes `BREAKING CHANGE:` in body, the bump is **MAJOR**
+- If **any** commit includes `!` after type (e.g., `feat!:`), the bump is **MAJOR**
 
 ### Detection Algorithm
 
@@ -152,10 +152,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Sections
 
-- **Breaking Changes** — Commits with `BREAKING CHANGE:` (MAJOR)
-- **Features** — Commits with `feat:` prefix (MINOR)
-- **Bug Fixes** — Commits with `fix:` prefix (PATCH)
-- **Other** — Other commits (refactor, style, docs, perf, etc.)
+- **Breaking Changes**: Commits with `BREAKING CHANGE:` (MAJOR)
+- **Features**: Commits with `feat:` prefix (MINOR)
+- **Bug Fixes**: Commits with `fix:` prefix (PATCH)
+- **Other**: Other commits (refactor, style, docs, perf, etc.)
 
 ### Comparison Links
 
@@ -166,7 +166,7 @@ Automatically generated at bottom:
 
 ## Workflow Example
 
-**Scenario:** Bump assist-plugin from 1.0.0 → 1.1.0
+**Scenario:** Bump assist-plugin from 1.0.0 to 1.1.0
 
 ```bash
 # Commits since v1.0.0:

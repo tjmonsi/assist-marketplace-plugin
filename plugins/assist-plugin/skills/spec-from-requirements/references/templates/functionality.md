@@ -16,7 +16,7 @@ Unique to this template: the **Business rules** table (rules carry their own `RU
 | **Feature** | [Human-readable feature name] |
 | **Parent feature** | [spec-[parent].md, or "None" if top-level] |
 | **Sub-features** | [Comma-separated spec-[child].md files, or "None"] |
-| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN — the IDs this spec satisfies] |
+| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN: the IDs this spec satisfies] |
 | **Feature type** | Functionality |
 | **Status** | Draft |
 

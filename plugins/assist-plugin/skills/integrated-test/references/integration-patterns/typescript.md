@@ -5,12 +5,12 @@ Integration testing patterns for TypeScript projects using Vitest, Fastify, and 
 ## Setup
 
 ### Dependencies
-- `vitest` — modern test framework (faster than Jest)
-- `@vitest/ui` — test dashboard
-- `supertest` — HTTP assertions (legacy; prefer app.inject())
-- `@testcontainers/testcontainers` — container management
-- `msw` — Mock Service Worker for HTTP mocking
-- `prisma` — ORM with built-in test database support
+- `vitest`: modern test framework (faster than Jest)
+- `@vitest/ui`: test dashboard
+- `supertest`: HTTP assertions (legacy; prefer app.inject())
+- `@testcontainers/testcontainers`: container management
+- `msw`: Mock Service Worker for HTTP mocking
+- `prisma`: ORM with built-in test database support
 
 ```bash
 npm install -D vitest @vitest/ui msw @testcontainers/testcontainers
@@ -69,7 +69,7 @@ export async function resetDatabase() {
 
 ### With Fastify
 
-Use `app.inject()` for route testing — no server startup needed.
+Use `app.inject()` for route testing; no server startup is needed.
 
 ```typescript
 // tests/integration/users.test.ts

@@ -4,7 +4,7 @@ Break gathered requirements into categorized documents. Produces three Markdown 
 
 ## Inputs
 
-- `$1+` — Path to an existing requirements summary, elicitation notes, prompt, or source documents
+- `$1+`: Path to an existing requirements summary, elicitation notes, prompt, or source documents
 - If no argument: use the requirements gathered in the current conversation
 
 ## Prerequisite
@@ -24,11 +24,11 @@ Requirements must already exist (from `elicit`, from conversation, from document
 
 Identify every statement that expresses:
 
-- A business goal, outcome, or strategic need → candidate BR
-- A user need, capability, or workflow → candidate UR
-- A system behavior, feature, or function → candidate FR
-- A quality attribute, constraint, or performance target → candidate NFR
-- An explicit exclusion or deferral → candidate out-of-scope item
+- A business goal, outcome, or strategic need is a candidate BR
+- A user need, capability, or workflow is a candidate UR
+- A system behavior, feature, or function is a candidate FR
+- A quality attribute, constraint, or performance target is a candidate NFR
+- An explicit exclusion or deferral is a candidate out-of-scope item
 
 ### 3. Categorize and assign IDs
 

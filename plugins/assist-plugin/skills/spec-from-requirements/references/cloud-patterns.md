@@ -1,6 +1,6 @@
-# Cloud Patterns — GCP and AWS Architecture Reference
+# Cloud Patterns: GCP and AWS Architecture Reference
 
-When-to-use guidance and key configuration for cloud services across GCP and AWS. This is a selection reference, not a setup tutorial: it covers selection criteria and architectural trade-offs for the **Architecture** and **General** spec templates.
+When-to-use guidance and key configuration for cloud services across GCP and AWS. It covers selection criteria and architectural trade-offs (no setup steps) for the **Architecture** and **General** spec templates.
 
 ## Contents
 

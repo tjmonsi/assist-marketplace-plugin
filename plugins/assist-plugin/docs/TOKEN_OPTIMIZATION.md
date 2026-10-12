@@ -16,16 +16,17 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
-### Skills (18)
-- `do` (orchestrator) — replaces `run` with streamlined logic
-- `debug` — replaces `debug-code` with token-optimized workflow
-- `bump` — semantic versioning & changelog generation
-- `pr-review` — GitHub/Bitbucket PR review with auto-detection
-- `commit`, `branch` — essential git operations
-- `map-project` — project discovery
-- `technical-writing` — documentation generation
-- `ask`, `gather-requirements`, `spec-from-requirements`, `task-plan`, `review-md`, `create-test` — user-invocable Q&A, requirements, spec, planning, review, and test skills
-- `code`, `pentest`, `integrated-test`, `run-test` — internal skills loaded by developer and qa
+### Skills (20)
+- `do` (orchestrator): replaces `run` with leaner logic
+- `debug`: replaces `debug-code` with token-optimized workflow
+- `bump`: semantic versioning & changelog generation
+- `pr-review`: GitHub/Bitbucket PR review with auto-detection
+- `commit`, `branch`: essential git operations
+- `map-project`: project discovery
+- `technical-writing`: documentation generation
+- `ask`, `gather-requirements`, `spec-from-requirements`, `task-plan`, `review-md`, `create-test`: user-invocable Q&A, requirements, spec, planning, review, and test skills
+- `health`, `deslop`: hook health report and AI-writing-tell removal
+- `code`, `pentest`, `integrated-test`, `run-test`: internal skills loaded by developer and qa
 
 **Why:** Minimal viable skill set covering 80% of common tasks.
 
@@ -34,10 +35,10 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 > **Note:** `bump` generates a full categorized CHANGELOG.md. software-development's `release-version` only bumps version numbers. The extra token cost reflects added functionality.
 
 ### References (Consolidated)
-- `agent-registry.md` — 1 source of truth for all agents
-- `model-routing.md` — Model assignment rules (table format)
-- `plan-format.md` — Plan template (compact)
-- `review-protocol.md` — Review workflow (essential steps only)
+- `agent-registry.md`: 1 source of truth for all agents
+- `model-routing.md`: Model assignment rules (table format)
+- `plan-format.md`: Plan template (compact)
+- `review-protocol.md`: Review workflow (essential steps only)
 
 **Why:** Centralized references eliminate duplication and reduce lookup time.
 
@@ -63,7 +64,8 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ### Project-Specific Hooks & CI Infrastructure
 - **Why excluded:** Git hooks, CI pipelines, and project-specific automation belong to each project; governance is in rules
-- **Included instead:** Two small PreToolUse guard hooks in `hooks/`, registered in `hooks/hooks.json`: `sa-mermaid-only.js` restricts the solutions-architect agent's Bash to mermaid-cli (`mmdc`), and `doc-cli-guard.js` denies output/endpoint flags, endpoint overrides, shell metacharacters, and config subcommands for `firecrawl` and `ctx7`. Both are guardrails (fail-open if `node` is missing), not security boundaries
+- **Included instead:** Small fail-open hooks in `hooks/`, registered in `hooks/hooks.json`. `sa-mermaid-only.js` restricts the solutions-architect agent's Bash to mermaid-cli (`mmdc`). `doc-cli-guard.js` denies output/endpoint flags, endpoint overrides, shell metacharacters, and config subcommands for `firecrawl` and `ctx7`. `injection-filter.js` rewrites prompt-injection sentences in untrusted tool results. `prose-gate.js` denies a prose write only when it adds a block-tier writing tell, and `prose-advisor.js` adds an advisory note after the write. `writing-context.js` injects the compact writing standard (`rules/writing-standard-compact.md`, 1,195 characters, about 300 tokens) at session start and after /clear or compaction, and once per subagent. The prose hooks add about 80 to 110 ms per write and no model tokens unless a tell is found. All are guardrails (fail-open if `node` is missing), not security boundaries
+- **Output style:** `assist-plugin:terse` is opt-in and is not applied to subagents
 - **Alternative:** Implement other hooks in your git repo or CI/CD
 
 ### Examples & Tutorials
@@ -134,7 +136,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
 | Agents | 14 | 12 | 117% |
-| Skills | 18 | 20+ | 90% |
+| Skills | 20 | 20+ | ~100% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
 | **Plugin size** | ~2.5k | ~4.0k | **62%** |

@@ -6,7 +6,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ---
 
-## [Project Name] — User Requirements Document
+## [Project Name]: User Requirements Document
 
 **Version:** [1.0]
 **Date:** [YYYY-MM-DD]
@@ -17,7 +17,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ### 1. Introduction
 
-**Purpose:** [What this document captures — user and stakeholder needs]
+**Purpose:** [What this document captures: user and stakeholder needs]
 
 **Relationship to BRD:** This document derives from [BRD-<project-slug>.md]. Every user requirement traces to at least one business requirement.
 
@@ -45,7 +45,7 @@ Each requirement uses one of these sentence templates:
 
 For complex user requirements, provide abbreviated use case summaries:
 
-#### UC-NNN — [Active-verb goal phrase]
+#### UC-NNN: [Active-verb goal phrase]
 
 - **Primary actor:** [Role]
 - **Precondition:** [What must be true before]

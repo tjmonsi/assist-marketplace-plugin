@@ -1,4 +1,4 @@
-# Tracing Markers — Requirement and Specification IDs
+# Tracing Markers: Requirement and Specification IDs
 
 Convention for linking code comments to requirements and specifications.
 
@@ -12,9 +12,9 @@ Two formats are supported:
 
 Use square brackets with pipe-separated tags:
 
-- `[FR-045]` — Single requirement marker (`BR`, `UR`, `FR`, or `NFR`)
-- `[SPEC-003]` — Single specification marker
-- `[FR-045|SPEC-003]` — Combined marker when both apply
+- `[FR-045]`: Single requirement marker (`BR`, `UR`, `FR`, or `NFR`)
+- `[SPEC-003]`: Single specification marker
+- `[FR-045|SPEC-003]`: Combined marker when both apply
 
 Examples:
 
@@ -39,12 +39,12 @@ def check_rate_limit(user_id):
 
 Use arrows to show the full requirement chain from specification through use cases to acceptance criteria:
 
-- `[SPEC-003]` — Only spec ID
-- `[FR-045]` — Only functional requirement
-- `[SPEC-003 -> FR-045]` — Spec refined by requirement
-- `[FR-045 -> UC-012]` — Requirement implements use case
-- `[FR-045 -> UC-012 -> AC-2]` — Full chain to acceptance criterion
-- `[SPEC-003 -> FR-045 -> UC-012 -> AC-2]` — Complete chain from spec to AC
+- `[SPEC-003]`: Only spec ID
+- `[FR-045]`: Only functional requirement
+- `[SPEC-003 -> FR-045]`: Spec refined by requirement
+- `[FR-045 -> UC-012]`: Requirement implements use case
+- `[FR-045 -> UC-012 -> AC-2]`: Full chain to acceptance criterion
+- `[SPEC-003 -> FR-045 -> UC-012 -> AC-2]`: Complete chain from spec to AC
 
 Examples:
 
@@ -82,7 +82,7 @@ Add a marker when:
 
 Valid sources for an ID:
 
-1. **Requirements document** — A BRD, URD, or FR-NFR file produced by the `gather-requirements` skill. These carry the concrete ID families:
+1. **Requirements document**: A BRD, URD, or FR-NFR file produced by the `gather-requirements` skill. These carry the concrete ID families:
 
    | Marker | Source | Meaning |
    |---|---|---|
@@ -93,9 +93,9 @@ Valid sources for an ID:
 
    Example: `FR-NFR-checkout.md` states "FR-045: The checkout service SHALL validate JWT signatures."
 
-2. **Specification document** — A `specs/spec-[feature].md` file produced by the `spec-from-requirements` skill. Cite its per-spec requirement ID as `[SPEC-NNN]` (the spec's own `REQ-spec-NNN` numbering, which is local to that file). Prefer the requirement ID when both apply, since it is stable across spec rewrites. Combine them when the code implements a spec decision that refines a requirement: `[FR-045|SPEC-003]`.
+2. **Specification document**: A `specs/spec-[feature].md` file produced by the `spec-from-requirements` skill. Cite its per-spec requirement ID as `[SPEC-NNN]` (the spec's own `REQ-spec-NNN` numbering, which is local to that file). Prefer the requirement ID when both apply, since it is stable across spec rewrites. Combine them when the code implements a spec decision that refines a requirement: `[FR-045|SPEC-003]`.
 
-3. **Task prompt** — An ID stated by the user in the task prompt or original request. Example: User says "Implement FR-088 (rate limiting)" when assigning the task.
+3. **Task prompt**: An ID stated by the user in the task prompt or original request. Example: User says "Implement FR-088 (rate limiting)" when assigning the task.
 
 Legacy `[REQ-NNN]` markers already in a codebase remain valid. New markers use the families above.
 

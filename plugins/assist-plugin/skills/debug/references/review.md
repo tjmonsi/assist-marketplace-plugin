@@ -12,11 +12,11 @@ After developer has applied a fix via `/debug fix`, use review to verify:
 
 ## Verification Checklist
 
-1. **Reproduction** — Does the original bug still occur? (Should be fixed)
-2. **Tests** — Do all existing tests still pass?
-3. **Side effects** — Did the fix break other functionality?
-4. **Code quality** — Is the fix clean and maintainable?
-5. **Coverage** — Are new test cases needed?
+1. **Reproduction**: Does the original bug still occur? (Should be fixed)
+2. **Tests**: Do all existing tests still pass?
+3. **Side effects**: Did the fix break other functionality?
+4. **Code quality**: Is the fix clean and maintainable?
+5. **Coverage**: Are new test cases needed?
 
 ## Review Process
 
@@ -53,6 +53,8 @@ Issues found:
 Please fix and resubmit.
 ```
 
+The ✓/✗ verdict lines are the one badge format this review uses; keep them terse.
+
 ## When to Loop Back
 
 If review finds issues:
@@ -64,14 +66,15 @@ If review finds issues:
 
 ## Report Writing Standard
 
-- Lead with the most important finding; never write "this is the more important of the two."
-- Every finding has three parts: what happened, why it matters, what to do next.
-- State each conclusion once. One optional summary line at the end for multi-finding reports; never repeat findings there.
-- Use active voice, important subject before the verb ("Validation is skipped" not "The validation was skipped by...").
-- Cut hedges ("it should be noted," "arguably") and contrastive filler ("This is X, not Y" — state what it is).
-- No meta-headers about the act of writing ("What follows," "Key takeaway," "In conclusion").
-- No em-dashes; use a period, comma, parentheses, or semicolon.
-- No severity badges, remediation blocks, or summary sections unless the reader would be lost without them. The ✓/✗ verdict format above is the exception; keep it terse.
-- Never restate the user's prompt or an assumption as fact; report the tested result.
-- The first sentence of every paragraph must add new information.
-
+- Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.
+- Let content set the length. Report a clean check in one line.
+- Give each finding three parts: what happened, why it matters, what to do next.
+- State each conclusion once. Open every paragraph with new information.
+- Use active voice; put the important subject before the verb.
+- Use plain words ("use" for "utilize"). Cut hedges, intensifiers, throat-clearing, buzzwords, and "not X but Y" framing; state what it is.
+- Name headings after their content. Skip summary labels ("In conclusion", "Key takeaways"), severity badges, and summary sections unless the reader needs them.
+- Write no em dashes (use a period, comma, colon, parentheses, or semicolon), no curly quotes, and no chatbot sign-offs or offers.
+- Back every claim with evidence (file and line, log, test result, URL) and every number with a source; label estimates as estimates.
+- Report tested results; never present the prompt or an assumption as fact.
+- Quote exactly; never reword a quotation.
+- Keep ticket ids and internal blame out of user-facing text.

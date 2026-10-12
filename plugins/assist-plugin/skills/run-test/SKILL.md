@@ -96,10 +96,10 @@ cargo test
 ### Capture test results
 
 For each language, capture:
-1. **Test pass/fail counts** — how many tests passed, failed, skipped
-2. **Execution time** — total time to run suite
-3. **Error messages** — detailed failure output for failed tests
-4. **Test names** — which specific tests failed
+1. **Test pass/fail counts:** how many tests passed, failed, skipped
+2. **Execution time:** total time to run suite
+3. **Error messages:** detailed failure output for failed tests
+4. **Test names:** which specific tests failed
 
 ### Document test environment
 
@@ -119,10 +119,10 @@ Use the commands in [references/coverage-commands.md](references/coverage-comman
 ### Parse coverage output
 
 Extract:
-- **Line coverage %** — percentage of code lines executed
-- **Branch coverage %** — conditional paths exercised
-- **Uncovered files** — which files have gaps
-- **Uncovered lines** — specific line numbers not tested
+- **Line coverage %:** percentage of code lines executed
+- **Branch coverage %:** conditional paths exercised
+- **Uncovered files:** which files have gaps
+- **Uncovered lines:** specific line numbers not tested
 
 ### Assess against target
 
@@ -146,12 +146,7 @@ The report structure:
 - **For every failure:** Test name, how it was invoked, captured output/logs
 - **Recommendations:** Tests to add, failures to fix, coverage gaps to address
 
-Apply the Report Writing Standard:
-- Lead with the most important finding (coverage gap, blocking failure)
-- No meta-headers ("What follows", "Key takeaway")
-- No severity badges or emoji
-- Three-part finding: what happened, why it matters, what to do next
-- One optional summary line only at the very end
+Write the report to [rules/writing-standard.md](../../rules/writing-standard.md), leading with the coverage gap or blocking failure.
 
 ---
 
@@ -160,7 +155,7 @@ Apply the Report Writing Standard:
 1. **Run full suite:** Execute all unit + integration tests together, not selectively.
 2. **Capture all output:** Log full error messages, stack traces, and failure details.
 3. **Record environment:** Note Node version, Python version, etc., for reproducibility.
-4. **No flaky test ignoring:** If tests flake, investigate and fix — don't skip.
+4. **No flaky test ignoring:** If tests flake, investigate and fix; don't skip.
 5. **Parallel execution:** If the test suite supports parallel workers, use 4-8 workers to speed execution.
 6. **Timeout handling:** If tests timeout, investigate whether the timeout is too short or the test is genuinely slow.
 7. **Coverage files:** Save coverage reports for manual inspection (HTML, JSON) in `coverage/` directory.
@@ -176,7 +171,7 @@ Apply the Report Writing Standard:
 5. **Run coverage tool** using language-appropriate command
 6. **Parse coverage:** Extract %, identify uncovered files/lines
 7. **Generate report** using test-report-template.md
-8. **Present to user** — report states verdict (PASS/FAIL/NEEDS ATTENTION) and next steps
+8. **Present to user:** report states verdict (PASS/FAIL/NEEDS ATTENTION) and next steps
 
 ---
 

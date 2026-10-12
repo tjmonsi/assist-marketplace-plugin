@@ -48,8 +48,8 @@ TEST(ProcessTest, HandleNullInput) {
 
 ## Naming Conventions
 
-- **Catch2:** `"descriptive test name as string"` — human-readable, spaces allowed
-- **GoogleTest:** `TestSuiteName_TestCaseName` or `TestSuiteName::testCaseName` — CamelCase
+- **Catch2:** `"descriptive test name as string"`; human-readable, spaces allowed
+- **GoogleTest:** `TestSuiteName_TestCaseName` or `TestSuiteName::testCaseName`; CamelCase
 - Descriptive: `PaymentProcessing_ValidCard_Succeeds` (good), `Test1` (bad)
 
 ## Assertions

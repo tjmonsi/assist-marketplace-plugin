@@ -5,14 +5,14 @@ Test acceptance criteria (Scenarios) without knowing implementation. Focus on th
 ## Core Rule: No Implementation Knowledge
 
 - Never read function bodies, class implementations, or internal logic.
-- Never assume how the system achieves the requirement — only that it does.
+- Never assume how the system achieves the requirement; only that it does.
 - Source of truth: spec Scenarios, public interface signatures, and requirement documents.
 
 This constraint ensures tests are:
 
-1. **Maintainable across refactors** — If implementation changes but the contract stays the same, tests remain valid.
-2. **Bias-free** — You cannot accidentally test the implementation's shortcut instead of the full contract.
-3. **Acceptance-grade** — They verify what was promised, not how it was coded.
+1. **Maintainable across refactors**: If implementation changes but the contract stays the same, tests remain valid.
+2. **Bias-free**: You cannot accidentally test the implementation's shortcut instead of the full contract.
+3. **Acceptance-grade**: They verify what was promised, not how it was coded.
 
 ## Input-Space Enumeration Checklist
 
@@ -42,7 +42,7 @@ For every Scenario, identify and test these equivalence classes:
 
 ### 3. Boundary Inputs (Edge Cases)
 
-**What:** Values at the edge of valid ranges — exactly at limits, just inside, just outside.
+**What:** Values at the edge of valid ranges: exactly at limits, just inside, just outside.
 
 **How to find them:**
 - Read the spec for min/max values (e.g., RFC minimum field length, max integer size, URL length limits)
@@ -94,9 +94,9 @@ For every Scenario, identify and test these equivalence classes:
 - Never assume it will be "harmless in this context" without proof from the spec or implementation review.
 
 **Examples:**
-- User input field gets `'; DROP TABLE users; --` → verify it's treated as literal string, not SQL
-- File upload endpoint gets path `../../../../etc/passwd` → verify it's rejected or sandboxed
-- Form field gets `<img src=x onerror=alert('xss')>` → verify it's escaped in output or sanitized
+- User input field gets `'; DROP TABLE users; --`; verify it's treated as literal string, not SQL
+- File upload endpoint gets path `../../../../etc/passwd`; verify it's rejected or sandboxed
+- Form field gets `<img src=x onerror=alert('xss')>`; verify it's escaped in output or sanitized
 
 ### Enumeration Table Template
 
@@ -118,21 +118,21 @@ Use this for each Scenario:
 For REST endpoints, black-box testing means:
 
 1. **Only know the API spec:** HTTP method, URL, request body schema, response schema, status codes per outcome.
-2. **Never inspect server logs, database state, or internal routing** to verify the test setup — only the HTTP response.
+2. **Never inspect server logs, database state, or internal routing** to verify the test setup; only the HTTP response.
 3. **Test via HTTP:** Use the client library (e.g., `requests` for Python, `fetch` for JavaScript, `curl` for shell) to send the request and check the response.
 
 ### Endpoint Test Structure
 
 ```
 Per Scenario:
-  1. Set up precondition (GIVEN) — if it's a system state, set it via a prior API call or seed data
-  2. Send request (WHEN) — HTTP call with specified method/URL/headers/body
-  3. Assert response (THEN) — status code, response body schema, headers
+  1. Set up precondition (GIVEN): if it's a system state, set it via a prior API call or seed data
+  2. Send request (WHEN): HTTP call with specified method/URL/headers/body
+  3. Assert response (THEN): status code, response body schema, headers
 ```
 
 **Precondition setup:** If GIVEN says "user is authenticated," create a session/token via login API, not by directly modifying the database (which requires implementation knowledge).
 
-**Response assertion:** Assert status code, JSON schema, specific fields — not internal database state.
+**Response assertion:** Assert status code, JSON schema, specific fields, not internal database state.
 
 ## Constraints for Black-Box Tests
 
@@ -170,10 +170,10 @@ Chain rules:
 
 **Black-box tests (no knowledge of database schema, payment processor internals, or code structure):**
 
-1. **Valid happy path:** Submit payment with a valid order and card → assert 200 + valid transaction ID
-2. **Invalid: missing card:** Submit payment with no payment method on file → assert 400 + validation error
-3. **Boundary: zero amount:** Order total is $0.00 → assert behavior per business rules (reject or allow free order?)
-4. **Injection: amount as SQL:** Payload `{"amount": "1; UPDATE users SET balance=0;"}` → assert it's treated as literal or rejected, transaction not executed
-5. **Type mismatch:** Amount as string `"50"` instead of number → assert type error or coercion per spec
+1. **Valid happy path:** Submit payment with a valid order and card; assert 200 + valid transaction ID
+2. **Invalid: missing card:** Submit payment with no payment method on file; assert 400 + validation error
+3. **Boundary: zero amount:** Order total is $0.00; assert behavior per business rules (reject or allow free order?)
+4. **Injection: amount as SQL:** Payload `{"amount": "1; UPDATE users SET balance=0;"}`; assert it's treated as literal or rejected, transaction not executed
+5. **Type mismatch:** Amount as string `"50"` instead of number; assert type error or coercion per spec
 
 None of these tests inspect the payment processor library's internals, the database schema, or the code's control flow.

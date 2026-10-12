@@ -16,7 +16,7 @@ Unique to this template: the **Accessibility** section, which is mandatory and h
 | **Feature** | [Human-readable feature name] |
 | **Parent feature** | [spec-[parent].md, or "None" if top-level] |
 | **Sub-features** | [Comma-separated spec-[child].md files, or "None"] |
-| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN — the IDs this spec satisfies] |
+| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN: the IDs this spec satisfies] |
 | **Feature type** | Frontend action |
 | **Status** | Draft |
 
@@ -56,7 +56,7 @@ Numbered steps describing what the user experiences from trigger to completion, 
 
 | Input | UI element | Type | Validation | Required | Default |
 |---|---|---|---|---|---|
-| [Field name] | [Text input, dropdown, checkbox, date picker] | [Data type] | [min/max length, regex, allowed values] | [yes/no] | [Default value or "—"] |
+| [Field name] | [Text input, dropdown, checkbox, date picker] | [Data type] | [min/max length, regex, allowed values] | [yes/no] | [Default value or "None"] |
 
 ## Client-side validation
 

@@ -16,7 +16,7 @@ Unique to this template: the **Endpoint contract** block and the OpenAPI 3.1 fra
 | **Feature** | [Human-readable feature name] |
 | **Parent feature** | [spec-[parent].md, or "None" if top-level] |
 | **Sub-features** | [Comma-separated spec-[child].md files, or "None"] |
-| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN — the IDs this spec satisfies] |
+| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN: the IDs this spec satisfies] |
 | **Feature type** | API endpoint |
 | **Status** | Draft |
 
@@ -53,7 +53,7 @@ Status values: Draft, Review, Approved, Implemented.
 
 | Parameter | Type | Required | Default | Description |
 |---|---|---|---|---|
-| [name] | [type] | [yes/no] | [default or "—"] | [description] |
+| [name] | [type] | [yes/no] | [default or "None"] | [description] |
 
 ### Request headers
 
@@ -129,7 +129,7 @@ Numbered processing logic from request received to response sent. Each step maps
 4. [Core processing step]
 5. Construct and return the response
 
-## Response — Success
+## Response: Success
 
 | Status | Content-Type | Body |
 |---|---|---|
@@ -144,16 +144,16 @@ Numbered processing logic from request received to response sent. Each step maps
 }
 ```
 
-## Response — Errors
+## Response: Errors
 
 | Status | Code | Message | When |
 |---|---|---|---|
-| 400 | [error_code] | [Human-readable message] | [Invalid input — name which validations] |
+| 400 | [error_code] | [Human-readable message] | [Invalid input: name which validations] |
 | 401 | unauthorized | Unauthorized | [Missing or invalid authentication] |
 | 403 | forbidden | Forbidden | [Authenticated but insufficient permissions] |
 | 404 | not_found | Resource not found | [Resource does not exist] |
 | 409 | conflict | Conflict | [State conflict, e.g. duplicate, stale version] |
-| 422 | validation_error | Validation failed | [Business rule violation — name which] |
+| 422 | validation_error | Validation failed | [Business rule violation: name which] |
 | 429 | rate_limited | Too many requests | [Rate limit exceeded; include Retry-After] |
 | 500 | internal_error | Internal server error | [Unexpected failure] |
 
@@ -211,5 +211,5 @@ Derived from the endpoint contract above. Generate per [../openapi-output.md](..
 | Requirement | Spec section | Verified by |
 |---|---|---|
 | [FR-NNN] | [Requirement: [primary behavior]] | [Contract test, integration test, or acceptance reference] |
-| [NFR-NNN] | [Endpoint contract — rate limit / auth] | [Security review or load test reference] |
+| [NFR-NNN] | [Endpoint contract: rate limit / auth] | [Security review or load test reference] |
 ````

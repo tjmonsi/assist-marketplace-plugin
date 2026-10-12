@@ -5,10 +5,10 @@ Integration testing patterns for vanilla JavaScript projects using Jest or Vites
 ## Setup
 
 ### Dependencies (Jest)
-- `jest` — testing framework
-- `supertest` — HTTP assertions
-- `@testcontainers/testcontainers` — container management
-- `jest-mock-extended` — advanced mocking
+- `jest`: testing framework
+- `supertest`: HTTP assertions
+- `@testcontainers/testcontainers`: container management
+- `jest-mock-extended`: advanced mocking
 
 ```bash
 npm install -D jest supertest @testcontainers/testcontainers jest-mock-extended

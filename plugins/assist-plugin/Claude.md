@@ -31,7 +31,7 @@ Use `/do` to route any development task to the right agent:
 | **explore** | Fast read-only code search |
 | **worker** | Multi-discipline fallback |
 
-## Skills (19)
+## Skills (20)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
@@ -49,7 +49,8 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard and injection-filter self-tests, recent hook failures, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards |
+| **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 | **code** | (preloaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
 | **pentest** | (preloaded by qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
 | **integrated-test** | (preloaded by qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
@@ -57,11 +58,22 @@ Use `/do` to route any development task to the right agent:
 
 ## Documentation
 
-- **[SPECIFICATION.md](docs/SPECIFICATION.md)** — Full agent/skill catalog
-- **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Design rationale and structure
-- **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)** — Writing standards, AI-slop removal, conciseness checklist
-- **[TRACING_MARKERS.md](docs/TRACING_MARKERS.md)** — Requirement/spec traceability marker convention
+- **[SPECIFICATION.md](docs/SPECIFICATION.md)**: Full agent/skill catalog
+- **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)**: What's included/excluded and why
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Design rationale and structure
+- **[writing-standard.md](rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth)
+- **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)**: Documentation structure and conciseness checklist
+- **[TRACING_MARKERS.md](docs/TRACING_MARKERS.md)**: Requirement/spec traceability marker convention
+
+## Hooks and writing standard
+
+[rules/writing-standard.md](rules/writing-standard.md) is the source of truth for how agents, skills, and hooks write. Edit rules there first, then update `rules/writing-standard-compact.md` and `hooks/lib/prose-rules.js` when the rule appears in them, then run `node scripts/sync-writing-standard.js`.
+
+- **prose-gate** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies only added block-tier tells (em dash, chatbot residue, curly quotes, summary-label phrases) in prose files.
+- **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks.
+- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
+- **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
+- All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
 
 ## Getting Started
 

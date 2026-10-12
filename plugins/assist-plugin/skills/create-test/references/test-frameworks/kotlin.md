@@ -261,5 +261,5 @@ test("with manual mock") {
 4. **Parameterize:** Use table tests to avoid duplication
 5. **Scope fixtures:** Use `BeforeEach`/`AfterEach` or Kotest's `beforeTest`/`afterTest`
 6. **Descriptive errors:** Use assertion messages: `assertEquals(expected, actual, "User should be authenticated")`
-7. **Mock only boundaries:** Database, HTTP, external services — not internal logic
+7. **Mock only boundaries:** Database, HTTP, external services, not internal logic
 8. **Null handling:** Kotlin's type system prevents nulls; test Optional/nullable types explicitly

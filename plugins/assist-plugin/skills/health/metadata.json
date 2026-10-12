@@ -1,6 +1,6 @@
 {
   "name": "health",
-  "description": "Check assist-plugin hook health: Node version, guard self-tests, recent hook failures, disabled guards.",
+  "description": "Check assist-plugin hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards.",
   "effort": "low",
   "allowed-tools": [
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\")",

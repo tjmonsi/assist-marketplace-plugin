@@ -19,7 +19,7 @@ A delta records a change in **behavior**. Editorial changes do not earn a change
 This plugin keeps specs flat in `specs/spec-[feature-name].md`. There is no separate `changes/` tree. A delta is appended to the bottom of the same spec file as a change log section:
 
 ```markdown
-## Change Log — 2026-09-24
+## Change Log: 2026-09-24
 
 **Source:** [FR-052 added, FR-045 revised in FR-NFR-order-checkout.md v1.2]
 
@@ -62,12 +62,12 @@ The checkout service SHALL accept an order from an unauthenticated session when 
 
 **Reason:** Deferred to phase 2; guest checkout stores no account data.
 **Requirement ref:** FR-048, marked out of scope in FR-NFR-order-checkout.md v1.2.
-**Migration:** [What happens to existing data or callers, or "None — never implemented"]
+**Migration:** [What happens to existing data or callers, or "None: never implemented"]
 ```
 
 ## Rules
 
-1. **Date the section.** `## Change Log — YYYY-MM-DD`. One section per change event; do not merge two unrelated changes under one date.
+1. **Date the section.** `## Change Log: YYYY-MM-DD`. One section per change event; do not merge two unrelated changes under one date.
 2. **Name the source.** Cite the requirement IDs (`BR/UR/FR/NFR-NNN`) and the document version that triggered the change. A delta with no requirement source is a design change in disguise; get it approved as a requirement first.
 3. **Use the same Scenario format** as the main body: `#### Requirement:` with `##### Scenario:` GIVEN/WHEN/THEN blocks, one heading level deeper than the main body's Requirements so the change log nests under its own section.
 4. **MODIFIED shows both sides.** `Was:` and `Now:` plus a one-line reason. A modification without the old text is unreviewable.

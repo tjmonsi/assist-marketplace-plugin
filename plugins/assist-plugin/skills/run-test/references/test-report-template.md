@@ -132,6 +132,8 @@ PASS | FAIL | NEEDS ATTENTION
 - **FAIL:** Tests fail OR coverage below 90% OR critical errors exist
 - **NEEDS ATTENTION:** Tests pass but with warnings (flaky tests, coverage edge cases, minor issues)
 
+Use these three words for the verdict, never emoji badges.
+
 ### Test Results Table
 Count by category. Include skipped tests only if intentional (e.g., tests marked `@skip` in config).
 
@@ -147,6 +149,8 @@ For each failure, include:
 5. **Root cause:** Your analysis of why it failed (don't just repeat the error)
 6. **Reproduction steps:** Numbered steps so another person can independently run the test and see the failure
 
+Cite every location as file and line (`models.py:45`).
+
 ### Recommendations
 Separate into sections:
 - **Tests to Fix:** Blocking failures that must be resolved
@@ -154,20 +158,24 @@ Separate into sections:
 - **Additional Testing:** Optional improvements for quality
 
 ### Next Steps
-Ordered list of actions. Be specific (not just "fix the bug" but "add null check to User.email validation").
+Ordered list of actions. Be specific ("add null check to User.email validation" in place of "fix the bug").
 
 ---
 
 ## Report Writing Standard (Apply Throughout)
 
-1. **Lead with the most important finding:** If tests are failing, that's the opening. If coverage is too low, say that first.
-2. **No narrative hedging:** Write "Tests fail" not "There appear to be some test failures."
-3. **No meta-headers:** Remove "What follows", "Key takeaway", "In conclusion"
-4. **Three-part findings:** What happened (test X failed with error Y), why it matters (this blocks feature release), what to do (fix Z)
-5. **State each fact once:** Don't repeat findings in multiple sections
-6. **Use active voice:** "Tests fail with timeout" not "A timeout occurred causing test failure"
-7. **No severity badges:** Don't use emoji like 🔴 🟡. Use PASS/FAIL/NEEDS ATTENTION instead
-8. **Specific file:line references:** "line 45 in models.py" not "somewhere in the model"
+- Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.
+- Let content set the length. Report a clean check in one line.
+- Give each finding three parts: what happened, why it matters, what to do next.
+- State each conclusion once. Open every paragraph with new information.
+- Use active voice; put the important subject before the verb.
+- Use plain words ("use" for "utilize"). Cut hedges, intensifiers, throat-clearing, buzzwords, and "not X but Y" framing; state what it is.
+- Name headings after their content. Skip summary labels ("In conclusion", "Key takeaways"), severity badges, and summary sections unless the reader needs them.
+- Write no em dashes (use a period, comma, colon, parentheses, or semicolon), no curly quotes, and no chatbot sign-offs or offers.
+- Back every claim with evidence (file and line, log, test result, URL) and every number with a source; label estimates as estimates.
+- Report tested results; never present the prompt or an assumption as fact.
+- Quote exactly; never reword a quotation.
+- Keep ticket ids and internal blame out of user-facing text.
 
 ---
 

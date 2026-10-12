@@ -4,7 +4,7 @@ Review existing requirements for quality, completeness, and consistency. Used by
 
 ## Inputs
 
-- `$1+` — Path to a requirements document (BRD, URD, FR-NFR, SRS, or similar)
+- `$1+`: Path to a requirements document (BRD, URD, FR-NFR, SRS, or similar)
 - If no argument: scan the working directory for `BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, or other requirements files
 
 ## Six-step process

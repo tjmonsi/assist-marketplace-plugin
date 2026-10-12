@@ -11,8 +11,8 @@ A specification is ready for task planning only if all acceptance criteria are p
 For each requirement in the spec:
 1. Locate the line starting `### Requirement:`
 2. Search forward for the next `#### Scenario:` at the same indentation level
-3. If found before the next `### Requirement:` or end of document, the requirement has scenarios — pass
-4. If not found or comes after the next requirement, the requirement lacks scenarios — fail
+3. If found before the next `### Requirement:` or end of document, the requirement has scenarios, so it passes
+4. If not found or comes after the next requirement, the requirement lacks scenarios, so it fails
 
 ### Failure Output
 
@@ -57,14 +57,14 @@ These are warnings, not blockers. A spec can proceed to planning even if some sc
 
 Accepted ID patterns for `Satisfies` citations:
 
-- `SPEC-NNN` — Specification ID (this spec file's numbering)
-- `FR-NNN` — Functional requirement (from requirements document)
-- `NFR-NNN` — Non-functional requirement (from requirements document)
-- `UC-NNN` — Use case ID (if the spec defines use cases)
-- `AC-N` — Acceptance criterion number within a scenario
+- `SPEC-NNN`: Specification ID (this spec file's numbering)
+- `FR-NNN`: Functional requirement (from requirements document)
+- `NFR-NNN`: Non-functional requirement (from requirements document)
+- `UC-NNN`: Use case ID (if the spec defines use cases)
+- `AC-N`: Acceptance criterion number within a scenario
 
 Invalid patterns (do not use):
-- `REQ-NNN`, `SEC-NNN`, `CON-NNN` — legacy scheme, not used in assist-plugin
+- `REQ-NNN`, `SEC-NNN`, `CON-NNN`: legacy scheme, not used in assist-plugin
 - Invented numbers not present in the target document
 
 ## Rejection Criteria

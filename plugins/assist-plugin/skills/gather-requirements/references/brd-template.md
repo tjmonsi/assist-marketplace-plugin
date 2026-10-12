@@ -6,7 +6,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ---
 
-## [Project Name] — Business Requirements Document
+## [Project Name]: Business Requirements Document
 
 **Version:** [1.0]
 **Date:** [YYYY-MM-DD]
@@ -17,7 +17,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ### 1. Introduction
 
-**Purpose:** [Why this document exists — what business problem or opportunity it addresses]
+**Purpose:** [Why this document exists: what business problem or opportunity it addresses]
 
 **Project overview:** [Brief description of the initiative]
 
@@ -41,7 +41,7 @@ Each requirement uses the sentence template:
 
 #### In scope
 
-- [Included capability] — [brief rationale]
+- [Included capability]: [brief rationale]
 
 #### Out of scope
 
@@ -51,13 +51,13 @@ Each requirement uses the sentence template:
 
 ### 5. Constraints
 
-- [Business constraint — budget, timeline, organizational]
-- [Regulatory constraint — compliance, legal]
-- [Technical constraint — if imposed by business policy]
+- [Business constraint: budget, timeline, organizational]
+- [Regulatory constraint: compliance, legal]
+- [Technical constraint: if imposed by business policy]
 
 ### 6. Assumptions
 
-- [Assumption 1 — what we are taking as given]
+- [Assumption 1: what we are taking as given]
 - [Assumption 2]
 
 ### 7. Success criteria

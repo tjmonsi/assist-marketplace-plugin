@@ -119,15 +119,15 @@ See language-specific references for:
 
 For projects with multiple submodules (e.g., frontend + backend, mobile + API):
 
-- **Tests that belong to one submodule** → `<submodule>/tests/` (or language-specific convention like `src/__tests__/`)
-- **Tests that span multiple submodules** → `tests/` at the monorepo root
+- **Tests that belong to one submodule** go in `<submodule>/tests/` (or language-specific convention like `src/__tests__/`)
+- **Tests that span multiple submodules** go in `tests/` at the monorepo root
 
 ### Monorepo Root Tests Cover
 
 - Frontend → Backend auth flow (login form → auth API → JWT → dashboard)
 - Frontend → Backend CRUD (form submit → API → database → display)
 - File upload across services
-- Real-time communication (WebSocket client → server)
+- Real-time communication (WebSocket client to server)
 - Cross-service workflow validation
 
 For detailed setup patterns and cross-submodule test examples, see [references/integration-patterns/](references/integration-patterns/) (each language's file covers monorepo setup for that language).
@@ -139,7 +139,7 @@ For detailed setup patterns and cross-submodule test examples, see [references/i
 For web applications, use Playwright for browser automation E2E tests. See [references/playwright-e2e.md](references/playwright-e2e.md) for:
 
 - Test structure and Page Object Model pattern
-- Semantic locators (role, label, text — never CSS/XPath)
+- Semantic locators (role, label, text; never CSS/XPath)
 - Visual regression testing (screenshot comparison, maxDiffPixelRatio threshold)
 - Accessibility testing (ARIA snapshots, axe-core)
 - Authentication state reuse (save/restore storageState)
@@ -156,7 +156,7 @@ For web applications, use Playwright for browser automation E2E tests. See [refe
 
 ### Before Writing Any E2E Test
 
-**Run the Playwright availability check** (see below). If Playwright is not available, report exactly what needs to be installed and stop — never silently skip E2E testing.
+**Run the Playwright availability check** (see below). If Playwright is not available, report exactly what needs to be installed and stop. Never silently skip E2E testing.
 
 ---
 

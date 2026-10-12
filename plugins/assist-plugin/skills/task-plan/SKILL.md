@@ -99,15 +99,20 @@ If spec validation fails (missing scenarios), output a report and stop. Do not p
 - Never invent acceptance criteria or requirement IDs
 - Every code reference cited must exist in the `code` skill
 - File paths must match the target codebase structure (run `ls` / `find` to verify before citing)
-- Do not estimate effort or timeline — steps are ordered, not sized
+- Do not estimate effort or timeline; steps are ordered, not sized
 - Do not propose refactoring or cleanup steps; focus on the feature's requirements
 
 ## Report Writing Standard
 
-- Lead with the most important finding (missing acceptance criteria, successful plan, etc.)
-- Every finding has three parts: what happened, why it matters, what to do next
-- State each conclusion once
-- Use active voice
-- Cut hedges and contrastive filler
-- No em-dashes; use periods, commas, parentheses, or semicolons
-- No severity badges or summary sections unless the reader would be lost without them
+- Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.
+- Let content set the length. Report a clean check in one line.
+- Give each finding three parts: what happened, why it matters, what to do next.
+- State each conclusion once. Open every paragraph with new information.
+- Use active voice; put the important subject before the verb.
+- Use plain words ("use" for "utilize"). Cut hedges, intensifiers, throat-clearing, buzzwords, and "not X but Y" framing; state what it is.
+- Name headings after their content. Skip summary labels ("In conclusion", "Key takeaways"), severity badges, and summary sections unless the reader needs them.
+- Write no em dashes (use a period, comma, colon, parentheses, or semicolon), no curly quotes, and no chatbot sign-offs or offers.
+- Back every claim with evidence (file and line, log, test result, URL) and every number with a source; label estimates as estimates.
+- Report tested results; never present the prompt or an assumption as fact.
+- Quote exactly; never reword a quotation.
+- Keep ticket ids and internal blame out of user-facing text.

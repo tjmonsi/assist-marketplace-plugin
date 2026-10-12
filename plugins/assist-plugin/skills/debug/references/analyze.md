@@ -53,10 +53,10 @@ Produce RCA document matching [rca-template.md](rca-template.md):
 
 ## Constraints
 
-- **No code changes** — Analyze only
-- **No assumptions** — Verify with code or tests
-- **Clear evidence** — Show stack traces, logs, code snippets
-- **Reproducible** — Provide exact steps to trigger
+- **No code changes**: Analyze only
+- **No assumptions**: Verify with code or tests
+- **Clear evidence**: Show stack traces, logs, code snippets
+- **Reproducible**: Provide exact steps to trigger
 
 ## When to Escalate
 

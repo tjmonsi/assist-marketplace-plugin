@@ -27,28 +27,29 @@ Then use the `/do` orchestrator:
 
 ### assist-plugin v1.7.0
 
-**15 user-invocable skills:**
-- `do` — Task orchestration and routing
-- `ask` — Repo and web Q&A with citations
-- `debug` — Root cause analysis + iterative fixes
-- `bump` — Semantic versioning & changelog generation
-- `pr-review` — GitHub/Bitbucket PR review with auto-detection
-- `commit` — Conventional commits
-- `branch` — Git branch management and merged worktree cleanup
-- `map-project` — Repository discovery
-- `technical-writing` — Documentation generation
-- `review-md` — Markdown report review
-- `gather-requirements` — Requirements elicitation and documentation
-- `spec-from-requirements` — Feature specs and delta change logs
-- `task-plan` — Ordered coding steps from specs
-- `create-test` — Black-box acceptance-criteria tests
-- `health` — Hook health: Node version, guard and injection-filter self-tests, recent hook failures, disabled guards
+**16 user-invocable skills:**
+- `do`: Task orchestration and routing
+- `ask`: Repo and web Q&A with citations
+- `debug`: Root cause analysis + iterative fixes
+- `bump`: Semantic versioning & changelog generation
+- `pr-review`: GitHub/Bitbucket PR review with auto-detection
+- `commit`: Conventional commits
+- `branch`: Git branch management and merged worktree cleanup
+- `map-project`: Repository discovery
+- `technical-writing`: Documentation generation
+- `review-md`: Markdown report review
+- `gather-requirements`: Requirements elicitation and documentation
+- `spec-from-requirements`: Feature specs and delta change logs
+- `task-plan`: Ordered coding steps from specs
+- `create-test`: Black-box acceptance-criteria tests
+- `health`: Hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards
+- `deslop`: Remove AI writing tells from prose; `/deslop [edit | detect] <file-or-text>` (edit returns cleaned text, detect lists findings)
 
 **4 internal skills (loaded by agents):**
-- `code` — Coding standards and conventions (developer)
-- `pentest` — OWASP and LLM security testing (qa)
-- `integrated-test` — Integration and E2E testing patterns (qa)
-- `run-test` — Test execution and coverage reports (qa)
+- `code`: Coding standards and conventions (developer)
+- `pentest`: OWASP and LLM security testing (qa)
+- `integrated-test`: Integration and E2E testing patterns (qa)
+- `run-test`: Test execution and coverage reports (qa)
 
 **14 expert agents:**
 - ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
@@ -98,13 +99,14 @@ For a full breakdown of token savings by scenario, cost implications, and method
 
 ## Documentation
 
-- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)** — Quick reference
-- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)** — Full agent/skill catalog
-- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)** — System design
-- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)** — Optimization strategy
-- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)** — Writing standards and conciseness checklist
-- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)** — Traceability marker convention
-- **[MARKETPLACE.md](MARKETPLACE.md)** — Marketplace overview
+- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)**: Quick reference
+- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)**: Full agent/skill catalog
+- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)**: System design
+- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)**: Optimization strategy
+- **[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth for the prose hooks)
+- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)**: Writing standards and conciseness checklist
+- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)**: Traceability marker convention
+- **[MARKETPLACE.md](MARKETPLACE.md)**: Marketplace overview
 
 ## Installation
 
@@ -137,7 +139,7 @@ The plugin works without these tools, but agents fall back or skip steps when on
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
 | git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
-| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
 | uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
 | Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
 
@@ -241,13 +243,27 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfo
 
 ## Hook health
 
-The two PreToolUse guards block a command only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
+The two Bash guards and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, and the prose hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
 
 ### Injection filter
 
 The `injection-filter` hook is a defensive filter for untrusted content. It runs after `WebFetch`, `WebSearch`, `mcp__*` tools, subagent (`Agent`) results, and Bash commands that run `firecrawl`, `curl`, `wget`, or `ctx7`; it never touches `Read`, `Grep`, or other Bash output. Sentences that match a fixed set of prompt-injection rules (instruction override, role reassignment, system-prompt or secret exfiltration, fake chat delimiters, hidden-instruction carriers, tool hijack, data-exfiltration links, concealment) are replaced with `[assist-plugin removed possible prompt injection: <rule-id>]`, invisible Unicode (zero-width, bidi override, tag characters) is stripped, and Claude gets a factual note listing the rule ids. All other text is returned unchanged. A subagent prompt that matches is rewritten the same way and Claude Code asks you to confirm it. A typed prompt that matches is never changed or blocked: you get a warning and Claude gets a note.
 
 The filter fails open (any error returns the original content with a one-line warning), never blocks, and is a pattern filter, not a security boundary: it does not decode base64, does not map look-alike letters from other scripts, and does not read non-English text. Content from the plugin's own files is skipped. To skip other sources, list substrings in `injection-allowlist.json` in the plugin data directory, for example `["docs.example.com", "/home/me/notes/"]`: a URL matches when its host (or a parent domain) or host and path start with the entry; a file path matches when it contains the entry.
+
+### Writing standard hooks
+
+[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md) is the source of truth for how the plugin's agents and skills write. Three hooks apply it:
+
+- **`prose-gate`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies a write to a prose file (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`) only when the text the call adds holds a block-tier tell: an em dash, chatbot residue, a curly quote, or a summary-label phrase. Text already in the file is not judged. The denial lists each hit with its fix. Text that must stay verbatim (a quotation, your own words, a title) passes inside double quotes, a blockquote, or a code span.
+- **`prose-advisor`** (PostToolUse on the same tools): adds a short advisory note about hedges, intensifiers, AI vocabulary, throat-clearing, and similar tells in the added text. It never blocks.
+- **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent.
+
+Both per-write hooks skip files under the system temp directory. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
+
+All three fail open. The per-write hooks add about 80 to 110 ms to each write. The plugin also ships an opt-in output style, `assist-plugin:terse`: answer-first replies with no preamble, recap, or sign-off. Select it with `/output-style`; subagents do not use it.
+
+To rewrite existing prose, run `/deslop edit <file>`; `/deslop detect <file>` lists the tells without changing the file. To change a writing rule, edit `rules/writing-standard.md`, then run `node plugins/assist-plugin/scripts/sync-writing-standard.js` to refresh the `## Report Writing Standard` blocks in `agents/` and `skills/`.
 
 ## Marketplace Structure
 
@@ -264,16 +280,21 @@ assist-marketplace-plugin/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
 │       ├── agents/ (14 agent definitions)
-│       ├── skills/ (19 skills: 15 user-invocable, 4 internal)
-│       ├── hooks/ (fail-open PreToolUse guards, injection filter, and health check)
+│       ├── skills/ (20 skills: 16 user-invocable, 4 internal)
+│       ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
 │       │   ├── hooks.json (hook registration)
 │       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
 │       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
+│       │   ├── prose-gate.js (entry: denies added block-tier tells in prose writes)
+│       │   ├── prose-advisor.js (entry: advisory note on added tells after a prose write)
+│       │   ├── writing-context.js (entry: injects the compact writing standard at SessionStart and SubagentStart)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
-│       │   ├── impl/ (guard, injection-filter, and health-check logic)
-│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection rules)
-│       ├── rules/ (governance)
+│       │   ├── impl/ (guard, injection-filter, prose-hook, and health-check logic)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js)
+│       ├── output-styles/ (terse.md: opt-in `assist-plugin:terse` output style)
+│       ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
+│       ├── scripts/ (sync-writing-standard.js: syncs the Report Writing Standard blocks)
 │       ├── docs/ (comprehensive documentation)
 │       ├── Claude.md (quick reference)
 │       ├── NOTICE (attribution)

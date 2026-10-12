@@ -24,8 +24,8 @@ Emit the fragment inside the spec's **OpenAPI fragment** section, and to `specs/
 | Request body table | `requestBody.content["application/json"].schema` with `properties` and `required` |
 | Request body constraints column | `minLength`, `maxLength`, `minimum`, `maximum`, `pattern`, `enum`, `format` |
 | Example request body | `requestBody.content["application/json"].example` |
-| Response — Success | The 2xx entry under `responses`, with the example attached |
-| Response — Errors table | One `responses` entry per status, each referencing the shared error schema |
+| Response: Success | The 2xx entry under `responses`, with the example attached |
+| Response: Errors | One `responses` entry per status, each referencing the shared error schema |
 | Feature name | `operationId` in camelCase, and `summary` from the Description's first sentence |
 | Requirement refs | `x-requirement-refs`, the array of `BR/UR/FR/NFR-NNN` IDs, so traceability survives into the generated artifact |
 

@@ -1,4 +1,4 @@
-# Playwright — Browser Automation and E2E Testing
+# Playwright: Browser Automation and E2E Testing
 
 Playwright testing conventions for web applications.
 
@@ -139,7 +139,7 @@ test('user can login', async ({ loginPage }) => {
 
 ---
 
-## Locators — Best Practices Hierarchy
+## Locators: Best Practices Hierarchy
 
 Use this priority order (from most robust to least):
 
@@ -181,7 +181,7 @@ page.locator('.css_generated_12345')              // Auto-generated class
 
 ## Assertions
 
-All assertions **auto-retry** until timeout — no manual waits needed.
+All assertions **auto-retry** until timeout, so no manual waits are needed.
 
 ### Visibility
 
@@ -316,7 +316,7 @@ export default defineConfig({
 })
 ```
 
-Now all tests run with pre-authenticated session — no login steps needed.
+Now all tests run with pre-authenticated session, so no login steps are needed.
 
 ---
 
@@ -393,9 +393,9 @@ npx --no playwright show-report
 2. **Page Object Model:** For any page with more than 3 user interactions, encapsulate in a Page class.
 3. **Custom fixtures:** Use `test.extend()` for reusable test setup.
 4. **Never use waitForTimeout():** Always use auto-retrying assertions instead.
-5. **Save auth state:** Avoid login in every test — save and reuse authentication context.
+5. **Save auth state:** Avoid login in every test; save and reuse authentication context.
 6. **Local dev server:** Run tests against local app via `webServer` config, not production.
 7. **Screenshots/traces on failure:** Configure `screenshot: 'only-on-failure'` to save storage space in CI.
-8. **Test critical flows:** Login, main features, error states — not every edge case (use unit tests for those).
+8. **Test critical flows:** Login, main features, error states, not every edge case (use unit tests for those).
 9. **Cross-browser in CI:** Run Chromium (required), Firefox and WebKit (recommended) in CI.
 10. **data-testid sparingly:** Add only when no semantic locator exists, not as a substitute for proper HTML.

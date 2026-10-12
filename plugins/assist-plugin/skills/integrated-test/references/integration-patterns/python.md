@@ -5,13 +5,13 @@ Integration testing patterns for Python projects using pytest and async framewor
 ## Setup
 
 ### Dependencies
-- pytest — testing framework
-- pytest-asyncio — async test support
-- sqlalchemy (asyncio extension) and asyncpg — async database access
-- httpx — async HTTP client
-- testcontainers[postgres] — PostgreSQL container
-- respx — HTTP mocking library
-- fakeredis — mock Redis
+- pytest: testing framework
+- pytest-asyncio: async test support
+- sqlalchemy (asyncio extension) and asyncpg: async database access
+- httpx: async HTTP client
+- testcontainers[postgres]: PostgreSQL container
+- respx: HTTP mocking library
+- fakeredis: mock Redis
 
 Detect uv with `command -v uv`. Agents show these commands and never run them; the user runs them. Before an agent runs `uv run --no-sync --no-python-downloads pytest ...`, it Globs for `.venv/bin/pytest` (`.venv/Scripts/pytest.exe` on Windows); if missing, it shows `uv sync` and stops.
 

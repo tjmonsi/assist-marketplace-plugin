@@ -4,7 +4,7 @@ Interactively gather requirements through structured questioning. Used by `/gath
 
 ## Inputs
 
-- `$1+` — Topic, domain, or project name (optional; ask if not provided)
+- `$1+`: Topic, domain, or project name (optional; ask if not provided)
 
 ## Six-phase process
 
@@ -43,11 +43,11 @@ For each user requirement:
 
 Cover each category that applies, and skip the ones that do not:
 
-- **Performance** — response times, throughput, capacity
-- **Security** — authentication, authorization, data protection
-- **Reliability** — uptime, recovery, fault tolerance
-- **Usability** — accessibility, learnability
-- **Compliance** — regulatory, legal, standards
+- **Performance:** response times, throughput, capacity
+- **Security:** authentication, authorization, data protection
+- **Reliability:** uptime, recovery, fault tolerance
+- **Usability:** accessibility, learnability
+- **Compliance:** regulatory, legal, standards
 
 Every NFR needs a number attached. "The system SHALL respond quickly" is not an NFR; "The system SHALL return search results within 200ms at p95" is.
 
@@ -87,7 +87,7 @@ After elicitation, produce this summary:
 - NFR-001: [requirement] (category: [performance|security|reliability|usability|compliance], traces to: [FR-NNN|UR-NNN|BR-NNN])
 
 **Out of scope:**
-- [Exclusion 1] — Reason: [why excluded] — Deferred to: [phase/version/never]
+- [Exclusion 1]. Reason: [why excluded]. Deferred to: [phase/version/never]
 
 **Open questions:**
 - [Anything unresolved]

@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 14 specialized agents, and 19 focused skills for end-to-end software development workflows.
+assist-plugin is a token-optimized Claude marketplace plugin providing orchestration, 14 specialized agents, and 20 focused skills for end-to-end software development workflows.
 
 **Philosophy:** Route tasks to the right agent, enable parallel execution, reduce context switching, and maintain governance gates (security + testing).
 
@@ -165,7 +165,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
 
 ---
 
-## Skills (19 Total)
+## Skills (20 Total)
 
 The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.md) table. Below are skill categories with detailed specifications.
 
@@ -176,8 +176,8 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Workflow:**
 1. Classify the incoming task (primary intent, scope, output type)
 2. Match to agent using registry
-3. Query user for model overrides (if needed)
-4. Create execution plan with approval
+3. Clarify ambiguities, create the execution plan, and show it in chat as a step table
+4. Get approval in one AskUserQuestion call (approve, edit steps, change models, or cancel); edits and model overrides re-show the plan and ask again
 5. Delegate to agent(s) with review loops
 6. Synthesize results
 
@@ -186,7 +186,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 **Key features:**
 - Multi-agent parallelization
-- Model override prompts
+- Model overrides offered in the plan approval call
 - Plan-based execution
 - Review gate enforcement
 
@@ -265,8 +265,8 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Purpose:** Generate and update documentation
 
 **Subcommands:**
-- `docs` — Create user/developer documentation
-- `readme` — Generate or update README
+- `docs`: Create user/developer documentation
+- `readme`: Generate or update README
 
 **Model:** Sonnet  
 **Effort:** medium
@@ -330,8 +330,8 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Purpose:** Review markdown reports for factual soundness, consistency, and conciseness
 
 **Modes:**
-- Manual — invoked directly on any report file
-- Automated — auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
+- Manual: invoked directly on any report file
+- Automated: auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
 
 **Model:** Sonnet  
 **Effort:** medium
@@ -344,10 +344,10 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 ### health
 **Command:** `/health [--clear]`  
-**Purpose:** Report assist-plugin hook health: Node version, guard self-tests, recent hook failures, disabled guards
+**Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards
 
 **Workflow:**
-1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only` and `doc-cli-guard` against fixed allow and deny cases)
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `injection-filter`, `prose-gate`, and `prose-advisor` against fixed allow and deny cases)
 2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
 3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
 4. With `--clear`, truncate `hook-health.jsonl` after showing it
@@ -359,6 +359,20 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 - Hooks fail open: a failure lets the command run with a `systemMessage` warning; only a positive guard match denies
 - A guard whose self-test denies a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes
 - The health log never holds command text, arguments, environment values, or stdin
+
+---
+
+### deslop
+**Command:** `/deslop [edit | detect] <file-or-text>`  
+**Purpose:** Remove AI writing tells from prose; edit returns cleaned text, detect lists findings
+
+**Modes:**
+- `edit`: returns the cleaned text (inline) or edits the named file; keeps quotations, facts, and the writer's voice
+- `detect`: lists each finding as `<line>: <tell-id> "<excerpt>" | Fix: <fix>` and changes nothing
+
+**Constraints:**
+- Prose files only (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`)
+- Rules come from [rules/writing-standard.md](../rules/writing-standard.md); the `prose-gate` and `prose-advisor` hooks catch the word-level tells as they are written, and this skill reads for the structural ones
 
 ---
 

@@ -33,7 +33,7 @@ mod tests {
 
 ## Naming Conventions
 
-- `test_[function_name]_[scenario]` — e.g., `test_payment_process_valid_card_succeeds`
+- `test_[function_name]_[scenario]`: e.g., `test_payment_process_valid_card_succeeds`
 - Rust convention: use snake_case for test names
 - Descriptive suffixes: `_succeeds`, `_returns_error`, `_panics`, `_handles_edge_case`
 

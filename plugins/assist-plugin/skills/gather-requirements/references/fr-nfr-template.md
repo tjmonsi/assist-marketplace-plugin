@@ -6,7 +6,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ---
 
-## [Project Name] — Functional and Non-Functional Requirements
+## [Project Name]: Functional and Non-Functional Requirements
 
 **Version:** [1.0]
 **Date:** [YYYY-MM-DD]
@@ -17,7 +17,7 @@ Fill **Author** from `git config user.name`. If that is unavailable, leave `[Aut
 
 ### 1. Introduction
 
-**Purpose:** [What this document specifies — system behaviors and quality attributes]
+**Purpose:** [What this document specifies: system behaviors and quality attributes]
 
 **Relationship to URD:** This document derives from [URD-<project-slug>.md]. Every functional requirement traces to at least one user requirement.
 
@@ -41,7 +41,7 @@ Or the conditional form:
 
 Acceptance criteria are not prose. Each FR gets one or more `#### Scenario:` blocks below, in GIVEN/WHEN/THEN form. The table's last column points at them.
 
-#### 2.1 FR-001 — [Short title]
+#### 2.1 FR-001: [Short title]
 
 **Statement:** The [system] SHALL [action] [object] [conditions].
 **Traces to:** UR-NNN
@@ -125,8 +125,8 @@ An NFR that constrains observable behavior (a timeout, a rate limit, a retention
 
 ### 5. Constraints
 
-- [Technical constraint — platform, language, integration]
-- [Interface constraint — external systems, APIs]
+- [Technical constraint: platform, language, integration]
+- [Interface constraint: external systems, APIs]
 
 ### 6. Traceability matrix
 

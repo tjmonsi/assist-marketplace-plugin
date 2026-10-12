@@ -40,9 +40,9 @@ Use `/do` to route any development task to the right agent:
 | **solutions-architect** | Requirements to specs, APIs, schemas, data flows |
 | **worker** | Multi-discipline generalist for small features |
 
-## Skills (19)
+## Skills (20)
 
-### User-invocable (15)
+### User-invocable (16)
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
@@ -60,7 +60,8 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Write feature specs and delta change logs from requirements |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Turn a spec into ordered coding steps |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Generate black-box acceptance-criteria tests (also used by developer-tester) |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard self-tests, recent hook failures, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards |
+| **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 
 ### Internal (4)
 
@@ -73,15 +74,26 @@ Use `/do` to route any development task to the right agent:
 
 ## Documentation
 
-- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)** — Plugin quick reference
-- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)** — Full agent/skill catalog
-- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)** — Design rationale and structure
-- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
-- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)** — Writing standards and conciseness checklist
-- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)** — Requirement/spec traceability marker convention
-- **[README.md](README.md)** — Marketplace overview and installation
-- **[MARKETPLACE.md](MARKETPLACE.md)** — Marketplace details and versioning
-- **[CHANGELOG.md](CHANGELOG.md)** — Release history
+- **[plugins/assist-plugin/Claude.md](plugins/assist-plugin/Claude.md)**: Plugin quick reference
+- **[plugins/assist-plugin/docs/SPECIFICATION.md](plugins/assist-plugin/docs/SPECIFICATION.md)**: Full agent/skill catalog
+- **[plugins/assist-plugin/docs/ARCHITECTURE.md](plugins/assist-plugin/docs/ARCHITECTURE.md)**: Design rationale and structure
+- **[plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md](plugins/assist-plugin/docs/TOKEN_OPTIMIZATION.md)**: What's included/excluded and why
+- **[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth)
+- **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)**: Writing standards and conciseness checklist
+- **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)**: Requirement/spec traceability marker convention
+- **[README.md](README.md)**: Marketplace overview and installation
+- **[MARKETPLACE.md](MARKETPLACE.md)**: Marketplace details and versioning
+- **[CHANGELOG.md](CHANGELOG.md)**: Release history
+
+## Hooks and writing standard
+
+[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md) is the source of truth for how agents, skills, and hooks write. Edit rules there first, then update `rules/writing-standard-compact.md` and `hooks/lib/prose-rules.js` when the rule appears in them, then run `node plugins/assist-plugin/scripts/sync-writing-standard.js`.
+
+- **prose-gate** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies only added block-tier tells (em dash, chatbot residue, curly quotes, summary-label phrases) in prose files.
+- **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks.
+- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
+- **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
+- All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
 
 ## Governance
 
@@ -103,6 +115,7 @@ When adding or removing a skill or agent, update the counts and lists in:
 - [ ] `plugins/assist-plugin/Claude.md`
 - [ ] `plugins/assist-plugin/docs/SPECIFICATION.md`
 - [ ] `plugins/assist-plugin/skills/do/references/agent-registry.md`
+- [ ] Run `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` (exits 1 while any `## Report Writing Standard` block differs from `rules/writing-standard-compact.md`; drop `--check` to fix them)
 - When an agent depends on a skill, list it in the agent's `skills:` frontmatter; never set `disable-model-invocation: true` on a skill an agent preloads.
 
 When releasing, update the version in `plugins/assist-plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.

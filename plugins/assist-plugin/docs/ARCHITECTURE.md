@@ -4,11 +4,11 @@
 
 assist-plugin follows these core principles:
 
-1. **Orchestration over monolith** — One skill (`do`) routes to 12 specialized agents
-2. **Agent specialization** — Each agent handles one domain; no overlapping responsibilities
-3. **Model routing** — Task complexity determines model tier (Haiku/Sonnet/Opus)
-4. **Review gates** — Security + testing + code review checkpoints before merge
-5. **Token efficiency** — Centralized references, link-based docs, table-driven data
+1. **Orchestration over monolith**: One skill (`do`) routes to 14 specialized agents
+2. **Agent specialization**: Each agent handles one domain; no overlapping responsibilities
+3. **Model routing**: Task complexity determines model tier (Haiku/Sonnet/Opus)
+4. **Review gates**: Security + testing + code review checkpoints before merge
+5. **Token efficiency**: Centralized references, link-based docs, table-driven data
 
 ---
 
@@ -59,28 +59,28 @@ assist-plugin follows these core principles:
 ### By Responsibility
 
 #### Development Tier
-- **developer** — Implement, fix, refactor code
-- **reviewer** — Quality, security, performance checks
-- **code-reviewer** — Formal line-by-line review (specialized)
+- **developer**: Implement, fix, refactor code
+- **reviewer**: Quality, security, performance checks
+- **code-reviewer**: Formal line-by-line review (specialized)
 
 #### Architecture Tier
-- **planner** — System design, roadmap, risk assessment
-- **solutions-architect** — Feature specs, API design, data flow
+- **planner**: System design, roadmap, risk assessment
+- **solutions-architect**: Feature specs, API design, data flow
 
 #### Quality Tier
-- **qa** — Test planning, acceptance validation
-- **developer-tester** — Black-box tests from acceptance criteria
-- **requirements-gatherer** — Requirements, BRD/URD, FR+NFR
+- **qa**: Test planning, acceptance validation
+- **developer-tester**: Black-box tests from acceptance criteria
+- **requirements-gatherer**: Requirements, BRD/URD, FR+NFR
 
 #### Infrastructure Tier
-- **devops** — CI/CD, infrastructure, deployment
+- **devops**: CI/CD, infrastructure, deployment
 
 #### Support Tier
-- **researcher** — Web research, documentation, best practices
-- **explore** — Fast code search and location discovery
-- **ask** — Repository and optional web Q&A
-- **general-purpose** — Catch-all for unmatched tasks
-- **worker** — Multi-discipline (code + review + test combined)
+- **researcher**: Web research, documentation, best practices
+- **explore**: Fast code search and location discovery
+- **ask**: Repository and optional web Q&A
+- **general-purpose**: Catch-all for unmatched tasks
+- **worker**: Multi-discipline (code + review + test combined)
 
 ### By Model Tier
 

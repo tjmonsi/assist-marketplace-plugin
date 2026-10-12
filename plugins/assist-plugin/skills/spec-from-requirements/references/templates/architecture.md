@@ -16,7 +16,7 @@ Unique to this template: the **Design decisions** section (Decision / Options co
 | **Feature** | [Human-readable feature name] |
 | **Parent feature** | [spec-[parent].md, or "None" if top-level] |
 | **Sub-features** | [Comma-separated spec-[child].md files, or "None"] |
-| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN — the IDs this spec satisfies] |
+| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN: the IDs this spec satisfies] |
 | **Feature type** | Architecture |
 | **Status** | Draft |
 
@@ -30,7 +30,7 @@ Status values: Draft, Review, Approved, Implemented.
 
 | Component | Responsibility | Owns data | Technology |
 |---|---|---|---|
-| [Component name] | [What it does — single responsibility] | [Which data entities it owns] | [Language, framework, runtime] |
+| [Component name] | [What it does: single responsibility] | [Which data entities it owns] | [Language, framework, runtime] |
 
 ## Component boundaries
 
@@ -102,13 +102,13 @@ Use when components span more than one cloud or more than one region. Name which
 
 | Failure | Impact | Detection | Mitigation |
 |---|---|---|---|
-| [What fails — component, network, dependency] | [What breaks downstream] | [Health check, timeout, alert] | [Retry, fallback, circuit breaker, graceful degradation] |
+| [What fails: component, network, dependency] | [What breaks downstream] | [Health check, timeout, alert] | [Retry, fallback, circuit breaker, graceful degradation] |
 
 ## Non-functional requirements addressed
 
 | NFR | Target | How this architecture achieves it |
 |---|---|---|
-| [NFR-NNN — scalability / availability / latency / security] | [Measurable target, e.g. 99.9% uptime, under 200ms p95] | [Which architectural decision supports this] |
+| [NFR-NNN: scalability / availability / latency / security] | [Measurable target, e.g. 99.9% uptime, under 200ms p95] | [Which architectural decision supports this] |
 
 ## Design decisions
 

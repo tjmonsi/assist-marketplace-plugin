@@ -28,9 +28,9 @@ Transform this project into a token-optimized Claude marketplace plugin based on
 
 ### Step 1.3: Create `docs/` folder structure
 - **Files:**
-  - `docs/SPECIFICATION.md` — Full plugin spec
-  - `docs/TOKEN_OPTIMIZATION.md` — What's included/excluded and why
-  - `docs/ARCHITECTURE.md` — Design decisions, agent/skill taxonomy
+  - `docs/SPECIFICATION.md`: Full plugin spec
+  - `docs/TOKEN_OPTIMIZATION.md`: What's included/excluded and why
+  - `docs/ARCHITECTURE.md`: Design decisions, agent/skill taxonomy
 - **Status:** pending
 
 ---
@@ -40,24 +40,24 @@ Transform this project into a token-optimized Claude marketplace plugin based on
 ### Step 2.1: Create core agents (7 agents)
 - **directory:** `agents/`
 - **Agents:**
-  1. `developer.md` — Code writing, fixes, refactoring
-  2. `reviewer.md` — Code review, security, quality checks
-  3. `planner.md` — Architecture, design, planning
-  4. `qa.md` — Testing, validation, acceptance
-  5. `solutions-architect.md` — Feature spec, data flow, contracts
-  6. `requirements-gatherer.md` — Elicitation, BRD/URD, FR+NFR
-  7. `worker.md` — Generalist (multi-discipline fallback)
+  1. `developer.md`: Code writing, fixes, refactoring
+  2. `reviewer.md`: Code review, security, quality checks
+  3. `planner.md`: Architecture, design, planning
+  4. `qa.md`: Testing, validation, acceptance
+  5. `solutions-architect.md`: Feature spec, data flow, contracts
+  6. `requirements-gatherer.md`: Elicitation, BRD/URD, FR+NFR
+  7. `worker.md`: Generalist (multi-discipline fallback)
 - **Token optimization:** Concise descriptions, responsibilities only (400 chars max per agent)
 - **Status:** pending
 
 ### Step 2.2: Create DevOps/Specialized agents (5 agents)
 - **directory:** `agents/`
 - **Agents:**
-  1. `devops.md` — CI/CD, infrastructure, deployment
-  2. `researcher.md` — Web research, documentation audit
-  3. `code-reviewer.md` — Code-specific review (alias: formal review)
-  4. `general-purpose.md` — Catch-all for unmatched tasks
-  5. `explore.md` — Fast read-only search (code location, pattern matching)
+  1. `devops.md`: CI/CD, infrastructure, deployment
+  2. `researcher.md`: Web research, documentation audit
+  3. `code-reviewer.md`: Code-specific review (alias: formal review)
+  4. `general-purpose.md`: Catch-all for unmatched tasks
+  5. `explore.md`: Fast read-only search (code location, pattern matching)
 - **Token optimization:** Link to reference docs, no inline guidance
 - **Status:** pending
 
@@ -68,13 +68,13 @@ Transform this project into a token-optimized Claude marketplace plugin based on
 ### Step 3.1: Create `do` skill (Replace `run`)
 - **directory:** `skills/do/`
 - **Files:**
-  - `SKILL.md` — Orchestrator (simplified, 60-70% length of original `run` skill)
+  - `SKILL.md`: Orchestrator (simplified, 60-70% length of original `run` skill)
   - `metadata.json`
   - `references/` folder:
-    - `agent-registry.md` — Agents + responsibilities (table)
-    - `model-routing.md` — Model/effort assignment
-    - `plan-format.md` — Plan file template
-    - `review-protocol.md` — Review loop procedure
+    - `agent-registry.md`: Agents + responsibilities (table)
+    - `model-routing.md`: Model/effort assignment
+    - `plan-format.md`: Plan file template
+    - `review-protocol.md`: Review loop procedure
 - **Token optimization:**
   - Remove redundant explanations (links instead of inline text)
   - Consolidate steps where possible
@@ -85,23 +85,23 @@ Transform this project into a token-optimized Claude marketplace plugin based on
 ### Step 3.2: Create `debug` skill (Replace `debug-code`)
 - **directory:** `skills/debug/`
 - **Files:**
-  - `SKILL.md` — Streamlined debug workflow
+  - `SKILL.md`: Lean debug workflow
   - `metadata.json`
   - `references/`:
-    - `analyze.md` — RCA analysis steps
-    - `fix.md` — Fix application steps
-    - `review.md` — Fix verification steps
-    - `rca-template.md` — RCA output template
+    - `analyze.md`: RCA analysis steps
+    - `fix.md`: Fix application steps
+    - `review.md`: Fix verification steps
+    - `rca-template.md`: RCA output template
 - **Token optimization:** Remove verbose preamble, focus on subcommand routing
 - **Status:** pending
 
 ### Step 3.3: Create supporting skills (4 skills)
 - **directory:** `skills/`
 - **Skills:**
-  1. `commit/` — Git commit with conventional commits
-  2. `branch/` — Branch creation/switching
-  3. `map-project/` — Repository structure discovery
-  4. `technical-writing/` — Docs/README generation
+  1. `commit/`: Git commit with conventional commits
+  2. `branch/`: Branch creation/switching
+  3. `map-project/`: Repository structure discovery
+  4. `technical-writing/`: Docs/README generation
 - **Token optimization:** Link to full software-development plugin if need arises; keep minimal versions here
 - **Status:** pending
 
@@ -112,16 +112,16 @@ Transform this project into a token-optimized Claude marketplace plugin based on
 ### Step 4.1: Create consolidated references
 - **directory:** `references/`
 - **Files:**
-  - `agent-registry.md` — Full agent index with responsibilities (extracted from agents/)
-  - `model-routing.md` — Model assignment table (claude-opus/sonnet/haiku)
-  - `plan-format.md` — Plan file structure template
-  - `review-protocol.md` — Review loop workflow
+  - `agent-registry.md`: Full agent index with responsibilities (extracted from agents/)
+  - `model-routing.md`: Model assignment table (claude-opus/sonnet/haiku)
+  - `plan-format.md`: Plan file structure template
+  - `review-protocol.md`: Review loop workflow
 - **Token optimization:** Data-heavy, minimal prose
 - **Status:** pending
 
 ### Step 4.2: Create plugin rule
 - **directory:** `rules/`
-- **File:** `assist-plugin-rule.md` — Rules for agent behavior and constraints
+- **File:** `assist-plugin-rule.md`: Rules for agent behavior and constraints
 - **Token optimization:** Link to agent docs; rules file focuses on governance only
 - **Status:** pending
 

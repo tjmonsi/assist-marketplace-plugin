@@ -16,7 +16,7 @@ Unique to this template: the **Dependencies** table, and a **Feature type** fiel
 | **Feature** | [Human-readable feature name] |
 | **Parent feature** | [spec-[parent].md, or "None" if top-level] |
 | **Sub-features** | [Comma-separated spec-[child].md files, or "None"] |
-| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN — the IDs this spec satisfies] |
+| **Requirement refs** | [BR-NNN, UR-NNN, FR-NNN, NFR-NNN: the IDs this spec satisfies] |
 | **Feature type** | [Configuration / Infrastructure / Integration / Policy / Tooling / Other: specify] |
 | **Status** | Draft |
 

@@ -43,7 +43,7 @@ func TestNilInput_PanicsOrReturnsError(t *testing.T) {
 
 ## Naming Conventions
 
-- `Test[FunctionName]_[Scenario]` — e.g., `TestPaymentProcess_ValidCard_Succeeds`
+- `Test[FunctionName]_[Scenario]`: e.g., `TestPaymentProcess_ValidCard_Succeeds`
 - Use descriptive suffixes: `_Succeeds`, `_ReturnsError`, `_PanicsWithMessage`, `_BlockedByValidation`
 
 ## Assertions
