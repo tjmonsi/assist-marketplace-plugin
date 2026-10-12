@@ -35,6 +35,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-write-bar.js\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -54,6 +64,26 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/prose-advisor.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-log.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "SubagentHandback",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-log.js\"",
             "timeout": 5
           }
         ]
@@ -99,6 +129,18 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/writing-context.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-log.js\"",
             "timeout": 5
           }
         ]

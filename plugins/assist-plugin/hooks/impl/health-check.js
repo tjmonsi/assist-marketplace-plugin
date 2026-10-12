@@ -14,6 +14,11 @@
 // writes (code, quotes, Mermaid, traceability markers, numeric ranges, CLI flags, kept tells; must pass).
 // The prose-advisor is tested like the filter: clean writes must get no advice and writes that add
 // advisory tells must get it; a miss in either direction disables it.
+// The fsa-write-bar is a guard: its corpus holds developer-tester writes outside the test globs and developer
+// writes inside them (must be denied) and in-scope writes, other agents, and the main session (must pass).
+// The fsa-log is tested like the filter: clean subagent reports must log no problems and store no message text,
+// and broken terminal blocks (missing, unknown state, illegal transition, terminal mismatch, bad error class,
+// bad verdict) must log problems; a miss in either direction disables it (it then logs nothing and warns once).
 // Both prose hooks skip temp-directory paths and paths in prose-gate-allowlist.json. The self-tests pass an
 // explicit allowlist per case, so a user's real allowlist never masks a deny case, and the allowlist file is
 // separate from hooks-disabled.json, so a passing self-test never changes it.
@@ -45,6 +50,8 @@ const injectionFilter = require("./injection-filter.js");
 const injectionRules = require("../lib/injection-rules.js");
 const proseGate = require("./prose-gate.js");
 const proseAdvisor = require("./prose-advisor.js");
+const fsaWriteBar = require("./fsa-write-bar.js");
+const fsaLog = require("./fsa-log.js");
 
 const SOLUTIONS_ARCHITECT = "solutions-architect";
 
@@ -255,6 +262,225 @@ function injectionFlagged(input) {
   return result.findings.length > 0 || result.strippedInvisible || result.clean !== input.text;
 }
 
+// ---------------------------------------------------------------------------------------------
+// fsa-write-bar and fsa-log corpora (test data only).
+
+const FSA_ROOT = "/assist-selftest/project";
+const TESTER = fsaWriteBar.TESTER;
+const DEVELOPER = fsaWriteBar.DEVELOPER;
+
+function fsaWrite(agentType, file, tool, roots) {
+  const key = tool === "NotebookEdit" ? "notebook_path" : "file_path";
+  return { agent_type: agentType, tool_name: tool || "Write", roots: roots || [FSA_ROOT], tool_input: { [key]: file } };
+}
+
+const FSA_WRITE_ALLOW = [
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/auth/login.test.ts`),
+  fsaWrite(TESTER, `${FSA_ROOT}/src/__tests__/helper.js`),
+  fsaWrite(TESTER, `${FSA_ROOT}/pkg/parser_test.py`, "Edit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/pkg/test_login.py`),
+  fsaWrite(TESTER, `${FSA_ROOT}/app/LoginTest.kt`),
+  fsaWrite(TESTER, `${FSA_ROOT}/web/login.spec.ts`, "MultiEdit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/api/login_test.go`),
+  fsaWrite(TESTER, "test/unit/a.js"),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/nb/check.ipynb`, "NotebookEdit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/api/users.ts`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/README.md`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/attest/seal.js`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/latest.js`),
+  fsaWrite(DEVELOPER, "/home/u/tests/proj/src/app.js", "Write", ["/home/u/tests/proj"]),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/.github/workflows/ci.yml`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/CLAUDE.md`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/sub/src/app.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/sub/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/.claude/worktrees/w/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/.claude/worktrees/w`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.mdx`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/claude.md.test.js`),
+  fsaWrite("assist-plugin:qa", `${FSA_ROOT}/tests/api.test.js`),
+  fsaWrite("assist-plugin:qa", `${FSA_ROOT}/src/app.js`),
+  fsaWrite("other-plugin:developer", `${FSA_ROOT}/tests/api.test.js`),
+  fsaWrite(undefined, `${FSA_ROOT}/src/app.js`),
+  fsaWrite(undefined, `${FSA_ROOT}/tests/api.test.js`),
+  { agent_type: TESTER, tool_name: "Read", tool_input: { file_path: `${FSA_ROOT}/src/app.js` } },
+  { agent_type: TESTER, tool_name: "Write", tool_input: {} },
+];
+
+const FSA_WRITE_DENY = [
+  fsaWrite(TESTER, `${FSA_ROOT}/src/app.ts`),
+  fsaWrite(TESTER, `${FSA_ROOT}/README.md`, "Edit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/src/api/users.ts`, "MultiEdit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/../src/app.ts`),
+  fsaWrite(TESTER, `${FSA_ROOT}/src/attest/seal.js`),
+  fsaWrite(TESTER, `${FSA_ROOT}/src/app.ipynb`, "NotebookEdit"),
+  fsaWrite(TESTER, "/home/u/tests/proj/src/app.js", "Write", ["/home/u/tests/proj"]),
+  fsaWrite(TESTER, `${FSA_ROOT}/.claude/tests/x.test.ts`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/.hidden/a.test.js`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/.env.test.js`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.md`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/deep/AGENTS.md`, "Edit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/../.claude/x.test.ts`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/${"a/".repeat(2100)}x.test.js`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/a\u0000.test.js`),
+  fsaWrite(TESTER, "../outside/tests/a.test.js", "Write", [FSA_ROOT]),
+  fsaWrite(TESTER, `${FSA_ROOT}/sub/src/app.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/sub/.claude/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/.claude/worktrees/w/.claude/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/.claude/worktrees/w`]),
+  fsaWrite(TESTER, `${FSA_ROOT}/.claude/worktrees/w/tests/CLAUDE.md`, "Write", [FSA_ROOT, `${FSA_ROOT}/.claude/worktrees/w`]),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/sub/tests/a.js`, "Write", [`${FSA_ROOT}/sub`, FSA_ROOT]),
+  fsaWrite(DEVELOPER, "/x/tests/proj/tests/a.js", "Write", ["/x/tests/proj", "/x"]),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/tests/auth/login.test.ts`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/login.test.ts`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/api/login_test.go`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/__tests__/x.js`, "MultiEdit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/web/login.spec.ts`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/pkg/test_login.py`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/app/LoginTest.kt`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/test/fixtures/data.json`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/tests/nb/check.ipynb`, "NotebookEdit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/../tests/a.js`),
+];
+
+const SENTINEL = "SENTINEL-7731";
+const TRACES = {
+  "developer-tester": "Intake > AssembleContext > PlanCoverage > CheckCoverage > WriteTests > SelfCheck > Done",
+  reviewer: "Intake > AssembleContext > Review > Decide > Done",
+  "code-reviewer": "Intake > AssembleContext > Review > Decide > Done",
+  developer: "Intake > AssembleContext > Plan > ProduceEdit > SelfCheck > Done",
+  "intake-reviewer": "Intake > Review > Decide > Done",
+  qa: "Testing > Done",
+  "task-plan": "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done",
+};
+const VERDICTS = { "developer-tester": "covered=7 uncovered=1", reviewer: "approved", "code-reviewer": "returned", developer: "self-check=pass", "intake-reviewer": "needs-changes", qa: "returned", "task-plan": "steps=6" };
+
+// The final message of a subagent: prose that holds the sentinel, then the terminal block.
+function fsaReport(name, overrides) {
+  const fields = Object.assign({
+    fsa: `${name}/1`,
+    state: "Done",
+    trace: TRACES[name],
+    artifact: `src/${SENTINEL}.ts`,
+    verdict: VERDICTS[name],
+    skipped: "none",
+    out_of_scope: "none",
+    error_class: "none",
+    questions: "none",
+    resume_at: "none",
+  }, overrides || {});
+  const body = Object.keys(fields).map((key) => `${key}: ${fields[key]}`).join("\n");
+  return `Report text ${SENTINEL} that must never reach the log.\n\n\`\`\`fsa\n${body}\n\`\`\`\n`;
+}
+
+function stopEvent(label, agentType, message, extra) {
+  return Object.assign({ label, hook_event_name: "SubagentStop", session_id: "selftest-1", agent_type: agentType, agent_id: "selftest-agent", last_assistant_message: message }, extra || {});
+}
+
+function handbackEvent(label, agentType, message) {
+  return { label, hook_event_name: "PostToolUse", tool_name: "SubagentHandback", session_id: "selftest-1", agent_type: agentType, agent_id: "selftest-agent", tool_input: { message } };
+}
+
+function resultEvent(label, subagentType, response) {
+  return { label, hook_event_name: "PostToolUse", tool_name: "Agent", session_id: "selftest-1", tool_input: { subagent_type: subagentType, prompt: SENTINEL }, tool_response: response };
+}
+
+const PLUGIN = "assist-plugin:";
+const FSA_LOG_CLEAN = [
+  Object.assign(stopEvent("stop: developer-tester Done", `${PLUGIN}developer-tester`, fsaReport("developer-tester")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer-tester NeedsInput", `${PLUGIN}developer-tester`, fsaReport("developer-tester", {
+    state: "NeedsInput", trace: "Intake > AssembleContext > NeedsInput", verdict: "none", artifact: "none", questions: `1. ${SENTINEL}?`, resume_at: "AssembleContext",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer-tester Error", `${PLUGIN}developer-tester`, fsaReport("developer-tester", {
+    state: "Error", trace: "Intake > AssembleContext > PlanCoverage > CheckCoverage > Error", verdict: "none", error_class: "budget-exhausted",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: reviewer approved", `${PLUGIN}reviewer`, fsaReport("reviewer")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: code-reviewer returned", `${PLUGIN}code-reviewer`, fsaReport("code-reviewer")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer self-check=fail", `${PLUGIN}developer`, fsaReport("developer", { verdict: "self-check=fail" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer reports a task-plan block", `${PLUGIN}developer`, fsaReport("task-plan")), { expectRecord: true }),
+  Object.assign(handbackEvent("handback: reviewer approved", `${PLUGIN}reviewer`, fsaReport("reviewer")), { expectRecord: true }),
+  Object.assign(resultEvent("result: content array", `${PLUGIN}developer-tester`, { status: "completed", content: [{ type: "text", text: fsaReport("developer-tester") }] }), { expectRecord: true }),
+  Object.assign(stopEvent("stop: the last block wins", `${PLUGIN}reviewer`, fsaReport("reviewer", { state: "Done", trace: "Intake > Decide" }) + fsaReport("reviewer")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: intake-reviewer accepted", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { verdict: "accepted" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: intake-reviewer NeedsInput", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", {
+    state: "NeedsInput", trace: "Intake > NeedsInput", verdict: "none", artifact: "none", questions: `1. ${SENTINEL}?`, resume_at: "Intake",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: qa returned", `${PLUGIN}qa`, fsaReport("qa")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: qa Done with no verdict", `${PLUGIN}qa`, fsaReport("qa", { verdict: "none" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: qa NeedsInput without a resume state", `${PLUGIN}qa`, fsaReport("qa", {
+    state: "NeedsInput", trace: "Testing > NeedsInput", verdict: "none", questions: `1. ${SENTINEL}?`,
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: qa Error, any trace", `${PLUGIN}qa`, fsaReport("qa", {
+    state: "Error", trace: "anything at all", verdict: "none", error_class: "tool-missing",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer self-check=not-run", `${PLUGIN}developer`, fsaReport("developer", { verdict: "self-check=not-run" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer lists out-of-scope paths", `${PLUGIN}developer`, fsaReport("developer", { out_of_scope: `tests/${SENTINEL}.test.ts, tests/b.test.ts` })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: developer named-skill run", `${PLUGIN}developer`, fsaReport("developer", { trace: "Intake > AssembleContext > Plan > ProduceEdit > SelfCheck > ProduceEdit > SelfCheck > Done" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: follows the agent's newest handback (marker only)", `${PLUGIN}reviewer`, "no block here"), {
+    recent: [{ event: "handback", agent_id: "selftest-agent" }],
+  }),
+  Object.assign(stopEvent("stop: another agent's handback does not hide it", `${PLUGIN}reviewer`, fsaReport("reviewer")), {
+    expectRecord: true, recent: [{ event: "handback", agent_id: "other-agent" }],
+  }),
+  stopEvent("stop: an agent without a table", `${PLUGIN}planner`, "no block here"),
+  stopEvent("stop: an agent from another plugin", "other-plugin:reviewer", "no block here"),
+  stopEvent("stop: no agent type", undefined, "no block here"),
+  stopEvent("stop: no message field", `${PLUGIN}reviewer`, undefined),
+  resultEvent("result: launch not finished", `${PLUGIN}developer`, { status: "async_launched", content: [{ type: "text", text: "started" }] }),
+];
+
+const FSA_LOG_BROKEN = [
+  stopEvent("stop: no block", `${PLUGIN}reviewer`, "Findings only, no block."),
+  stopEvent("stop: unclosed block", `${PLUGIN}reviewer`, fsaReport("reviewer").replace(/\n```\n$/, "\n")),
+  stopEvent("stop: unknown state", `${PLUGIN}reviewer`, fsaReport("reviewer", { trace: "Intake > AssembleContext > Inspect > Decide > Done" })),
+  stopEvent("stop: illegal transition", `${PLUGIN}developer-tester`, fsaReport("developer-tester", { trace: "Intake > WriteTests > SelfCheck > Done" })),
+  stopEvent("stop: does not start at Intake", `${PLUGIN}developer`, fsaReport("developer", { trace: "AssembleContext > Plan > ProduceEdit > SelfCheck > Done" })),
+  stopEvent("stop: trace ends in another terminal", `${PLUGIN}reviewer`, fsaReport("reviewer", { trace: "Intake > Error" })),
+  stopEvent("stop: state is not a terminal", `${PLUGIN}developer`, fsaReport("developer", { state: "SelfCheck" })),
+  stopEvent("stop: Error without a class", `${PLUGIN}developer-tester`, fsaReport("developer-tester", { state: "Error", trace: "Intake > Error", verdict: "none" })),
+  stopEvent("stop: class outside the closed list", `${PLUGIN}developer-tester`, fsaReport("developer-tester", { state: "Error", trace: "Intake > Error", verdict: "none", error_class: "no-terminal-block" })),
+  stopEvent("stop: class on a Done", `${PLUGIN}reviewer`, fsaReport("reviewer", { error_class: "tool-failed" })),
+  stopEvent("stop: verdict outside the enum", `${PLUGIN}reviewer`, fsaReport("reviewer", { verdict: "maybe" })),
+  stopEvent("stop: Done without a verdict", `${PLUGIN}developer-tester`, fsaReport("developer-tester", { verdict: "none" })),
+  stopEvent("stop: NeedsInput without a resume state", `${PLUGIN}developer-tester`, fsaReport("developer-tester", { state: "NeedsInput", trace: "Intake > NeedsInput", verdict: "none" })),
+  stopEvent("stop: block of another agent", `${PLUGIN}reviewer`, fsaReport("developer")),
+  stopEvent("stop: developer ProduceEdit has no Error edge", `${PLUGIN}developer`, fsaReport("developer", { state: "Error", trace: "Intake > AssembleContext > Plan > ProduceEdit > Error", verdict: "none", error_class: "tool-failed" })),
+  stopEvent("stop: developer verdict outside the enum", `${PLUGIN}developer`, fsaReport("developer", { verdict: "self-check=skipped" })),
+  stopEvent("stop: intake-reviewer verdict of a reviewer", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { verdict: "approved" })),
+  stopEvent("stop: intake-reviewer skips Review", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { trace: "Intake > Decide > Done" })),
+  stopEvent("stop: intake-reviewer needs a resume state", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { state: "NeedsInput", trace: "Intake > NeedsInput", verdict: "none" })),
+  stopEvent("stop: qa verdict outside the enum", `${PLUGIN}qa`, fsaReport("qa", { verdict: "pass" })),
+  stopEvent("stop: qa state is not a terminal", `${PLUGIN}qa`, fsaReport("qa", { state: "Testing" })),
+  stopEvent("stop: qa Error without a class", `${PLUGIN}qa`, fsaReport("qa", { state: "Error", verdict: "none" })),
+  stopEvent("stop: qa without a block", `${PLUGIN}qa`, "Results only, no block."),
+  Object.assign(stopEvent("stop: a resumed run after an earlier handback", `${PLUGIN}reviewer`, "Findings only, no block."), {
+    recent: [{ event: "handback", agent_id: "selftest-agent" }, { event: "stop-after-handback", agent_id: "selftest-agent" }],
+  }),
+  handbackEvent("handback: no block", `${PLUGIN}reviewer`, "Findings only, no block."),
+  resultEvent("result: illegal transition", `${PLUGIN}developer-tester`, { status: "completed", content: [{ type: "text", text: fsaReport("developer-tester", { trace: "Intake > WriteTests > Done" }) }] }),
+];
+
+// Runs the log hook on one input without touching disk. Returns {lines, result}.
+function runFsaLog(input) {
+  const lines = [];
+  const result = fsaLog.evaluate(input, { append: (record) => lines.push(JSON.stringify(record)), recent: input.recent || [] });
+  return { lines, result };
+}
+
+// True when the hook logs problems for the input. A clean report must log no problems and no output; a broken
+// one logs problems and, on SubagentStop and SubagentHandback, outputs a systemMessage and nothing else (any
+// other output would make the subagent continue). A log line that holds message text, or output that breaks
+// these rules, throws, which the self-test reports as a failed case.
+function fsaLogFlagged(input) {
+  const { lines, result } = runFsaLog(input);
+  if (lines.length === 0) return !!input.expectRecord;
+  if (lines[0].indexOf(SENTINEL) !== -1) throw new Error("log line holds message text");
+  const record = JSON.parse(lines[0]);
+  const flagged = record.problems.length > 0;
+  const output = result && result.stdout ? Object.keys(result.stdout) : [];
+  const warns = flagged && fsaLog.WARNING_EVENTS.indexOf(record.event) !== -1;
+  const expected = warns ? ["systemMessage"] : [];
+  if (output.join() !== expected.join() || (result && result.additionalContext !== undefined)) throw new Error("unexpected hook output");
+  return flagged;
+}
+
 // Fixed self-test cases (command text here is test data, never user input).
 const GUARDS = [
   {
@@ -338,6 +564,21 @@ const GUARDS = [
     allow: PROSE_ADVISOR_CLEAN,
     deny: PROSE_ADVISOR_FLAGGED,
   },
+  {
+    name: fsaWriteBar.NAME,
+    nouns: { allow: "allow cases", deny: "deny cases", falseDeny: "known-safe write", falseAllow: "known-prohibited write" },
+    evaluate: (input) => fsaWriteBar.evaluate(input, { roots: input.roots || [] }),
+    allow: FSA_WRITE_ALLOW,
+    deny: FSA_WRITE_DENY,
+  },
+  {
+    name: fsaLog.NAME,
+    filter: true,
+    nouns: { allow: "clean reports", deny: "broken reports", falseDeny: "clean report", falseAllow: "broken report", altered: "FLAGGED", missed: "MISSED" },
+    evaluate: (input) => ({ deny: fsaLogFlagged(input) }),
+    allow: FSA_LOG_CLEAN,
+    deny: FSA_LOG_BROKEN,
+  },
 ];
 
 // Report wording per guard. Guards default to commands; filters default to the injection corpus. The lowercase
@@ -416,7 +657,7 @@ function failureLabel(result) {
   return parts.join(", ");
 }
 
-function buildProblems(results, disabled, newEntries) {
+function buildProblems(results, disabled, newEntries, fsaNew) {
   const problems = [];
   results.forEach((result) => {
     if (result.ok) return;
@@ -433,11 +674,15 @@ function buildProblems(results, disabled, newEntries) {
     const latest = newEntries[newEntries.length - 1];
     problems.push(`${newEntries.length} hook failure(s) logged since the last notice (latest: ${latest.hook} ${latest.kind})`);
   }
+  if (fsaNew.length > 0) {
+    const latest = fsaNew[fsaNew.length - 1];
+    problems.push(`${fsaNew.length} subagent report(s) with terminal-block problems logged since the last notice (latest: ${latest.agent} ${latest.problems[0]})`);
+  }
   return problems;
 }
 
 function formatReport(context) {
-  const { version, results, disabled, entries, newEntries, notes, cleared, canPersist } = context;
+  const { version, results, disabled, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist } = context;
   const lines = ["assist-plugin hook health", ""];
   lines.push(`Node: ${version} (minimum supported: ${launch.MIN_NODE_MAJOR}) OK`);
   lines.push(`Data directory: ${canPersist ? process.env.CLAUDE_PLUGIN_DATA : "NOT SET (failures cannot be logged and guards cannot be disabled)"}`);
@@ -464,6 +709,12 @@ function formatReport(context) {
   if (entries.length === 0) lines.push("  none");
   entries.slice(-REPORT_LOG_ROWS).forEach((entry) => {
     lines.push(`  ${entry.ts}  ${entry.hook}  ${entry.node}  ${entry.kind}  ${entry.message}`);
+  });
+  const flagged = fsaEntries.filter((entry) => entry.problems.length > 0);
+  lines.push("", `FSA report log (${fsaEntries.length} entr${fsaEntries.length === 1 ? "y" : "ies"}, ${flagged.length} with problems, ${fsaNew.length} new since the last report; newest ${REPORT_LOG_ROWS} problem rows shown):`);
+  if (flagged.length === 0) lines.push("  none");
+  flagged.slice(-REPORT_LOG_ROWS).forEach((entry) => {
+    lines.push(`  ${entry.ts}  ${entry.event}  ${entry.agent}  ${entry.state}  ${entry.problems.join("; ")}`);
   });
   if (cleared !== null) lines.push("", `Cleared ${cleared} log entr${cleared === 1 ? "y" : "ies"} from hook-health.jsonl.`);
   return lines.join("\n");
@@ -494,10 +745,16 @@ function run(argv) {
   const lastNotified = typeof state.lastNotified === "string" ? state.lastNotified : "";
   const newEntries = entries.filter((entry) => entry.ts > lastNotified);
 
+  const fsaEntries = fsaLog.readEntries();
+  const fsaLastNotified = typeof state.fsaLastNotified === "string" ? state.fsaLastNotified : "";
+  // Agent results repeat the SubagentStop message, so only stops and handbacks count as new reports.
+  const fsaNew = fsaEntries.filter((entry) => entry.problems.length > 0 && fsaLog.WARNING_EVENTS.indexOf(entry.event) !== -1 && entry.ts > fsaLastNotified);
+
   const markNotified = () => {
-    if (newEntries.length === 0 || !canPersist) return;
+    if ((newEntries.length === 0 && fsaNew.length === 0) || !canPersist) return;
     try {
-      state.lastNotified = newEntries[newEntries.length - 1].ts;
+      if (newEntries.length > 0) state.lastNotified = newEntries[newEntries.length - 1].ts;
+      if (fsaNew.length > 0) state.fsaLastNotified = fsaNew[fsaNew.length - 1].ts;
       health.writeState(state);
     } catch (err) {
       // a state write failure only means the notice may repeat
@@ -505,7 +762,7 @@ function run(argv) {
   };
 
   if (sessionStart) {
-    const problems = buildProblems(results, disabled, newEntries);
+    const problems = buildProblems(results, disabled, newEntries, fsaNew);
     if (problems.length > 0) {
       health.warn(`assist-plugin health: ${problems.join("; ")}. Run /assist-plugin:health for details.`);
     }
@@ -516,7 +773,7 @@ function run(argv) {
   let cleared = null;
   if (clear) cleared = health.clearLog();
   process.stdout.write(
-    formatReport({ version: launch.nodeVersion(), results, disabled, entries, newEntries, notes, cleared, canPersist }) + "\n"
+    formatReport({ version: launch.nodeVersion(), results, disabled, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist }) + "\n"
   );
   markNotified();
 }
@@ -534,6 +791,6 @@ function main() {
   // Exit naturally (exit code 0) so buffered stdout is flushed; the watchdog timer is unref'd.
 }
 
-module.exports = { NAME, GUARDS, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
+module.exports = { NAME, GUARDS, FSA_WRITE_ALLOW, FSA_WRITE_DENY, FSA_LOG_CLEAN, FSA_LOG_BROKEN, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
 
 if (require.main === module) main();

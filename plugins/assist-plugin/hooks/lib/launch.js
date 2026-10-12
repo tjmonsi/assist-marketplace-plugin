@@ -35,6 +35,8 @@ function suffixFor(hook) {
   if (hook === "prose-gate") return "this write was not checked";
   if (hook === "prose-advisor") return "this write was not reviewed";
   if (hook === "writing-context") return "the writing standard was not loaded";
+  if (hook === "fsa-write-bar") return "this write was not checked";
+  if (hook === "fsa-log") return "this subagent report was not checked";
   return "this command was not checked";
 }
 

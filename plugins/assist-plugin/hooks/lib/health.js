@@ -160,8 +160,10 @@ function writeState(state) {
 // ---------------------------------------------------------------------------------------------
 // Health log
 
-function readLog() {
-  var file = dataFile(LOG_FILE);
+// Parsed objects of a JSON-lines file in the plugin data directory; a corrupt line is skipped. Values are
+// not validated here: callers check every field before use.
+function readJsonl(name) {
+  var file = dataFile(name);
   if (!file) return [];
   var text;
   try {
@@ -169,29 +171,42 @@ function readLog() {
   } catch (err) {
     return [];
   }
-  var entries = [];
+  var records = [];
   var lines = text.split("\n");
   for (var i = 0; i < lines.length; i++) {
     if (!lines[i]) continue;
     try {
-      var entry = cleanLogEntry(JSON.parse(lines[i]));
-      if (entry) entries.push(entry);
+      records.push(JSON.parse(lines[i]));
     } catch (err) {
       // skip a corrupt line
     }
   }
+  return records;
+}
+
+function readLog() {
+  var entries = [];
+  readJsonl(LOG_FILE).forEach(function (record) {
+    var entry = cleanLogEntry(record);
+    if (entry) entries.push(entry);
+  });
   return entries;
 }
 
-function appendLog(record) {
-  var file = dataFile(LOG_FILE);
+// Appends one record to a JSON-lines file in the plugin data directory and keeps the newest maxLines lines.
+function appendJsonl(name, record, maxLines) {
+  var file = dataFile(name);
   if (!file) return;
   ensureDir(path.dirname(file));
   fs.appendFileSync(file, JSON.stringify(record) + "\n");
   var lines = fs.readFileSync(file, "utf8").split("\n").filter(Boolean);
-  if (lines.length > MAX_LOG_LINES) {
-    writeFileAtomic(file, lines.slice(lines.length - MAX_LOG_LINES).join("\n") + "\n");
+  if (lines.length > maxLines) {
+    writeFileAtomic(file, lines.slice(lines.length - maxLines).join("\n") + "\n");
   }
+}
+
+function appendLog(record) {
+  appendJsonl(LOG_FILE, record, MAX_LOG_LINES);
 }
 
 // Truncates the log; returns the number of entries removed.
@@ -445,6 +460,7 @@ function disabledNoticeShown(name, entry) {
 // Runs a filter hook (PostToolUse, PreToolUse, UserPromptSubmit). fn(input) returns null (emit
 // nothing) or {stdout: object, logKind?: string, message?: string}. Nothing here blocks: the only
 // stdout is the object fn returned, or a {"systemMessage"} warning. Always exits 0.
+// options: {suffix: tail of the failure warning, disabledNote: tail of the one-time disabled notice}.
 // A hook listed in hooks-disabled.json passes through with a one-time systemMessage.
 function transform(name, fn, options) {
   options = options || {};
@@ -468,7 +484,7 @@ function transform(name, fn, options) {
       if (!disabledNoticeShown(name, disabled)) {
         var why = disabled.reason ? " (" + sanitize(disabled.reason) + ")" : "";
         warn(
-          "assist-plugin " + name + " is disabled" + why + "; protection is off and this content was not filtered. " +
+          "assist-plugin " + name + " is disabled" + why + "; " + (options.disabledNote || "protection is off and this content was not filtered") + ". " +
             "Run /assist-plugin:health for details."
         );
       }
@@ -521,6 +537,8 @@ module.exports = {
   readState: readState,
   writeState: writeState,
   readLog: readLog,
+  readJsonl: readJsonl,
+  appendJsonl: appendJsonl,
   clearLog: clearLog,
   describeError: describeError,
   sanitize: sanitize,
