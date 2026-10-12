@@ -32,7 +32,7 @@ Before submitting code for security and code review gates, developers self-revie
 
 ### Testing & Coverage
 
-- [ ] New code has tests (>70% coverage)
+- [ ] New code has tests (>=70% coverage)
 - [ ] Happy path tested
 - [ ] Error cases tested
 - [ ] Edge cases tested

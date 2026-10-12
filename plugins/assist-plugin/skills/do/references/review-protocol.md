@@ -7,7 +7,7 @@ Procedure for executing code review gates and validation loops in the `do` orche
 Review happens AFTER implementation steps. Goals:
 - Detect bugs and architectural issues
 - Enforce OWASP security standards
-- Validate test coverage (>70%)
+- Validate test coverage (>=70%)
 - Obtain formal sign-off before merge
 
 ---
@@ -41,8 +41,57 @@ A step REQUIRES review if:
 1. It produces or modifies code files, OR
 2. It requires governance gate (security, testing, approval)
 
-**Agents that DO review:** reviewer, code-reviewer  
-**Agents that RECEIVE review:** developer, devops, qa
+**Agents that DO review:** reviewer, code-reviewer, and qa (Testing Gate only)  
+**Agents that RECEIVE review:** developer, developer-tester, devops, qa  
+**Agents never gated:** reviewer, code-reviewer, and intake-reviewer, whose output is findings; ask and explore, which write no files
+
+---
+
+## Which gate applies to which artifact
+
+`/do` picks the gate from the artifact type a step produced. Each gate has its own bound.
+
+| Artifact | Gate | Reviewer | Bound |
+|---|---|---|---|
+| Code (source, config, tests, pipelines) | Pre-Test Code Review Gate, then Security Gate (when code or devops changed), Testing Gate, and Code Review Gate | reviewer or code-reviewer; qa for the Testing Gate | 2 consecutive LGTMs or 10 iterations per gate |
+| Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs or 10 iterations |
+| Markdown reports (RCA, PR review verdict, answer, findings doc, generated documentation) | Report Quality Gate | `review-md` | 3 rounds |
+
+A planning document written as markdown goes through the planning gate. It does not also go through the Report Quality Gate, so one artifact never runs two document gates. The execution plan file `/do` writes under `.agent/main-plan/` is not an artifact of any step and runs no gate.
+
+### What the gate prompt carries
+
+The reviewer's Intake checks the inputs below, and the reviewer cannot learn them any other way. The `/do` gate prompt states all of them:
+
+- The gate name (Pre-Test Code Review, Security, Testing, Code Review, or Planning Document Review).
+- The artifact type: code, config, test, pipeline, or planning document.
+- The artifact paths.
+- The rework count: 0 the first time, then the number of fix passes so far. An agent that finds no count reads it as 0.
+- The prior findings, when the count is above 0.
+- For code, the producer's terminal-block `verdict` and `skipped:` markers, copied as they stand. The developer's `verdict` is `self-check=pass`, `self-check=fail`, or `self-check=not-run`. The Pre-Test reviewer reads them to see which checks the producer skipped.
+- The "Dispatch prompt text" from [fsa-template.md](fsa-template.md#dispatch-prompt-text), pasted in full.
+
+### Exhausting a gate
+
+A gate that reaches its bound without approval ends with one code-reviewer pass over the artifact and the outstanding findings. That pass is a fresh dispatch, and its verdict is binding:
+
+| Verdict | Result |
+|---|---|
+| `approved` | The step is `completed`, and the review outcome records the gate bound and the binding pass |
+| `returned` | The step is `failed`, and the findings are recorded in the step's Done field |
+
+The Report Quality Gate differs because `review-md` and the producing agent hold the loop (see that gate). The main agent never rewrites an artifact to end a gate.
+
+### Reading a gate's outcome
+
+`/do` reads the outcome from the `verdict` field of the reviewer's terminal block (see [fsa-template.md](fsa-template.md)):
+
+| Verdict | Meaning | Next |
+|---|---|---|
+| `approved` | The reviewer found nothing to fix | Counts as one LGTM; the gate exits at its bound |
+| `returned` | The reviewer listed findings | Fix phase on Sonnet, then re-review |
+
+`review-md` reports "No issues found" or a findings document. `/do` reads the first as `approved` and the second as `returned` until `review-md` writes a `verdict` field of its own. The Testing Gate's reviewer is qa, and its `verdict` is `approved` or `returned` as well (see the Testing Gate). A reviewer reply with no terminal block counts as `Error` with class `no-terminal-block`: `/do` sends one retry that repeats the "Dispatch prompt text", then fails the step. A gate that reaches its bound with `returned` verdicts ends as "Exhausting a gate" describes.
 
 ---
 
@@ -74,9 +123,9 @@ Every review verdict, findings list, and PR review comment follows these rules, 
    - Syntactic correctness (compiles, no parse errors)
    - Semantic consistency (follows project patterns, naming conventions, code style)
    - Coherence with specs and task-plan steps
-   - Any test files already present are included in this review
-4. If issues found: Developer fixes → Reviewer re-audits
-5. Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+   - Any test files already present are included in this review (their findings go to `developer-tester`)
+4. If issues found: the fixing agent fixes → Reviewer re-audits. Findings on test files go to `developer-tester`; the developer never writes tests. Findings on other files go to the producing agent
+5. Exit: 2 consecutive LGTMs, or 10 iterations (exhausted: one binding code-reviewer pass, see "Exhausting a gate")
 
 **Approval:** `✓ Pre-Test Review Clear` (after iteration complete)
 
@@ -113,16 +162,16 @@ Before formal audit, reviewer deliberately:
 
 1. **Developer Self-Review:** Developer checks code against OWASP categories
 2. **Reviewer Audit:** Reviewer checks all 10 categories
-3. **Iteration Loop:** If issues found: Developer fixes → Reviewer re-checks
+3. **Iteration Loop:** If issues found: the fixing agent fixes (test-file findings go to developer-tester) → Reviewer re-checks
 4. **Exit Conditions:**
    - 2 consecutive LGTMs from reviewer: Approved
-   - 10 iterations reached: Escalate to code-reviewer for final call
+   - 10 iterations reached: one binding code-reviewer pass; `returned` fails the step
 
 **Approval:** `✓ OWASP Clear` (after iteration complete)
 
 ---
 
-### Testing Gate (>70% Coverage)
+### Testing Gate (>=70% Coverage)
 
 **Triggered by:** Code changes  
 **Reviewed by:** qa agent  
@@ -131,16 +180,20 @@ Before formal audit, reviewer deliberately:
 1. **Unit Tests:** Core functions tested?
 2. **Integration Tests:** Components work together?
 3. **Edge Cases:** Error paths tested?
-4. **Coverage:** New code >70% covered?
+4. **Coverage:** New code >=70% covered?
 5. **Regression:** Existing tests still pass?
 
-**Approval:** QA must sign off: ✓ Coverage >70%
+**Verdict:** qa ends its terminal block with `verdict: approved` or `verdict: returned`. `approved` means the suites ran, passed, and met the >=70% bar for new code. `returned` means anything else: a test failed, coverage fell short, or a suite could not run. `/do` reads the gate outcome from that field. Any other value, or no block, counts as in "Reading a gate's outcome".
+
+**On `returned`:** the fix phase routes test gaps to `developer-tester` and code defects to the producing agent, then qa reruns. The gate exits at 2 consecutive `approved` verdicts or 10 iterations (exhausted: one binding code-reviewer pass over the last qa report).
+
+**Approval:** QA must sign off: ✓ Coverage >=70%
 
 ---
 
 ### Report Quality Gate
 
-**Triggered by:** Any step whose output is a markdown report (RCA, plan, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it.
+**Triggered by:** Any step whose output is a markdown report (RCA, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it.
 
 **Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
 
@@ -155,13 +208,13 @@ Before formal audit, reviewer deliberately:
 1. **Invoke `review-md`** on the report file (or in-memory draft) immediately after it is produced, before it reaches the user.
 2. **Findings check:** `review-md` returns either "No issues found" or a findings document ordered by factual soundness, then consistency, then conciseness.
 3. **Iteration Loop:** If findings exist:
-   - Route the findings back to the producing agent (same model tier as its original task; no model upgrade for this fix)
+   - Route the findings back to the producing agent (Sonnet, as in every fix phase)
    - Producing agent fixes only the flagged issues (no unrelated rewrites)
    - Re-run `review-md` on the revised report
-   - Repeat until `review-md` reports no issues, or 3 iterations reached (escalate to orchestrator for a manual pass)
+   - Repeat until `review-md` reports no issues, or 3 iterations reached
 4. **Exit Conditions:**
    - `review-md` reports no issues: Approved
-   - 3 iterations reached with unresolved findings: Escalate; orchestrator presents the report to the user with the outstanding findings attached
+   - 3 iterations reached with unresolved findings: the step is `completed` with the outstanding findings attached to its Review field, and Display shows them with the report. If an outstanding finding names a wrong claim or a path or ID that does not exist, the step is `failed` instead. The main agent never rewrites the report itself
 
 **Approval:** `✓ Report Quality Clear` (after `review-md` finds no issues)
 
@@ -193,10 +246,10 @@ Before formal audit, reviewer deliberately:
 
 1. **Developer Self-Review:** Self-check on all 5 dimensions
 2. **Code Reviewer Audit:** Line-by-line review on all dimensions
-3. **Iteration Loop:** If changes requested: Developer fixes → Reviewer re-audits
+3. **Iteration Loop:** If changes requested: the fixing agent fixes (test-file findings go to developer-tester) → Reviewer re-audits
 4. **Exit Conditions:**
    - 2 consecutive LGTMs from code-reviewer: Approved
-   - 10 iterations reached: Escalate to architecture review
+   - 10 iterations reached: one binding pass by a fresh code-reviewer dispatch; `returned` fails the step
 
 **Approval:** `✓ Approved for merge` (after iteration complete)
 
@@ -239,7 +292,7 @@ Before formal audit, reviewer deliberately:
 
 **Approval:** `✓ LGTM #2` (two consecutive LGTMs)
 
-**Escalation:** After 10 iterations, escalate to `code-reviewer` for final decision
+**Escalation:** After 10 iterations, one binding `code-reviewer` pass decides (see "Exhausting a gate"); `returned` fails the step
 
 ---
 
@@ -264,7 +317,7 @@ Reviewer adversarially self-reflects (tries to find issues)
   ↓
 Reviewer conducts formal audit
   ├─ OWASP/Security check (if code) OR gate-specific checklist
-  ├─ Testing gate (>70% coverage)
+  ├─ Testing gate (>=70% coverage)
   ├─ Approve or request revision
   └─ If revision: iterate
      - Creator fixes
@@ -280,7 +333,7 @@ Merge approved ✓
 
 ## Fix Phase Rules
 
-Applies whenever a reviewer requests changes at any gate (OWASP, Testing, Code Review, Planning Document).
+Applies whenever a reviewer requests changes at any gate (Pre-Test, OWASP, Testing, Code Review, Planning Document).
 
 Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 
@@ -289,11 +342,11 @@ Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 - Fix phase ALWAYS uses Sonnet
 - Never use Opus for fixes, even if the review gate itself uses Opus (reviewer, code-reviewer)
 - Never use Haiku for fixes, even for single-line changes
-- Applies to every agent performing a fix (developer, planner, solutions-architect, requirements-gatherer)
+- Applies to every agent performing a fix (developer, developer-tester, devops, planner, solutions-architect, requirements-gatherer)
 
 ### Scope Constraint
 
-- Developer/creator fixes ONLY items explicitly identified by the reviewer
+- The fixing agent fixes ONLY items explicitly identified by the reviewer
 - No scope creep: no unrelated refactors, no drive-by cleanup, no "while I'm here" changes
 - If additional issues are spotted during the fix, flag them to the orchestrator; do not fix them unilaterally
 - Reviewer re-audit checks two things: (1) listed items resolved, (2) no unrelated changes introduced
@@ -301,7 +354,7 @@ Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 ### Fix Phase Procedure
 
 1. Reviewer produces an itemized findings list (file, line number, issue description)
-2. Orchestrator routes findings to the fixing agent with `Model: Sonnet` (non-negotiable)
+2. Orchestrator routes findings to the fixing agent with `Model: Sonnet` (non-negotiable). Findings on test paths go to `developer-tester`; all others go to the producing agent. A pass with both kinds splits into one fix dispatch per agent
 3. Fixing agent changes ONLY the code/content tied to a listed finding
 4. Fixing agent self-reviews the fix against the findings list only (not a full-file pass)
 5. Reviewer re-audits: confirms each finding resolved AND scans for unrelated diffs

@@ -1,6 +1,6 @@
 # Fix Phase Constraints
 
-Rules governing the fix phase that follows a reviewer's request for changes. Applies to every review gate (OWASP, Testing, Code Review, Planning Document).
+Rules governing the fix phase that follows a reviewer's request for changes. Applies to every review gate (Pre-Test, OWASP, Testing, Code Review, Planning Document).
 
 ---
 
@@ -26,6 +26,20 @@ This applies regardless of:
 
 ---
 
+## Rule 1b: Route Each Finding to the Agent That May Write the File
+
+The write bar lets `developer` write source, config, and docs but not test paths, and lets `developer-tester` write test paths only. Route by the path a finding names:
+
+| Finding path | Fixing agent |
+|---|---|
+| A test path (the globs in [developer-tester Write scope](../../../agents/developer-tester.md#write-scope)) | `developer-tester` |
+| Any other path | The step's producing agent (developer, devops, planner, solutions-architect, requirements-gatherer) |
+| Missing or failing tests reported by the Testing Gate | `developer-tester` |
+
+A pass with findings of both kinds splits into one fix dispatch per agent, both on Sonnet. The developer never adds tests, even when a finding says a test is missing.
+
+---
+
 ## Rule 2: Identified Items Only
 
 "Identified items" means the reviewer's specific, itemized findings, nothing else.
@@ -48,12 +62,12 @@ This applies regardless of:
 
 ## Rule 3: Modification Checklist
 
-Before submitting a fix, the fixing agent (developer, planner, solutions-architect, requirements-gatherer) confirms ALL of the following:
+Before submitting a fix, the fixing agent (developer, developer-tester, devops, planner, solutions-architect, requirements-gatherer) confirms ALL of the following:
 
 1. Every changed line maps to a specific reviewer finding
 2. No file is touched that wasn't named in a finding
 3. No function/section is touched beyond what the finding's line range requires
-4. No new files created unless the finding explicitly required one (e.g., missing test file)
+4. No new files created unless the finding explicitly required one (e.g., a missing test file, which only `developer-tester` creates)
 5. No formatting/linting changes outside the touched lines
 6. No dependency, config, or unrelated import changes
 7. Commit/diff reviewed line-by-line against the findings list before resubmitting
@@ -79,7 +93,7 @@ Issue: Null-pointer risk: `user.profile.email` accessed without checking `user.p
 - Renaming `user` to `currentUser` elsewhere in the file
 - Adding null checks to other functions in `user-service.ts` not flagged by the reviewer
 - Reformatting the file
-- Adding new tests unless the reviewer's finding was specifically about missing test coverage for this line
+- Adding new tests. The developer never adds tests; a finding about missing test coverage for this line goes to `developer-tester`
 - Touching `src/services/order-service.ts` even if it has a similar pattern (must be a separate, reviewer-identified finding first)
 
 ---
@@ -93,13 +107,14 @@ If the fixing agent adds unrelated changes:
 3. Fix phase re-iterates: fixing agent resubmits with ONLY the identified items addressed
 4. The failed attempt counts toward the gate's iteration limit (max 10, see review-protocol.md)
 5. Repeated scope violations (2+ in the same gate) escalate to code-reviewer for review of the fixing agent's output before continuing
+6. A gate that reaches its bound ends as review-protocol.md describes: one code-reviewer pass with a binding verdict, and `returned` fails the step
 
 ---
 
 ## Procedure Summary
 
 1. Reviewer issues itemized findings (file, line, issue)
-2. Orchestrator assigns fix to agent with `Model: Sonnet`
+2. Orchestrator assigns each finding to the agent that may write its path (Rule 1b), with `Model: Sonnet`
 3. Fixing agent runs the Modification Checklist before submitting
 4. Fixing agent submits diff scoped strictly to findings
 5. Reviewer re-audits: verifies findings resolved AND scans full diff for unrelated changes

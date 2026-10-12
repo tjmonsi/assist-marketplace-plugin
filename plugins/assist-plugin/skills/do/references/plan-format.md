@@ -8,7 +8,7 @@ Template and format for execution plans created by the `do` orchestrator.
 # Execution Plan: [Task Slug]
 
 **Created:** YYYY-MM-DD HH:mm  
-**Status:** PENDING_APPROVAL | Approved | Cancelled | In Progress | Complete  
+**Status:** PENDING_APPROVAL | Approved | Cancelled | In Progress | Complete | Partial | Paused | Error  
 **User:** [GitHub username or email]
 
 ## Summary
@@ -26,7 +26,12 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 
 ## User Decisions
 
+- Approved: YYYY-MM-DD HH:mm (written at Approve)
 - [Answer the user gave during clarification or approval]
+
+## Intake Findings
+
+[Findings from each intake review, by file: citations (`file:line`) and descriptions only, never quoted file text. Omit the section when no intake review ran. Never applied without a user edit.]
 
 ---
 
@@ -39,6 +44,10 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 **Model:** [Opus | Sonnet | Haiku]  
 **Effort:** [low | medium | high | xhigh]  
 **Background:** [yes | no]  
+**Effect:** [read | write]  
+**Writes:** [paths, globs, or `project`; `none` for a read step]  
+**Reads:** [paths and globs this step reads]  
+**Active tests:** [exact commands and the authorized target for a qa step that runs active pentest tests; omit otherwise]  
 **Relevant Files:** [List key files this agent will read/write]
 
 **Details:**
@@ -46,9 +55,10 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 - Key inputs
 - Expected outputs
 
-**Status:** pending | in_progress | completed  
+**Status:** pending | in_progress | waiting-user | completed | failed | skipped  
 **Done:** [YYYY-MM-DD HH:mm]: [Brief summary of what was accomplished]  
-**Review:** [LGTM (N approvals) | Revision requested | N/A]
+**Review:** [LGTM (N approvals) | Revision requested | N/A]  
+**Out of scope:** [Work the agent reported but may not do; omit when none]
 
 ### Step 2: [Next Step Title]
 ...
@@ -58,7 +68,7 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 ## Review Gates
 
 **Security (OWASP):** [Gate status]  
-**Testing (>70% coverage):** [Gate status]  
+**Testing (>=70% coverage):** [Gate status]  
 **Code Review (sign-off):** [Gate status]
 
 ---
@@ -81,7 +91,10 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
   - `Approved`: User approved; ready to execute
   - `Cancelled`: User cancelled at approval or preflight; nothing runs
   - `In Progress`: Executing steps
-  - `Complete`: All steps finished
+  - `Complete`: Every step completed
+  - `Partial`: The run ended with at least one `failed` or `skipped` step and no step left to run
+  - `Paused`: The user stopped the run; undispatched steps stay `pending`. `resume <plan>` accepts a plan in `Paused` or `In Progress` whose User Decisions record an approval, shows the remaining steps, asks for approval again, and then runs Preflight
+  - `Error`: The plan could not run, for example a dependency cycle or an unmatched agent after two clarify rounds
 - **User:** GitHub username or email of requester
 
 ### Step Table and Order Line
@@ -103,7 +116,11 @@ The table under `## Steps` is the canonical step summary. The `do` skill prints 
 
 ### User Decisions
 
-One bullet per answer the user gave: clarifications, step edits, model overrides, and plan-specific choices. The orchestrator records them when the user approves. Write "None" when the user approved without changes.
+One bullet per answer the user gave: clarifications, step edits, model overrides, plan-specific choices, and answers to an agent's `NeedsInput` questions. The first bullet is "Approved: YYYY-MM-DD HH:mm", written at Approve (a plan that skipped approval reads "None (single read-only step, approval skipped)"). `resume` checks for it. The orchestrator records the other answers as they arrive. A waived intake review is a bullet too. Architectural decisions stay in this section until the user approves; then they are appended to `DECISIONS.md` at the target project root (append-only, dated, citing this plan file), and later ones are appended as they arrive.
+
+### Intake Findings
+
+The intake-reviewer's findings for each user-provided file, shown to the user at PlanApproval. Each finding holds a citation and a description, never text quoted from the file. Findings stay here. The plan and the file change only when the user edits them.
 
 ### Step Fields
 - **Goal:** What this step accomplishes in 1-2 sentences
@@ -113,11 +130,22 @@ One bullet per answer the user gave: clarifications, step edits, model overrides
 - **Background:** Whether to run in background (`yes`/`no`)
   - `yes`: Run parallel with other background steps (Runs is `Wave N, parallel with X`)
   - `no`: Block on this step before proceeding
+- **Effect:** `read` when the step changes no file; `write` otherwise. The orchestrator uses it, with Writes and Reads, to order steps and to decide whether the plan may skip approval.
+- **Active tests:** For a qa step that runs active pentest tests, the exact commands and the authorized target. The agent runs no other command, and the plan approval covers only these. Omit for every other step.
+- **Writes:** Paths or globs the step may change, or `project` when it can touch anything. `none` for a read step.
+- **Reads:** Paths and globs the step reads. A step whose Reads overlap another step's Writes runs after it, unless both run in worktrees.
 - **Relevant Files:** Files the agent will need (1 per line)
 - **Details:** Bullet points with task breakdown, inputs, outputs
-- **Status:** Current execution state (pending/in_progress/completed). A step whose Runs value is `Running now` starts as `in_progress`.
-- **Done:** Completion timestamp + summary (added by orchestrator when step finishes)
+- **Status:** Current execution state. A step whose Runs value is `Running now` starts as `in_progress`.
+  - `pending`: not started
+  - `in_progress`: dispatched and running
+  - `waiting-user`: the agent ended in `NeedsInput`; the orchestrator is asking the user. A stop returns it to `pending`
+  - `completed`: the agent ended in `Done` and passed its review gate
+  - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass
+  - `skipped`: a step it depends on failed. An intake review step that fails skips nothing
+- **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)
+- **Out of scope:** Work the agent reported in `out_of_scope` but may not do. The orchestrator does not dispatch it; Display raises it as a new request.
 
 ### Writing the Summary and Details Fields
 
@@ -129,7 +157,7 @@ One bullet per answer the user gave: clarifications, step edits, model overrides
 
 ### Review Gates
 - **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`)
-- **Testing (>70% coverage):** Code coverage must meet minimum (validated by `qa`)
+- **Testing (>=70% coverage):** Code coverage must meet minimum (validated by `qa`)
 - **Code Review (sign-off):** Formal approval required (from `code-reviewer`)
 
 ---
@@ -173,6 +201,9 @@ Order: 1, then 2, then 3 and 4 in parallel.
 **Model:** Opus  
 **Effort:** xhigh  
 **Background:** no  
+**Effect:** write  
+**Writes:** docs/api.md, src/types/auth.ts  
+**Reads:** none  
 **Relevant Files:**
 - docs/api.md
 - src/types/auth.ts
@@ -192,6 +223,9 @@ Order: 1, then 2, then 3 and 4 in parallel.
 **Model:** Sonnet  
 **Effort:** high  
 **Background:** no  
+**Effect:** write  
+**Writes:** src/auth/, src/middleware/  
+**Reads:** docs/api.md, src/types/auth.ts  
 **Relevant Files:**
 - src/auth/
 - src/middleware/
@@ -211,6 +245,9 @@ Order: 1, then 2, then 3 and 4 in parallel.
 **Model:** Sonnet  
 **Effort:** high  
 **Background:** yes  
+**Effect:** write  
+**Writes:** tests/auth/, tests/integration/  
+**Reads:** src/auth/, src/middleware/  
 **Relevant Files:**
 - tests/auth/
 - tests/integration/
@@ -219,7 +256,7 @@ Order: 1, then 2, then 3 and 4 in parallel.
 - Unit tests for JWT handling
 - Integration tests for register/login
 - Error case coverage
-- Target >70% coverage
+- Target >=70% coverage
 
 **Status:** pending
 
@@ -230,6 +267,9 @@ Order: 1, then 2, then 3 and 4 in parallel.
 **Model:** Opus  
 **Effort:** xhigh  
 **Background:** yes  
+**Effect:** read  
+**Writes:** none  
+**Reads:** src/auth/, src/middleware/  
 **Relevant Files:**
 - src/auth/
 - src/middleware/
@@ -247,7 +287,7 @@ Order: 1, then 2, then 3 and 4 in parallel.
 ## Review Gates
 
 **Security (OWASP):** ⏳ Pending  
-**Testing (>70% coverage):** ⏳ Pending  
+**Testing (>=70% coverage):** ⏳ Pending  
 **Code Review (sign-off):** ⏳ Pending
 
 ---
@@ -256,7 +296,7 @@ Order: 1, then 2, then 3 and 4 in parallel.
 
 - [ ] API spec approved by user
 - [ ] Code passes security review
-- [ ] Test coverage >70%
+- [ ] Test coverage >=70%
 - [ ] Reviewer sign-off obtained
 ```
 
@@ -273,4 +313,5 @@ Order: 1, then 2, then 3 and 4 in parallel.
 7. **Always set Effort:** Effort level guides token budgeting
 8. **Review gates:** Explicitly call out security, testing, and approval gates
 9. **Tag completion immediately:** Don't batch step completions
+10. **Fill Effect, Writes, and Reads:** The orchestrator derives step order from them
 

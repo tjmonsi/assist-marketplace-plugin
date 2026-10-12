@@ -14,6 +14,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | **qa** | Sonnet | Yes | Can upgrade to Opus for critical test planning |
 | **solutions-architect** | Opus | Yes | Can downgrade to Sonnet for simple specs |
 | **requirements-gatherer** | Sonnet | No | Sonnet sufficient for most requirements |
+| **intake-reviewer** | Sonnet | No | Read-only review of a user file; Sonnet suffices and no override is needed |
 | **devops** | Sonnet | Yes | Can upgrade to Opus for complex infrastructure |
 | **researcher** | Opus | No | Opus + web search for comprehensive research |
 | **code-reviewer** | Opus | No | Always use Opus for critical sign-off |
@@ -34,7 +35,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 ### Medium Cost (Sonnet): Core Development
 - Implementation, testing, requirements, DevOps, planning
 - Good reasoning + cost efficiency balance
-- **Agents:** developer, developer-tester, qa, requirements-gatherer, devops, general-purpose, worker, planner
+- **Agents:** developer, developer-tester, qa, requirements-gatherer, intake-reviewer, devops, general-purpose, worker, planner
 - **Strategy:** Iterate + refine if first pass incomplete
 
 ### High Cost (Opus): Decisions & Architecture
@@ -59,6 +60,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | qa | high | Test design, coverage, validation |
 | solutions-architect | xhigh | API/schema design, complex specs (Opus tier) |
 | requirements-gatherer | medium | Requirements elicitation |
+| intake-reviewer | medium | Read-only review of a user file against the gather-requirements checklist |
 | devops | high | Infrastructure, deployment, monitoring |
 | researcher | xhigh | Research, documentation, best practices (Opus tier) |
 | code-reviewer | xhigh | Formal review, sign-off authority |
@@ -93,9 +95,10 @@ When should you override the default model?
 - **commit:** Always Haiku (non-negotiable; mechanical formatting only)
 - **researcher:** Always Opus (comprehensive research quality)
 - **requirements-gatherer:** Sonnet by default (straightforward elicitation)
+- **intake-reviewer:** Always Sonnet (read-only review; no override needed)
 
 ### Fix Phase (Non-Negotiable)
-- **All fixing agents:** Always Sonnet (non-negotiable)
+- **All fixing agents (including developer-tester):** Always Sonnet (non-negotiable)
 - **Rationale:** Sonnet provides sufficient precision for applying specific identified fixes while saving cost
 - **Scope constraint:** Fix phase only modifies code/docs related to reviewer's identified findings
 - **See:** [fix-phase-rules.md](fix-phase-rules.md) for complete constraints and procedure
