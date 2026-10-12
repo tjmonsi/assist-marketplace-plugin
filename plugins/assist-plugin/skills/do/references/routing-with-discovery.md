@@ -9,7 +9,7 @@ The static [agent-registry.md](agent-registry.md) covers the 13 known agents. Di
 - New agents added after this document was last updated
 - Task-specific tools a subagent should know about, even if the orchestrator doesn't invoke them directly
 
-Discovery is additive. It never removes or overrides the static registry — it only adds candidates the orchestrator should consider.
+Discovery is additive. It never removes or overrides the static registry. It only adds candidates the orchestrator should consider.
 
 ---
 
@@ -23,7 +23,7 @@ Discovery is additive. It never removes or overrides the static registry — it 
    - Exact match in the static registry (fastest path, no scanning needed)
    - Skill with narrower, more specific scope over a general-purpose one
    - Agent already used earlier in the same plan (avoids context switching)
-4. **Surface to plan.** Any discovered skill/agent not in the static registry gets a note in the plan step: `**Discovered:** [name] — [why it matches]`.
+4. **Surface to plan.** Any discovered skill/agent not in the static registry gets a note in the plan step: `**Discovered:** [name]: [why it matches]`.
 
 Discovery happens once per `/do` invocation, not per subagent call, to avoid redundant scanning.
 
@@ -33,7 +33,7 @@ Discovery happens once per `/do` invocation, not per subagent call, to avoid red
 
 A subagent doesn't need direct access to the orchestrator's discovery scan. Instead, the orchestrator passes a suggestion in the subagent's task prompt.
 
-**Example — developer step suggests a skill:**
+**Example (developer step suggests a skill):**
 
 ```
 Task: Update the README after adding the new /export endpoint.
@@ -43,7 +43,7 @@ Reason: This skill is scoped to docs/readme generation and matches the task
 better than free-form editing.
 ```
 
-**Example — devops step suggests a skill:**
+**Example (devops step suggests a skill):**
 
 ```
 Task: Bump the package version and update the changelog after this release.
@@ -53,7 +53,7 @@ Reason: bump handles semantic versioning + changelog generation directly;
 avoid duplicating that logic manually.
 ```
 
-The subagent may invoke the suggested skill directly (if it has access) or follow the same procedure manually. The suggestion is advisory, not mandatory — the subagent still owns the final approach.
+The subagent may invoke the suggested skill directly (if it has access) or follow the same procedure manually. The suggestion is advisory, not mandatory. The subagent still owns the final approach.
 
 ---
 
@@ -71,7 +71,7 @@ Is the intent a QUESTION, LOOKUP, or RESEARCH task
 AND NOT an implementation/review/planning task?
   │
   ├─ YES → route to ask agent
-  │         (Read, Grep, Glob, WebSearch, WebFetch — Sonnet)
+  │         (Read, Grep, Glob, WebSearch, WebFetch: Sonnet)
   │         Skip agent-registry table entirely.
   │
   └─ NO  → continue with Step 2 (agent-registry.md table)
@@ -96,5 +96,5 @@ For mixed tasks (research feeding into implementation), split into separate plan
 
 - Discovery is read-only: it inspects frontmatter, it does not execute any skill/agent as part of the scan.
 - Never route to a discovered skill/agent without listing it in the plan for user approval (Step 4 in [SKILL.md](../SKILL.md)).
-- If discovery finds no better match than the static registry, use the static registry — don't introduce ambiguity for its own sake.
+- If discovery finds no better match than the static registry, use the static registry; don't introduce ambiguity for its own sake.
 - ask agent routing still requires plan creation and approval like any other agent; it is not a bypass of Steps 3-4.

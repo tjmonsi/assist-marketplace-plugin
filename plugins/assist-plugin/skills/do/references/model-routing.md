@@ -31,18 +31,18 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 - **Agents:** explore, commit
 - **Use case:** Code search, finding locations, mechanical commit formatting
 
-### Medium Cost (Sonnet) — Core Development
+### Medium Cost (Sonnet): Core Development
 - Implementation, testing, requirements, DevOps, planning
 - Good reasoning + cost efficiency balance
 - **Agents:** developer, developer-tester, qa, requirements-gatherer, devops, general-purpose, worker, planner
 - **Strategy:** Iterate + refine if first pass incomplete
 
-### High Cost (Opus) — Decisions & Architecture
+### High Cost (Opus): Decisions & Architecture
 - Design, quality gates, research, approval
 - Critical decisions that determine project direction
 - **Agents:** orchestrator, reviewer, code-reviewer, solutions-architect, researcher
 - **Strategy:** Premium quality for foundational decisions
-- **Note:** planner no longer defaults here — see Planner Cost Savings below
+- **Note:** planner no longer defaults here; see Planner Cost Savings below
 
 ---
 
@@ -90,7 +90,7 @@ When should you override the default model?
 - **reviewer:** Always Opus (non-negotiable)
 - **code-reviewer:** Always Opus (non-negotiable)
 - **explore:** Always Haiku (non-negotiable)
-- **commit:** Always Haiku (non-negotiable — mechanical formatting only)
+- **commit:** Always Haiku (non-negotiable; mechanical formatting only)
 - **researcher:** Always Opus (comprehensive research quality)
 - **requirements-gatherer:** Sonnet by default (straightforward elicitation)
 
@@ -113,7 +113,7 @@ When should you override the default model?
 The planner now defaults to Sonnet instead of Opus.
 
 **Why:**
-- Architecture planning is iterative by nature — plans get reviewed and revised before execution starts, regardless of model.
+- Architecture planning is iterative by nature: plans get reviewed and revised before execution starts, regardless of model.
 - Sonnet + a review/fix loop reaches the same plan quality as a single Opus pass, at a fraction of the cost.
 - Opus pricing is roughly 5x Sonnet's for input tokens. Planning documents are typically large (10K-30K tokens of repo context), so the per-plan savings are substantial.
 - Opus remains available as an override for genuinely high-stakes or ambiguous architecture (see Override Decision Matrix).

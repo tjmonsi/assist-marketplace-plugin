@@ -106,23 +106,13 @@ No clear match?
 | **Medium** | Sonnet | Most development work, analysis | ask, developer, developer-tester, planner, qa, requirements-gatherer, devops, general-purpose, worker |
 | **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer, solutions-architect, researcher |
 
-Planner moved from the High/Opus tier to the Medium/Sonnet tier — see [model-routing.md](model-routing.md#planner-cost-savings-sonnet-default) for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
+Planner moved from the High/Opus tier to the Medium/Sonnet tier; see [model-routing.md](model-routing.md#planner-cost-savings-sonnet-default) for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
 
 ---
 
 ## Override Model Strategy
 
-Before plan approval, the `do` orchestrator ASKS user:
-
-```
-Plan includes these agents:
-- developer [Sonnet]
-- reviewer [Opus]
-- qa [Sonnet]
-
-Override models? (y/n)
-For each agent: [agent] = [model]
-```
+The `do` orchestrator shows the plan table (agent, model, effort, and order per step) in chat and asks the user to Approve, Edit steps, Change models, or Cancel. See [SKILL.md Step 4](../SKILL.md#step-4-get-user-approval) for the approval and edit loop.
 
 **Guidance:**
 - Use Sonnet + 1 step extra iteration vs. Opus for cost savings

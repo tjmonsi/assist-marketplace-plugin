@@ -29,9 +29,9 @@ All review gates include a dedicated adversarial self-reflection phase where the
 - Reduces iteration count (issues found in self-reflection phase)
 - Provides structured feedback to creators
 
-**When:** Applied in all review gates — OWASP, Code Review, Planning Documents
+**When:** Applied in all review gates: OWASP, Code Review, Planning Documents
 
-See [governance rule: Reviewer Adversarial Self-Reflection](../rules/assist-plugin-rule.md#reviewer-adversarial-self-reflection) for detailed checklist.
+See [governance rule: Reviewer Adversarial Self-Reflection](../../../rules/assist-plugin-rule.md#reviewer-adversarial-self-reflection) for detailed checklist.
 
 ---
 
@@ -43,6 +43,18 @@ A step REQUIRES review if:
 
 **Agents that DO review:** reviewer, code-reviewer  
 **Agents that RECEIVE review:** developer, devops, qa
+
+---
+
+## Review Output Rules
+
+Every review verdict, findings list, and PR review comment follows these rules, on top of [rules/writing-standard.md](../../../rules/writing-standard.md). The `reviewer` and `code-reviewer` agents and the `pr-review` skill link here.
+
+- **Start with the verdict or the first finding.** No reasoning preamble; never restate the PR, the diff, or the task.
+- **Let the findings set the length.** Zero findings is one line (for example, `LGTM. No findings.`). Each finding is location (`file:line`), problem, fix.
+- **Verify before reporting.** Re-read each finding at its file and line before it goes in the report; drop any finding you cannot confirm there. Never report a finding you have not re-read in the source.
+- **Report only what changed on a re-review.** List new and still-open findings; give resolved ones one line (`Resolved: auth.ts:42, auth.ts:88`). Never repost earlier findings.
+- **No padding.** No praise, no generic advice ("consider adding more tests"). When another reviewer already raised a point, add one line of agreement instead of reposting it.
 
 ---
 
@@ -86,25 +98,25 @@ Before formal audit, reviewer deliberately:
 
 **Checklist:**
 
-1. **Injection** — SQL, command, script injection prevented?
-2. **Broken Auth** — Authentication logic sound? Passwords hashed?
-3. **Sensitive Data** — No hardcoded secrets? PII encrypted?
-4. **XML/XXE** — XML parsing is safe?
-5. **Broken Access Control** — Authorization checks present?
-6. **Security Misconfiguration** — Default configs changed? CORS restricted?
-7. **XSS** — User input sanitized? Output encoded?
-8. **Deserialization** — Untrusted input deserialized safely?
-9. **Using Components** — Dependencies up-to-date? Known vulns checked?
-10. **Logging & Monitoring** — Security events logged?
+1. **Injection:** SQL, command, script injection prevented?
+2. **Broken Auth:** Authentication logic sound? Passwords hashed?
+3. **Sensitive Data:** No hardcoded secrets? PII encrypted?
+4. **XML/XXE:** XML parsing is safe?
+5. **Broken Access Control:** Authorization checks present?
+6. **Security Misconfiguration:** Default configs changed? CORS restricted?
+7. **XSS:** User input sanitized? Output encoded?
+8. **Deserialization:** Untrusted input deserialized safely?
+9. **Using Components:** Dependencies up-to-date? Known vulns checked?
+10. **Logging & Monitoring:** Security events logged?
 
 ### Iteration Process
 
-1. **Developer Self-Review** — Developer checks code against OWASP categories
-2. **Reviewer Audit** — Reviewer checks all 10 categories
-3. **Iteration Loop** — If issues found: Developer fixes → Reviewer re-checks
+1. **Developer Self-Review:** Developer checks code against OWASP categories
+2. **Reviewer Audit:** Reviewer checks all 10 categories
+3. **Iteration Loop:** If issues found: Developer fixes → Reviewer re-checks
 4. **Exit Conditions:**
-   - 2 consecutive LGTMs from reviewer → Approved
-   - 10 iterations reached → Escalate to code-reviewer for final call
+   - 2 consecutive LGTMs from reviewer: Approved
+   - 10 iterations reached: Escalate to code-reviewer for final call
 
 **Approval:** `✓ OWASP Clear` (after iteration complete)
 
@@ -116,11 +128,11 @@ Before formal audit, reviewer deliberately:
 **Reviewed by:** qa agent  
 **Checklist:**
 
-1. **Unit Tests** — Core functions tested?
-2. **Integration Tests** — Components work together?
-3. **Edge Cases** — Error paths tested?
-4. **Coverage** — New code >70% covered?
-5. **Regression** — Existing tests still pass?
+1. **Unit Tests:** Core functions tested?
+2. **Integration Tests:** Components work together?
+3. **Edge Cases:** Error paths tested?
+4. **Coverage:** New code >70% covered?
+5. **Regression:** Existing tests still pass?
 
 **Approval:** QA must sign off: ✓ Coverage >70%
 
@@ -128,28 +140,28 @@ Before formal audit, reviewer deliberately:
 
 ### Report Quality Gate
 
-**Triggered by:** Any step whose output is a markdown report (RCA, plan, PR review verdict, answer, findings doc, generated documentation) — regardless of which agent produced it.
+**Triggered by:** Any step whose output is a markdown report (RCA, plan, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it.
 
 **Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
 
 **Scope of `review-md`:**
-- Writing-standard consistency (per [DOCUMENTATION_STANDARD.md](../../../docs/DOCUMENTATION_STANDARD.md))
+- Writing-standard consistency (per [rules/writing-standard.md](../../../rules/writing-standard.md))
 - Factual soundness and accuracy
 - Consistency with other documents and the codebase
-- **New:** Flags when a document/report cites a file path, requirement ID (BR/UR/FR/NFR), or spec ID that doesn't actually exist in the repo — ensures claims are verifiable and traceable
+- **New:** Flags when a document/report cites a file path, requirement ID (BR/UR/FR/NFR), or spec ID that doesn't actually exist in the repo, so claims stay verifiable and traceable
 
 **Process:**
 
 1. **Invoke `review-md`** on the report file (or in-memory draft) immediately after it is produced, before it reaches the user.
-2. **Findings check** — `review-md` returns either "No issues found" or a findings document ordered by factual soundness, then consistency, then conciseness.
-3. **Iteration Loop** — If findings exist:
+2. **Findings check:** `review-md` returns either "No issues found" or a findings document ordered by factual soundness, then consistency, then conciseness.
+3. **Iteration Loop:** If findings exist:
    - Route the findings back to the producing agent (same model tier as its original task; no model upgrade for this fix)
    - Producing agent fixes only the flagged issues (no unrelated rewrites)
    - Re-run `review-md` on the revised report
    - Repeat until `review-md` reports no issues, or 3 iterations reached (escalate to orchestrator for a manual pass)
 4. **Exit Conditions:**
-   - `review-md` reports no issues → Approved
-   - 3 iterations reached with unresolved findings → Escalate; orchestrator presents the report to the user with the outstanding findings attached
+   - `review-md` reports no issues: Approved
+   - 3 iterations reached with unresolved findings: Escalate; orchestrator presents the report to the user with the outstanding findings attached
 
 **Approval:** `✓ Report Quality Clear` (after `review-md` finds no issues)
 
@@ -171,20 +183,20 @@ Before formal audit, reviewer deliberately:
 
 **Checklist:**
 
-1. **Correctness** — Logic sound? No bugs?
-2. **Performance** — Efficient algorithms? No N+1 queries?
-3. **Readability** — Code clear and maintainable?
-4. **Architecture** — Follows project conventions?
-5. **Testability** — Code is testable?
+1. **Correctness:** Logic sound? No bugs?
+2. **Performance:** Efficient algorithms? No N+1 queries?
+3. **Readability:** Code clear and maintainable?
+4. **Architecture:** Follows project conventions?
+5. **Testability:** Code is testable?
 
 ### Iteration Process
 
-1. **Developer Self-Review** — Self-check on all 5 dimensions
-2. **Code Reviewer Audit** — Line-by-line review on all dimensions
-3. **Iteration Loop** — If changes requested: Developer fixes → Reviewer re-audits
+1. **Developer Self-Review:** Self-check on all 5 dimensions
+2. **Code Reviewer Audit:** Line-by-line review on all dimensions
+3. **Iteration Loop:** If changes requested: Developer fixes → Reviewer re-audits
 4. **Exit Conditions:**
-   - 2 consecutive LGTMs from code-reviewer → Approved
-   - 10 iterations reached → Escalate to architecture review
+   - 2 consecutive LGTMs from code-reviewer: Approved
+   - 10 iterations reached: Escalate to architecture review
 
 **Approval:** `✓ Approved for merge` (after iteration complete)
 
@@ -207,13 +219,13 @@ Before formal audit, reviewer deliberately:
 
 **Process:**
 
-1. **Creator Self-Reflection** — Creator audits own work for:
+1. **Creator Self-Reflection:** Creator audits own work for:
    - Completeness (all sections present?)
    - Clarity (would a reader understand this?)
    - Feasibility (are requirements realistic? Is architecture sound?)
    - Alignment (does this match project context?)
 
-2. **Reviewer Audit** — Reviewer checks:
+2. **Reviewer Audit:** Reviewer checks:
    - Technical soundness
    - Completeness against requirements
    - Clarity and organization
@@ -283,7 +295,7 @@ Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 
 - Developer/creator fixes ONLY items explicitly identified by the reviewer
 - No scope creep: no unrelated refactors, no drive-by cleanup, no "while I'm here" changes
-- If additional issues are spotted during the fix, flag them to the orchestrator — do not fix them unilaterally
+- If additional issues are spotted during the fix, flag them to the orchestrator; do not fix them unilaterally
 - Reviewer re-audit checks two things: (1) listed items resolved, (2) no unrelated changes introduced
 
 ### Fix Phase Procedure
@@ -302,16 +314,16 @@ Track review passes and fix passes as separate counters in the plan file:
 
 ```markdown
 **Review:** Code Review with Iterations
-  - Review Iteration 1 (code-reviewer, Opus): Finds 2 issues — null check L42, unclear naming L88
-  - Fix Iteration 1 (developer, Sonnet): Fixes L42, L88 only — no other lines touched
+  - Review Iteration 1 (code-reviewer, Opus): Finds 2 issues: null check L42, unclear naming L88
+  - Fix Iteration 1 (developer, Sonnet): Fixes L42, L88 only: no other lines touched
   - Review Iteration 2 (code-reviewer, Opus): Confirms both fixes, no unrelated changes → LGTM #1
   - Review Iteration 3 (code-reviewer, Opus): Re-audit → LGTM #2
   - Exited: 2 consecutive LGTMs
   - Fix Model: Sonnet (all fix iterations, non-negotiable)
 ```
 
-- **Review iteration** — a reviewer audit pass (model per gate: Opus for reviewer/code-reviewer)
-- **Fix iteration** — a fixing-agent pass (model always Sonnet)
+- **Review iteration:** a reviewer audit pass (model per gate: Opus for reviewer/code-reviewer)
+- **Fix iteration:** a fixing-agent pass (model always Sonnet)
 - Counters are independent: a review iteration with no findings needs no matching fix iteration
 - Max 10 combined iterations per gate before escalation (see Iteration Process per gate)
 
@@ -325,7 +337,7 @@ In plan file, mark review outcomes:
 ### Step 2: Implementation
 
 **Status:** completed  
-**Done:** [YYYY-MM-DD HH:mm] — [Summary]  
+**Done:** [YYYY-MM-DD HH:mm]: [Summary]  
 **Review:** LGTM (3 approvals)
   - Security: ✓ OWASP clear
   - Testing: ✓ 85% coverage
@@ -336,7 +348,7 @@ In plan file, mark review outcomes:
 ### Step 3: Implementation (Code)
 
 **Status:** completed  
-**Done:** [YYYY-MM-DD HH:mm] — [Summary]  
+**Done:** [YYYY-MM-DD HH:mm]: [Summary]  
 **Review:** Code Review with Iterations
   - Security (OWASP): Iteration 2 → ✓ OWASP Clear
   - Testing: ✓ 82% coverage

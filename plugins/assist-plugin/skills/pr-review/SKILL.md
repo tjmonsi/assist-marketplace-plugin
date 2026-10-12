@@ -38,7 +38,7 @@ Review pull requests with intelligent platform detection and CLI automation.
 /pr-review feature/user-auth --approve
 ```
 
-> **Note:** Passing `--approve` or `--changes-requested` states your *intended* verdict — it does not skip confirmation. The skill still fetches the PR, drafts the verdict text, and asks "Do you approve this verdict? (yes/no)" before running any state-changing command. See [Review Submission](#4-review-submission-confirmation-required) below.
+> **Note:** Passing `--approve` or `--changes-requested` states your *intended* verdict: it does not skip confirmation. The skill still fetches the PR, drafts the verdict text, and asks "Do you approve this verdict? (yes/no)" before running any state-changing command. See [Review Submission](#4-review-submission-confirmation-required) below.
 
 ## How It Works
 
@@ -65,9 +65,9 @@ git remote -v
 
 Three ways to specify PR:
 
-- **PR number:** `/pr-review 123` → Fetches GitHub/Bitbucket PR #123
-- **Current branch:** `/pr-review` (no args) → Finds PR for current branch
-- **Branch name:** `/pr-review feature/auth` → Finds PR for that branch
+- **PR number:** `/pr-review 123`: Fetches GitHub/Bitbucket PR #123
+- **Current branch:** `/pr-review` (no args): Finds PR for current branch
+- **Branch name:** `/pr-review feature/auth`: Finds PR for that branch
 
 ### 3. PR Information Fetched
 
@@ -79,21 +79,21 @@ Three ways to specify PR:
 
 ### 4. Review Submission (Confirmation Required)
 
-`--approve` and `--changes-requested` are **state-changing commands and are never executed automatically** — not even when the flag was passed on the command line, and not even when the `reviewer` agent decided the verdict itself. The skill always pauses for explicit human confirmation before running them:
+`--approve` and `--changes-requested` are **state-changing commands and are never executed automatically**, not even when the flag was passed on the command line, and not even when the `reviewer` agent decided the verdict itself. The skill always pauses for explicit human confirmation before running them:
 
 1. Fetch the PR and analyze it (read-only; no state-changing command runs yet).
 2. Draft the verdict and reasoning as plain text, e.g. *"Recommend approval because: tests cover the new branch, no security issues found, matches project conventions."*
-3. Present the draft verdict — and, for changes-requested/comment, the exact comment body — to the user and ask: **"Do you approve this verdict? (yes/no)"**
+3. Present the draft verdict to the user (for changes-requested/comment, include the exact comment body) and ask: **"Do you approve this verdict? (yes/no)"**
 4. Only on an explicit "yes" (or clear affirmative) does the skill run the actual `gh pr review <n> --approve` / `--request-changes` (or `bkt pr approve` / `bkt pr decline`) command.
 5. On "no", or if the user requests edits, revise the draft and re-confirm. Never fall back to executing the command anyway.
 
 | Verdict | Command | Effect | Requires Confirmation? |
 |---------|---------|--------|--------------------------|
-| **Approve** | `--approve` | Marks PR approved, ready to merge | Yes — always, before every execution |
-| **Changes Requested** | `--changes-requested` | Blocks merge, requires changes | Yes — always, before every execution |
-| **Comment** | `--comment` | Leaves feedback, doesn't block | Yes — user must see the exact text before it's posted |
+| **Approve** | `--approve` | Marks PR approved, ready to merge | Yes, always, before every execution |
+| **Changes Requested** | `--changes-requested` | Blocks merge, requires changes | Yes, always, before every execution |
+| **Comment** | `--comment` | Leaves feedback, doesn't block | Yes; user must see the exact text before it's posted |
 
-Optional message: `--message "Your feedback here"` is treated as a **draft** to confirm, never auto-posted. Draft text is written to a temp file and passed to the CLI via `--body-file` / `--message-file` — it is never interpolated directly into a shell command string. See [references/review-workflow.md](references/review-workflow.md) for the full confirmation flow and injection-safe posting mechanics.
+Optional message: `--message "Your feedback here"` is treated as a **draft** to confirm, never auto-posted. Draft text is written to a temp file and passed to the CLI via `--body-file` / `--message-file`. It is never interpolated directly into a shell command string. See [references/review-workflow.md](references/review-workflow.md) for the full confirmation flow and injection-safe posting mechanics.
 
 ## Commands by Platform
 
@@ -109,7 +109,7 @@ gh pr diff 123
 # List reviews
 gh api repos/{owner}/{repo}/pulls/123/reviews
 
-# Submit review — only after the user confirms the draft verdict (see step 4 above).
+# Submit review: only after the user confirms the draft verdict (see step 4 above).
 # Draft body text is written to a temp file first; never interpolate model output
 # directly into the command string.
 gh pr review 123 --approve
@@ -129,10 +129,10 @@ bkt pr get <project>/<repo>/<id>
 # List reviewers
 bkt pr reviewers <project>/<repo>/<id>
 
-# Approve — only after the user confirms the draft verdict (see step 4 above)
+# Approve: only after the user confirms the draft verdict (see step 4 above)
 bkt pr approve <project>/<repo>/<id>
 
-# Decline (request changes) — only after the user confirms the draft verdict.
+# Decline (request changes): only after the user confirms the draft verdict.
 # Draft body text is written to a temp file first; never interpolate model
 # output directly into the command string.
 bkt pr decline <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
@@ -146,9 +146,9 @@ bkt pr comment <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
 | Option | Description | Default |
 |--------|-------------|---------|
 | `PR#` | PR number (GitHub/Bitbucket) | Required (or use current branch) |
-| `--approve` | Approve PR (requires user confirmation of drafted verdict before executing) | — |
-| `--changes-requested` | Request changes (requires user confirmation of drafted verdict before executing) | — |
-| `--comment` | Leave feedback only (requires user to see exact text before posting) | — |
+| `--approve` | Approve PR (requires user confirmation of drafted verdict before executing) | None |
+| `--changes-requested` | Request changes (requires user confirmation of drafted verdict before executing) | None |
+| `--comment` | Leave feedback only (requires user to see exact text before posting) | None |
 | `--message TEXT` | Review message | (empty if not provided) |
 | `--diff` | Show file diff inline | False |
 | `--no-comment` | Show PR info, don't submit review | False |
@@ -168,7 +168,7 @@ Pair with `/do` orchestrator:
 → only now does reviewer submit: /pr-review 123 --approve
 ```
 
-The reviewer agent never submits `--approve` or `--changes-requested` on its own judgment alone — confirmation from the user is required every time, regardless of how confident the analysis is.
+The reviewer agent never submits `--approve` or `--changes-requested` on its own judgment alone. Confirmation from the user is required every time, regardless of how confident the analysis is.
 
 Or standalone:
 
@@ -206,18 +206,24 @@ See [references/review-workflow.md](references/review-workflow.md) for:
 - Cannot review own PR (returns error)
 - Cannot approve if already approved (optional override flag)
 - Cannot request changes if already declined (optional override flag)
-- **Never executes `--approve`, `--changes-requested` (or `bkt pr approve` / `bkt pr decline`) without explicit user confirmation of the drafted verdict** — applies even when invoked by the `reviewer` agent or with the flag pre-supplied on the command line
+- **Never executes `--approve`, `--changes-requested` (or `bkt pr approve` / `bkt pr decline`) without explicit user confirmation of the drafted verdict:** applies even when invoked by the `reviewer` agent or with the flag pre-supplied on the command line
 - **Never interpolates model-generated text directly into a shell command.** Draft body/message text is written to a temp file and passed via `--body-file` / `--message-file` (or the closest equivalent flag); see [references/review-workflow.md](references/review-workflow.md)
+
+## Review Output Rules
+
+Drafted verdicts and review comments follow [Review Output Rules](../do/references/review-protocol.md#review-output-rules): verdict or first finding first, length set by findings, every finding re-read at its file and line before reporting, only new or still-open findings on a re-review (read the PR's existing reviews first), no praise or generic advice, and one line of agreement instead of reposting another reviewer's point.
 
 ## Report Writing Standard
 
-- Lead with the most important finding; never write "this is the more important of the two."
-- Every finding has three parts: what happened, why it matters, what to do next.
-- State each conclusion once. One optional summary line at the end for multi-finding reports; never repeat findings there.
-- Use active voice, important subject before the verb ("Validation is skipped" not "The validation was skipped by...").
-- Cut hedges ("it should be noted," "arguably") and contrastive filler ("This is X, not Y" — state what it is).
-- No meta-headers about the act of writing ("What follows," "Key takeaway," "In conclusion").
-- No em-dashes; use a period, comma, parentheses, or semicolon.
-- No severity badges, remediation blocks, or summary sections unless the reader would be lost without them.
-- Never restate the user's prompt or an assumption as fact; report the tested result.
-- The first sentence of every paragraph must add new information.
+- Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.
+- Let content set the length. Report a clean check in one line.
+- Give each finding three parts: what happened, why it matters, what to do next.
+- State each conclusion once. Open every paragraph with new information.
+- Use active voice; put the important subject before the verb.
+- Use plain words ("use" for "utilize"). Cut hedges, intensifiers, throat-clearing, buzzwords, and "not X but Y" framing; state what it is.
+- Name headings after their content. Skip summary labels ("In conclusion", "Key takeaways"), severity badges, and summary sections unless the reader needs them.
+- Write no em dashes (use a period, comma, colon, parentheses, or semicolon), no curly quotes, and no chatbot sign-offs or offers.
+- Back every claim with evidence (file and line, log, test result, URL) and every number with a source; label estimates as estimates.
+- Report tested results; never present the prompt or an assumption as fact.
+- Quote exactly; never reword a quotation.
+- Keep ticket ids and internal blame out of user-facing text.

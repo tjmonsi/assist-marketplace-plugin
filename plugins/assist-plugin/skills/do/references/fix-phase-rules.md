@@ -15,20 +15,20 @@ This applies regardless of:
 
 ### Why Sonnet-Only
 
-1. **Cost** — Fix phases repeat across iterations (up to 10 per gate). Running Opus per iteration multiplies the most expensive tier across the highest-frequency step in the workflow.
-2. **Speed** — Sonnet returns fixes faster than Opus, reducing iteration latency. Fixes are narrow, well-defined tasks (not open-ended architecture), so Opus's extra reasoning capacity is unnecessary.
-3. **Precision** — A narrow, well-specified findings list benefits more from a fast, literal, constrained edit pass than from a heavier model's tendency to broaden scope or re-architect.
+1. **Cost:** Fix phases repeat across iterations (up to 10 per gate). Running Opus per iteration multiplies the most expensive tier across the highest-frequency step in the workflow.
+2. **Speed:** Sonnet returns fixes faster than Opus, reducing iteration latency. Fixes are narrow, well-defined tasks (not open-ended architecture), so Opus's extra reasoning capacity is unnecessary.
+3. **Precision:** A narrow, well-specified findings list benefits more from a fast, literal, constrained edit pass than from a heavier model's tendency to broaden scope or re-architect.
 
 ### Non-Negotiable
 
-- Do not upgrade to Opus even if the fix is described as "critical" or "security-related" — the review gate (Opus) already gated on severity. The fix itself stays Sonnet.
-- Do not downgrade to Haiku even if the fix is a one-line change — Haiku lacks reliable scope discipline for code edits.
+- Do not upgrade to Opus even if the fix is described as "critical" or "security-related". The review gate (Opus) already gated on severity. The fix itself stays Sonnet.
+- Do not downgrade to Haiku even if the fix is a one-line change. Haiku lacks reliable scope discipline for code edits.
 
 ---
 
 ## Rule 2: Identified Items Only
 
-"Identified items" means the reviewer's specific, itemized findings — nothing else.
+"Identified items" means the reviewer's specific, itemized findings, nothing else.
 
 ### What Counts as an Identified Item
 
@@ -68,7 +68,7 @@ If any item fails this checklist, remove the unrelated change before resubmittin
 ```
 File: src/services/user-service.ts
 Line: 42
-Issue: Null-pointer risk — `user.profile.email` accessed without checking `user.profile` exists
+Issue: Null-pointer risk: `user.profile.email` accessed without checking `user.profile` exists
 ```
 
 **Allowed fix:**
@@ -103,13 +103,13 @@ If the fixing agent adds unrelated changes:
 3. Fixing agent runs the Modification Checklist before submitting
 4. Fixing agent submits diff scoped strictly to findings
 5. Reviewer re-audits: verifies findings resolved AND scans full diff for unrelated changes
-6. Unrelated changes present → reject, re-iterate (step 2)
-7. Diff scoped correctly and findings resolved → proceed to next review iteration
+6. Unrelated changes present: reject, re-iterate (step 2)
+7. Diff scoped correctly and findings resolved: proceed to next review iteration
 
 ---
 
 ## See Also
 
-- [review-protocol.md](review-protocol.md) — Full review gate workflow and iteration tracking
-- [model-routing.md](model-routing.md) — Model tier assignment for all agents
-- [developer-self-review.md](developer-self-review.md) — Pre-review self-audit checklist
+- [review-protocol.md](review-protocol.md): Full review gate workflow and iteration tracking
+- [model-routing.md](model-routing.md): Model tier assignment for all agents
+- [developer-self-review.md](developer-self-review.md): Pre-review self-audit checklist

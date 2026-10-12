@@ -76,6 +76,6 @@ If 10 iterations reached without consensus:
 
 ## Related References
 
-- [review-protocol.md](review-protocol.md) — Review workflow and iteration tracking format
-- [agent-registry.md](agent-registry.md) — Full agent responsibilities and routing
-- [plan-format.md](plan-format.md) — Plan file structure for tracking review status
+- [review-protocol.md](review-protocol.md): Review workflow and iteration tracking format
+- [agent-registry.md](agent-registry.md): Full agent responsibilities and routing
+- [plan-format.md](plan-format.md): Plan file structure for tracking review status

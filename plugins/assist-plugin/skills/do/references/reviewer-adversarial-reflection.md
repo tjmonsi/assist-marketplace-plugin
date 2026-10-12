@@ -16,9 +16,9 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - **Variable scope:** Variable shadowing, uninitialized variables, use-after-free
 
 **Examples:**
-- `for (int i = 0; i <= arr.length; i++)` ← off-by-one
-- `result = data.process()` when data might be null ← null pointer
-- Function says it returns `string` but returns `null` ← type mismatch
+- `for (int i = 0; i <= arr.length; i++)` (off-by-one)
+- `result = data.process()` when data might be null (null pointer)
+- Function says it returns `string` but returns `null` (type mismatch)
 
 ### 2. Inconsistencies
 
@@ -28,9 +28,9 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - **Inconsistent naming:** Mixes camelCase and snake_case, uses unclear abbreviations
 
 **Examples:**
-- All repos use `snake_case` but this code uses `camelCase` ← style inconsistency
-- Spec says "all transactions must be logged" but this doesn't log ← requirement inconsistency
-- Helper functions are in `utils/` but this one is inline ← architecture inconsistency
+- All repos use `snake_case` but this code uses `camelCase` (style inconsistency)
+- Spec says "all transactions must be logged" but this doesn't log (requirement inconsistency)
+- Helper functions are in `utils/` but this one is inline (architecture inconsistency)
 
 ### 3. Assumptions & Edge Cases
 
@@ -41,9 +41,9 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - **Concurrency:** Race conditions? Deadlocks if accessed concurrently?
 
 **Examples:**
-- Code assumes `user.email` exists but never checks ← assumption
-- Loop processes array but no check for empty array ← edge case
-- Function doesn't handle database connection failure ← error path
+- Code assumes `user.email` exists but never checks (assumption)
+- Loop processes array but no check for empty array (edge case)
+- Function doesn't handle database connection failure (error path)
 
 ### 4. Security & Performance
 
@@ -53,9 +53,9 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - **Memory issues:** Memory leaks? Unbounded growth? Allocation per iteration?
 
 **Examples:**
-- `query = "SELECT * FROM users WHERE id=" + user_id` ← SQL injection
-- `password = "hardcoded123"` ← credential leak
-- `for (user in users) { db.query(user.id) }` ← N+1 query pattern
+- `query = "SELECT * FROM users WHERE id=" + user_id` (SQL injection)
+- `password = "hardcoded123"` (credential leak)
+- `for (user in users) { db.query(user.id) }` (N+1 query pattern)
 
 ### 5. Clarity & Maintainability
 
@@ -65,9 +65,11 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - **Logic flow:** Can you follow it? Does it make sense? Too nested?
 
 **Examples:**
-- `let x = data.map(...)` ← what is x? Unknown purpose
-- Nested if-statements 5 levels deep ← hard to follow
-- `arr.push(item); // Add item to array` ← obvious comment, not helpful
+- `let x = data.map(...)` (what is x? Unknown purpose)
+- Nested if-statements 5 levels deep (hard to follow)
+- `arr.push(item); // Add item to array` (obvious comment, not helpful)
+
+**Code slop:** For code submissions, run the "When Reviewing" checklist in [code-slop.md](../../code/references/code-slop.md) (type escapes, swallowed errors, speculative options, module mocks, hollow or skipped tests, drive-by edits).
 
 ## Reviewer Workflow
 
@@ -113,7 +115,7 @@ When reviewing, ask yourself:
 ## Tips for Efficient Adversarial Review
 
 1. **Focus on likely issues:** Know your codebase's weak spots (security, performance, concurrency)
-2. **Trust your gut:** If something seems off, it probably is — dig deeper
+2. **Trust your gut:** If something seems off, it probably is. Dig deeper
 3. **Document as you go:** Don't wait until the end to write feedback
 4. **Time-box:** 10-15 minutes of adversarial review, then formal audit
 5. **Iterate with creator:** Early feedback helps them catch more next time

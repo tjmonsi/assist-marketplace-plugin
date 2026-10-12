@@ -48,6 +48,10 @@ Before submitting code for security and code review gates, developers self-revie
 - [ ] Code follows project conventions
 - [ ] Formatting consistent with codebase
 
+### Code Slop
+
+- [ ] Diff checked against the "When Reviewing" list in [code-slop.md](../../code/references/code-slop.md): narrating comments, swallowed errors, speculative options, type escapes, module mocks, hollow or skipped tests, drive-by edits
+
 ### Performance
 
 - [ ] No N+1 query patterns (database)
@@ -88,10 +92,10 @@ Before submitting code for security and code review gates, developers self-revie
 
 When reviewer requests changes:
 
-1. **Identify root cause** — Is this a logic bug, readability issue, or OWASP gap?
-2. **Fix in scope** — Address the feedback + any related issues you notice
-3. **Re-self-review** — Re-check your own fixes before resubmitting
-4. **Minimize iterations** — Each fix should address multiple feedback items where possible
+1. **Identify root cause:** Is this a logic bug, readability issue, or OWASP gap?
+2. **Fix in scope:** Address the feedback + any related issues you notice
+3. **Re-self-review:** Re-check your own fixes before resubmitting
+4. **Minimize iterations:** Each fix should address multiple feedback items where possible
 
 **Goal:** Reduce iterations by catching issues early in self-review. Average code should pass in 2-3 iterations.
 
