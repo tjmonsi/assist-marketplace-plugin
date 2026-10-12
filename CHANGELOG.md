@@ -2,7 +2,7 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
-## [Unreleased]
+## [1.7.0] - 2026-10-12
 
 ### License
 
