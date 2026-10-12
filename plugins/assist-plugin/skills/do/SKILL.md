@@ -48,8 +48,8 @@ Use the FIRST agent whose responsibilities match the primary intent. If multiple
 Read [references/model-routing.md](references/model-routing.md).
 
 Apply the priority chain:
-1. **Opus** → orchestrator, reviewer, code-reviewer
-2. **Sonnet** → ask, developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker
+1. **Opus** → orchestrator, reviewer, code-reviewer, solutions-architect, researcher
+2. **Sonnet** → ask, developer, developer-tester, planner, qa, requirements-gatherer, devops, general-purpose, worker
 3. **Haiku** → explore, (commit, branch)
 
 ## Plugin & Skill Discovery
@@ -98,6 +98,16 @@ Do NOT proceed without explicit approval.
 
 ## Step 5 — Execute with review loops
 
+### Preflight — disk space
+
+Before dispatching any agent, check free space on the repo filesystem from the main worktree:
+
+```bash
+df -h .
+```
+
+If available space is under 2G, tell the user how much is free and ask via AskUserQuestion whether to continue before dispatching agents. Mention safe ways to free space (for example `go clean -cache`, `/branch cleanup --dry-run` to preview finished worktrees). Do not delete anything as part of the preflight.
+
 Execute approved plan step by step. Follow [references/review-protocol.md](references/review-protocol.md).
 
 For each step:
@@ -121,6 +131,17 @@ After all steps complete:
 - If output incomplete, re-delegate and fix
 - Update plan with final status
 
+## Step 7 — Clean up worktrees
+
+Track the exact worktree paths this plan's steps created (from the Agent `isolation: "worktree"` result or EnterWorktree). If any exist and their work is merged:
+
+1. Call ExitWorktree (keep) so the working directory is the main worktree.
+2. Run the procedure in [../branch/references/worktree-cleanup.md](../branch/references/worktree-cleanup.md) in targeted mode, passing only those paths. Never run the repo-wide sweep; that belongs to `/branch cleanup`.
+3. Include the report (removed worktrees, deleted branches, caches cleared, ignored files removed, space freed, skipped items with reasons) in the synthesis.
+4. Add the cleanup outcome to the plan file.
+
+Skip this step if no step created a worktree or the work is not merged yet.
+
 ## Fallback rule
 
 No agent matched? This is valid. Handle directly using full generalist capability. Note in plan: "No subagent matched — main agent handling."
@@ -131,6 +152,8 @@ No agent matched? This is valid. Handle directly using full generalist capabilit
 - Never invoke agent without task breakdown + context files
 - Never proceed past failed review without re-invoking agent
 - Keep each agent's task focused
+- Never force-remove worktrees (`git worktree remove --force`) or force-delete branches (`git branch -D`)
+- Never clean worktrees the plan did not create
 
 ## Report Writing Standard
 

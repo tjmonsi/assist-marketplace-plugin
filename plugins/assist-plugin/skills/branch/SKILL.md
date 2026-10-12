@@ -2,11 +2,15 @@
 name: branch
 description: >-
   Manage git branches. Create feature/bugfix/release branches with standard naming,
-  switch branches with stash support, list all branches.
+  switch branches with stash support, list all branches, clean up merged
+  worktrees and their branches, and clear the Go build cache.
 effort: low
 allowed-tools:
-  - Bash
-argument-hint: "[create | switch | list] [branch-name]"
+  - Bash(git:*)
+  - Bash(df:*)
+  - Bash(go clean:*)
+  - Bash(realpath:*)
+argument-hint: "[create | switch | list | cleanup] [branch-name | --dry-run]"
 ---
 
 # Branch
@@ -45,6 +49,17 @@ Manage git branches with standard naming conventions and stash support.
 
 Shows all local and remote branches.
 
+### Cleanup
+
+```
+/branch cleanup
+/branch cleanup --dry-run
+```
+
+Sweeps every linked worktree, including detached-HEAD worktrees, removes the finished ones, deletes their merged branches, and clears the Go build cache. A worktree is removed only when its branch (or detached commit) is an ancestor of the default branch, its status is clean (untracked files count), and it is unlocked. The main worktree, the current worktree, and the default, `main`, `master`, and `develop` branches are never touched. Squash-merged and rebase-merged branches show as `not merged` and are kept. Ignored files in each worktree are listed in the dry-run and the report. Rust and Gradle clean commands are reported, not run. `--dry-run` lists what would happen and changes nothing.
+
+Full procedure: [references/worktree-cleanup.md](references/worktree-cleanup.md)
+
 ## Workflow
 
 1. Create a branch for your work: `/branch create feature/x`
@@ -58,6 +73,7 @@ Shows all local and remote branches.
 - Branch names must follow conventions
 - Cannot delete main or develop branches
 - Remote branches tracked automatically
+- Cleanup never uses `git worktree remove --force`, `git branch -D`, `git clean`, or `rm -rf`
 
 ## Report Writing Standard
 

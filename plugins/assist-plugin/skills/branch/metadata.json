@@ -1,7 +1,12 @@
 {
   "name": "branch",
-  "description": "Manage git branches with creation, switching, and remote tracking.",
+  "description": "Manage git branches with creation, switching, remote tracking, and merged worktree cleanup.",
   "effort": "low",
-  "allowed-tools": ["Bash"],
-  "argument-hint": "[create | switch | list] [branch-name]"
+  "allowed-tools": [
+    "Bash(git:*)",
+    "Bash(df:*)",
+    "Bash(go clean:*)",
+    "Bash(realpath:*)"
+  ],
+  "argument-hint": "[create | switch | list | cleanup] [branch-name | --dry-run]"
 }
