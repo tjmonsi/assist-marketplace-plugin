@@ -1,4 +1,4 @@
-# JWT Auth Middleware — Kotlin (Ktor)
+# JWT Auth Middleware: Kotlin (Ktor)
 
 Bearer JWT verification via Ktor's `Authentication` plugin, with a
 role-based guard. See [../../languages/kotlin.md](../../languages/kotlin.md)
@@ -67,12 +67,12 @@ fun Route.protectedRoutes() {
 - `Algorithm.HMAC256(secret)` pins the expected signing algorithm; the
   `com.auth0.jwt` verifier rejects tokens signed with any other algorithm or
   an expired `exp` claim automatically.
-- The `challenge` block controls the exact `401` response body — keep it
+- The `challenge` block controls the exact `401` response body; keep it
   generic; never leak verifier internals to the client.
 - `authenticate("auth-jwt") { ... }` wraps only the routes that require
   identity; public routes stay outside the block.
 - Check role claims inside the handler (or a custom `RouteSelector`) and
-  return `403` when identity is valid but authorization fails — do not
+  return `403` when identity is valid but authorization fails; do not
   conflate with `401`.
 - Load `jwt.secret`/`jwt.issuer` from `application.conf` backed by
   environment variables or a secret manager, never hardcode.

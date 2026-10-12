@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — JavaScript
+# Retry with Exponential Backoff + Jitter: JavaScript
 
 Resilient outbound call helper, dependency-free. See
 [../../languages/javascript.md](../../languages/javascript.md) and

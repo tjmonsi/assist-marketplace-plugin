@@ -1,4 +1,4 @@
-# Background Job Pattern — C++ (Thread Pool)
+# Background Job Pattern: C++ (Thread Pool)
 
 Bounded thread pool consuming a job queue, with per-job exception isolation
 and graceful shutdown. See [../../languages/cpp.md](../../languages/cpp.md)
@@ -116,7 +116,7 @@ void register_user_routes(httplib::Server& server) {
   instead of unbounded memory growth; the caller decides whether to drop,
   log, or apply backpressure upstream.
 - `shutdown()` stops accepting new work implicitly (`stopping_`), wakes all
-  workers, and joins them after draining the queue — call it from the
+  workers, and joins them after draining the queue; call it from the
   application's shutdown sequence (e.g., on `SIGTERM`).
 - For durability across process restarts, back the queue with a persistent
   broker (Redis Streams, RabbitMQ) instead of an in-memory `std::queue`.

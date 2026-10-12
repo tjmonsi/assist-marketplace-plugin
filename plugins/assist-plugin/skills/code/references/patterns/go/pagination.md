@@ -1,4 +1,4 @@
-# Pagination — Go (Fiber)
+# Pagination: Go (Fiber)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/go.md](../../languages/go.md) and
@@ -113,12 +113,12 @@ func listItemsCursor(db *Repository) fiber.Handler {
 ## Notes
 
 - Whitelist `sort_by`/`sort_order` against a fixed map before building the
-  query — never concatenate raw query params into SQL `ORDER BY`.
+  query; never concatenate raw query params into SQL `ORDER BY`.
 - Clamp/reject `limit` to a hard ceiling (`100`) to prevent unbounded table
   scans from a malicious or buggy client.
 - The cursor must encode a compound key (`created_at` + `id`) so rows with
   equal timestamps remain deterministically ordered without skips/dupes.
 - `db.ListAfter` should fetch `limit + 1` rows internally and trim the extra
   row to compute `hasMore` without a separate count query.
-- Prefer cursor pagination for high-write or very large tables; offset
+- Prefer cursor pagination for high-write or large tables; offset
   pagination is acceptable for small, page-numbered admin views.

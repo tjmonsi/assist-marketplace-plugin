@@ -1,4 +1,4 @@
-# JWT Auth Middleware — Python (FastAPI)
+# JWT Auth Middleware: Python (FastAPI)
 
 Bearer JWT verification as a reusable dependency, with role-based guard.
 See [../../languages/python.md](../../languages/python.md) and
@@ -80,7 +80,7 @@ def delete_user(
 - Load `JWT_SECRET` (or public key for RS256) from environment/secret manager,
   never hardcode it.
 - Return `401` for missing/invalid/expired tokens and `403` for valid tokens
-  lacking permission — do not conflate the two.
+  lacking permission; do not conflate the two.
 - Dependency injection (`Depends`) keeps auth logic out of route handlers and
   testable in isolation with FastAPI's `TestClient` overrides.
 - For session-based auth, replace the bearer check with a signed, `HttpOnly`,

@@ -1,4 +1,4 @@
-# REST CRUD — Rust (Axum)
+# REST CRUD: Rust (Axum)
 
 Full Create/Read/Update/Delete endpoint set with `validator` and typed error
 responses. See [../../languages/rust.md](../../languages/rust.md) for
@@ -125,7 +125,7 @@ async fn delete_item(
 - `RwLock` allows concurrent reads (`get_item`) while serializing writes;
   swap for a connection pool (`sqlx::PgPool`) in production and drop the lock.
 - Never `.unwrap()` on the poisoned-lock path in production code without a
-  documented panic strategy — prefer `RwLock::read()`/`write()` error
+  documented panic strategy; prefer `RwLock::read()`/`write()` error
   handling or a crash-only design per
   [../../error-handling-standards.md](../../error-handling-standards.md).
 - `Option<T>` fields on `UpdateItem` distinguish "omitted" from "set" for

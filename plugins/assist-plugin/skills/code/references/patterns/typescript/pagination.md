@@ -1,4 +1,4 @@
-# Pagination — TypeScript (Fastify)
+# Pagination: TypeScript (Fastify)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/typescript.md](../../languages/typescript.md) and
@@ -89,7 +89,7 @@ app.get<{ Querystring: { cursor?: string; limit?: number } }>(
 
 - Enforce `maximum: 100` on `limit` in the schema; Fastify rejects out-of-range
   values with `400` before the handler executes.
-- Validate `sortBy`/`sortOrder` against a fixed literal union — never pass a
+- Validate `sortBy`/`sortOrder` against a fixed literal union; never pass a
   raw client string into an ORM's `orderBy` key.
 - Use a compound cursor (`createdAt` + `id`) so rows with identical timestamps
   are still ordered deterministically and never skipped or duplicated.

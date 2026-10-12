@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — Python
+# Retry with Exponential Backoff + Jitter: Python
 
 Resilient outbound call pattern using `tenacity`, plus a dependency-free
 fallback. See [../../languages/python.md](../../languages/python.md) and

@@ -1,4 +1,4 @@
-# Pagination — Rust (Axum)
+# Pagination: Rust (Axum)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/rust.md](../../languages/rust.md) for

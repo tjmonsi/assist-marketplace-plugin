@@ -1,4 +1,4 @@
-# Pagination — Kotlin (Ktor)
+# Pagination: Kotlin (Ktor)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/kotlin.md](../../languages/kotlin.md) for
@@ -74,7 +74,7 @@ fun Route.listItemsCursorRoute(repo: ItemRepository) {
 
 - `coerceIn(1, 100)` bounds `limit` without a separate error path for
   out-of-range values; validate `sortBy`/`sortOrder` against a fixed `Set`
-  before it reaches the query layer — never interpolate raw params into SQL.
+  before it reaches the query layer; never interpolate raw params into SQL.
 - The compound cursor (`createdAt` + `id`) keeps ordering deterministic when
   multiple rows share a timestamp.
 - `repo.listAfter` should fetch `limit + 1` rows internally so `hasMore` is

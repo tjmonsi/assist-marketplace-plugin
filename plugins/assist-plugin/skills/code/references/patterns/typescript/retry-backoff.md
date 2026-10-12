@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — TypeScript
+# Retry with Exponential Backoff + Jitter: TypeScript
 
 Resilient outbound call helper, dependency-free and typed. See
 [../../languages/typescript.md](../../languages/typescript.md) and
@@ -56,7 +56,10 @@ import { request } from "undici";
 
 class UpstreamError extends Error {}
 
-async function fetchUpstream(url: string): Promise<unknown> {
+async function fetchUpstream<T>(
+  url: string,
+  parse: (raw: unknown) => T
+): Promise<T> {
   return retryWithBackoff(
     async () => {
       const res = await request(url, { headersTimeout: 5000 });
@@ -66,7 +69,7 @@ async function fetchUpstream(url: string): Promise<unknown> {
       if (res.statusCode >= 400) {
         throw new Error(`client error ${res.statusCode}`); // not retried
       }
-      return res.body.json();
+      return parse(await res.body.json());
     },
     {
       isRetryable: (err) =>
@@ -78,6 +81,9 @@ async function fetchUpstream(url: string): Promise<unknown> {
 
 ## Notes
 
+- `parse` narrows the `unknown` body at the trust boundary (a schema parser or
+  type guard). Have it throw an error that `isRetryable` rejects, so a
+  malformed body is not retried.
 - Full jitter (`Math.random() * capped`) spreads retries across clients and
   avoids synchronized retry storms after an outage.
 - `isRetryable` must exclude `4xx` and non-idempotent write failures; only

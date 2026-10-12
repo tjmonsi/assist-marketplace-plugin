@@ -1,4 +1,4 @@
-# Background Job Queue — JavaScript (Bull)
+# Background Job Queue: JavaScript (Bull)
 
 Redis-backed job queue with retry policy and a worker process. See
 [../../languages/javascript.md](../../languages/javascript.md) for conventions.
@@ -62,9 +62,9 @@ router.post("/users", async (req, res) => {
 
 - `attempts` + `backoff: { type: "exponential" }` handles exponential
   backoff automatically; Bull adds internal jitter to spread retry timing.
-- For truly unrecoverable errors, either check `job.attemptsMade` and bail
+- For unrecoverable errors, either check `job.attemptsMade` and bail
   early or move the job to a dead-letter queue via `on("failed")` once
-  attempts are exhausted — Bull has no built-in "no retry" throw type.
+  attempts are exhausted; Bull has no built-in "no retry" throw type.
 - Keep job payloads minimal (IDs, not full objects); the worker re-fetches
   current state to avoid processing stale data.
 - Set the processor's concurrency argument (`.process("name", N, fn)`) to

@@ -1,4 +1,4 @@
-# Background Job Queue — TypeScript (BullMQ)
+# Background Job Queue: TypeScript (BullMQ)
 
 Redis-backed job queue with typed payloads, retry policy, and a worker
 process. See [../../languages/typescript.md](../../languages/typescript.md)

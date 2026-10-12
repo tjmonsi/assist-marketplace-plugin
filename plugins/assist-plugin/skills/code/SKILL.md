@@ -41,12 +41,12 @@ Use only the exact command shapes above (no `-o`/`--output`, no `--base-url`/`--
 
 ## Principles
 
-1. **Read before write** — Understand existing code before modifying it
-2. **Minimal changes** — Change only what the task requires
-3. **Follow conventions** — Match existing code style, patterns, and naming
-4. **Secure by default** — No injection, XSS, CSRF, or OWASP Top 10 vulnerabilities
-5. **No speculative abstractions** — Build only for stated requirements
-6. **Spec-driven** — When a spec exists, validate acceptance criteria before implementation
+1. **Read before write**: Understand existing code before modifying it
+2. **Minimal changes**: Change only what the task requires
+3. **Follow conventions**: Match existing code style, patterns, and naming
+4. **Secure by default**: No injection, XSS, CSRF, or OWASP Top 10 vulnerabilities
+5. **No speculative abstractions**: Build only for stated requirements
+6. **Spec-driven**: When a spec exists, validate acceptance criteria before implementation
 
 ## Implementation Checklist
 
@@ -63,23 +63,24 @@ Before considering a task complete:
 - [ ] Dependency audit passes with no known vulnerabilities
 - [ ] All tests pass
 - [ ] Traceability comments follow [references/traceability-comment-format.md](references/traceability-comment-format.md)
+- [ ] No code-slop tells from [references/code-slop.md](references/code-slop.md)
 
 ## Core Requirements (Always Loaded)
 
 These three requirements are non-negotiable and unconditionally applied to all code:
 
-1. **Logging Standards** — [references/logging-standards.md](references/logging-standards.md)
+1. **Logging Standards**: [references/logging-standards.md](references/logging-standards.md)
    - Structured logging only (JSON or language-native structured logger)
    - Log levels: debug, info, warn, error, fatal
    - Never log passwords, tokens, full card/account numbers, or emails (unless hashed)
    - Mask before logging: last-4-digits, hashed identifiers
 
-2. **Error Handling Standards** — [references/error-handling-standards.md](references/error-handling-standards.md)
+2. **Error Handling Standards**: [references/error-handling-standards.md](references/error-handling-standards.md)
    - Wrap every uncontrolled boundary: network, file I/O, parsing, third-party, deserialization, threading
    - At each boundary: catch, log error type + message + stack + context, classify, keep the process alive
    - Include process-level handlers (Node `process.on`, Python `sys.excepthook`, Go `recover`, Rust `catch_unwind`, C++ `std::set_terminate`) so a single bad input cannot crash the system
 
-3. **Traceability Comments** — [references/traceability-comment-format.md](references/traceability-comment-format.md)
+3. **Traceability Comments**: [references/traceability-comment-format.md](references/traceability-comment-format.md)
    - Full-chain format: `// [SPEC-003 -> FR-045 -> UC-012 -> AC-2] <description>`
    - IDs sourced only from spec/requirements documents or task prompt, never invented
    - One comment per code block that implements a specific requirement
@@ -130,17 +131,22 @@ Read one pattern file matching both the language and the activity:
 
 1. This SKILL.md is always loaded (role, principles, checklist, the three core requirements)
 2. Always load: `logging-standards.md`, `error-handling-standards.md`, `traceability-comment-format.md`
-3. Classify the technology context — read matching language reference file(s), max 2
+3. Classify the technology context: read matching language reference file(s), max 2
 4. If a framework is detected, read the matching framework reference
 5. If the task implies an activity (CRUD endpoint, auth, retries), read one matching pattern file
 6. Follow the loaded references; do not apply guidance from unloaded references
 
 ## Report Writing Standard
 
-- Lead with the most important finding
-- Every finding has three parts: what happened, why it matters, what to do next
-- State each conclusion once
-- Use active voice
-- Cut hedges and contrastive filler
-- No em-dashes; use periods, commas, parentheses, or semicolons
-- No severity badges or summary sections unless necessary
+- Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.
+- Let content set the length. Report a clean check in one line.
+- Give each finding three parts: what happened, why it matters, what to do next.
+- State each conclusion once. Open every paragraph with new information.
+- Use active voice; put the important subject before the verb.
+- Use plain words ("use" for "utilize"). Cut hedges, intensifiers, throat-clearing, buzzwords, and "not X but Y" framing; state what it is.
+- Name headings after their content. Skip summary labels ("In conclusion", "Key takeaways"), severity badges, and summary sections unless the reader needs them.
+- Write no em dashes (use a period, comma, colon, parentheses, or semicolon), no curly quotes, and no chatbot sign-offs or offers.
+- Back every claim with evidence (file and line, log, test result, URL) and every number with a source; label estimates as estimates.
+- Report tested results; never present the prompt or an assumption as fact.
+- Quote exactly; never reword a quotation.
+- Keep ticket ids and internal blame out of user-facing text.

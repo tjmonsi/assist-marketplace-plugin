@@ -44,7 +44,7 @@ export default defineEventHandler(async (event): Promise<UserResponse> => {
 
 - File naming encodes the HTTP method and path (`[id].get.ts`, `login.post.ts`)
 - Use `readBody(event)` for request bodies, `getQuery(event)` for query params
-- Throw `createError({ statusCode, message })` for error responses — never return raw `Error` objects
+- Throw `createError({ statusCode, message })` for error responses; never return raw `Error` objects
 
 ## Data Fetching
 
@@ -107,7 +107,7 @@ routeRules: {
 ```
 
 XSS prevention rules:
-- `v-html` is prohibited without `DOMPurify.sanitize()` — use `v-text` or template interpolation
+- `v-html` is prohibited without `DOMPurify.sanitize()`; use `v-text` or template interpolation
 - Never render user input in `<script>` tags
 - Use `useRequestHeaders(['authorization'])` to proxy auth during SSR, never expose tokens client-side
 
@@ -132,9 +132,9 @@ Every page must pass at these breakpoints:
 
 ### Rules
 
-- Mobile-first breakpoints only (`sm:`, `md:`, `lg:`, `xl:`) -- no `max-*` overrides
-- No horizontal scroll at any breakpoint -- fix the overflowing element, do not mask with `overflow-x: hidden`
-- Text must not overflow containers -- use `truncate`, `break-words`, or `line-clamp`
+- Mobile-first breakpoints only (`sm:`, `md:`, `lg:`, `xl:`); no `max-*` overrides
+- No horizontal scroll at any breakpoint; fix the overflowing element, do not mask with `overflow-x: hidden`
+- Text must not overflow containers; use `truncate`, `break-words`, or `line-clamp`
 - Interactive elements: minimum 44x44px touch target on mobile (`min-h-[44px] min-w-[44px]`)
 
 ### Review Gate Violations

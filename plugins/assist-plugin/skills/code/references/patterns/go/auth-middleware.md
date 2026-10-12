@@ -1,4 +1,4 @@
-# JWT Auth Middleware — Go (Fiber)
+# JWT Auth Middleware: Go (Fiber)
 
 Bearer JWT verification via `golang-jwt/jwt`, with a role-based guard. See
 [../../languages/go.md](../../languages/go.md) and
@@ -77,7 +77,7 @@ app.Delete("/admin/users/:id",
 ## Notes
 
 - Explicitly verify the signing method inside the key function
-  (`t.Method.(*jwt.SigningMethodHMAC)`) — never trust the token's declared
+  (`t.Method.(*jwt.SigningMethodHMAC)`); never trust the token's declared
   algorithm, which prevents `alg: none` / algorithm-confusion attacks.
 - `jwt.ParseWithClaims` checks expiry (`exp`) automatically via
   `RegisteredClaims`; treat any parse error as `401` without leaking detail.

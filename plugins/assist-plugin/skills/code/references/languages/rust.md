@@ -67,7 +67,7 @@ codegen-units = 1
 | Library code | `thiserror` | Define typed error enums with `#[derive(Error)]` |
 | Binary / application | `anyhow` | Use `anyhow::Result<T>` and `.context("msg")` |
 
-Never use `.unwrap()` or `.expect()` in library code -- return `Result`/`Option`.
+Never use `.unwrap()` or `.expect()` in library code; return `Result`/`Option`.
 
 ## Prohibited Patterns
 

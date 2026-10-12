@@ -1,4 +1,4 @@
-# REST CRUD — Python (FastAPI)
+# REST CRUD: Python (FastAPI)
 
 Full Create/Read/Update/Delete endpoint set with Pydantic validation and explicit
 error handling. See [../../languages/python.md](../../languages/python.md) and
@@ -73,7 +73,7 @@ def delete_item(item_id: str) -> None:
 - Pydantic models enforce validation at the boundary; invalid payloads return `422`
   automatically before the handler runs.
 - `HTTPException` is the single error-reporting mechanism; never return raw
-  dicts with error fields — keep the response contract consistent.
+  dicts with error fields; keep the response contract consistent.
 - `exclude_unset=True` on update makes PATCH-like partial updates safe without
   clobbering unspecified fields.
 - Register a global exception handler (`@app.exception_handler`) for unhandled

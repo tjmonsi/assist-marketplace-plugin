@@ -1,4 +1,4 @@
-# Pagination — C++ (cpp-httplib)
+# Pagination: C++ (cpp-httplib)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/cpp.md](../../languages/cpp.md) for
@@ -91,7 +91,7 @@ void register_cursor_route(httplib::Server& server, ItemRepository& repo) {
 ## Notes
 
 - Validate `sort_by`/`sort_order` against a fixed `std::set` before it
-  reaches the query layer — never interpolate raw query parameters into SQL.
+  reaches the query layer; never interpolate raw query parameters into SQL.
 - `std::clamp` bounds `limit`/`offset` without a separate rejection path;
   reject with `400` instead if strict input validation is required.
 - The compound cursor (`created_at` + `id`) keeps ordering deterministic when

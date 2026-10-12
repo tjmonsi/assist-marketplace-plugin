@@ -1,4 +1,4 @@
-# REST CRUD — C++ (cpp-httplib)
+# REST CRUD: C++ (cpp-httplib)
 
 Full Create/Read/Update/Delete endpoint set with manual validation and
 explicit error handling. See [../../languages/cpp.md](../../languages/cpp.md)
@@ -141,7 +141,7 @@ void register_item_routes(httplib::Server& server, ItemStore& store) {
 ## Notes
 
 - Wrap every `json::parse` at a request boundary in `try/catch` (or use the
-  non-throwing overload with `is_discarded()`) — malformed JSON must never
+  non-throwing overload with `is_discarded()`); malformed JSON must never
   propagate as an unhandled exception per
   [../../error-handling-standards.md](../../error-handling-standards.md).
 - Validate field presence, type, and constraints explicitly before

@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — Rust
+# Retry with Exponential Backoff + Jitter: Rust
 
 Resilient outbound call helper built on `tokio::time`. See
 [../../languages/rust.md](../../languages/rust.md) and

@@ -27,7 +27,7 @@ Language-level toolchain (TypeScript 5.x, `eslint`) is covered by the TypeScript
 
 ## Architecture (Modules, Providers, Controllers)
 
-Nest organizes code into **modules**, each declaring **controllers** (handle HTTP/RPC input) and **providers** (services, repositories, factories — injectable business logic).
+Nest organizes code into **modules**, each declaring **controllers** (handle HTTP/RPC input) and **providers** (services, repositories, factories: injectable business logic).
 
 ```typescript
 // users.module.ts
@@ -66,12 +66,12 @@ export class UsersService {
 Rules:
 - Controllers stay thin: parse input (via DTOs + pipes), delegate to a service, return the result
 - Business logic lives in providers (services), never in controllers
-- Every module explicitly declares `imports`/`exports` — no relying on global providers except cross-cutting concerns (config, logging)
+- Every module explicitly declares `imports`/`exports`; no relying on global providers except cross-cutting concerns (config, logging)
 
 ## Dependency Injection
 
 - Constructor injection is the default and preferred style; avoid property injection except for optional circular-dependency cases
-- Provider scope: `DEFAULT` (singleton, one instance app-wide) unless request-scoped state is required — request scope (`Scope.REQUEST`) has a real perf cost, use sparingly
+- Provider scope: `DEFAULT` (singleton, one instance app-wide) unless request-scoped state is required; request scope (`Scope.REQUEST`) has a real perf cost, use sparingly
 - Use custom providers (`useClass`, `useValue`, `useFactory`) for swappable implementations (e.g., mock vs real payment gateway)
 
 ```typescript
@@ -125,7 +125,7 @@ getProfile(@CurrentUser() user: AuthUser): ProfileDto { ... }
 
 ## Pipes, Guards, Interceptors
 
-**Pipes** — transform/validate input before it reaches the handler:
+**Pipes**: transform/validate input before it reaches the handler:
 
 ```typescript
 @Post()
@@ -140,7 +140,7 @@ Register `ValidationPipe` globally in `main.ts` instead of per-route when every 
 app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }))
 ```
 
-**Guards** — authorization decisions, run before the route handler:
+**Guards**: authorization decisions, run before the route handler:
 
 ```typescript
 @Injectable()
@@ -156,7 +156,7 @@ export class JwtAuthGuard implements CanActivate {
 export class OrdersController {}
 ```
 
-**Interceptors** — wrap handler execution (logging, response transformation, timeout, caching):
+**Interceptors**: wrap handler execution (logging, response transformation, timeout, caching):
 
 ```typescript
 @Injectable()
@@ -192,7 +192,7 @@ app.useGlobalFilters(new HttpExceptionFilter())
 ```
 
 - Use built-in `HttpException` subclasses (`NotFoundException`, `BadRequestException`, `ForbiddenException`) instead of throwing raw `Error`
-- A catch-all filter (`@Catch()` with no argument) should log the full error and return a generic 500 — never expose internal error details in the response body
+- A catch-all filter (`@Catch()` with no argument) should log the full error and return a generic 500; never expose internal error details in the response body
 
 ## Middleware
 
@@ -240,12 +240,12 @@ constructor(@InjectPinoLogger(UsersService.name) private readonly logger: PinoLo
 this.logger.info({ userId }, 'User created')
 ```
 
-- Never use Nest's built-in `Logger` class in production services expecting JSON output — it produces human-formatted text by default
+- Never use Nest's built-in `Logger` class in production services expecting JSON output; it produces human-formatted text by default
 - Inject a per-class logger context (`PinoLogger` bound to the class name) so log lines are traceable to their source
 
 ## Testing Patterns
 
-**Unit tests** — use `Test.createTestingModule` to build an isolated DI container with mocked providers:
+**Unit tests**: use `Test.createTestingModule` to build an isolated DI container with mocked providers:
 
 ```typescript
 describe('UsersService', () => {
@@ -271,7 +271,7 @@ describe('UsersService', () => {
 })
 ```
 
-**E2E tests** — bootstrap the full app with `Test.createTestingModule` + `createNestApplication()`, hit routes with `supertest`:
+**E2E tests**: bootstrap the full app with `Test.createTestingModule` + `createNestApplication()`, hit routes with `supertest`:
 
 ```typescript
 const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
@@ -283,12 +283,12 @@ await request(app.getHttpServer()).get('/users/1').expect(200)
 
 Rules:
 - Mock at the provider boundary (repositories, external clients), not internal service methods
-- E2E tests use a real (test) database or in-memory equivalent — never mock the DB layer in E2E suites
+- E2E tests use a real (test) database or in-memory equivalent; never mock the DB layer in E2E suites
 
 ## Module Organization
 
 - One feature module per bounded domain concept (`UsersModule`, `OrdersModule`, `PaymentsModule`)
-- Shared, stateless utilities go in a `SharedModule` or `CommonModule` marked `@Global()` only when truly cross-cutting (config, logging) — avoid overusing `@Global()`
+- Shared, stateless utilities go in a `SharedModule` or `CommonModule` marked `@Global()` only when cross-cutting (config, logging): avoid overusing `@Global()`
 - Feature modules import only what they need from other feature modules' exported providers; no reaching into another module's internal providers
 - `AppModule` composes root-level imports (feature modules, `ConfigModule.forRoot()`, `LoggerModule`) and holds no business logic itself
 

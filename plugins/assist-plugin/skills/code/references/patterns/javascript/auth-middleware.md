@@ -1,4 +1,4 @@
-# JWT Auth Middleware — JavaScript (Express)
+# JWT Auth Middleware: JavaScript (Express)
 
 Bearer JWT verification via `jsonwebtoken`, with a role-based guard. See
 [../../languages/javascript.md](../../languages/javascript.md) for conventions.
@@ -58,7 +58,7 @@ router.delete("/admin/users/:id", requireRole("admin"), async (req, res) => {
 ## Notes
 
 - Pin `algorithms: ["HS256"]` (or `RS256` for asymmetric keys) explicitly on
-  `jwt.verify` — never allow the token to dictate its own algorithm.
+  `jwt.verify`; never allow the token to dictate its own algorithm.
 - Return `401` for missing/invalid/expired tokens, `403` once identity is
   established but the role check fails; do not conflate the two.
 - Load `JWT_SECRET` from environment/secret manager, never hardcode or commit

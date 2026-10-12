@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — Go
+# Retry with Exponential Backoff + Jitter: Go
 
 Resilient outbound call helper using context-aware sleep. See
 [../../languages/go.md](../../languages/go.md) and

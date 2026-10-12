@@ -35,10 +35,10 @@
 
 - `data class` for DTOs and value objects
 - Prefer `val` over `var`; use `var` only when mutation is required
-- `sealed class` / `sealed interface` for discriminated unions — not Java-style enum
+- `sealed class` / `sealed interface` for discriminated unions; not Java-style enum
 - Extension functions over utility classes
-- `when` expressions must be exhaustive; use `else ->` only when truly necessary
-- No checked exceptions — use `Result<T>` or sealed error types
+- `when` expressions must be exhaustive; use `else ->` only when necessary
+- No checked exceptions; use `Result<T>` or sealed error types
 
 ## Prohibited Patterns
 
@@ -92,7 +92,7 @@ fun LoginScreen(viewModel: LoginViewModel = hiltViewModel()) {
 ```
 
 - Use `Modifier` as first optional parameter on every public composable
-- Side effects: `LaunchedEffect`, `DisposableEffect` — never launch coroutines outside effect handlers
+- Side effects: `LaunchedEffect`, `DisposableEffect`. Never launch coroutines outside effect handlers
 - `remember` for local UI state, `rememberSaveable` for surviving config changes
 - `@Preview` on every significant composable
 - Use Material3 components (`androidx.compose.material3`)
@@ -121,7 +121,7 @@ class TasksViewModel @Inject constructor(
 
 Rules:
 - Always handle Loading, Success, and Error states in the Composable
-- Use `collectAsStateWithLifecycle()` — not `collectAsState()`
+- Use `collectAsStateWithLifecycle()`, not `collectAsState()`
 - `WhileSubscribed(5000)` to survive config changes without re-fetching
 
 ## Navigation (Compose Navigation)
@@ -227,9 +227,9 @@ class AuthRepository @Inject constructor(
 ```
 
 Rules:
-- Store tokens in `EncryptedSharedPreferences` or `DataStore` — never plain SharedPreferences
-- Clear tokens on logout — both local and server-side invalidation
-- Use `Flow<Boolean>` for auth state observation — drives navigation guard
+- Store tokens in `EncryptedSharedPreferences` or `DataStore`; never plain SharedPreferences
+- Clear tokens on logout, with both local and server-side invalidation
+- Use `Flow<Boolean>` for auth state observation, which drives navigation guard
 - Handle token expiry with Ktor `refreshTokens` block
 
 ## Dependency Injection (Hilt)

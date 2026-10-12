@@ -1,4 +1,4 @@
-# REST CRUD — Kotlin (Ktor)
+# REST CRUD: Kotlin (Ktor)
 
 Full Create/Read/Update/Delete endpoint set with request validation and
 structured error responses. See
@@ -96,5 +96,5 @@ fun Route.itemRoutes() {
   updates.
 - `ConcurrentHashMap` is safe for concurrent access in this example; replace
   with a repository backed by Exposed/R2DBC in production.
-- Keep route handlers thin — delegate business logic to a service class
+- Keep route handlers thin; delegate business logic to a service class
   injected via Koin/manual DI, not instantiated inline.

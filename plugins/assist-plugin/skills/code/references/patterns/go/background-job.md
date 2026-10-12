@@ -1,4 +1,4 @@
-# Background Job Pattern — Go (Worker Pool)
+# Background Job Pattern: Go (Worker Pool)
 
 Bounded goroutine pool consuming a job channel, with graceful shutdown and
 per-job panic recovery. See [../../languages/go.md](../../languages/go.md)
@@ -102,7 +102,7 @@ func createUserHandler(c *fiber.Ctx) error {
 ## Notes
 
 - `recover()` inside `process` stops one bad job from crashing the entire
-  worker goroutine — required per
+  worker goroutine; required per
   [../../error-handling-standards.md](../../error-handling-standards.md).
 - A buffered channel (`make(chan Job, buffer)`) plus a non-blocking `select`
   in `Enqueue` gives explicit backpressure behavior instead of an unbounded
@@ -110,7 +110,7 @@ func createUserHandler(c *fiber.Ctx) error {
 - For durability across process restarts, back the queue with Redis/SQS/NATS
   instead of an in-memory channel; the worker loop shape stays the same.
 - `Shutdown` closing the channel and calling `wg.Wait()` ensures graceful
-  drain on `SIGTERM` — wire it into the server's shutdown hook.
+  drain on `SIGTERM`; wire it into the server's shutdown hook.
 - Wrap the handler call with retry/backoff (see
   [retry-backoff.md](retry-backoff.md)) for transient failures; log
   exhausted-retry failures for manual follow-up or a dead-letter path.

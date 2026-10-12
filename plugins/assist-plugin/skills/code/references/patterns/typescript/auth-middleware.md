@@ -1,4 +1,4 @@
-# JWT Auth Middleware — TypeScript (Fastify)
+# JWT Auth Middleware: TypeScript (Fastify)
 
 Bearer JWT verification via `@fastify/jwt`, with a role-based guard decorator.
 See [../../languages/typescript.md](../../languages/typescript.md) and
@@ -71,9 +71,9 @@ app.delete(
 
 - `@fastify/jwt` verifies signature and expiry (`exp`) automatically; a
   thrown/rejected `jwtVerify()` means the token is missing, malformed, or
-  expired — always return `401`, never leak the underlying error message.
+  expired; always return `401`, never leak the underlying error message.
 - Return `403` (not `401`) once identity is established but the role check
-  fails — the two codes are not interchangeable.
+  fails; the two codes are not interchangeable.
 - Load `JWT_SECRET` from environment/secret manager; for RS256, configure
   `secret` as a JWKS/public-key resolver instead of a shared string.
 - Use `preHandler` hooks, not inline checks in each route, so auth logic is

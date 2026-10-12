@@ -20,7 +20,7 @@
 | Vite 5.x+ | Build tool / dev server | Webpack, Parcel for new projects |
 | `vite-tsconfig-paths` | Resolve TS path aliases | Manual `resolve.alias` duplication of `tsconfig.json` paths |
 | `vite-plugin-dts` | Emit `.d.ts` for library builds | Hand-written type declarations |
-| Rollup (bundled) | Production bundler | — (Vite uses Rollup under the hood for builds) |
+| Rollup (bundled) | Production bundler | None (Vite uses Rollup under the hood for builds) |
 | esbuild (bundled) | Dependency pre-bundling, dev transforms | Babel for simple transpilation |
 
 This file covers Vite as a build tool. When Vite is the underlying builder for a framework (Vue, Nuxt), consult that framework's reference for framework-specific config; this file covers the build-tool layer only.
@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
 
 Rules:
 - Use the function form of `defineConfig` (`({ mode, command }) => {...}`) whenever config depends on env or build/serve mode
-- Never hardcode secrets in `vite.config.ts` — read via `loadEnv` and reference `process.env` only inside the config function, never in client code
+- Never hardcode secrets in `vite.config.ts`; read via `loadEnv` and reference `process.env` only inside the config function, never in client code
 
 ## Plugin System
 
@@ -85,7 +85,7 @@ function myPlugin(): Plugin {
 
 - Only variables prefixed `VITE_` are exposed to client code via `import.meta.env`; all others stay server/build-only
 - `.env`, `.env.local`, `.env.[mode]`, `.env.[mode].local` are loaded in that precedence order (later overrides earlier); `.env.local` and `.env.*.local` are gitignored
-- Build-time constants (baked into the bundle, not readable at runtime) vs. runtime env (read from actual process env at server start) are different concerns — Vite only handles build-time; for runtime config in SSR/Node servers, read `process.env` directly in server code, not via `import.meta.env`
+- Build-time constants (baked into the bundle, not readable at runtime) vs. runtime env (read from actual process env at server start) are different concerns. Vite only handles build-time; for runtime config in SSR/Node servers, read `process.env` directly in server code, not via `import.meta.env`
 
 ```typescript
 // Client code — inlined at build time
@@ -101,7 +101,7 @@ interface ImportMeta {
 ```
 
 Rules:
-- Never put secrets (API keys, DB credentials) in `VITE_`-prefixed variables — they ship to the browser bundle in plaintext
+- Never put secrets (API keys, DB credentials) in `VITE_`-prefixed variables; they ship to the browser bundle in plaintext
 - Use `import.meta.env.MODE`, `import.meta.env.DEV`, `import.meta.env.PROD` for mode-based branching, not custom flags
 
 ## Dev Server
@@ -115,15 +115,15 @@ Rules:
 
 - `build.target` set to the actual minimum supported runtime (`es2022` for modern evergreen browsers); avoid `esnext` unless output is never shipped to older engines
 - `build.rollupOptions.output.manualChunks` to split vendor code from app code for better long-term caching
-- `build.cssCodeSplit: true` (default) — per-route CSS chunks instead of one monolithic stylesheet
-- `build.sourcemap` — `true`/`'hidden'` in production only if source maps are uploaded to an error-tracking service, never served publicly with secrets embedded
+- `build.cssCodeSplit: true` (default): per-route CSS chunks instead of one monolithic stylesheet
+- `build.sourcemap`: `true`/`'hidden'` in production only if source maps are uploaded to an error-tracking service, never served publicly with secrets embedded
 - Compress and analyze with `rollup-plugin-visualizer` before shipping large dependency additions
 
 ## Tree-Shaking
 
-- Rollup tree-shakes based on static `import`/`export` analysis — avoid `import * as X` when only a few members are used
+- Rollup tree-shakes based on static `import`/`export` analysis; avoid `import * as X` when only a few members are used
 - Mark side-effect-free packages in `package.json` (`"sideEffects": false`) so unused exports are dropped; list files with real side effects explicitly (`"sideEffects": ["*.css"]`)
-- Avoid re-export barrel files (`index.ts` that does `export * from './x'`) for large modules — they can defeat tree-shaking in some bundler/plugin combinations and slow dev server cold start
+- Avoid re-export barrel files (`index.ts` that does `export * from './x'`) for large modules; they can defeat tree-shaking in some bundler/plugin combinations and slow dev server cold start
 
 ## Library Mode
 
@@ -151,7 +151,7 @@ export default defineConfig({
 ```
 
 Rules:
-- Always mark framework peer dependencies as `external` — bundling them causes duplicate-instance bugs downstream
+- Always mark framework peer dependencies as `external`; bundling them causes duplicate-instance bugs downstream
 - Emit both `es` and `cjs` unless the target consumers are ESM-only
 - Generate `.d.ts` via `vite-plugin-dts`, never hand-maintain them alongside source changes
 
@@ -174,7 +174,7 @@ const html = await render(url)
 
 - `vite.config.ts` needs `build.ssr` entry (`build: { ssr: 'src/entry-server.ts' }`) for the production SSR bundle
 - Use `vite.ssrLoadModule` only in dev; in production, `import()` the pre-built SSR bundle directly
-- Full-framework SSR (Nuxt) manages this internally — only hand-roll this for custom SSR setups outside a meta-framework
+- Full-framework SSR (Nuxt) manages this internally; only hand-roll this for custom SSR setups outside a meta-framework
 
 ## Module Federation
 

@@ -30,7 +30,7 @@ Gate: `eslint .` and `tsc --noEmit --checkJs` (if type-checked) must pass before
 - Prefer `async`/`await` over raw Promise chains (`.then()`) for readability
 - Prefer named exports; default exports only where a framework mandates them (e.g., a single React component per file)
 - Immutability by default: `const` unless reassignment is required; avoid mutating function arguments
-- No implicit global variables — every declaration is explicit
+- No implicit global variables; every declaration is explicit
 
 ## Type System Rules (JSDoc + Type Checking)
 
@@ -69,7 +69,7 @@ function formatUser(user) {
 | Callback-style async (`fn(err, data) => ...`) | Use `async`/`await` with Promises |
 | `console.log` in production code | Use a structured logger (Pino, Winston) |
 | Mutating function arguments | Return new values; treat inputs as read-only |
-| `eval()` / `new Function()` | Never — code injection risk |
+| `eval()` / `new Function()` | Never; code injection risk |
 | Untyped `.js` files with no JSDoc on exports | Add JSDoc or migrate to TypeScript |
 | Global variable leakage (assigning without `const`/`let`) | Always declare explicitly |
 

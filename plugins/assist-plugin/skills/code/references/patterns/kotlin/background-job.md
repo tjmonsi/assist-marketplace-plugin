@@ -1,4 +1,4 @@
-# Background Job Pattern — Kotlin (Coroutines / WorkManager)
+# Background Job Pattern: Kotlin (Coroutines / WorkManager)
 
 Bounded coroutine worker pool for server-side background jobs, plus a
 WorkManager variant for Android. See
@@ -98,7 +98,7 @@ WorkManager.getInstance(context).enqueue(request)
 
 ## Notes
 
-- Never catch and swallow `CancellationException` — rethrow it so structural
+- Never catch and swallow `CancellationException`; rethrow it so structural
   concurrency (scope cancellation, timeouts) still works per
   [../../error-handling-standards.md](../../error-handling-standards.md).
 - `Channel(capacity = bufferSize)` + `trySend` gives explicit backpressure;
@@ -109,5 +109,5 @@ WorkManager.getInstance(context).enqueue(request)
 - For durability across process restarts, back the channel with a persistent
   broker (Redis Streams, SQS) instead of an in-memory `Channel`.
 - On Android, prefer `WorkManager` over raw coroutines for anything that must
-  survive process death — it persists work requests and handles retry/backoff
+  survive process death; it persists work requests and handles retry/backoff
   and constraints (network, charging) natively.

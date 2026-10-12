@@ -1,4 +1,4 @@
-# REST CRUD — TypeScript (Fastify)
+# REST CRUD: TypeScript (Fastify)
 
 Full Create/Read/Update/Delete endpoint set with schema validation via
 `@fastify/type-provider-typebox`. See

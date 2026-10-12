@@ -1,4 +1,4 @@
-# JWT Auth Middleware — C++ (cpp-httplib)
+# JWT Auth Middleware: C++ (cpp-httplib)
 
 Bearer JWT verification as a `set_pre_routing_handler`, with a role-based
 guard. See [../../languages/cpp.md](../../languages/cpp.md) for conventions.
@@ -94,7 +94,7 @@ void register_admin_routes(httplib::Server& server, const std::string& secret) {
   algorithm; `jwt-cpp`'s verifier rejects tokens signed with a different
   algorithm and rejects expired `exp` claims automatically during `.verify()`.
 - Return `401` for missing/invalid/expired tokens, `403` once identity is
-  established but the role check fails — never conflate the two.
+  established but the role check fails; never conflate the two.
 - `cpp-httplib` has no native per-request context object; either re-verify
   the token inside each protected handler (shown above) or maintain a
   thread-local/connection-keyed map populated by a pre-routing handler.

@@ -1,4 +1,4 @@
-# Background Job Queue — Python (Celery)
+# Background Job Queue: Python (Celery)
 
 Async task offloading with retry policy and result tracking. See
 [../../languages/python.md](../../languages/python.md) for conventions.
@@ -70,10 +70,10 @@ def create_user(payload: UserCreate) -> dict:
   with jitter for transient errors without manual retry loops.
 - Distinguish transient (retry) from permanent (log and fail) errors; do not
   let `autoretry_for` catch validation or business-logic exceptions.
-- Keep task payloads small and serializable (IDs, not full objects) — fetch
+- Keep task payloads small and serializable (IDs, not full objects); fetch
   fresh state inside the task to avoid stale data.
 - Set `task_time_limit`/`task_soft_time_limit` so a hung task cannot block a
   worker slot indefinitely.
 - For lighter-weight needs without a broker, `BackgroundTasks` in FastAPI
   handles fire-and-forget work within the same process (no persistence,
-  no retry — use only for non-critical, best-effort jobs).
+  no retry; use only for non-critical, best-effort jobs).

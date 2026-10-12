@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — Kotlin
+# Retry with Exponential Backoff + Jitter: Kotlin
 
 Resilient outbound call helper using coroutines. See
 [../../languages/kotlin.md](../../languages/kotlin.md) and
@@ -69,7 +69,7 @@ suspend fun fetchUpstream(client: HttpClient, url: String): String {
   storms across many callers hitting the same recovering dependency.
 - `isRetryable` must exclude client errors (`4xx`) and non-idempotent write
   failures; retry only network errors, timeouts, and `5xx` responses.
-- `delay()` suspends the coroutine without blocking the underlying thread —
+- `delay()` suspends the coroutine without blocking the underlying thread;
   never use `Thread.sleep` inside a `suspend fun`.
 - Wrap the call in `withTimeout(...)` for an overall deadline so retries
   cannot exceed a bounded total duration.
@@ -78,4 +78,4 @@ suspend fun fetchUpstream(client: HttpClient, url: String): String {
   exhausted-retries throw at `error` level with full context.
 - Catching `Throwable` inside the loop is intentional to cover both
   exceptions and errors from the block, but re-throw immediately when not
-  retryable or attempts are exhausted — never swallow silently.
+  retryable or attempts are exhausted; never swallow silently.

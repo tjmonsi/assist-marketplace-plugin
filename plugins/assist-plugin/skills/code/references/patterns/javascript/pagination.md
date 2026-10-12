@@ -1,4 +1,4 @@
-# Pagination — JavaScript (Express)
+# Pagination: JavaScript (Express)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/javascript.md](../../languages/javascript.md)
@@ -77,7 +77,7 @@ router.get("/items/cursor", async (req, res) => {
 
 - `z.coerce.number()` converts query-string values to numbers before bounds
   checks; reject with `400` when limit/offset fall outside allowed range.
-- Validate `sortBy`/`sortOrder` against a fixed `z.enum` — never interpolate a
+- Validate `sortBy`/`sortOrder` against a fixed `z.enum`; never interpolate a
   raw client string into an ORM's `orderBy` key (SQL/NoSQL injection risk).
 - Use a compound cursor (`createdAt` + `id`) so equal-timestamp rows sort
   deterministically without skips or duplicates.

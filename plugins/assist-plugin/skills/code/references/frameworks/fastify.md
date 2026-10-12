@@ -52,7 +52,7 @@ const fastify = require('fastify')({
 })
 ```
 
-- Behind proxy: use `http2: true` without `https` — proxy handles TLS
+- Behind proxy: use `http2: true` without `https`; proxy handles TLS
 - Direct: `https` + `allowHTTP1: true` for backward compat
 - Set `trustProxy: true` when behind a reverse proxy
 
@@ -84,8 +84,8 @@ await fastify.register(cors, {
 
 Rules:
 - `credentials: true` + wildcard origin is rejected by browsers
-- `strictPreflight: true` (default) — enforce proper preflight headers
-- `hook: 'onRequest'` (default) — runs before any other hook
+- `strictPreflight: true` (default): enforce proper preflight headers
+- `hook: 'onRequest'` (default): runs before any other hook
 
 ## Security Headers (@fastify/helmet)
 

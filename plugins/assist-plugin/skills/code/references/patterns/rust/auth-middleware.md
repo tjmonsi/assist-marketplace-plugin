@@ -1,4 +1,4 @@
-# JWT Auth Middleware — Rust (Axum)
+# JWT Auth Middleware: Rust (Axum)
 
 Bearer JWT verification as an Axum extractor, with a role-based guard. See
 [../../languages/rust.md](../../languages/rust.md) for conventions.
@@ -87,14 +87,14 @@ async fn delete_user(
 
 - `AuthUser` as a Axum extractor (`FromRequestParts`) runs before the handler
   body; any route that declares it as a parameter automatically requires
-  authentication — missing routes simply omit the extractor.
+  authentication; missing routes simply omit the extractor.
 - `Validation::new(Algorithm::HS256)` pins the expected algorithm; never
   decode without an explicit algorithm, which prevents algorithm-confusion
   attacks.
 - `validate_exp = true` (default in recent `jsonwebtoken` versions, set
   explicitly for clarity) rejects expired tokens automatically.
 - Return `401` for missing/invalid/expired tokens, `403` for a valid token
-  lacking the required role — never conflate the two.
+  lacking the required role; never conflate the two.
 - Load `JWT_SECRET` from environment/secret manager via `OnceLock`, not a
   hardcoded constant; for RS256 use `DecodingKey::from_rsa_pem`.
 - For session-based auth, replace the bearer extractor with a signed,

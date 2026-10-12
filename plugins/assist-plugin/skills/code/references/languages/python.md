@@ -15,7 +15,7 @@
 |------|---------|------------------------|
 | Python 3.12 | Runtime | < 3.11 |
 | `ruff` | Lint + format | black, isort, flake8, pylint |
-| `uv` | Project management, dependencies, execution, packaging — replaces ALL of the alternatives when uv is present | `python` (for execution), `pyenv`, `pip`, `pip-tools`, `venv`, `poetry`, `pipx` (use these only when uv is absent) |
+| `uv` | Project management, dependencies, execution, packaging; replaces ALL of the alternatives when uv is present | `python` (for execution), `pyenv`, `pip`, `pip-tools`, `venv`, `poetry`, `pipx` (use these only when uv is absent) |
 | Pydantic v2 | Data validation | dataclasses for validation, Pydantic v1 |
 | `mypy` or `pyright` | Static type checking | Skipping type checks in CI |
 | `pytest` | Testing | `unittest` for new projects |
@@ -60,11 +60,11 @@ uv tool install ruff                  # Persistent tool install
 ```
 
 **Key rules:**
-- When uv is present, never activate the venv manually — use `uv run`
-- When uv is present, never use `uv pip install` for project dependencies — use `uv add`
+- When uv is present, never activate the venv manually; use `uv run`
+- When uv is present, never use `uv pip install` for project dependencies; use `uv add`
 - `uv.lock` and `.python-version` must be committed to version control
-- `uv run pytest` not `uvx pytest` — tests need project access
-- UV auto-downloads Python versions — no pyenv needed
+- `uv run pytest` not `uvx pytest`; tests need project access
+- UV auto-downloads Python versions; no pyenv needed
 
 **Detect uv and never install on the user's behalf:**
 - Detect uv with `command -v uv`. When it is present, show the uv commands above (`uv add`, `uv add --dev`, `uv sync`, `uv run pytest`) and let the user run any that install packages or fetch Python (`uv add`, `uv sync`, `uv tool install`, `uv python install`, and plain `uv run`, which syncs the environment first).
@@ -78,7 +78,7 @@ uv tool install ruff                  # Persistent tool install
 - Naming: `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for constants
 - Docstrings on all public modules, classes, and functions (Google or NumPy style; enforced by `ruff` `D` rules if enabled)
 - f-strings for interpolation; never `%` formatting or `.format()` on new code
-- Import order enforced by `ruff` (`I` rules): stdlib, third-party, local — no manual sorting
+- Import order enforced by `ruff` (`I` rules): stdlib, third-party, local; no manual sorting
 - One statement per line; no semicolon-separated statements
 - Prefer composition and small pure functions over deep inheritance hierarchies
 - Use `pathlib.Path` for filesystem paths, never raw string concatenation
@@ -92,7 +92,7 @@ uv tool install ruff                  # Persistent tool install
 - Use `TypedDict` for dict-shaped data that isn't a Pydantic model
 - Use `@overload` for functions with multiple valid signatures
 - Avoid `Any`; if unavoidable, isolate it behind a narrow boundary and narrow immediately
-- Generics: use PEP 695 syntax (3.12+) — `def first[T](items: list[T]) -> T`
+- Generics: use PEP 695 syntax (3.12+): `def first[T](items: list[T]) -> T`
 - Run `mypy --strict` or `pyright --strict` in CI; do not merge with type errors suppressed
 
 ## Prohibited Patterns

@@ -64,7 +64,7 @@ Gate: build with `-Wall -Wextra -Wpedantic -Werror` and a clean `clang-tidy` run
 
 - RAII for every resource: file handles, locks, sockets, and memory are owned by an object whose destructor releases them
 - `std::unique_ptr` is the default for exclusive ownership; `std::shared_ptr` only when shared ownership is a genuine requirement
-- `std::lock_guard` / `std::unique_lock` / `std::scoped_lock` for mutexes — never manual `lock()` / `unlock()`
+- `std::lock_guard` / `std::unique_lock` / `std::scoped_lock` for mutexes; never manual `lock()` / `unlock()`
 - Move semantics: mark move constructors/assignment `noexcept` so standard containers use them during reallocation instead of falling back to copy
 - Use `std::move` only on objects you no longer need; never `std::move` a `const` object (it silently falls back to a copy)
 

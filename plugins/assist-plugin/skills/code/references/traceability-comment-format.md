@@ -29,10 +29,10 @@ Every ID in the chain must come from a document or task prompt. Choose the chain
 | `[SPEC-003 -> FR-045 -> UC-012 -> AC-2]` | All four levels (rare but valid) | `[SPEC-003 -> FR-045 -> UC-012 -> AC-2] Reject expired JWTs` |
 
 **Invalid chains (do not use):**
-- `[REQ-999]`, `[SEC-NNN]`, `[CON-NNN]` — legacy scheme, not in assist-plugin
-- `[SPEC-999]` — spec doesn't exist in the target file
-- `[FR-999]` — requirement doesn't exist in the requirements document
-- `[INVENTED-123]` — made-up IDs not sourced from any document
+- `[REQ-999]`, `[SEC-NNN]`, `[CON-NNN]`: legacy scheme, not in assist-plugin
+- `[SPEC-999]`: spec doesn't exist in the target file
+- `[FR-999]`: requirement doesn't exist in the requirements document
+- `[INVENTED-123]`: made-up IDs not sourced from any document
 
 ## When to Add Traceability Comments
 
@@ -50,11 +50,11 @@ Add a marker when:
 
 Valid sources for an ID:
 
-1. **Specification document** — A `specs/spec-[feature].md` file. Cite its spec ID: `[SPEC-NNN]`
-2. **Requirements document** — A `BRD-*.md`, `URD-*.md`, or `FR-NFR-*.md` file. Cite its requirement ID: `[FR-NNN]`, `[NFR-NNN]`, `[UR-NNN]`, or `[BR-NNN]`
-3. **Specification use case** — A `#### Use Case: ...` block within a spec. Cite its ID: `[UC-NNN]`
-4. **Acceptance criteria** — A `#### Scenario: ...` → `#### AC: ...` block within a spec. Cite: `[AC-N]`
-5. **Task prompt** — An ID stated by the user when assigning the task. Example: "Implement FR-088 (rate limiting)."
+1. **Specification document**: A `specs/spec-[feature].md` file. Cite its spec ID: `[SPEC-NNN]`
+2. **Requirements document**: A `BRD-*.md`, `URD-*.md`, or `FR-NFR-*.md` file. Cite its requirement ID: `[FR-NNN]`, `[NFR-NNN]`, `[UR-NNN]`, or `[BR-NNN]`
+3. **Specification use case**: A `#### Use Case: ...` block within a spec. Cite its ID: `[UC-NNN]`
+4. **Acceptance criteria**: A `#### Scenario: ...` → `#### AC: ...` block within a spec. Cite: `[AC-N]`
+5. **Task prompt**: An ID stated by the user when assigning the task. Example: "Implement FR-088 (rate limiting)."
 
 **Never invent an ID.** If no document or task provides the ID, write the comment without a marker:
 
@@ -132,7 +132,7 @@ const x = calculateValue()
 Spec has `SPEC-003 -> FR-045 -> UC-012 -> AC-2`, but you only cite part:
 
 ```typescript
-// [FR-045] Validate JWT — incomplete; should be full chain or state why
+// [FR-045] Validate JWT: incomplete; should be full chain or state why
 // (Better: [SPEC-003 -> FR-045 -> UC-012 -> AC-2] Validate JWT signature)
 ```
 
@@ -180,7 +180,7 @@ Reviewers should confirm:
 
 If a requirement ID changes (during spec rewrites or updates):
 - Update all code comments to reflect the new ID
-- Do not delete old markers without replacing them — always maintain traceability
+- Do not delete old markers without replacing them; always maintain traceability
 - If a requirement is deleted, document the change in a commit message and assess code impact
 
 If a feature is refactored and no longer tied to the original requirement:

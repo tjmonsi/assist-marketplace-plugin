@@ -1,4 +1,4 @@
-# Background Job Pattern — Rust (Tokio Task Queue)
+# Background Job Pattern: Rust (Tokio Task Queue)
 
 Bounded async worker pool over `tokio::sync::mpsc`, with per-job panic
 isolation and graceful shutdown. See
@@ -89,7 +89,7 @@ async fn create_user_handler(
   taking down the whole worker per
   [../../error-handling-standards.md](../../error-handling-standards.md).
 - A bounded channel (`mpsc::channel(buffer)`) plus `try_send` gives explicit
-  backpressure — full queue returns `Err` instead of blocking the producer or
+  backpressure; full queue returns `Err` instead of blocking the producer or
   growing unbounded.
 - For durability across process restarts, back the queue with a persistent
   broker (Redis Streams, SQS, NATS JetStream) instead of an in-memory channel.
@@ -97,4 +97,4 @@ async fn create_user_handler(
   [retry-backoff.md](retry-backoff.md)) for transient failures inside
   `handler`.
 - Dropping all `Pool` senders closes the channel, letting worker loops drain
-  and exit on `None` — wire this into the application's shutdown sequence.
+  and exit on `None`; wire this into the application's shutdown sequence.

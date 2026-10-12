@@ -39,14 +39,14 @@ All structured logs MUST be JSON. Example:
 ```
 
 Fields:
-- `timestamp` — ISO 8601 format, UTC timezone
-- `level` — debug, info, warn, error, fatal
-- `message` — Human-readable, 1-2 sentences
-- Custom fields — Add context but keep the payload minimal
+- `timestamp`: ISO 8601 format, UTC timezone
+- `level`: debug, info, warn, error, fatal
+- `message`: Human-readable, 1-2 sentences
+- Custom fields: Add context but keep the payload minimal
 
 ## Never Log
 
-**Absolute prohibition — never log these values, even hashed or redacted:**
+**Absolute prohibition (never log these values, even hashed or redacted):**
 
 - Passwords, API keys, OAuth tokens, JWTs
 - Full credit card numbers (PAN), full SSN, full passport numbers

@@ -1,4 +1,4 @@
-# Pagination — Python (FastAPI)
+# Pagination: Python (FastAPI)
 
 Offset-limit pagination with sort validation, plus a cursor variant for large,
 frequently-mutated tables. See [../../languages/python.md](../../languages/python.md)
@@ -89,10 +89,10 @@ def list_items_cursor(cursor: str | None = None, limit: int = 20) -> CursorPage:
 - Cap `limit` with `le=100` to prevent unbounded scans; reject with `422`
   automatically via `Query` constraints.
 - `sort_by`/`sort_order` as enums prevent SQL injection through free-text sort
-  parameters — never interpolate raw query strings into `ORDER BY`.
+  parameters; never interpolate raw query strings into `ORDER BY`.
 - Offset pagination is simplest but degrades on deep pages (`OFFSET 1000000`);
   prefer cursor pagination for large or high-write tables.
 - Cursor must encode a unique, monotonic tiebreaker (`id`) alongside the sort
   column to avoid skipping/duplicating rows with equal timestamps.
 - Return `total` only when the count query is cheap; omit it for cursor
-  pagination on very large tables.
+  pagination on large tables.

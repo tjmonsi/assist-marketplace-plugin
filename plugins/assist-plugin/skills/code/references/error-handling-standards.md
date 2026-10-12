@@ -243,11 +243,11 @@ viewModelScope.launch(exceptionHandler) {
 
 Every error handler must log:
 
-1. **Error type** — the exception/error class name
-2. **Error message** — the exception message
-3. **Stack trace** — full breadcrumbs
-4. **Context** — minimal non-sensitive information (operation ID, user ID if safe, endpoint, etc.)
-5. **Timestamp** — when the error occurred
+1. **Error type**: the exception/error class name
+2. **Error message**: the exception message
+3. **Stack trace**: full breadcrumbs
+4. **Context**: minimal non-sensitive information (operation ID, user ID if safe, endpoint, etc.)
+5. **Timestamp**: when the error occurred
 
 Example across languages:
 
@@ -302,10 +302,10 @@ suspend fun fetchData(url: String): Data { ... }
 
 ## Rules
 
-1. Never silently swallow errors — always log
+1. Never silently swallow errors; always log
 2. Never use bare `except:` or `catch (...)` without logging
 3. Do not re-throw without adding context (use `raise ... from e`, `throw new ... from e`, etc.)
-4. Do not assume network/file/parse errors are temporary — classify based on error type
+4. Do not assume network/file/parse errors are temporary; classify based on error type
 5. Every process-level handler must log full details (timestamp, error type, stack, context)
 6. Do not log sensitive data in error messages (see [logging-standards.md](logging-standards.md))
 7. Keep the process alive whenever the error is scoped to one request/job; only exit on system-level failures

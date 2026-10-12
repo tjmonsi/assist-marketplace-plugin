@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — C++
+# Retry with Exponential Backoff + Jitter: C++
 
 Resilient outbound call helper using `std::function` and `std::this_thread`.
 See [../../languages/cpp.md](../../languages/cpp.md) and
@@ -91,7 +91,7 @@ std::string fetch_upstream(httplib::Client& client, const std::string& path) {
   retry storms across many callers hitting the same recovering dependency.
 - `is_retryable` distinguishes transient failures (`UpstreamError`,
   connection failures) from permanent ones (`4xx`, thrown as plain
-  `std::runtime_error`) — only the former should be retried.
+  `std::runtime_error`); only the former should be retried.
 - `std::this_thread::sleep_for` blocks the calling thread; run retryable
   calls on a worker thread or thread pool, not the main/UI thread.
 - Set a per-attempt timeout on the underlying client (`client.set_read_timeout`)

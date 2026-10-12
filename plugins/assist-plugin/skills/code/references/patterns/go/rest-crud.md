@@ -1,4 +1,4 @@
-# REST CRUD — Go (Fiber)
+# REST CRUD: Go (Fiber)
 
 Full Create/Read/Update/Delete endpoint set with `validator` and explicit
 error handling. See [../../languages/go.md](../../languages/go.md) and

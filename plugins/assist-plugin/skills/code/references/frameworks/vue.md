@@ -16,7 +16,7 @@
 | TypeScript 5.x | Language | Plain `.js` SFCs |
 | Vite | Build | Webpack (unless existing) |
 | ESLint + `vue/recommended` | Lint | tslint |
-| Vitest + `@vue/test-utils` | Testing | Jest — always use vitest for new projects |
+| Vitest + `@vue/test-utils` | Testing | Jest; always use vitest for new projects |
 | Vue Router | Routing (non-Nuxt SPA) | Manual history/hash routing |
 | Pinia | State management | Vuex |
 
@@ -25,8 +25,8 @@ This file covers Vue 3 component-level patterns for any Vue app (SPA or embedded
 ## Composition API Rules
 
 - All components use `<script setup lang="ts">`
-- `defineProps<T>()` with TypeScript interface -- no runtime object syntax
-- `defineEmits<T>()` typed -- no untyped emits
+- `defineProps<T>()` with TypeScript interface; no runtime object syntax
+- `defineEmits<T>()` typed; no untyped emits
 - `ref<T>()` and `computed<T>()` always typed
 - Composables: `use` prefix, return plain refs (not reactive object)
 
@@ -45,7 +45,7 @@ const doubled = computed<number>(() => count.value * 2)
 ### Reactivity
 
 - `ref()` for primitives and values reassigned wholesale; `reactive()` only for objects that are never reassigned
-- Never destructure a `reactive()` object directly -- use `toRefs()` to preserve reactivity
+- Never destructure a `reactive()` object directly; use `toRefs()` to preserve reactivity
 - `shallowRef()` / `shallowReactive()` for large objects where deep reactivity is unnecessary (perf)
 - `readonly()` when exposing state to child components that must not mutate it
 

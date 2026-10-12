@@ -16,7 +16,7 @@
 | FastAPI | Web framework | Flask for new async APIs |
 | Pydantic v2 | Request/response validation | Pydantic v1, dataclasses for validation |
 | Uvicorn | ASGI server (HTTP/1.1) | `python app.py` direct execution |
-| Hypercorn | ASGI server (HTTP/2, HTTP/3, QUIC) | — |
+| Hypercorn | ASGI server (HTTP/2, HTTP/3, QUIC) | None |
 
 Language-level toolchain (Python 3.12, `uv`, `ruff`) is covered by the Python language reference; this file covers FastAPI-specific patterns only.
 
@@ -54,9 +54,9 @@ app.add_middleware(
 ```
 
 Rules:
-- `allow_credentials=True` + `allow_origins=["*"]` is rejected by browsers — always use explicit origins with credentials
+- `allow_credentials=True` + `allow_origins=["*"]` is rejected by browsers; always use explicit origins with credentials
 - Use `allow_origin_regex` for pattern matching (e.g., `r"https://.*\.example\.com"`)
-- Default `allow_methods` is `["GET"]` only — explicitly list what you need
+- Default `allow_methods` is `["GET"]` only; explicitly list what you need
 
 ## Security Headers Middleware
 
@@ -109,7 +109,7 @@ Middleware registration order: SecurityHeaders → CORS → Guard → routes.
 | HTTP/1.1 + WebSocket | Uvicorn | `uv add uvicorn[standard]` |
 | HTTP/2, HTTP/3, QUIC | Hypercorn | `uv add hypercorn` |
 
-**Uvicorn** (HTTP/1.1 only -- any HTTP/2 requirement must use Hypercorn):
+**Uvicorn** (HTTP/1.1 only; any HTTP/2 requirement must use Hypercorn):
 - Dev: `uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`
 - Prod: `uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4 --loop uvloop --http httptools`
 
