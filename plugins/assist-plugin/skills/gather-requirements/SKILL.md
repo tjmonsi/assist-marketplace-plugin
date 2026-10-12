@@ -7,11 +7,13 @@ description: >-
 effort: high
 allowed-tools:
   - Read
-  - Write
-  - Edit
   - Grep
   - Glob
   - AskUserQuestion
+  - Edit(./BRD-*.md)
+  - Edit(./URD-*.md)
+  - Edit(./FR-NFR-*.md)
+  - Edit(./requirements-*.json)
 argument-hint: "[elicit | document | review] [topic | file]"
 ---
 
@@ -107,6 +109,8 @@ Every requirement must be **Necessary**, **Unambiguous**, **Testable**, **Feasib
 | `BRD-<project-slug>.md` | [references/brd-template.md](references/brd-template.md) |
 | `URD-<project-slug>.md` | [references/urd-template.md](references/urd-template.md) |
 | `FR-NFR-<project-slug>.md` | [references/fr-nfr-template.md](references/fr-nfr-template.md) |
+
+Write scope: the skill pre-approves edits only to `./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, and `./requirements-*.json` in the working directory; a write to any other path asks the user first.
 
 With `--json`, also emit `requirements-<project-slug>.json` using the schema in [references/json-output-format.md](references/json-output-format.md). The JSON is a projection of the same requirements, not a second source of truth.
 

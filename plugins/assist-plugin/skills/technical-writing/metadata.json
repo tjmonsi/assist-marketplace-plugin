@@ -4,10 +4,9 @@
   "effort": "medium",
   "allowed-tools": [
     "Read",
-    "Write",
-    "Edit",
     "Grep",
-    "Glob"
+    "Glob",
+    "Edit(./README.md)"
   ],
   "argument-hint": "[docs | readme | guide | api] [topic | file]"
 }

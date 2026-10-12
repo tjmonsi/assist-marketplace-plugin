@@ -6,10 +6,9 @@ description: >-
 effort: medium
 allowed-tools:
   - Read
-  - Write
-  - Edit
   - Grep
   - Glob
+  - Edit(./README.md)
 argument-hint: "[docs | readme | guide | api] [topic | file]"
 ---
 
@@ -78,6 +77,10 @@ Outputs:
 - Request/response examples
 - Error codes
 - Authentication
+
+## Write scope
+
+The skill pre-approves edits only to `./README.md`; a write to any other path, including files under `docs/`, asks the user first.
 
 ## Output Format
 

@@ -8,10 +8,14 @@ description: >-
 effort: high
 allowed-tools:
   - Read
-  - Write
-  - Edit
   - Grep
   - Glob
+  - Edit(./specs/spec-*.md)
+  - Edit(./specs/spec-*.json)
+  - Edit(./specs/openapi/*.json)
+  - Edit(./specs/openapi/*.yaml)
+  - Edit(./*/specs/spec-*.md)
+  - Edit(./*/specs/spec-*.json)
 argument-hint: "[create | delta | review] [feature-name | file-path]"
 ---
 
@@ -60,6 +64,8 @@ spec-[feature-name].md
 | Sub-feature of a submodule feature | `[submodule]/specs/spec-[feature-name].md` |
 
 Create `specs/` if it does not exist.
+
+Write scope: the skill pre-approves edits only to `specs/spec-*.md`, `specs/spec-*.json`, `specs/openapi/*.json`, and `specs/openapi/*.yaml` in the session's working directory (`./`, normally the repository root), and to `spec-*.md` and `spec-*.json` in `<submodule>/specs/` one directory below it; a write to any other path, such as a nested submodule, asks the user first.
 
 ## Metadata block
 
