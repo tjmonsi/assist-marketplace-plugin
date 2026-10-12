@@ -1,0 +1,17 @@
+// Hook entry point. ES5 syntax only: the Node version gate in lib/launch.js runs before the real
+// module (impl/sa-mermaid-only.js) is loaded, so an unsupported Node prints a warning instead of a SyntaxError.
+// Fail-open: any failure lets the command proceed (see lib/health.js). Never exits 2.
+"use strict";
+try {
+  require("./lib/launch.js").launch("sa-mermaid-only", "impl/sa-mermaid-only.js", __dirname);
+} catch (err) {
+  try {
+    require("fs").writeSync(
+      1,
+      '{"systemMessage":"assist-plugin sa-mermaid-only hook failed (launch-error); this command was not checked"}'
+    );
+  } catch (writeError) {
+    // exit silently
+  }
+  process.exit(0);
+}

@@ -225,11 +225,11 @@ mmdc -i input.mmd -o output.png
 **Step 4: Embed in Spec**
 
 - If PNG generated: `![Architecture Diagram](spec-feature-architecture.png)` (relative path)
-- If unavailable: Embed Mermaid source and note the requirement
+- If unavailable: Embed Mermaid source, show the user the install command, and note the requirement
 
 ### Fallback Message
 
-If `mmdc` is not installed, embed the message:
+If `mmdc` is not installed, show the user the install command (`npm install -g @mermaid-js/mermaid-cli`), embed the Mermaid source in the spec, and include this note. The agent never installs mmdc and never downloads it with `npx`:
 
 ```markdown
 **Note:** PNG rendering requires mermaid-cli. To generate:
@@ -358,8 +358,8 @@ sequenceDiagram
 - Ensure no circular references (in ER diagrams)
 
 **mmdc command not found:**
-- Install: `npm install -g @mermaid-js/mermaid-cli`
-- Check PATH: `echo $PATH`
+- Show the user the install command (the agent does not run it): `npm install -g @mermaid-js/mermaid-cli`
+- Check that npm's global bin directory is on PATH
 - On Windows, may need to restart shell after install
 
 **PNG file too large:**
