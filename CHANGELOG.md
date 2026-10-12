@@ -2,6 +2,12 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.6.1] - 2026-10-12
+
+### Bug Fixes
+
+- Ship `plugins/assist-plugin/hooks/lib/` (`launch.js`, `health.js`). The root `.gitignore` rule `lib/` excluded them from v1.6.0, so installed guards failed open with a launch-error warning on every Bash call; the rule is now anchored to the repo root (`/lib/`).
+
 ## [1.6.0] - 2026-10-12
 
 ### New Features

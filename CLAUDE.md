@@ -7,7 +7,7 @@ Claude Code marketplace hosting `assist-plugin`, a token-optimized software deve
 - **GitHub repo:** `tjmonsi/assist-marketplace-plugin`
 - **Marketplace name:** `assist-plugin-marketplace` (from `.claude-plugin/marketplace.json`)
 - **Install id:** `assist-plugin@assist-plugin-marketplace`
-- **Plugin:** `plugins/assist-plugin` (v1.6.0)
+- **Plugin:** `plugins/assist-plugin` (v1.6.1)
 
 GitHub URLs and `/plugin marketplace add` use the repo path (`tjmonsi/assist-marketplace-plugin`). Install ids (`/plugin install assist-plugin@assist-plugin-marketplace`) use the marketplace name (`assist-plugin-marketplace`). Do not rename the marketplace; it breaks existing installs.
 
