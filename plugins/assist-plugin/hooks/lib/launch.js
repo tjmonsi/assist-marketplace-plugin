@@ -32,6 +32,9 @@ function isSupported(versionString) {
 function suffixFor(hook) {
   if (hook === "health-check") return "the health check did not run";
   if (hook === "injection-filter") return "this content was not filtered";
+  if (hook === "prose-gate") return "this write was not checked";
+  if (hook === "prose-advisor") return "this write was not reviewed";
+  if (hook === "writing-context") return "the writing standard was not loaded";
   return "this command was not checked";
 }
 
