@@ -21,7 +21,7 @@ Catch-all for tasks that don't fit other agents. Handles ad-hoc analysis, experi
 
 **Model:** Sonnet  
 **Effort:** medium  
-**Tools:** All (except Artifact)
+**Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 **When to route here:**
 - Task doesn't clearly fit other agents

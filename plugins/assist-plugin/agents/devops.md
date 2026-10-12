@@ -21,7 +21,7 @@ Configures CI/CD pipelines, provisions infrastructure with Terraform/Docker, aut
 
 **Model:** Sonnet  
 **Effort:** high  
-**Tools:** Read, Write, Edit, Grep, Glob, Bash
+**Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 **When to route here:**
 - "Set up CI/CD pipeline for X"

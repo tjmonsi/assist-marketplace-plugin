@@ -5,6 +5,8 @@ type: agent
 model: sonnet
 effort: medium
 tools: [Read, Write, Edit, Grep, Glob]
+skills:
+  - gather-requirements
 ---
 
 # Requirements Gatherer Agent
@@ -23,7 +25,7 @@ Leverage the `gather-requirements` skill's elicitation methodology and templates
 
 **Model:** Sonnet  
 **Effort:** medium  
-**Tools:** Read, Write, Edit, Grep, Glob, Bash
+**Tools:** Read, Write, Edit, Grep, Glob
 
 **When to route here:**
 - "Gather requirements for X"

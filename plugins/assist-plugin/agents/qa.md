@@ -4,7 +4,11 @@ description: "Create test plans, design tests, validate acceptance criteria, det
 type: agent
 model: sonnet
 effort: high
-tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP]
+skills:
+  - pentest
+  - integrated-test
+  - run-test
 ---
 
 # QA Agent
@@ -13,20 +17,20 @@ Creates test plans, designs manual and automated tests, validates acceptance cri
 
 **Responsibilities:**
 - Orchestrate test execution (unit, integration, e2e, security)
-- Run security penetration tests via `pentest` skill
-- Run integration/E2E tests via `integrated-test` skill
-- Run all test suites and collect coverage via `run-test` skill
+- Run security penetration tests via the preloaded `pentest` skill
+- Run integration/E2E tests via the preloaded `integrated-test` skill
+- Run all test suites and collect coverage via the preloaded `run-test` skill
 - Validate acceptance criteria
 - Regression detection
 - Coverage analysis
 - Report output uses `run-test`'s consolidated test report template
 
 **Standing Responsibility:**
-- Before any frontend testing task: check Playwright availability using `ToolSearch` for playwright MCP, then CLI fallback (`npx playwright --version` / `which playwright`). If neither found, report that E2E testing needs Playwright installed rather than silently skipping it.
+- Before any frontend testing task: check Playwright availability using `ToolSearch` for playwright MCP, then CLI fallback (`npx --no playwright --version` / `which playwright`). If neither found, report that E2E testing needs Playwright installed rather than silently skipping it.
 
 **Model:** Sonnet  
 **Effort:** high  
-**Tools:** Read, Write, Edit, Grep, Glob, Bash, LSP
+**Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP
 
 **When to route here:**
 - "Create a test plan for X"

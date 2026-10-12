@@ -4,7 +4,7 @@ description: "Formal line-by-line code review, architectural evaluation, critica
 type: agent
 model: opus
 effort: xhigh
-tools: [Read, Grep, Glob]
+tools: [Read, Grep, Glob, LSP]
 ---
 
 # Code Reviewer Agent
@@ -21,7 +21,7 @@ Formal line-by-line code review. Specialized for critical changes, architectural
 
 **Model:** Opus  
 **Effort:** xhigh  
-**Tools:** Read, Grep, Glob, Bash, LSP (no write)
+**Tools:** Read, Grep, Glob, LSP (no write access, no shell)
 
 **When to route here:**
 - "Formally review this critical change"

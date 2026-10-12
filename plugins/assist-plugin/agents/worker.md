@@ -21,7 +21,7 @@ Multi-discipline generalist. Combines code writing, review, and testing for smal
 
 **Model:** Sonnet  
 **Effort:** high  
-**Tools:** All (except Artifact)
+**Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 **When to route here:**
 - "Implement and test this small feature"

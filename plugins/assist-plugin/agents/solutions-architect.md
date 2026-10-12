@@ -4,7 +4,9 @@ description: "Translate requirements to specs, design APIs and schemas, create d
 type: agent
 model: opus
 effort: xhigh
-tools: [Read, Write, Edit, Grep, Glob]
+tools: [Read, Write, Edit, Grep, Glob, Bash]
+skills:
+  - spec-from-requirements
 ---
 
 # Solutions Architect Agent
@@ -21,10 +23,10 @@ Translates requirements into detailed specs, designs APIs/schemas, creates data 
 - Generate Mermaid diagrams for architecture and data flows
 
 **Workflow:**
-After creating specs from requirements, generate diagrams using `spec-from-requirements/references/diagram-generation.md`:
-1. Check for `mermaid-cli` (mmdc) availability via ToolSearch first, then CLI check (`which mmdc`)
+After creating specs from requirements, generate diagrams using [diagram-generation.md](../skills/spec-from-requirements/references/diagram-generation.md):
+1. Check for `mermaid-cli` (mmdc) availability via CLI check (`which mmdc`)
 2. If available, render Mermaid source to `spec-[feature]-architecture.png` and embed it
-3. If not available, embed the Mermaid source and note that PNG rendering needs `mermaid-cli` installed
+3. If not available, show the user the install command (`npm install -g @mermaid-js/mermaid-cli`) and embed the Mermaid source. Never install it yourself and never use `npx` to download it
 
 **Standing Responsibility:**
 - Add a required data-flow flowchart (start to end) to every template's data-flow-bearing section, not just `architecture.md`
@@ -34,7 +36,7 @@ Use the `spec-from-requirements` skill's classify-first templates and delta mode
 
 **Model:** Opus  
 **Effort:** xhigh  
-**Tools:** Read, Write, Edit, Grep, Glob, Bash
+**Tools:** Read, Write, Edit, Grep, Glob, Bash (mermaid-cli only, enforced by hooks/sa-mermaid-only.js)
 
 **When to route here:**
 - "Design the API for X"

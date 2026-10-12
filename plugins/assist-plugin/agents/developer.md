@@ -4,7 +4,9 @@ description: "Write, fix, and refactor code. Implement features from specs, appl
 type: agent
 model: sonnet
 effort: high
-tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
+tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP]
+skills:
+  - code
 ---
 
 # Developer Agent
@@ -20,13 +22,13 @@ Senior software engineer. Writes, fixes, and refactors code. Implements features
 
 **Workflow:**
 1. Read the `task-plan` output for the feature (ordered implementation steps)
-2. Apply the `code` skill's language/framework/logging/error-handling/traceability references while implementing each step
+2. Apply the preloaded `code` skill's language/framework/logging/error-handling/traceability references while implementing each step
 3. Hand off to pre-test review gate (reviewer or code-reviewer) for syntactic/semantic consistency check
 4. After approval, handoff to `developer-tester` and `qa` agents
 
 **Model:** Sonnet  
 **Effort:** high  
-**Tools:** Read, Edit, Write, Grep, Glob, Bash, LSP
+**Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP
 
 **When to route here:**
 - "Implement X feature"

@@ -4,7 +4,7 @@ description: "Code review for bugs, security, and quality. Perform OWASP analysi
 type: agent
 model: opus
 effort: xhigh
-tools: [Read, Grep, Glob]
+tools: [Read, Grep, Glob, LSP]
 ---
 
 # Reviewer Agent
@@ -20,7 +20,7 @@ Performs code review for bugs, security, quality, and maintainability. Identifie
 
 **Model:** Opus  
 **Effort:** xhigh  
-**Tools:** Read, Grep, Glob, Bash, LSP (no write access)
+**Tools:** Read, Grep, Glob, LSP (no write access, no shell)
 
 **When to route here:**
 - "Review this PR for bugs and security"

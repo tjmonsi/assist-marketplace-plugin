@@ -7,19 +7,19 @@ Source of truth for all agents in assist-plugin. Used by `do` skill for routing.
 | Agent | Responsibilities | Default Model | Tools | Primary Intent Match |
 |-------|------------------|----------------|-------|----------------------|
 | **ask** | Answer questions using repo search + web research | Sonnet | Read, Grep, Glob, WebSearch, WebFetch | "answer my question", "research this in repo", "find documentation" |
-| **developer** | Write/fix/refactor code; implement features; apply approved fixes; apply code skill standards (logging, error-handling, traceability) | Sonnet | Read, Edit, Write, Grep, Glob, Bash, LSP | "implement X", "fix bug in Y", "refactor Z" |
+| **developer** | Write/fix/refactor code; implement features; apply approved fixes; apply code skill standards (logging, error-handling, traceability) | Sonnet | Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP | "implement X", "fix bug in Y", "refactor Z" |
 | **developer-tester** | Create black-box tests from acceptance criteria; test input/output only, never implementation knowledge; use create-test skill | Sonnet | Read, Write, Grep, Glob | "write tests for X", "create test plan from acceptance criteria" |
-| **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, Bash, LSP | "review this PR", "check for security", "OWASP compliance" |
-| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "design architecture", "create roadmap", "how should we structure" |
-| **qa** | Test planning; manual/automated test design; acceptance validation; coverage; orchestrate pentest, integrated-test, and run-test skills | Sonnet | Read, Write, Edit, Grep, Glob, Bash, LSP | "create test plan", "write automated tests", "validate acceptance" |
-| **solutions-architect** | API/schema design; data flows; error handling; specs; generate architecture diagrams via mermaid-cli | Opus | Read, Write, Edit, Grep, Glob, Bash | "design API", "what should schema be", "data flow for X" |
-| **requirements-gatherer** | Requirements elicitation; BRD/URD; FR+NFR; acceptance criteria | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "gather requirements", "create BRD", "define acceptance criteria" |
-| **devops** | CI/CD pipelines; infrastructure (Terraform/Docker); deployment; monitoring | Sonnet | Read, Write, Edit, Grep, Glob, Bash | "set up CI/CD", "create Terraform", "deploy X" |
-| **researcher** | Web research; documentation audit; best practices; competitive analysis | Opus | WebSearch, WebFetch, Read, Write | "research X library", "best practices for Y", "compare solutions" |
-| **code-reviewer** | Formal line-by-line review; critical sign-off; architectural evaluation | Opus | Read, Grep, Glob, Bash, LSP | "formal review", "critical change approval", "senior review needed" |
+| **reviewer** | Code review for bugs/security/quality; OWASP checks; approve/revise | Opus | Read, Grep, Glob, LSP | "review this PR", "check for security", "OWASP compliance" |
+| **planner** | Architecture design; roadmap; dependency analysis; risk assessment | Sonnet | Read, Write, Edit, Grep, Glob | "design architecture", "create roadmap", "how should we structure" |
+| **qa** | Test planning; manual/automated test design; acceptance validation; coverage; orchestrate pentest, integrated-test, and run-test skills | Sonnet | Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP | "create test plan", "write automated tests", "validate acceptance" |
+| **solutions-architect** | API/schema design; data flows; error handling; specs; generate architecture diagrams via mermaid-cli | Opus | Read, Write, Edit, Grep, Glob, Bash (mmdc only) | "design API", "what should schema be", "data flow for X" |
+| **requirements-gatherer** | Requirements elicitation; BRD/URD; FR+NFR; acceptance criteria | Sonnet | Read, Write, Edit, Grep, Glob | "gather requirements", "create BRD", "define acceptance criteria" |
+| **devops** | CI/CD pipelines; infrastructure (Terraform/Docker); deployment; monitoring | Sonnet | Read, Write, Edit, Grep, Glob, Bash, PowerShell | "set up CI/CD", "create Terraform", "deploy X" |
+| **researcher** | Web research; documentation audit; best practices; competitive analysis | Opus | Read, Write, Edit, Grep, Glob, Bash, PowerShell, WebSearch, WebFetch | "research X library", "best practices for Y", "compare solutions" |
+| **code-reviewer** | Formal line-by-line review; critical sign-off; architectural evaluation | Opus | Read, Grep, Glob, LSP | "formal review", "critical change approval", "senior review needed" |
 | **explore** | Code search; find definitions; grep symbols; locate callers | Haiku | Read, Grep, Glob | "find where X defined", "who calls this", "search for pattern" |
-| **general-purpose** | Catch-all for unmatched tasks; ad-hoc analysis; experimentation | Sonnet | All (except Artifact) | "what's the best approach", "help me understand X" |
-| **worker** | Multi-discipline: code + test + review combined for small features | Sonnet | All (except Artifact) | "implement and test", "quick fix with tests", "add logging to X" |
+| **general-purpose** | Catch-all for unmatched tasks; ad-hoc analysis; experimentation | Sonnet | Read, Write, Edit, Grep, Glob, Bash, PowerShell | "what's the best approach", "help me understand X" |
+| **worker** | Multi-discipline: code + test + review combined for small features | Sonnet | Read, Write, Edit, Grep, Glob, Bash, PowerShell | "implement and test", "quick fix with tests", "add logging to X" |
 
 ---
 
@@ -103,8 +103,8 @@ No clear match?
 | Tier | Model | When to Use | Agents |
 |------|-------|-----------|--------|
 | **Low** | Haiku | Simple operations, pure search | explore |
-| **Medium** | Sonnet | Most development work, analysis | ask, developer, planner, qa, solutions-architect, requirements-gatherer, devops, researcher, general-purpose, worker |
-| **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer |
+| **Medium** | Sonnet | Most development work, analysis | ask, developer, developer-tester, planner, qa, requirements-gatherer, devops, general-purpose, worker |
+| **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer, solutions-architect, researcher |
 
 Planner moved from the High/Opus tier to the Medium/Sonnet tier — see [model-routing.md](model-routing.md#planner-cost-savings-sonnet-default) for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
 
