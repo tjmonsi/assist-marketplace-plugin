@@ -249,6 +249,8 @@ git commit -m "chore: bump version to 1.1.0"
 git tag -a v1.1.0 -m "Release version 1.1.0"
 ```
 
+The commit message and tag message carry no AI attribution: no `Co-Authored-By` trailer for an AI tool, no "Generated with" line, no `Assisted-by` or session trailer. Human co-authors are fine. The `commit-attribution-guard` hook denies a `git commit` whose message holds such a line; it does not check `git tag`, so keep the tag message free of attribution as well.
+
 ## Subproject Bumping
 
 When using `--path ./subproject`:

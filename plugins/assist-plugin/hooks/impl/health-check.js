@@ -19,9 +19,20 @@
 // The fsa-log is tested like the filter: clean subagent reports must log no problems and store no message text,
 // and broken terminal blocks (missing, unknown state, illegal transition, terminal mismatch, bad error class,
 // bad verdict) must log problems; a miss in either direction disables it (it then logs nothing and warns once).
-// Both prose hooks skip temp-directory paths and paths in prose-gate-allowlist.json. The self-tests pass an
-// explicit allowlist per case, so a user's real allowlist never masks a deny case, and the allowlist file is
-// separate from hooks-disabled.json, so a passing self-test never changes it.
+// The commit-attribution-guard is a guard: its corpus holds git and gh commands whose message or body carries an
+// AI co-author trailer or another AI attribution line (must be denied) and commands that only mention the
+// trailer, human co-authors, git tag, and unreadable message files (must pass). The cases use a fixed cwd and a
+// stub file reader, so the result does not depend on where the check runs.
+// Both prose hooks skip temp-directory paths, voice scripts under <cwd>/docs/tts/ (the hook input's cwd), and
+// paths in prose-gate-allowlist.json. The self-tests pass an explicit allowlist per case, so a user's real
+// allowlist never masks a deny case, and the allowlist file is separate from hooks-disabled.json, so a passing
+// self-test never changes it.
+//
+// The report also lists Claude Code's attribution settings (attribution.commit and attribution.pr in the user,
+// project, and local settings files). Each key works on its own: an unset or non-empty attribution.commit adds
+// the Co-Authored-By trailer to commits, and an unset or non-empty attribution.pr adds the footer to pull
+// requests. The check only reads those files; it never writes settings. It runs in report mode only, so
+// --session-start stays silent about it.
 //
 // Modes:
 //   --session-start  SessionStart hook. Prints {"systemMessage": ...} ONLY when something is wrong
@@ -39,12 +50,14 @@ const NAME = "health-check";
 const WATCHDOG_MS = 8000;
 const REPORT_LOG_ROWS = 20;
 
+const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
 const health = require("../lib/health.js");
 const launch = require("../lib/launch.js");
 const docCliGuard = require("./doc-cli-guard.js");
+const commitAttributionGuard = require("./commit-attribution-guard.js");
 const saMermaidOnly = require("./sa-mermaid-only.js");
 const injectionFilter = require("./injection-filter.js");
 const injectionRules = require("../lib/injection-rules.js");
@@ -142,9 +155,10 @@ function proseEdit(label, oldText, newText, disk) {
   return { label, disk, tool_name: "Edit", tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false } };
 }
 
-// Options for the prose hooks: the file contents stand-in, and the case's own allowlist (empty by default).
+// Options for the prose hooks: the file contents stand-in, the case's own allowlist (empty by default), and the
+// case's temp-directory override (the real temp directory when unset).
 function diskReader(input) {
-  return { readFile: () => (typeof input.disk === "string" ? input.disk : null), allowlist: input.allowlist || [] };
+  return { readFile: () => (typeof input.disk === "string" ? input.disk : null), allowlist: input.allowlist || [], tmpdir: input.tmpdir };
 }
 
 const ALLOWED_FILE = "/assist-selftest-allowed/notes.md";
@@ -154,7 +168,30 @@ function proseAt(label, file, content, allowlist) {
   return { label, allowlist, tool_name: "Write", tool_input: { file_path: file, content } };
 }
 
+// Calls with the hook input's cwd set, for the docs/tts/ exemption (voice scripts may hold em dashes).
+const TTS_ROOT = "/assist-selftest/project";
+// A fixed temp directory keeps the relative-path cases independent of where the check runs: otherwise a
+// relative path resolves against the check's own working directory, which may sit under the real temp directory.
+const TTS_TMP = "/assist-selftest-tmp";
+
+function proseIn(label, file, cwd, content) {
+  const input = { label, tmpdir: TTS_TMP, tool_name: "Write", tool_input: { file_path: file, content } };
+  if (cwd !== undefined) input.cwd = cwd;
+  return input;
+}
+
 const PROSE_GATE_DENY = [
+  proseIn("tts: docs/tts/../README.md normalizes outside", "docs/tts/../README.md", TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: nested x/docs/tts is not the root", "x/docs/tts/a.md", TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: docs/ttsx is another directory", "docs/ttsx/a.md", TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: docs/tts.md is a file, not the directory", "docs/tts.md", TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: absolute path outside cwd with /docs/tts/", "/assist-selftest/other/docs/tts/a.md", TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: absolute docs/tts/../ path outside", `${TTS_ROOT}/docs/tts/../README.md`, TTS_ROOT, `A ${EM} B.\n`),
+  proseIn("tts: no cwd, relative path", "docs/tts/a.md", undefined, `A ${EM} B.\n`),
+  proseIn("tts: empty cwd, relative path", "docs/tts/a.md", "", `A ${EM} B.\n`),
+  proseIn("tts: relative cwd, relative path", "docs/tts/a.md", "assist-selftest/project", `A ${EM} B.\n`),
+  proseIn("tts: no cwd, absolute path", `${TTS_ROOT}/docs/tts/a.md`, undefined, `A ${EM} B.\n`),
+  { label: "tts: notebook outside docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/ttsx/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `A ${EM} B.` } },
   proseWrite("write: em dash", `The cache is stale ${EM} restart it.\n`),
   proseWrite("write: horizontal bar", "The cache is stale \u2015 restart it.\n"),
   proseWrite("write: sign-off", "Run the tests first.\n\nI hope this helps!\n"),
@@ -173,6 +210,11 @@ const PROSE_GATE_DENY = [
 ];
 
 const PROSE_GATE_ALLOW = [
+  proseIn("tts: em dash in docs/tts (relative path)", "docs/tts/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: em dash in docs/tts (absolute path)", `${TTS_ROOT}/docs/tts/a.md`, TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: em dash in a docs/tts subdirectory", "docs/tts/ep1/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: dot segments that stay inside docs/tts", "docs/tts/ep1/../a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  { label: "tts: notebook markdown cell in docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/tts/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Pause ${EM} here.` } },
   proseWrite("write: clean prose", "The cache expires after 10 minutes. Restart the worker to clear it.\n"),
   proseAt("write: temp-directory path", TMP_FILE, `The cache is stale ${EM} restart it.\n`),
   proseAt("write: allowlisted path", ALLOWED_FILE, `The cache is stale ${EM} restart it.\n`, ["assist-selftest-allowed"]),
@@ -217,7 +259,14 @@ function postEdit(label, originalFile, oldText, newText) {
   };
 }
 
+function postIn(label, file, cwd, content) {
+  return Object.assign(postWrite(label, content, null), { cwd, tmpdir: TTS_TMP, tool_input: { file_path: file, content } });
+}
+
 const PROSE_ADVISOR_FLAGGED = [
+  postIn("tts: docs/tts/../README.md normalizes outside", "docs/tts/../README.md", TTS_ROOT, "This is very robust.\n"),
+  postIn("tts: docs/ttsx is another directory", "docs/ttsx/a.md", TTS_ROOT, "This is very robust.\n"),
+  postIn("tts: no cwd, relative path", "docs/tts/a.md", undefined, "This is very robust.\n"),
   postWrite("write: intensifier and hedge", "This is very fast and arguably done.\n", null),
   postWrite("write: ai vocabulary", "We leverage the cache.\n", null),
   postWrite("write: en dash in prose", `The build passed ${EN} mostly.\n`, null),
@@ -226,6 +275,7 @@ const PROSE_ADVISOR_FLAGGED = [
 ];
 
 const PROSE_ADVISOR_CLEAN = [
+  postIn("tts: advisory tells in docs/tts", "docs/tts/a.md", TTS_ROOT, `This is very robust ${EN} arguably.\n`),
   postWrite("write: clean prose", "The cache expires after 10 minutes.\n", null),
   postWrite("write: block tier only", "I hope this helps!\n", null),
   postWrite("write: fenced code", "```\nvery robust\n```\n", null),
@@ -481,6 +531,73 @@ function fsaLogFlagged(input) {
   return flagged;
 }
 
+// ---------------------------------------------------------------------------------------------
+// commit-attribution-guard corpus (test data only). The cases use a fixed cwd and a stub file reader.
+
+const COMMIT_ROOT = "/assist-selftest/project";
+const CLAUDE_COAUTHOR = "Co-Authored-By: Claude <noreply@anthropic.com>";
+const GPT_COAUTHOR = "Co-Authored-By: GPT-5 <noreply@openai.com>";
+const HUMAN_COAUTHOR = "Co-Authored-By: Ada Lovelace <ada@example.com>";
+const COMMIT_FILES = {
+  [path.resolve(COMMIT_ROOT, "msg-ai.txt")]: `feat: add login\n\n${CLAUDE_COAUTHOR}\n`,
+  [path.resolve(COMMIT_ROOT, "msg-human.txt")]: `feat: add login\n\n${HUMAN_COAUTHOR}\n`,
+  // The key is the literal UNC value, so the file is found only if the guard stops refusing UNC paths.
+  "//server/share/msg-ai.txt": `feat: add login\n\n${CLAUDE_COAUTHOR}\n`,
+};
+
+function commitCase(label, command, tool) {
+  return { label, tool_name: tool || "Bash", cwd: COMMIT_ROOT, tool_input: { command } };
+}
+
+function readCommitFile(file) {
+  return Object.prototype.hasOwnProperty.call(COMMIT_FILES, file) ? COMMIT_FILES[file] : null;
+}
+
+const COMMIT_GUARD_DENY = [
+  commitCase("git commit -m with a Claude co-author", `git commit -m "feat: add login\n\n${CLAUDE_COAUTHOR}"`),
+  commitCase("git commit -m with a GPT co-author", `git commit -m "feat: add login" -m "${GPT_COAUTHOR}"`),
+  commitCase("git commit -m heredoc with a Claude co-author", `git add . && git commit -m "$(cat <<'EOF'\nfeat: don't break\n\n${CLAUDE_COAUTHOR}\nEOF\n)"`),
+  commitCase("git commit -F file with a Claude co-author", "git commit -F msg-ai.txt"),
+  commitCase("gh pr create --body with a generated-with footer", "gh pr create --title t --body \"Adds login.\n\n\uD83E\uDD16 Generated with [Claude Code](https://claude.com/claude-code)\""),
+  commitCase("git commit -m with a Claude-Session trailer", 'git commit -m "feat: add login\n\nClaude-Session: https://claude.ai/code/session_01"'),
+  commitCase("PowerShell git commit -m with a Claude co-author", `git commit -m "feat: add login\`n\`n${CLAUDE_COAUTHOR}"`, "PowerShell"),
+  commitCase("PowerShell Git (capitalized) commit -m with a Claude co-author", `Git commit -m "feat: add login\`n\`n${CLAUDE_COAUTHOR}"`, "PowerShell"),
+  commitCase("git commit -m with a bare session link", 'git commit -m "feat: add login\n\nhttps://claude.ai/code/session_01"'),
+  commitCase("git commit -m with a multi-word Claude-Code-Session trailer", 'git commit -m "feat: add login\n\nClaude-Code-Session: https://claude.ai/code/session_01"'),
+  commitCase("git commit -m with an Assisted-by trailer", 'git commit -m "feat: add login\n\nAssisted-by: Claude Code"'),
+  commitCase("git commit -m with two attribution lines", `git commit -m "feat: add login\n\n${CLAUDE_COAUTHOR}\nGenerated with Claude Code"`),
+  commitCase("git commit -F - heredoc followed by && git push", `git commit -F - <<'EOF' && git push\nfeat: add login\n\n${CLAUDE_COAUTHOR}\nEOF`),
+  commitCase("git commit -F - here-string", `git commit -F - <<< "feat: add login\n\n${CLAUDE_COAUTHOR}"`),
+  commitCase("Cursor Agent co-author", 'git commit -m "x\n\nCo-authored-by: Cursor Agent <cursoragent@cursor.com>"'),
+  commitCase("Copilot co-author", 'git commit -m "x\n\nCo-authored-by: Copilot <175728472+Copilot@users.noreply.github.com>"'),
+  commitCase("aider co-author", 'git commit -m "x\n\nCo-authored-by: aider (gpt-4o) <noreply@aider.chat>"'),
+  commitCase("Devin AI co-author", 'git commit -m "x\n\nCo-authored-by: Devin AI <devin@cognition.ai>"'),
+  commitCase("gemini-code-assist co-author", 'git commit -m "x\n\nCo-authored-by: gemini-code-assist[bot] <bot@example.com>"'),
+  commitCase("Amazon Q co-author", 'git commit -m "x\n\nCo-authored-by: Amazon Q Developer <q@example.com>"'),
+  commitCase("Codex co-author", 'git commit -m "x\n\nCo-authored-by: Codex <codex@example.com>"'),
+  commitCase("Claude Opus noreply co-author", 'git commit -m "x\n\nCo-authored-by: Claude Opus 5.5 <noreply@anthropic.com>"'),
+];
+
+const COMMIT_GUARD_ALLOW = [
+  commitCase("git commit -m with a human co-author", `git commit -m "feat: add login\n\n${HUMAN_COAUTHOR}"`),
+  commitCase("git commit -m whose subject mentions Co-Authored-By", 'git commit -m "docs: explain the Co-Authored-By trailer"'),
+  commitCase("git tag -m with the trailer", `git tag -a v1.0.0 -m "release\n\n${CLAUDE_COAUTHOR}"`),
+  commitCase("non-git command that prints the trailer", `echo "${CLAUDE_COAUTHOR}"`),
+  commitCase("git commit -F with a missing file", "git commit -F msg-missing.txt"),
+  commitCase("git commit -F with a human co-author file", "git commit -F msg-human.txt"),
+  commitCase("gh pr create --body without attribution", 'gh pr create --title t --body "Adds login."'),
+  commitCase("PowerShell git status", "git status", "PowerShell"),
+  commitCase("multi-word session trailer at a non-AI host", 'git commit -m "feat: add login\n\nMy-Long-Session: https://example.com/x"'),
+  commitCase("human co-author at a vendor mail domain", 'git commit -m "x\n\nCo-authored-by: Ada Lovelace <ada@sourcegraph.com>"'),
+  commitCase("human co-author named Bard", 'git commit -m "x\n\nCo-authored-by: Mary Bard <mary@example.com>"'),
+  commitCase("human co-author named Claude with a surname", 'git commit -m "x\n\nCo-authored-by: Claude Dupont <claude@example.com>"'),
+  commitCase("gh pr create --body with the trailer only inside a code fence", `gh pr create --title t --body "Use this trailer:\n\n\`\`\`\n${CLAUDE_COAUTHOR}\n\`\`\`"`),
+  commitCase("git commit -F - here-string without attribution, then a later line", 'git commit -F - <<< "feat: add login"\ngit status'),
+  commitCase("git commit -F with a UNC path", "git commit -F //server/share/msg-ai.txt"),
+  commitCase("link to API documentation about sessions", 'git commit -m "docs: realtime\n\nhttps://platform.openai.com/docs/api-reference/realtime-sessions"'),
+  commitCase("link ending in /sessions on a vendor docs host", 'git commit -m "docs: sessions\n\nhttps://docs.anthropic.com/en/api/sessions"'),
+];
+
 // Fixed self-test cases (command text here is test data, never user input).
 const GUARDS = [
   {
@@ -514,6 +631,12 @@ const GUARDS = [
       bash("env CONTEXT7_BASE_URL=http://e ctx7 library react --json"),
       bash("command firecrawl search q --output=a"),
     ],
+  },
+  {
+    name: commitAttributionGuard.NAME,
+    evaluate: (input) => commitAttributionGuard.evaluate(input, { readFile: readCommitFile }),
+    allow: COMMIT_GUARD_ALLOW,
+    deny: COMMIT_GUARD_DENY,
   },
   {
     name: saMermaidOnly.NAME,
@@ -682,7 +805,7 @@ function buildProblems(results, disabled, newEntries, fsaNew) {
 }
 
 function formatReport(context) {
-  const { version, results, disabled, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist } = context;
+  const { version, results, disabled, attribution, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist } = context;
   const lines = ["assist-plugin hook health", ""];
   lines.push(`Node: ${version} (minimum supported: ${launch.MIN_NODE_MAJOR}) OK`);
   lines.push(`Data directory: ${canPersist ? process.env.CLAUDE_PLUGIN_DATA : "NOT SET (failures cannot be logged and guards cannot be disabled)"}`);
@@ -705,6 +828,7 @@ function formatReport(context) {
     const entry = disabled[name] || {};
     lines.push(`  ${name}: ${entry.reason || "no reason recorded"} (since ${entry.ts || "unknown"})`);
   });
+  lines.push("", attribution.join("\n"));
   lines.push("", `Hook failure log (${entries.length} entr${entries.length === 1 ? "y" : "ies"}, newest ${REPORT_LOG_ROWS} shown, ${newEntries.length} new since the last report):`);
   if (entries.length === 0) lines.push("  none");
   entries.slice(-REPORT_LOG_ROWS).forEach((entry) => {
@@ -718,6 +842,102 @@ function formatReport(context) {
   });
   if (cleared !== null) lines.push("", `Cleared ${cleared} log entr${cleared === 1 ? "y" : "ies"} from hook-health.jsonl.`);
   return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Claude Code attribution settings (read-only). Claude Code adds a Co-Authored-By trailer to commits and a
+// footer to pull requests unless attribution.commit and attribution.pr are empty strings. Precedence is the
+// local project file, then the project file, then the user file. Nothing here writes a settings file.
+
+const ATTRIBUTION_KEYS = ["commit", "pr"];
+const ATTRIBUTION_SOURCE = "https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts";
+
+// Settings files, highest precedence first. The user file lives in CLAUDE_CONFIG_DIR when that is set, else in
+// ~/.claude (https://code.claude.com/docs/en/devcontainer and https://code.claude.com/docs/en/authentication).
+// The deprecated includeCoAuthoredBy setting is not read: the Claude Code docs checked for this change do not
+// confirm that it still turns the trailer off.
+// options: {home, configDir, projectDir} replace the real locations (tests).
+function attributionFiles(options) {
+  const opts = options || {};
+  const userDir = opts.configDir || (opts.home ? path.join(opts.home, ".claude") : process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude"));
+  const project = opts.projectDir || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  return [
+    { label: "local", file: path.join(project, ".claude", "settings.local.json") },
+    { label: "project", file: path.join(project, ".claude", "settings.json") },
+    { label: "user", file: path.join(userDir, "settings.json") },
+  ];
+}
+
+// Reads one settings file. Returns {label, file, state, values}: state is "ok", "missing", "unreadable",
+// "invalid JSON", or "not a JSON object"; values holds attribution.commit and attribution.pr when state is "ok".
+function inspectSettings(entry, readFile) {
+  const result = { file: entry.file, label: entry.label, state: "ok", values: {} };
+  let text;
+  try {
+    text = readFile(entry.file);
+  } catch (err) {
+    result.state = err && err.code === "ENOENT" ? "missing" : "unreadable";
+    return result;
+  }
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    result.state = "invalid JSON";
+    return result;
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    result.state = "not a JSON object";
+    return result;
+  }
+  const attribution = data.attribution && typeof data.attribution === "object" ? data.attribution : {};
+  ATTRIBUTION_KEYS.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(attribution, key)) result.values[key] = attribution[key];
+  });
+  return result;
+}
+
+function describeValue(value) {
+  if (typeof value !== "string") {
+    const kind = value === null ? "null" : typeof value;
+    return `${/^[aeiou]/.test(kind) ? "an" : "a"} ${kind} value`;
+  }
+  const shown = health.sanitize(value).slice(0, 40);
+  return `"${shown}${value.length > shown.length ? "..." : ""}"`;
+}
+
+// Returns the report lines. options: {home, configDir, projectDir, readFile}; readFile(file) returns text or throws.
+function attributionReport(options) {
+  const opts = options || {};
+  const readFile = opts.readFile || ((file) => fs.readFileSync(file, "utf8"));
+  const files = attributionFiles(opts).map((entry) => inspectSettings(entry, readFile));
+  const lines = ["Claude Code attribution settings (read-only; this check never edits settings):"];
+  files.forEach((result) => {
+    let detail = result.state;
+    if (result.state === "ok") {
+      detail = ATTRIBUTION_KEYS.map((key) => `attribution.${key} ${Object.prototype.hasOwnProperty.call(result.values, key) ? `= ${describeValue(result.values[key])}` : "not set"}`).join(", ");
+    }
+    lines.push(`  ${result.label} (${result.file}): ${detail}`);
+  });
+  const userFile = files[files.length - 1].file;
+  const problems = [];
+  ATTRIBUTION_KEYS.forEach((key) => {
+    const winner = files.filter((result) => Object.prototype.hasOwnProperty.call(result.values, key))[0];
+    if (!winner) {
+      problems.push(`attribution.${key} is not set in any settings file; set it to "" in ${userFile}`);
+    } else if (winner.values[key] !== "") {
+      problems.push(`attribution.${key} is ${describeValue(winner.values[key])} in ${winner.file}; set it to "" there`);
+    }
+  });
+  if (problems.length === 0) {
+    lines.push('  OK: attribution.commit and attribution.pr are "", so Claude Code adds no Co-Authored-By trailer or pull request footer.');
+  } else {
+    problems.forEach((problem) => lines.push(`  ${problem}`));
+    lines.push('  Each key works on its own: an unset or non-empty attribution.commit adds the Co-Authored-By trailer to commits, and an unset or non-empty attribution.pr adds the footer to pull requests. Claude Code asks the model to write them, and the commit-attribution-guard denies a command that carries them.');
+    lines.push('  Setting: {"attribution": {"commit": "", "pr": ""}}');
+  }
+  lines.push(`  Source: ${ATTRIBUTION_SOURCE}`);
+  return lines;
 }
 
 function run(argv) {
@@ -772,8 +992,14 @@ function run(argv) {
 
   let cleared = null;
   if (clear) cleared = health.clearLog();
+  let attribution;
+  try {
+    attribution = attributionReport();
+  } catch (err) {
+    attribution = [`Claude Code attribution settings: could not be checked (${health.describeError(err)})`];
+  }
   process.stdout.write(
-    formatReport({ version: launch.nodeVersion(), results, disabled, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist }) + "\n"
+    formatReport({ version: launch.nodeVersion(), results, disabled, attribution, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist }) + "\n"
   );
   markNotified();
 }
@@ -791,6 +1017,6 @@ function main() {
   // Exit naturally (exit code 0) so buffered stdout is flushed; the watchdog timer is unref'd.
 }
 
-module.exports = { NAME, GUARDS, FSA_WRITE_ALLOW, FSA_WRITE_DENY, FSA_LOG_CLEAN, FSA_LOG_BROKEN, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
+module.exports = { NAME, GUARDS, COMMIT_GUARD_ALLOW, COMMIT_GUARD_DENY, attributionReport, FSA_WRITE_ALLOW, FSA_WRITE_DENY, FSA_LOG_CLEAN, FSA_LOG_BROKEN, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
 
 if (require.main === module) main();

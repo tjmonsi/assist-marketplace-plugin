@@ -17,29 +17,18 @@
 // It is a guardrail, not a security boundary.
 "use strict";
 
+const shellProgram = require("../lib/shell-program.js");
+
 const NAME = "doc-cli-guard";
 const ALLOW = { deny: false, reason: "" };
 const GUARDED_COMMANDS = new Set(["firecrawl", "ctx7"]);
 const SHELL_METACHARACTERS = /[;&|`$><\\{}\n\r]/;
-const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const ENDPOINT_VARIABLE = /^(FIRECRAWL_API_URL|CONTEXT7_[A-Za-z0-9_]*URL[A-Za-z0-9_]*)=/;
 const ENDPOINT_VARIABLE_ANYWHERE = /(^|[^A-Za-z0-9_])(FIRECRAWL_API_URL|CONTEXT7_[A-Za-z0-9_]*URL[A-Za-z0-9_]*)=/;
 // Any short flag cluster containing o (-o, -Xo, -ofile); long flags that redirect output or the endpoint.
 const SHORT_OUTPUT_FLAG = /^-[A-Za-z]*o/;
 const LONG_FORBIDDEN_FLAG = /^--(output|base-url|api-url)(=|$)/;
 const FORBIDDEN_SUBCOMMANDS = new Set(["firecrawl env", "ctx7 setup", "ctx7 login"]);
-
-// Wrappers that may precede the program. Each entry lists the options that consume a separate value.
-const WRAPPERS = new Map([
-  ["env", new Set(["-u", "--unset", "-C", "--chdir"])],
-  ["command", new Set()],
-  ["timeout", new Set(["-s", "--signal", "-k", "--kill-after"])],
-  ["nice", new Set(["-n", "--adjustment"])],
-  ["nohup", new Set()],
-  ["stdbuf", new Set(["-i", "-o", "-e"])],
-  ["time", new Set(["-f", "--format", "-o", "--output"])],
-]);
-const DURATION = /^\d+(\.\d+)?[smhd]?$/;
 
 // Split into words, honoring whole-word "double" or 'single' quotes. A quote inside a bare word is rejected (null).
 function tokenize(cmd) {
@@ -58,30 +47,10 @@ function looseWords(cmd) {
   return cmd.split(/\s+/).filter(Boolean).map((word) => word.replace(/^(["'])(.*)\1$/, "$2"));
 }
 
-// Skips VAR=value words and wrappers. Returns the index of the program word, whether an endpoint
-// variable was assigned on the way, or -1 when no program is found.
+// Skips VAR=value words and wrappers (see ../lib/shell-program.js). Returns the index of the program word,
+// whether an endpoint variable was assigned on the way, or -1 when no program is found.
 function findProgram(words) {
-  let endpointAssigned = false;
-  let i = 0;
-  while (i < words.length) {
-    const word = words[i];
-    if (ENV_ASSIGNMENT.test(word)) {
-      if (ENDPOINT_VARIABLE.test(word)) endpointAssigned = true;
-      i++;
-      continue;
-    }
-    const wrapper = WRAPPERS.get(word.split("/").pop());
-    if (wrapper === undefined) return { index: i, endpointAssigned };
-    const name = word.split("/").pop();
-    i++;
-    // Skip the wrapper's own options (and their values); a duration follows timeout's options.
-    while (i < words.length && words[i].startsWith("-")) {
-      if (words[i] === "--") { i++; break; }
-      i += wrapper.has(words[i]) ? 2 : 1;
-    }
-    if (name === "timeout" && i < words.length && DURATION.test(words[i])) i++;
-  }
-  return { index: -1, endpointAssigned };
+  return shellProgram.findProgram(words, { isEndpoint: (word) => ENDPOINT_VARIABLE.test(word) });
 }
 
 // Returns a deny reason, or null when the command is not guarded or is acceptable.

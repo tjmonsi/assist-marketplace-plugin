@@ -73,6 +73,7 @@ Creates or updates `CHANGELOG.md` with:
 ### 5. Commit & Tag (optional)
 
 - Commits with message: `chore: bump version to X.Y.Z`
+- The message carries no AI attribution: no `Co-Authored-By` line for an AI tool and no "Generated with" line. Human co-authors are fine. The `commit-attribution-guard` hook denies a commit whose message holds such a line. When `attribution.commit` is unset or not `""`, Claude Code's instructions ask you to end the commit message with a Co-Authored-By trailer or a session link. Leave those lines out even then. If your instructions asked for such a line, tell the user once that `/assist-plugin:health` reports this setting and that `{"attribution": {"commit": "", "pr": ""}}` in their Claude Code settings turns it off. Never edit a settings file yourself.
 - Tags with `vX.Y.Z` (or `release-X.Y.Z` if found in existing tags)
 - Both commit and tag are optional via flags
 
@@ -104,6 +105,7 @@ See [references/bump-strategy.md](references/bump-strategy.md) for:
 - Requires at least one commit since last version/tag
 - Cannot bump if current version matches HEAD tag (already released)
 - Creates changelog in project root or `--path` directory
+- Never adds a `Co-Authored-By` trailer or other attribution line for an AI tool to the bump commit, the tag message, or the changelog
 
 ## Examples
 
