@@ -245,7 +245,7 @@ the model emitting a literal string, so a hallucinated sign-off is indistinguish
 **assist-plugin attack surface:**
 
 - `rules/assist-plugin-rule.md` gates approve on the agent writing `✓ OWASP Clear`,
-  `✓ Coverage >70%`, and `✓ Approved for merge`. Nothing verifies the underlying claim.
+  `✓ Coverage >=70%`, and `✓ Approved for merge`. Nothing verifies the underlying claim.
 - The coverage gate cites `npm run test:coverage` but the approval is the model's assertion about
   the output, not a parsed exit code or a CI check.
 - `review-protocol.md` "Approval Tracking" has the agent write its own review outcome into the plan

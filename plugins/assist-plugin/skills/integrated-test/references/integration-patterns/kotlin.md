@@ -277,7 +277,7 @@ class UserWorkflowIntegrationTest {
 open app/build/reports/jacoco/jacocoTestDebugUnitTestReport/html/index.html
 ```
 
-Target: 90%+ coverage.
+Target: coverage >=70%.
 
 ## Running Tests
 

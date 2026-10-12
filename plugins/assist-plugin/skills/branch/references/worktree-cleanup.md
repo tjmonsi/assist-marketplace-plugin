@@ -1,13 +1,13 @@
 # Worktree Cleanup
 
-The single procedure for removing finished git worktrees, deleting their merged branches, and clearing build caches. `/branch cleanup` and `/do` Step 7 both run this file. Nothing here uses `--force`, `-D`, `git clean`, or `rm -rf`.
+The single procedure for removing finished git worktrees, deleting their merged branches, and clearing build caches. `/branch cleanup` and the `/do` Cleanup state both run this file. Nothing here uses `--force`, `-D`, `git clean`, or `rm -rf`.
 
 ## Modes
 
 | Mode | Caller | Candidate worktrees |
 |------|--------|---------------------|
 | Sweep | `/branch cleanup` | Every linked worktree in `git worktree list` |
-| Targeted | `/do` Step 7 | Only the exact worktree paths the plan's steps created (from the Agent `isolation: "worktree"` result or EnterWorktree). Never sweep the repository. |
+| Targeted | the `/do` Cleanup state | Only the exact worktree paths the plan's steps created (from the Agent `isolation: "worktree"` result or EnterWorktree). Never sweep the repository. |
 
 `--dry-run` (either mode): list every action that would happen (removals, branch deletions, caches, ignored files) and change nothing. Read-only commands still run.
 

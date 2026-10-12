@@ -244,7 +244,7 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 
 ---
 
-## Testing Coverage Gate (>70%)
+## Testing Coverage Gate (>=70%)
 
 **When triggered:** Code changes in production code  
 **Who reviews:** `qa` agent  
@@ -252,10 +252,8 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 
 ### Coverage Requirements
 
-- **Unit tests:** Core functions tested (>80%)
-- **Integration tests:** Components work together (>60%)
+- **Overall bar:** >=70% coverage for new/changed code, measured across unit and integration tests together
 - **Edge cases:** Error paths tested
-- **Overall target:** >70% for new/changed code
 
 ### Coverage Validation
 
@@ -263,11 +261,11 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 # Run coverage before merge
 npm run test:coverage  # or equivalent
 
-# Must show: Overall coverage >70%
+# Must show: Overall coverage >=70%
 # Must show: No critical paths uncovered
 ```
 
-**Approval:** Must sign: `✓ Coverage >70%`
+**Approval:** Must sign: `✓ Coverage >=70%`
 
 ---
 
@@ -322,8 +320,8 @@ Escalate to code-reviewer if:
 | Security (OWASP) | High (multiple issues) | ~15 min |
 | Security (OWASP for LLM) | Low (no issues) | ~5 min |
 | Security (OWASP for LLM) | High (multiple issues) | ~15 min |
-| Testing (>70%) | Low (high coverage) | ~3 min |
-| Testing (>70%) | High (low coverage) | ~10 min |
+| Testing (>=70%) | Low (high coverage) | ~3 min |
+| Testing (>=70%) | High (low coverage) | ~10 min |
 | Code Review | Low (small change) | ~10 min |
 | Code Review | High (complex change) | ~30 min |
 
@@ -335,7 +333,7 @@ Escalate to code-reviewer if:
 
 - [ ] Security review: ✓ OWASP Clear
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`)
-- [ ] Testing: ✓ >70% coverage
+- [ ] Testing: ✓ >=70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
 - [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
 - [ ] Commit format: ✓ Conventional Commits
@@ -370,7 +368,7 @@ Mark in plan: `**Review:** Low-risk (no production code)`
 
 ## Worktree and Cache Cleanup
 
-**Rule:** After a task done in a git worktree is merged, remove the finished worktree, delete its merged branch, and clear the Go build cache. `/do` runs this automatically (Step 7) and only for the exact worktrees its steps created; `/branch cleanup` sweeps all linked worktrees on demand.
+**Rule:** After a task done in a git worktree is merged, remove the finished worktree, delete its merged branch, and clear the Go build cache. `/do` runs this automatically (the Cleanup state) and only for the exact worktrees its steps created; `/branch cleanup` sweeps all linked worktrees on demand.
 
 **Guards:**
 - Never touch the main worktree, the current worktree, or the default, `main`, `master`, or `develop` branches

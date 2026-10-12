@@ -42,7 +42,7 @@ Then use the `/do` orchestrator:
 - `spec-from-requirements`: Feature specs and delta change logs
 - `task-plan`: Ordered coding steps from specs
 - `create-test`: Black-box acceptance-criteria tests
-- `health`: Hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards
+- `health`: Hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 - `deslop`: Remove AI writing tells from prose; `/deslop [edit | detect] <file-or-text>` (edit returns cleaned text, detect lists findings)
 
 **4 internal skills (loaded by agents):**
@@ -51,12 +51,12 @@ Then use the `/do` orchestrator:
 - `integrated-test`: Integration and E2E testing patterns (qa)
 - `run-test`: Test execution and coverage reports (qa)
 
-**14 expert agents:**
-- ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
+**15 expert agents:**
+- ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
 
 **Governance gates:**
 - OWASP Top 10 security review
-- >70% test coverage requirement
+- >=70% test coverage requirement
 - Formal code review sign-off
 
 **Platform support:**
@@ -139,7 +139,7 @@ The plugin works without these tools, but agents fall back or skip steps when on
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
 | git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
-| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/fsa-write-bar.js`, `hooks/fsa-log.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
 | uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
 | Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
 
@@ -243,7 +243,7 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfo
 
 ## Hook health
 
-The two Bash guards and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, and the prose hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
+The two Bash guards and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, the prose hooks, and the FSA hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), subagent reports with terminal-block problems (`fsa-log.jsonl`), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
 
 ### Injection filter
 
@@ -265,6 +265,19 @@ All three fail open. The per-write hooks add about 80 to 110 ms to each write. T
 
 To rewrite existing prose, run `/deslop edit <file>`; `/deslop detect <file>` lists the tells without changing the file. To change a writing rule, edit `rules/writing-standard.md`, then run `node plugins/assist-plugin/scripts/sync-writing-standard.js` to refresh the `## Report Writing Standard` blocks in `agents/` and `skills/`.
 
+### FSA hooks
+
+The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, and `developer` follow a finite-state automaton: a `## States` table in the agent or skill file. Every dispatched agent, `qa` included, ends its final message with a terminal block (a fenced `fsa` block of ten fields) ([skills/do/references/fsa-template.md](plugins/assist-plugin/skills/do/references/fsa-template.md)). Two hooks check what is visible from outside the model:
+
+- **`fsa-write-bar`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): `developer-tester` may write only test paths, and `developer` may not write them. Test paths are the globs under "Write scope" in `agents/developer-tester.md` (`**/tests/**`, `**/*.test.*`, `**/*_test.go`, and six more). A denial names the path, the rule, and that section. `developer-tester` is also denied any path with a segment that starts with a dot, any file named `CLAUDE.md` or `AGENTS.md`, and any path over 4096 characters or with a NUL character, even when a test glob matches. Other agents and the main session are never affected. A path inside the session's working directory or `CLAUDE_PROJECT_DIR` is judged relative to it, so a project that sits under a directory named `tests` is not all test paths; when both directories contain the path, `developer` is denied if any relative form matches a test glob, and `developer-tester` is allowed only if a form matches and no denial applies.
+
+  **Limits of the bar:** it covers the `Write`, `Edit`, `MultiEdit`, and `NotebookEdit` tools only. A `Bash` command can still write any path, and the bar does not see it. Paths are judged as written: symlinks are not resolved, so a link inside a test directory that points elsewhere passes. The match is case-sensitive, so `Tests/a.js` and `claude.md` are not test paths or auto-loaded files. The bar is a guardrail, not a security boundary.
+- **`fsa-log`** (SubagentStop, PostToolUse on `SubagentHandback`, PostToolUse on `Agent`): reads the last `fsa` block of each report from those six agents, checks its `trace`, `state`, `error_class`, and `verdict` against the agent's transition table (`qa` has no table, so only state, error class, and verdict), and appends one line to `fsa-log.jsonl` in the plugin data directory (newest 500 lines kept). A line holds timestamp, session id, event, agent type, agent id, the block's state, verdict, error class, and trace, the number of `out_of_scope` items, and the problem codes. It never holds prompts, report text, artifact paths, questions, out-of-scope items, or file contents. A stop that follows the same agent's newest handback is not checked twice; the hook writes a marker line (`stop-after-handback`) in its place.
+
+`fsa-log` runs in warn mode. When a final report has no block or an illegal one, you see one line, `assist-plugin fsa: <agent> final report <problem summary>; see /assist-plugin:health`, and the run continues unchanged: the hook never blocks a subagent, never sends it back, and never adds context, because either would make the subagent keep running. The session-start check counts new problem reports since the last notice, and `/assist-plugin:health` lists them with the problem codes.
+
+Both hooks fail open like the rest: any crash, bad input, timeout, or disabled hook lets the write or the report through with a one-line warning. The tables in `hooks/lib/fsa-tables.js` mirror the markdown tables. After you edit a `## States` table or the Write scope table, run `node plugins/assist-plugin/scripts/check-fsa-tables.js --check`; it exits 1 and lists each difference while the two disagree.
+
 ## Marketplace Structure
 
 ```
@@ -279,7 +292,7 @@ assist-marketplace-plugin/
 ├── plugins/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
-│       ├── agents/ (14 agent definitions)
+│       ├── agents/ (15 agent definitions)
 │       ├── skills/ (20 skills: 16 user-invocable, 4 internal)
 │       ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
 │       │   ├── hooks.json (hook registration)
@@ -289,12 +302,14 @@ assist-marketplace-plugin/
 │       │   ├── prose-gate.js (entry: denies added block-tier tells in prose writes)
 │       │   ├── prose-advisor.js (entry: advisory note on added tells after a prose write)
 │       │   ├── writing-context.js (entry: injects the compact writing standard at SessionStart and SubagentStart)
+│       │   ├── fsa-write-bar.js (entry: keeps developer-tester to test paths and developer out of them)
+│       │   ├── fsa-log.js (entry: logs and checks subagent terminal blocks, warn mode)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
-│       │   ├── impl/ (guard, injection-filter, prose-hook, and health-check logic)
-│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js)
+│       │   ├── impl/ (guard, injection-filter, prose-hook, FSA-hook, and health-check logic)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, fsa-tables.js, fsa-paths.js)
 │       ├── output-styles/ (terse.md: opt-in `assist-plugin:terse` output style)
 │       ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
-│       ├── scripts/ (sync-writing-standard.js: syncs the Report Writing Standard blocks)
+│       ├── scripts/ (sync-writing-standard.js: syncs the Report Writing Standard blocks; check-fsa-tables.js: checks the FSA tables against the markdown)
 │       ├── docs/ (comprehensive documentation)
 │       ├── Claude.md (quick reference)
 │       ├── NOTICE (attribution)

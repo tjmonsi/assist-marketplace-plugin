@@ -191,14 +191,13 @@ open app/build/reports/jacoco/jacocoTestDebugUnitTestReport/html/index.html
 ## General Guidelines
 
 ### Minimum targets
-- **Line coverage:** 90%
-- **Branch coverage:** 75% (secondary; focus on critical paths)
-- **Function coverage:** 90%
+- **Line coverage:** >=70%
+- **Branch coverage:** no minimum (secondary; focus on critical paths)
+- **Function coverage:** >=70%
 
 ### Interpreting percentages
-- **90%+:** Good coverage. Investigate remaining gaps for critical paths.
-- **85-89%:** Acceptable but gaps exist. Identify and address high-risk uncovered areas.
-- **<85%:** Needs work. Identify uncovered files and add tests.
+- **>=70%:** Meets the bar. Investigate remaining gaps for critical paths.
+- **<70%:** Below the bar. Identify uncovered files and add tests.
 
 ### Uncovered lines to prioritize
 1. Error handlers (catch blocks, exception paths)

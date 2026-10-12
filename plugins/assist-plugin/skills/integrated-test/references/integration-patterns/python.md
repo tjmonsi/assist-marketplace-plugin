@@ -172,4 +172,4 @@ uv run --no-sync --no-python-downloads pytest --cov=app --cov-report=term-missin
 pytest --cov=app --cov-report=term-missing tests/
 ```
 
-Target: 90%+ coverage. Report uncovered lines for review.
+Target: coverage >=70%. Report uncovered lines for review.

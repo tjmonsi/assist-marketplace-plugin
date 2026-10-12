@@ -12,7 +12,7 @@ Use `/do` to route any development task to the right agent:
 /do design the API schema for the new feature
 ```
 
-## Agents (14)
+## Agents (15)
 
 | Agent | Purpose |
 |-------|---------|
@@ -27,7 +27,8 @@ Use `/do` to route any development task to the right agent:
 | **devops** | CI/CD, infrastructure, deployment |
 | **researcher** | Web research, documentation audit |
 | **code-reviewer** | Formal code review (specialized) |
-| **general-purpose** | Catch-all for unmatched tasks |
+| **intake-reviewer** | Read-only intake review of a user-provided spec or requirements file before `/do` plans write steps |
+| **general-purpose** | Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify |
 | **explore** | Fast read-only code search |
 | **worker** | Multi-discipline fallback |
 
@@ -85,7 +86,7 @@ Use `/do` to route any development task to the right agent:
 ## Governance
 
 - **Security:** OWASP top 10 review on code changes
-- **Testing:** >70% coverage required for new code
+- **Testing:** >=70% coverage required for new code
 - **Review:** Code reviewer sign-off required before merge
 - See [rules/assist-plugin-rule.md](rules/assist-plugin-rule.md)
 

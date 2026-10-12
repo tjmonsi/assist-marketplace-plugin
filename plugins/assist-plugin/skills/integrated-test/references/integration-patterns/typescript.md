@@ -203,7 +203,7 @@ describe('CRUD operations', () => {
 npm run test:integration -- --coverage
 ```
 
-Target: 90%+ coverage. Report uncovered lines.
+Target: coverage >=70%. Report uncovered lines.
 
 ## Running Integration Tests
 

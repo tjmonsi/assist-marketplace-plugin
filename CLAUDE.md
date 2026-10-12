@@ -21,7 +21,7 @@ Use `/do` to route any development task to the right agent:
 /do design the API schema for the new feature
 ```
 
-## Agents (14)
+## Agents (15)
 
 | Agent | Purpose |
 |-------|---------|
@@ -31,7 +31,8 @@ Use `/do` to route any development task to the right agent:
 | **developer-tester** | Write black-box acceptance-criteria tests without reading implementation |
 | **devops** | CI/CD, infrastructure, deployment, monitoring |
 | **explore** | Fast read-only code search |
-| **general-purpose** | Catch-all for unmatched tasks |
+| **intake-reviewer** | Read-only intake review of a user spec, requirements, or instructions file before `/do` plans write steps |
+| **general-purpose** | Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify |
 | **planner** | Architecture, roadmaps, dependency and risk analysis |
 | **qa** | Test plans, acceptance validation, pentest, integration and coverage checks |
 | **requirements-gatherer** | Requirements elicitation, BRD/URD, FR and NFR |
@@ -92,13 +93,15 @@ Use `/do` to route any development task to the right agent:
 - **prose-gate** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies only added block-tier tells (em dash, chatbot residue, curly quotes, summary-label phrases) in prose files.
 - **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks.
 - **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
+- **fsa-write-bar** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): keeps `developer-tester` to test paths (never a dot path, `CLAUDE.md`, or `AGENTS.md`) and `developer` out of them. Bash writes are not covered; symlinks are not resolved.
+- **fsa-log** (SubagentStop, PostToolUse on `SubagentHandback` and `Agent`): checks each subagent's terminal block against its `## States` table and logs it to `fsa-log.jsonl`. Warn mode: never blocks.
 - **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
 - All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
 
 ## Governance
 
 - **Security:** OWASP top 10 review on code changes
-- **Testing:** >70% coverage required for new code
+- **Testing:** >=70% coverage required for new code
 - **Review:** Code reviewer sign-off required before merge
 - **LLM security:** OWASP for LLM gate on changes to `agents/`, `skills/`, `rules/`, `hooks/`, or `CLAUDE.md` (see [plugins/assist-plugin/rules/llm-security-checklist.md](plugins/assist-plugin/rules/llm-security-checklist.md))
 - See [plugins/assist-plugin/rules/assist-plugin-rule.md](plugins/assist-plugin/rules/assist-plugin-rule.md)
@@ -116,6 +119,7 @@ When adding or removing a skill or agent, update the counts and lists in:
 - [ ] `plugins/assist-plugin/docs/SPECIFICATION.md`
 - [ ] `plugins/assist-plugin/skills/do/references/agent-registry.md`
 - [ ] Run `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` (exits 1 while any `## Report Writing Standard` block differs from `rules/writing-standard-compact.md`; drop `--check` to fix them)
+- [ ] Run `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` after editing a `## States` table, the Write scope table in `agents/developer-tester.md`, or a terminal-block example (exits 1 while `hooks/lib/fsa-tables.js` or `hooks/lib/fsa-paths.js` differs from the markdown; the markdown wins, so edit the JavaScript to match)
 - When an agent depends on a skill, list it in the agent's `skills:` frontmatter; never set `disable-model-invocation: true` on a skill an agent preloads.
 
 When releasing, update the version in `plugins/assist-plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.

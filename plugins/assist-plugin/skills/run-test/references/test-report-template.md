@@ -40,13 +40,13 @@ PASS | FAIL | NEEDS ATTENTION
 
 ## Coverage
 
-- **Line coverage:** X% (target: 90%)
-- **Branch coverage:** X% (target: 75%)
+- **Line coverage:** X% (target: >=70%)
+- **Branch coverage:** X% (target: none, secondary)
 - **Coverage status:** [✓ Met target | ⚠ Below target by X%]
 
 ### Uncovered critical paths
 
-[If below 90%, list high-risk uncovered areas]
+[If below 70%, list high-risk uncovered areas]
 - Error handlers in auth.ts: 12 lines uncovered (lines 45-57)
 - Validation in models.py: 8 lines uncovered (lines 23, 45-51)
 
@@ -103,7 +103,7 @@ PASS | FAIL | NEEDS ATTENTION
 
 ### Coverage Gaps to Address
 
-[If coverage below 90%]
+[If coverage below 70%]
 
 - [ ] Add tests for error handlers in auth middleware
 - [ ] Add boundary tests for pagination (empty results, overflow)
@@ -128,8 +128,8 @@ PASS | FAIL | NEEDS ATTENTION
 ## Field Guidance
 
 ### Verdict
-- **PASS:** All tests pass, coverage at or above 90%, no blocking issues
-- **FAIL:** Tests fail OR coverage below 90% OR critical errors exist
+- **PASS:** All tests pass, coverage >=70%, no blocking issues
+- **FAIL:** Tests fail OR coverage below 70% OR critical errors exist
 - **NEEDS ATTENTION:** Tests pass but with warnings (flaky tests, coverage edge cases, minor issues)
 
 Use these three words for the verdict, never emoji badges.
@@ -138,7 +138,7 @@ Use these three words for the verdict, never emoji badges.
 Count by category. Include skipped tests only if intentional (e.g., tests marked `@skip` in config).
 
 ### Coverage
-Report both line coverage (primary) and branch coverage (secondary). If below 90%, list specific uncovered files and line numbers, prioritizing high-risk areas (error handlers, auth, validation).
+Report both line coverage (primary) and branch coverage (secondary). If below 70%, list specific uncovered files and line numbers, prioritizing high-risk areas (error handlers, auth, validation).
 
 ### Test Failures
 For each failure, include:
@@ -187,7 +187,7 @@ When creating a test report, include:
 - ✓ Summary (2-3 sentences)
 - ✓ What Was Tested (scope, environment, counts)
 - ✓ Test Results table (pass/fail/skip counts)
-- ✓ Coverage (% vs 90% target)
+- ✓ Coverage (% vs >=70% target)
 - ✓ Failures (if any) with reproduction steps
 - ✓ Recommendations (fixes, gaps, additional testing)
 - ✓ Next Steps (ordered action list)

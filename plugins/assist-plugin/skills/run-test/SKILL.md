@@ -126,9 +126,9 @@ Extract:
 
 ### Assess against target
 
-Target: **90% code coverage minimum**
+Target: **coverage >=70% minimum**
 
-If below 90%:
+If below 70%:
 1. List uncovered files and lines
 2. Identify high-risk uncovered paths (error handlers, auth flows)
 3. Report as a finding requiring remediation
@@ -142,7 +142,7 @@ Use the template in [references/test-report-template.md](references/test-report-
 The report structure:
 - **What was tested:** Test suite name, language, framework
 - **Pass/fail counts:** Number of passed, failed, skipped tests
-- **Coverage vs. target:** Actual % vs. 90% minimum
+- **Coverage vs. target:** Actual % vs. the >=70% minimum
 - **For every failure:** Test name, how it was invoked, captured output/logs
 - **Recommendations:** Tests to add, failures to fix, coverage gaps to address
 

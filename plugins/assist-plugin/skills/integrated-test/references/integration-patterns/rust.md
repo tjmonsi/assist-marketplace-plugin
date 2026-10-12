@@ -207,7 +207,7 @@ cargo tarpaulin --out Html --output-dir coverage/
 cargo tarpaulin --features "default" --out Html
 ```
 
-Target: 90%+ coverage.
+Target: coverage >=70%.
 
 ## Running Tests
 

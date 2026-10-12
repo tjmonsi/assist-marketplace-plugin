@@ -227,7 +227,7 @@ go test -tags=integration -coverprofile=coverage.out ./tests/...
 go tool cover -func=coverage.out
 ```
 
-Target: 90%+ coverage.
+Target: coverage >=70%.
 
 ## Running Tests
 

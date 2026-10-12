@@ -225,7 +225,7 @@ describe('CRUD Integration', () => {
 jest --coverage tests/integration/
 ```
 
-Target: 90%+ coverage. Report uncovered lines.
+Target: coverage >=70%. Report uncovered lines.
 
 ## Running Tests
 

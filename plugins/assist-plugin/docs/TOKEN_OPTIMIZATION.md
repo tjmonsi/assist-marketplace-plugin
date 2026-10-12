@@ -8,11 +8,11 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ## Included ✓
 
-### Agents (14)
+### Agents (15)
 - **All core agents:** developer, developer-tester, reviewer, planner
 - **All testing agents:** qa, solutions-architect
 - **All planning agents:** requirements-gatherer, devops
-- **All support agents:** ask, researcher, code-reviewer, explore, general-purpose, worker
+- **All support agents:** ask, researcher, code-reviewer, intake-reviewer, explore, general-purpose, worker
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
@@ -135,7 +135,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
-| Agents | 14 | 12 | 117% |
+| Agents | 15 | 12 | 125% |
 | Skills | 20 | 20+ | ~100% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
