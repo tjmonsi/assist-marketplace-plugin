@@ -395,6 +395,7 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 - Every hook command goes through an ES5 entry file (`hooks/*.js`) that gates the Node version before loading the real module; set `timeout` in `hooks.json`
 - Record failures in `${CLAUDE_PLUGIN_DATA}/hook-health.jsonl` without command text, arguments, environment values, or stdin
 - A guard whose self-test denies a known-safe command is auto-disabled (with a warning) until a later self-test passes; `/assist-plugin:health` shows the state
+- The `injection-filter` is defensive and fail-open: it rewrites a tool result or subagent prompt only on a positive rule match (and asks the user to confirm a rewritten subagent prompt), never blocks, only warns about the user's own typed prompt, and is auto-disabled if its benign/injection self-test corpus fails
 
 ---
 

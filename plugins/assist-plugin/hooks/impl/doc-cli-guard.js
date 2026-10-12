@@ -128,6 +128,6 @@ function main() {
   require("../lib/health.js").guard(NAME, evaluate);
 }
 
-module.exports = { NAME, evaluate, main };
+module.exports = { NAME, evaluate, main, findProgram, looseWords };
 
 if (require.main === module) main();

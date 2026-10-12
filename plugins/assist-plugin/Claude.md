@@ -49,7 +49,7 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard self-tests, recent hook failures, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard and injection-filter self-tests, recent hook failures, disabled guards |
 | **code** | (preloaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
 | **pentest** | (preloaded by qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
 | **integrated-test** | (preloaded by qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |

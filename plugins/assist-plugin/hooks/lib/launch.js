@@ -30,7 +30,9 @@ function isSupported(versionString) {
 }
 
 function suffixFor(hook) {
-  return hook === "health-check" ? "the health check did not run" : "this command was not checked";
+  if (hook === "health-check") return "the health check did not run";
+  if (hook === "injection-filter") return "this content was not filtered";
+  return "this command was not checked";
 }
 
 // Last-resort warning that does not depend on any other module.

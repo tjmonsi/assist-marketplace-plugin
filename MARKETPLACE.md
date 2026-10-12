@@ -42,7 +42,7 @@ assist-marketplace-plugin/
         ├── .claude-plugin/plugin.json (plugin metadata)
         ├── agents/ (14 agent definitions)
         ├── skills/ (19 skills: 15 user-invocable, 4 internal)
-        ├── hooks/ (fail-open PreToolUse guards and health check)
+        ├── hooks/ (fail-open PreToolUse guards, injection filter, and health check)
         ├── rules/ (governance)
         ├── docs/ (comprehensive documentation)
         ├── Claude.md (quick reference)

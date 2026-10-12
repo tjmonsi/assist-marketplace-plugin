@@ -42,7 +42,7 @@ Then use the `/do` orchestrator:
 - `spec-from-requirements` — Feature specs and delta change logs
 - `task-plan` — Ordered coding steps from specs
 - `create-test` — Black-box acceptance-criteria tests
-- `health` — Hook health: Node version, guard self-tests, recent hook failures, disabled guards
+- `health` — Hook health: Node version, guard and injection-filter self-tests, recent hook failures, disabled guards
 
 **4 internal skills (loaded by agents):**
 - `code` — Coding standards and conventions (developer)
@@ -137,7 +137,7 @@ The plugin works without these tools, but agents fall back or skip steps when on
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
 | git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
-| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/injection-filter.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
 | uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
 | Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
 
@@ -243,6 +243,12 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfo
 
 The two PreToolUse guards block a command only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), and disabled guards. `/assist-plugin:health --clear` empties the failure log after showing it.
 
+### Injection filter
+
+The `injection-filter` hook is a defensive filter for untrusted content. It runs after `WebFetch`, `WebSearch`, `mcp__*` tools, subagent (`Agent`) results, and Bash commands that run `firecrawl`, `curl`, `wget`, or `ctx7`; it never touches `Read`, `Grep`, or other Bash output. Sentences that match a fixed set of prompt-injection rules (instruction override, role reassignment, system-prompt or secret exfiltration, fake chat delimiters, hidden-instruction carriers, tool hijack, data-exfiltration links, concealment) are replaced with `[assist-plugin removed possible prompt injection: <rule-id>]`, invisible Unicode (zero-width, bidi override, tag characters) is stripped, and Claude gets a factual note listing the rule ids. All other text is returned unchanged. A subagent prompt that matches is rewritten the same way and Claude Code asks you to confirm it. A typed prompt that matches is never changed or blocked: you get a warning and Claude gets a note.
+
+The filter fails open (any error returns the original content with a one-line warning), never blocks, and is a pattern filter, not a security boundary: it does not decode base64, does not map look-alike letters from other scripts, and does not read non-English text. Content from the plugin's own files is skipped. To skip other sources, list substrings in `injection-allowlist.json` in the plugin data directory, for example `["docs.example.com", "/home/me/notes/"]`: a URL matches when its host (or a parent domain) or host and path start with the entry; a file path matches when it contains the entry.
+
 ## Marketplace Structure
 
 ```
@@ -259,13 +265,14 @@ assist-marketplace-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
 │       ├── agents/ (14 agent definitions)
 │       ├── skills/ (19 skills: 15 user-invocable, 4 internal)
-│       ├── hooks/ (fail-open PreToolUse guards and health check)
+│       ├── hooks/ (fail-open PreToolUse guards, injection filter, and health check)
 │       │   ├── hooks.json (hook registration)
 │       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
+│       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
-│       │   ├── impl/ (guard and health-check logic)
-│       │   └── lib/ (Node version gate, fail-open runtime, health log)
+│       │   ├── impl/ (guard, injection-filter, and health-check logic)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection rules)
 │       ├── rules/ (governance)
 │       ├── docs/ (comprehensive documentation)
 │       ├── Claude.md (quick reference)

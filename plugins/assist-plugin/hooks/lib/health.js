@@ -9,6 +9,8 @@
 //   - Every failure (thrown error, uncaught exception, unhandled rejection, stdin error,
 //     malformed input, timeout, unsupported Node, disable flag) lets the command proceed:
 //     print only {"systemMessage": ...} on stdout, exit 0. If writing fails, exit 0 silently.
+//   - transform() runs a PostToolUse / PreToolUse / UserPromptSubmit filter. It emits output only when the
+//     filter positively returns {stdout}; every failure path above prints nothing or a systemMessage and exits 0.
 //   - The health log (${CLAUDE_PLUGIN_DATA}/hook-health.jsonl) holds {ts, hook, node, kind, message}.
 //     It never holds command text, arguments, environment values, or stdin: error messages are not
 //     copied (JSON.parse errors can quote the input); only the error name, code, and source line are.
@@ -205,6 +207,21 @@ function clearLog() {
   return count;
 }
 
+// Appends a validated record to the health log. Never throws. kind must match NAME_PATTERN.
+function logEvent(hook, kind, message) {
+  try {
+    appendLog({
+      ts: new Date().toISOString(),
+      hook: hook,
+      node: nodeVersion(),
+      kind: kind,
+      message: sanitize(message || "")
+    });
+  } catch (err) {
+    // health-log write failure must not change the outcome
+  }
+}
+
 // Describes an error without copying its message: name, code, and the first hook source line.
 function describeError(err) {
   var name = err && typeof err.name === "string" && /^[A-Za-z]{1,40}$/.test(err.name) ? err.name : "Error";
@@ -235,6 +252,37 @@ function writeStdout(text) {
     process.stdout.write(text);
   } catch (err2) {
     // nothing more can be done
+  }
+}
+
+// Writes a possibly large payload (a whole tool result) and calls done() once it is flushed.
+// fs.writeSync can write partially or throw EAGAIN on a full pipe, so the remainder goes to the stream.
+function writeStdoutFlushed(text, done) {
+  var buf;
+  try {
+    buf = Buffer.from(text, "utf8");
+  } catch (err) {
+    done();
+    return;
+  }
+  var offset = 0;
+  while (offset < buf.length) {
+    try {
+      offset += fs.writeSync(1, buf, offset, buf.length - offset);
+    } catch (err2) {
+      break;
+    }
+  }
+  if (offset >= buf.length) {
+    done();
+    return;
+  }
+  try {
+    process.stdout.write(buf.slice(offset), function () {
+      done();
+    });
+  } catch (err3) {
+    done();
   }
 }
 
@@ -379,6 +427,89 @@ function guard(name, evaluate) {
   });
 }
 
+// One notice per disable event: remembered in health-state.json under the disable timestamp.
+function disabledNoticeShown(name, entry) {
+  try {
+    var state = readState();
+    var shown = state.disabledNotice && typeof state.disabledNotice === "object" ? state.disabledNotice : {};
+    if (shown[name] && shown[name] === entry.ts) return true;
+    shown[name] = entry.ts;
+    state.disabledNotice = shown;
+    writeState(state);
+  } catch (err) {
+    // a state write failure only means the notice may repeat
+  }
+  return false;
+}
+
+// Runs a filter hook (PostToolUse, PreToolUse, UserPromptSubmit). fn(input) returns null (emit
+// nothing) or {stdout: object, logKind?: string, message?: string}. Nothing here blocks: the only
+// stdout is the object fn returned, or a {"systemMessage"} warning. Always exits 0.
+// A hook listed in hooks-disabled.json passes through with a one-time systemMessage.
+function transform(name, fn, options) {
+  options = options || {};
+  var failure = { suffix: options.suffix || "this content was not filtered" };
+  installHandlers(name, failure);
+  startWatchdog(name, WATCHDOG_MS, failure);
+  readStdin(function (stdinError, raw) {
+    if (finished) return;
+    if (stdinError) {
+      failOpen(name, "stdin-error", "could not read hook input", stdinError, failure);
+      return;
+    }
+    var disabled = null;
+    try {
+      disabled = disabledEntry(name);
+    } catch (err) {
+      disabled = null;
+    }
+    if (disabled) {
+      finished = true;
+      if (!disabledNoticeShown(name, disabled)) {
+        var why = disabled.reason ? " (" + sanitize(disabled.reason) + ")" : "";
+        warn(
+          "assist-plugin " + name + " is disabled" + why + "; protection is off and this content was not filtered. " +
+            "Run /assist-plugin:health for details."
+        );
+      }
+      exitZero();
+      return;
+    }
+    var input;
+    try {
+      input = JSON.parse(raw);
+    } catch (parseError) {
+      failOpen(name, "malformed-input", "hook input is not valid JSON", null, failure);
+      return;
+    }
+    var result;
+    try {
+      result = fn(input);
+    } catch (evalError) {
+      failOpen(name, "exception", "filter logic failed", evalError, failure);
+      return;
+    }
+    if (result && typeof result.logKind === "string" && NAME_PATTERN.test(result.logKind)) {
+      logEvent(name, result.logKind, typeof result.message === "string" ? result.message : "");
+    }
+    var text = null;
+    if (result && result.stdout && typeof result.stdout === "object") {
+      try {
+        text = JSON.stringify(result.stdout);
+      } catch (stringifyError) {
+        failOpen(name, "exception", "filter output could not be serialized", stringifyError, failure);
+        return;
+      }
+    }
+    finished = true;
+    if (text) {
+      writeStdoutFlushed(text, exitZero);
+      return;
+    }
+    exitZero();
+  });
+}
+
 module.exports = {
   LOG_FILE: LOG_FILE,
   DISABLED_FILE: DISABLED_FILE,
@@ -397,6 +528,8 @@ module.exports = {
   installHandlers: installHandlers,
   startWatchdog: startWatchdog,
   guard: guard,
+  transform: transform,
+  logEvent: logEvent,
   warn: warn,
   exitZero: exitZero
 };
