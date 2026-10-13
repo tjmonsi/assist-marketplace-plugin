@@ -139,7 +139,20 @@ This agent adds:
 | Error classes used | `precondition-failed` (Intake), `budget-exhausted` (CheckCoverage, SelfCheck), `policy-rejection` (WriteTests) |
 | NeedsInput | `no-spec` (Intake), `interface-undocumented` or `framework-unknown` (AssembleContext) |
 
-The final message ends with the terminal block, and `/do` runs the tests and the review.
+The final message ends with the terminal block, and `/do` runs the tests and the review. Every final message carries the block, including each report after a follow-up message or a resumed run, and the block always has all ten fields in a fence tagged `fsa`:
+
+```fsa
+fsa: developer-tester/1
+state: Done
+trace: Intake > AssembleContext > PlanCoverage > CheckCoverage > WriteTests > SelfCheck > Done
+artifact: tests/auth/login.test.ts
+verdict: covered=7 uncovered=1
+skipped: compile not-run (skipped)
+out_of_scope: none
+error_class: none
+questions: none
+resume_at: none
+```
 
 ## Report Writing Standard
 

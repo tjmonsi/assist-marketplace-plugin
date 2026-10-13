@@ -83,7 +83,7 @@ When a dispatched agent's final message has no valid block, `/do` reads it as `E
 
 ### Dispatch prompt text
 
-Agents run in their own context and cannot open this file: a path relative to `/do` does not resolve for them. Every dispatch prompt and every retry prompt `/do` writes therefore carries this text, with the block copied in full:
+Agents run in their own context and cannot open this file: a path relative to `/do` does not resolve for them. Every dispatch prompt, resume message, and retry prompt `/do` writes therefore carries this text, with the block copied in full:
 
 ````text
 End your final message with this block, filled in. Use state Done, NeedsInput, or Error. error_class is one of missing-input, precondition-failed, policy-rejection, budget-exhausted, tool-missing, tool-failed, out-of-scope, or none, and none unless state is Error. Put the questions for the user in questions and the state to resume at in resume_at; both are none otherwise. Put work you found but may not do in out_of_scope, and none otherwise.

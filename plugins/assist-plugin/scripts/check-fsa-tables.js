@@ -186,7 +186,7 @@ function checkGlobs() {
 function main(argv) {
   const check = argv.indexOf("--check") !== -1;
   const results = tables.tableNames().map(checkTable);
-  const files = unique(tables.tableNames().map((name) => tables.TABLES[name].source).concat([TEMPLATE]));
+  const files = unique(tables.tableNames().map((name) => tables.TABLES[name].source).concat([TEMPLATE, WRITE_SCOPE_FILE]));
   files.forEach((file) => results.push(checkExamples(file)));
   results.push(checkGlobs());
   let drift = 0;
