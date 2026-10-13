@@ -139,7 +139,7 @@ This agent adds:
 | Error classes used | `precondition-failed` (Intake), `budget-exhausted` (CheckCoverage, SelfCheck), `policy-rejection` (WriteTests) |
 | NeedsInput | `no-spec` (Intake), `interface-undocumented` or `framework-unknown` (AssembleContext) |
 
-The final message ends with the terminal block, and `/do` runs the tests and the review. Every final message carries the block, including each report after a follow-up message or a resumed run, and the block always has all ten fields in a fence tagged `fsa`:
+The final message ends with the terminal block, and `/do` runs the tests and the review. Every final message carries the block, including each report after a follow-up message or a resumed run, and the block always has all ten fields in a fence tagged `fsa`. A run that reaches `Done` ends like this, with its own state, trace, paths, and counts:
 
 ```fsa
 fsa: developer-tester/1

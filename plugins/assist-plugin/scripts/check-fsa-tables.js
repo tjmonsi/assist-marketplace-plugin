@@ -24,6 +24,7 @@ const fsaPaths = require(path.join(PLUGIN_ROOT, "hooks", "lib", "fsa-paths.js"))
 
 const TEMPLATE = "skills/do/references/fsa-template.md";
 const WRITE_SCOPE_FILE = "agents/developer-tester.md";
+const EXAMPLE_FILES = [TEMPLATE, "agents/developer-tester.md"];
 const FENCE = /^[ \t]{0,3}(`{3,10}|~{3,10})/;
 const NEXT_STATE = /^\s{0,4}([A-Z][A-Za-z]{0,30})(?:\(([a-z-]{1,30})\))?/;
 const MAX_ROWS = 40;
@@ -186,7 +187,7 @@ function checkGlobs() {
 function main(argv) {
   const check = argv.indexOf("--check") !== -1;
   const results = tables.tableNames().map(checkTable);
-  const files = unique(tables.tableNames().map((name) => tables.TABLES[name].source).concat([TEMPLATE, WRITE_SCOPE_FILE]));
+  const files = unique(tables.tableNames().map((name) => tables.TABLES[name].source).concat(EXAMPLE_FILES));
   files.forEach((file) => results.push(checkExamples(file)));
   results.push(checkGlobs());
   let drift = 0;
