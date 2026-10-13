@@ -2,6 +2,15 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.10.1] - 2026-10-13
+
+### Fixes
+
+- `developer-tester` reports keep their terminal block after context compaction
+  - `agents/developer-tester.md` now holds the literal ten-field ```` ```fsa ```` block; it used to link to the create-test template, which compaction could drop with the dispatch prompt
+  - `/do` resume messages after `NeedsInput` now carry the dispatch prompt text, as retries already did
+  - `check-fsa-tables.js` now checks the example block in `agents/developer-tester.md`
+
 ## [1.10.0] - 2026-10-12
 
 ### New Features
