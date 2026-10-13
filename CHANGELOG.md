@@ -2,6 +2,13 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.10.2] - 2026-10-13
+
+### Bug Fixes
+
+- The `developer-tester` terminal block in `agents/developer-tester.md` is labelled as an example of a `Done` run, so an agent fills in its own state, trace, paths, and counts
+- `check-fsa-tables.js` lists the files it checks for example blocks in its own `EXAMPLE_FILES` constant
+
 ## [1.10.1] - 2026-10-13
 
 ### Bug Fixes
