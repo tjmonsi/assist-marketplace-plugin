@@ -398,3 +398,5 @@ vite.config.ts.timestamp-*
 
 .agent/main-plan
 .agent
+
+docs/extra
