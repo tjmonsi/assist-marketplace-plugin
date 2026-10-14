@@ -114,10 +114,11 @@ This agent writes only to test paths. A test path is a file that matches one of 
 
 Fixtures, builders, and helpers count as test paths only when they sit under one of the directory globs above. A path outside the table is a non-test path: do not write it, end in `Error(policy-rejection)`, and name the path in the prose above the block. This table is the list a write-scope hook enforces.
 
-Four denials apply even when a glob above matches. Claude Code loads these files into the context of later sessions, so a test-path write there would plant instructions:
+Five denials apply even when a glob above matches. Claude Code loads the auto-loaded files into the context of later sessions, so a test-path write there would plant instructions, and `DECISIONS.md` holds the user's decisions:
 
 - Any path with a segment that starts with `.` (`.claude/tests/x.test.ts`, `tests/.hidden/a.test.js`).
-- Any file named `CLAUDE.md` or `AGENTS.md`, at any depth (`tests/CLAUDE.md`).
+- Any file named `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md`, at any depth (`tests/CLAUDE.md`).
+- Any file named `DECISIONS.md`, in any directory (denied for every subagent).
 - A path longer than 4096 characters.
 - A path that contains a NUL character.
 

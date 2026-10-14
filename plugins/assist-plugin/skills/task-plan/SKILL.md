@@ -7,9 +7,9 @@ description: >-
 effort: medium
 allowed-tools:
   - Read
-  - Write
   - Grep
   - Glob
+  - Edit(./task-plan-*.md)
 argument-hint: "<spec-file-or-prompt> [target-language]"
 ---
 
@@ -19,11 +19,15 @@ Plan the implementation of a feature by validating its specification and produci
 
 ## Routing
 
-Parse input: target spec file path, optional target language (detected from codebase if omitted).
+Parse input: target spec file path, optional target language (detected from codebase if omitted). A rework (a fix pass) also gives an existing task-plan file path; WritePlan then overwrites that file instead of creating a new one.
+
+`/do` runs this skill through the [task-planner](../../agents/task-planner.md) agent, which has no Bash, Edit, or PowerShell tool and can write only a `task-plan-*.md` file at the project root.
+
+Write scope: the skill pre-approves edits only to `./task-plan-*.md` in the working directory; a write to any other path asks the user first.
 
 ## States
 
-`task-plan` is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../do/references/fsa-template.md)). Follow the states in this order and do not skip one. Every `model` state ends with one line `Outcome: <value>`, and that value picks the next state. The Workflow steps below are the states, in order. Its output is the input of the `developer` agent (see [developer States](../../agents/developer.md#states)).
+`task-plan` is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../do/references/fsa-template.md)). Follow the states in this order and do not skip one. Every `model` state ends with one line `Outcome: <value>`, and that value picks the next state. The Workflow steps below are the states, in order. Its output is the input of the `developer` agent (see [developer States](../../agents/developer.md#states)); the `task-planner` agent runs this table (see [task-planner](../../agents/task-planner.md#states)).
 
 | State | Kind | Does | Outcome -> next state |
 |---|---|---|---|
@@ -32,17 +36,17 @@ Parse input: target spec file path, optional target language (detected from code
 | ExtractRequirements | check | List each `SPEC-NNN` ID, each linked `FR-NNN` or `NFR-NNN`, and each Scenario title | `listed` -> PlanSteps |
 | PlanSteps | model | Write the ordered coding steps: files, `Satisfies` IDs, `code` skill references | `planned` -> CheckPlan |
 | CheckPlan | check | Every Intake requirement appears in some step's `Satisfies`. Every cited ID exists in the spec or its requirement documents (Grep). Every cited code reference exists in the `code` skill (Glob). Every file path a step modifies exists | `complete` -> WritePlan; `gaps` with rounds < 2 -> PlanSteps; `gaps` with rounds = 2 -> Error(budget-exhausted) |
-| WritePlan | model | Write the plan file from the template | `written` -> Done |
+| WritePlan | model | Write the plan file from the template. A rework overwrites the task-plan file whose path the prompt gives; a first run creates a new timestamped file | `written` -> Done; `denied` (the write bar refused the path) -> Error(policy-rejection) |
 | Done, NeedsInput, Error | terminal | End with the terminal block below | none |
 
 `rounds` counts PlanSteps passes after a CheckPlan `gaps`. `NeedsInput` carries numbered questions and `resume_at` (`Intake` for `no-spec`, `ClassifyContext` for `undetected`).
 
 ### Terminal block
 
-When `task-plan` is the whole step, the final message ends with this block ([fsa-template.md](../do/references/fsa-template.md#terminal-block)). `verdict` is `steps=N`, the number of coding steps in the plan. `artifact` is the plan file path. When a `developer` run applies only task-plan's validation as its own Intake, the block is the developer's.
+When `task-plan` runs inside the `task-planner` agent, the final message ends with this block ([fsa-template.md](../do/references/fsa-template.md#terminal-block)). `verdict` is `steps=N`, the number of coding steps in the plan. `artifact` is the plan file path. When a `developer` run applies only task-plan's validation as its own Intake, the block is the developer's.
 
 ```fsa
-fsa: task-plan/1
+fsa: task-planner/1
 state: Done
 trace: Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done
 artifact: task-plan-user-api-20261012-101500.md
@@ -121,7 +125,7 @@ Order steps so:
 
 ### 5. Output (state: WritePlan)
 
-Write `task-plan-[feature-slug]-[timestamp].md` using the template at [references/task-plan-template.md](references/task-plan-template.md).
+Write `task-plan-[feature-slug]-[timestamp].md` using the template at [references/task-plan-template.md](references/task-plan-template.md). When the prompt gives the path of an existing task-plan file to rework, overwrite that file and keep its name.
 
 The file is ready for the `developer` agent to follow: each step becomes one implementation task.
 
@@ -129,7 +133,7 @@ The file is ready for the `developer` agent to follow: each step becomes one imp
 
 - Never invent acceptance criteria or requirement IDs
 - Every code reference cited must exist in the `code` skill
-- File paths must match the target codebase structure (run `ls` / `find` to verify before citing)
+- File paths must match the target codebase structure (use Glob to verify before citing)
 - Do not estimate effort or timeline; steps are ordered, not sized
 - Do not propose refactoring or cleanup steps; focus on the feature's requirements
 
