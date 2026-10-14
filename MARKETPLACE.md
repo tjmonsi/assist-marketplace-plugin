@@ -4,14 +4,15 @@ Token-optimized Claude marketplace for development plugins.
 
 ## Plugins
 
-### assist-plugin v1.10.2
+### assist-plugin v1.11.0
 
-Token-optimized software development plugin with 22 skills (18 user-invocable, 4 internal), 15 expert agents, and governance gates.
+Token-optimized software development plugin with 22 skills (18 user-invocable, 4 internal), 16 expert agents, and governance gates.
 
 **Features:**
 - 18 user-invocable skills: do, ask, debug, bump, pr-review, commit, branch, map-project, technical-writing, review-md, gather-requirements, spec-from-requirements, task-plan, create-test, health, deslop, voice-script, clarify
 - 4 internal skills (loaded by agents): code, pentest, integrated-test, run-test
-- 15 agents: ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
+- 16 agents: ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, task-planner, worker
+- Spec-first `/do`: a build request gets requirements, a spec, and a task plan, approved by the user, before any step that writes code, config, pipelines, infrastructure, or tests
 - Writing standard: `rules/writing-standard.md`, applied by the fail-open `prose-gate`, `prose-advisor`, and `writing-context` hooks; opt-in `assist-plugin:terse` output style
 - Governance: OWASP security, >=70% test coverage, code review gates
 - Auto-detection: GitHub/Bitbucket platform detection
@@ -41,7 +42,7 @@ assist-marketplace-plugin/
 └── plugins/
     └── assist-plugin/
         ├── .claude-plugin/plugin.json (plugin metadata)
-        ├── agents/ (15 agent definitions)
+        ├── agents/ (16 agent definitions)
         ├── skills/ (22 skills: 18 user-invocable, 4 internal)
         ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
         ├── output-styles/ (terse.md)
@@ -72,7 +73,7 @@ git clone https://github.com/tjmonsi/assist-marketplace-plugin.git ~/.claude/plu
 
 ## Versioning
 
-Each plugin follows semantic versioning. Version 1.10.2 is available in `plugins/assist-plugin/`.
+Each plugin follows semantic versioning. Version 1.11.0 is available in `plugins/assist-plugin/`.
 
 Future versions will follow the same pattern: a single `plugins/assist-plugin/` directory with versioning managed through git tags (e.g., `assist-plugin--v1.1.0`, `assist-plugin--v2.0.0`).
 

@@ -8,10 +8,10 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ## Included ✓
 
-### Agents (15)
+### Agents (16)
 - **All core agents:** developer, developer-tester, reviewer, planner
 - **All testing agents:** qa, solutions-architect
-- **All planning agents:** requirements-gatherer, devops
+- **All planning agents:** requirements-gatherer, task-planner, devops
 - **All support agents:** ask, researcher, code-reviewer, intake-reviewer, explore, general-purpose, worker
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
@@ -66,7 +66,7 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ### Project-Specific Hooks & CI Infrastructure
 - **Why excluded:** Git hooks, CI pipelines, and project-specific automation belong to each project; governance is in rules
-- **Included instead:** Small fail-open hooks in `hooks/`: 10 scripts registered as 15 commands in `hooks/hooks.json`. `sa-mermaid-only.js` restricts the solutions-architect agent's Bash to mermaid-cli (`mmdc`). `doc-cli-guard.js` denies output/endpoint flags, endpoint overrides, shell metacharacters, and config subcommands for `firecrawl` and `ctx7`. `injection-filter.js` rewrites prompt-injection sentences in untrusted tool results. `prose-gate.js` denies a prose write only when it adds a block-tier writing tell, and `prose-advisor.js` adds an advisory note after the write. `commit-attribution-guard.js` denies a `git commit`, `git merge`, `gh pr create`, or `gh pr edit` command whose message or body carries AI attribution. `fsa-write-bar.js` keeps `developer-tester` to test paths and `developer` out of them. `fsa-log.js` checks each subagent's terminal block against its `## States` table and logs it (warn mode, never blocks). `health-check.js` self-tests the guards and filters at session start. `writing-context.js` injects the compact writing standard (`rules/writing-standard-compact.md`, 1,195 characters, about 300 tokens) at session start and after /clear or compaction, and once per subagent. The prose hooks add about 80 to 110 ms per write and no model tokens unless a tell is found. All are guardrails (fail-open if `node` is missing), not security boundaries
+- **Included instead:** Small fail-open hooks in `hooks/`: 10 scripts registered as 15 commands in `hooks/hooks.json`. `sa-mermaid-only.js` restricts the solutions-architect agent's Bash to mermaid-cli (`mmdc`), reading a `.mmd` file and writing a `.svg`, `.png`, or `.pdf` file under `specs/` or `<dir>/specs/`. `doc-cli-guard.js` denies output/endpoint flags, endpoint overrides, shell metacharacters, and config subcommands for `firecrawl` and `ctx7`. `injection-filter.js` rewrites prompt-injection sentences in untrusted tool results. `prose-gate.js` denies a prose write only when it adds a block-tier writing tell, and `prose-advisor.js` adds an advisory note after the write. `commit-attribution-guard.js` denies a `git commit`, `git merge`, `gh pr create`, or `gh pr edit` command whose message or body carries AI attribution. `fsa-write-bar.js` keeps `developer-tester` to test paths and `developer` out of them, limits `task-planner` to a root-level `task-plan-*.md`, bars `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`, and denies every subagent `.agent/main-plan/**` and `DECISIONS.md`. `fsa-log.js` checks each subagent's terminal block against its `## States` table and logs it (warn mode, never blocks). `health-check.js` self-tests the guards and filters at session start. `writing-context.js` injects the compact writing standard (`rules/writing-standard-compact.md`, 1,195 characters, about 300 tokens) at session start and after /clear or compaction, and once per subagent. The prose hooks add about 80 to 110 ms per write and no model tokens unless a tell is found. All are guardrails (fail-open if `node` is missing), not security boundaries
 - **Output style:** `assist-plugin:terse` is opt-in and is not applied to subagents
 - **Alternative:** Implement other hooks in your git repo or CI/CD
 
@@ -137,7 +137,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
-| Agents | 15 | 12 | 125% |
+| Agents | 16 | 12 | 133% |
 | Skills | 22 | 20+ | ~110% |
 | Reference files | 10 | 20+ | 50% |
 | Documentation | 3 pages | 50+ pages | 6% |
@@ -154,6 +154,7 @@ It uses Sonnet model by default. Its tools are Read, Edit, Write, etc.
 | No DevOps skills | Smaller, focused | Use external plugin for bkt-jira |
 | No meta-skills | Reduced scope | Manual skill creation (rare need) |
 | Six PreToolUse hooks only | Guardrails for `mmdc`, `firecrawl`, `ctx7`, commit attribution, prose, and FSA write scope without project-specific hooks; needs Node | Implement other hooks in your CI/CD |
+| Spec-first for build requests | Requirements, spec, and task plan exist and are approved before any build step | Three document steps, their review gates, and a sign-off per build request; the user can pick Skip spec-first at plan approval |
 | Link-based docs | ~30% token saving on docs | Need to read external docs |
 | Compact format | Faster parsing | Less verbose explanations |
 | **Opus for architecture** | Better quality decisions | Higher token cost per task |

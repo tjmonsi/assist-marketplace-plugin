@@ -7,7 +7,7 @@ Claude Code marketplace hosting `assist-plugin`, a token-optimized software deve
 - **GitHub repo:** `tjmonsi/assist-marketplace-plugin`
 - **Marketplace name:** `assist-plugin-marketplace` (from `.claude-plugin/marketplace.json`)
 - **Install id:** `assist-plugin@assist-plugin-marketplace`
-- **Plugin:** `plugins/assist-plugin` (v1.10.2)
+- **Plugin:** `plugins/assist-plugin` (v1.11.0)
 
 GitHub URLs and `/plugin marketplace add` use the repo path (`tjmonsi/assist-marketplace-plugin`). Install ids (`/plugin install assist-plugin@assist-plugin-marketplace`) use the marketplace name (`assist-plugin-marketplace`). Do not rename the marketplace; it breaks existing installs.
 
@@ -21,7 +21,7 @@ Use `/do` to route any development task to the right agent:
 /do design the API schema for the new feature
 ```
 
-## Agents (15)
+## Agents (16)
 
 | Agent | Purpose |
 |-------|---------|
@@ -31,7 +31,7 @@ Use `/do` to route any development task to the right agent:
 | **developer-tester** | Write black-box acceptance-criteria tests without reading implementation |
 | **devops** | CI/CD, infrastructure, deployment, monitoring |
 | **explore** | Fast read-only code search |
-| **intake-reviewer** | Read-only intake review of a user spec, requirements, or instructions file before `/do` plans write steps |
+| **intake-reviewer** | Read-only intake review before `/do` plans write steps: `review` audits a user spec, requirements, or instructions file; `conflict-check` compares a build request with existing requirements, specs, task plans, and `DECISIONS.md` |
 | **general-purpose** | Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify |
 | **planner** | Architecture, roadmaps, dependency and risk analysis |
 | **qa** | Test plans, acceptance validation, pentest, integration and coverage checks |
@@ -39,6 +39,7 @@ Use `/do` to route any development task to the right agent:
 | **researcher** | Web research, documentation audit, best practices |
 | **reviewer** | Code review for bugs, security (OWASP), and quality |
 | **solutions-architect** | Requirements to specs, APIs, schemas, data flows |
+| **task-planner** | Turn an approved spec into an ordered task plan; writes only a root-level `task-plan-*.md` |
 | **worker** | Multi-discipline generalist for small features |
 
 ## Skills (22)
@@ -47,7 +48,7 @@ Use `/do` to route any development task to the right agent:
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
-| **do** | `/do [task description or prompt]` | Route a task to the best agent and orchestrate with review loops |
+| **do** | `/do [task description or prompt]` | Route a task to the best agent and orchestrate with review loops; a build request gets requirements, a spec, and a task plan approved first |
 | **ask** | `/ask [--web] <question>` | Answer questions from the repo, optionally with web research |
 | **debug** | `/debug [analyze \| fix \| review] [description \| file:line]` | Root cause analysis and iterative fixes |
 | **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit]` | Semantic version bump with changelog generation |
@@ -61,7 +62,7 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Write feature specs and delta change logs from requirements |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Turn a spec into ordered coding steps |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Generate black-box acceptance-criteria tests (also used by developer-tester) |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, and prose-hook self-tests, recent hook failures, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards |
 | **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 | **voice-script** | `/voice-script [topic \| draft-file]` | Write a paste-ready text-to-speech script for a chosen TTS model, using that model's own tags; saves it to `docs/tts/` |
 | **clarify** | `/clarify [what is unclear]` | Explain unclear points from the discussion with evidence, ask the user about points only the user can settle, and append each to a daily log in `.agent/clarify/` |
@@ -96,7 +97,8 @@ Use `/do` to route any development task to the right agent:
 - **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks. It skips `docs/tts/` like prose-gate.
 - **commit-attribution-guard** (PreToolUse on `Bash` and `PowerShell`): denies `git commit` and `git merge` (with `-m`, `--message`, `-F`, `--file`, `--trailer`) and `gh pr create` and `gh pr edit` (with `--body`, `-b`, `--body-file`, `-F`) when the message or body holds an AI attribution line: a Co-Authored-By trailer naming an AI tool or vendor (human co-authors pass), a "Generated with/by" footer, an Assisted-by or Generated-by trailer, or a `*-Session:` trailer or bare session link at an AI host. It lists up to 5 lines to remove, never rewrites the command, and does not cover `git tag` or a message built from a variable or stdin. `/assist-plugin:health` reports when Claude Code's `attribution.commit` or `attribution.pr` setting is unset or not `""`.
 - **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
-- **fsa-write-bar** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): keeps `developer-tester` to test paths (never a dot path, `CLAUDE.md`, or `AGENTS.md`) and `developer` out of them. Bash writes are not covered; symlinks are not resolved.
+- **fsa-write-bar** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): keeps `developer-tester` to test paths and `developer` out of them; limits `task-planner` to a root-level `task-plan-*.md`; bars `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`. Every subagent (any plugin, when `agent_id` is present) is denied `.agent/main-plan/**` and `DECISIONS.md`, and every subagent is denied a path over 4096 characters or with a NUL character. Bash writes are not covered; symlinks are not resolved.
+- **sa-mermaid-only** (PreToolUse on `Bash`): limits `solutions-architect` to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with a fixed flag allowlist. `-i` takes a `.mmd` file and `-o` takes a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`.
 - **fsa-log** (SubagentStop, PostToolUse on `SubagentHandback` and `Agent`): checks each subagent's terminal block against its `## States` table and logs it to `fsa-log.jsonl`. Warn mode: never blocks.
 - **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
 - All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.

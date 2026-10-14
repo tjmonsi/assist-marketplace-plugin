@@ -202,7 +202,7 @@ flowchart TD
 
 Before rendering Mermaid source to PNG, check for mermaid-cli availability:
 
-**Step 1: ToolSearch for Playwright MCP**
+**Step 1: ToolSearch for Mermaid MCP**
 
 Use `ToolSearch` with query `"select:mermaid"` or similar to check if a Mermaid MCP is available.
 
@@ -217,9 +217,9 @@ where mmdc
 
 **Step 3: Render if Available**
 
-If `mmdc` is found:
+If `mmdc` is found, write the Mermaid source to a `.mmd` file under `specs/` first, then render it. The `sa-mermaid-only` hook accepts only a `.mmd` input and a `.svg`, `.png`, or `.pdf` output, each under `specs/` or `<dir>/specs/`:
 ```bash
-mmdc -i input.mmd -o output.png
+mmdc -i specs/spec-feature-architecture.mmd -o specs/spec-feature-architecture.png
 ```
 
 **Step 4: Embed in Spec**
@@ -231,16 +231,16 @@ mmdc -i input.mmd -o output.png
 
 If `mmdc` is not installed, show the user the install command (`npm install -g @mermaid-js/mermaid-cli`), embed the Mermaid source in the spec, and include this note. The agent never installs mmdc and never downloads it with `npx`:
 
-```markdown
+````markdown
 **Note:** PNG rendering requires mermaid-cli. To generate:
 
 ```bash
 npm install -g @mermaid-js/mermaid-cli
-mmdc -i diagram.mmd -o diagram.png
+mmdc -i specs/spec-feature-architecture.mmd -o specs/spec-feature-architecture.png
 ```
 
 Or use [Mermaid Live Editor](https://mermaid.live) to render online.
-```
+````
 
 ---
 
@@ -289,7 +289,7 @@ flowchart TD
 
 ### Fallback with Source Code
 
-```markdown
+````markdown
 ## Data Flow
 
 ```mermaid
@@ -299,9 +299,9 @@ flowchart TD
 
 **Or render the above as PNG:**
 ```
-mmdc -i flow.mmd -o flow.png
+mmdc -i specs/spec-feature-flow.mmd -o specs/spec-feature-flow.png
 ```
-```
+````
 
 ---
 
@@ -364,4 +364,4 @@ sequenceDiagram
 
 **PNG file too large:**
 - Simplify diagram (fewer nodes)
-- Use `--width` and `--height` flags: `mmdc -i input.mmd -o output.png --width 1200 --height 800`
+- Use `--width` and `--height` flags: `mmdc -i specs/spec-feature-architecture.mmd -o specs/spec-feature-architecture.png --width 1200 --height 800`

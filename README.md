@@ -25,10 +25,10 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.10.2
+### assist-plugin v1.11.0
 
 **18 user-invocable skills:**
-- `do`: Task orchestration and routing
+- `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
 - `ask`: Repo and web Q&A with citations
 - `debug`: Root cause analysis + iterative fixes
 - `bump`: Semantic versioning & changelog generation
@@ -40,7 +40,7 @@ Then use the `/do` orchestrator:
 - `review-md`: Markdown report review
 - `gather-requirements`: Requirements elicitation and documentation
 - `spec-from-requirements`: Feature specs and delta change logs
-- `task-plan`: Ordered coding steps from specs
+- `task-plan`: Ordered coding steps from specs (run by the `task-planner` agent)
 - `create-test`: Black-box acceptance-criteria tests
 - `health`: Hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 - `deslop`: Remove AI writing tells from prose; `/deslop [edit | detect] <file-or-text>` (edit returns cleaned text, detect lists findings)
@@ -53,8 +53,16 @@ Then use the `/do` orchestrator:
 - `integrated-test`: Integration and E2E testing patterns (qa)
 - `run-test`: Test execution and coverage reports (qa)
 
-**15 expert agents:**
-- ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, worker
+**16 expert agents:**
+- ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, task-planner, worker
+
+**Spec-first builds in `/do`:**
+- SpecGate classifies a request as `build` (it writes code, config, pipelines, infrastructure, or tests) or not
+- For a build, a read-only `intake-reviewer` `conflict-check` compares the request with existing requirements, specs, task plans, and `DECISIONS.md`
+- Clarify runs up to 5 rounds for a build (2 otherwise), each question with /do's recommended answer, except a question about instruction-like text in a document, which has no recommended option
+- A chain of requirements, spec, and task plan (`requirements-gatherer`, `solutions-architect`, `task-planner`) runs before any build step
+- You approve the documents at DocSignOff before any `Build: yes` step starts; plan approval also offers "Skip spec-first", which is recorded in `DECISIONS.md`
+- Docs-only edits, reviews, questions, and commits are not build steps
 
 **Governance gates:**
 - OWASP Top 10 security review
@@ -290,12 +298,18 @@ To rewrite existing prose, run `/deslop edit <file>`; `/deslop detect <file>` li
 
 ### FSA hooks
 
-The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, and `developer` follow a finite-state automaton: a `## States` table in the agent or skill file. Every dispatched agent, `qa` included, ends its final message with a terminal block (a fenced `fsa` block of ten fields) ([skills/do/references/fsa-template.md](plugins/assist-plugin/skills/do/references/fsa-template.md)). Two hooks check what is visible from outside the model:
+The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, `developer`, and `task-planner` follow a finite-state automaton: a `## States` table in the agent or skill file. Every dispatched agent, `qa` included, ends its final message with a terminal block (a fenced `fsa` block of ten fields) ([skills/do/references/fsa-template.md](plugins/assist-plugin/skills/do/references/fsa-template.md)). Two hooks check what is visible from outside the model:
 
-- **`fsa-write-bar`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): `developer-tester` may write only test paths, and `developer` may not write them. Test paths are the globs under "Write scope" in `agents/developer-tester.md` (`**/tests/**`, `**/*.test.*`, `**/*_test.go`, and six more). A denial names the path, the rule, and that section. `developer-tester` is also denied any path with a segment that starts with a dot, any file named `CLAUDE.md` or `AGENTS.md`, and any path over 4096 characters or with a NUL character, even when a test glob matches. Other agents and the main session are never affected. A path inside the session's working directory or `CLAUDE_PROJECT_DIR` is judged relative to it, so a project that sits under a directory named `tests` is not all test paths; when both directories contain the path, `developer` is denied if any relative form matches a test glob, and `developer-tester` is allowed only if a form matches and no denial applies.
+- **`fsa-write-bar`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): `developer-tester` may write only test paths, and `developer` may not write them. Test paths are the globs under "Write scope" in `agents/developer-tester.md` (`**/tests/**`, `**/*.test.*`, `**/*_test.go`, and six more). A denial names the path, the rule, and that section. Other limits:
+  - `task-planner` may write only a root-level `task-plan-*.md` inside the project ("Write scope" in `agents/task-planner.md`).
+  - `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` are denied any path with a segment that starts with a dot and any file named `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md`. `devops`, `worker`, `qa`, `general-purpose`, and `developer` keep dot-path writes because CI and config files such as `.github/` are their work.
+  - Every subagent, from any plugin when the call carries an `agent_id`, is denied `.agent/main-plan/**` and any file named `DECISIONS.md`, so only the orchestrator records plans, sign-off, waivers, and decisions.
+  - Every subagent is denied a path over 4096 characters or with a NUL character.
 
-  **Limits of the bar:** it covers the `Write`, `Edit`, `MultiEdit`, and `NotebookEdit` tools only. A `Bash` command can still write any path, and the bar does not see it. Paths are judged as written: symlinks are not resolved, so a link inside a test directory that points elsewhere passes. The match is case-sensitive, so `Tests/a.js` and `claude.md` are not test paths or auto-loaded files. The bar is a guardrail, not a security boundary.
-- **`fsa-log`** (SubagentStop, PostToolUse on `SubagentHandback`, PostToolUse on `Agent`): reads the last `fsa` block of each report from those six agents, checks its `trace`, `state`, `error_class`, and `verdict` against the agent's transition table (`qa` has no table, so only state, error class, and verdict), and appends one line to `fsa-log.jsonl` in the plugin data directory (newest 500 lines kept). A line holds timestamp, session id, event, agent type, agent id, the block's state, verdict, error class, and trace, the number of `out_of_scope` items, and the problem codes. It never holds prompts, report text, artifact paths, questions, out-of-scope items, or file contents. A stop that follows the same agent's newest handback is not checked twice; the hook writes a marker line (`stop-after-handback`) in its place.
+  The main session is not affected, unless it was started with `--agent assist-plugin:<name>`; then that agent's rules apply. A path inside the session's working directory or `CLAUDE_PROJECT_DIR` is judged relative to it, so a project that sits under a directory named `tests` is not all test paths; when both directories contain the path, `developer` is denied if any relative form matches a test glob, and `developer-tester` is allowed only if a form matches and no denial applies.
+
+  **Limits of the bar:** it covers the `Write`, `Edit`, `MultiEdit`, and `NotebookEdit` tools only. A `Bash` command can still write any path, and the bar does not see it. Paths are judged as written: symlinks are not resolved, so a link inside a test directory that points elsewhere passes. The test-glob and `task-plan-*.md` matches are case-sensitive, so `Tests/a.js` is not a test path; the protected names (`DECISIONS.md`, `.agent/main-plan/**`, `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`) match without regard to case, trailing dots or spaces, or a `:stream` suffix. The bar is a guardrail, not a security boundary.
+- **`fsa-log`** (SubagentStop, PostToolUse on `SubagentHandback`, PostToolUse on `Agent`): reads the last `fsa` block of each report from those seven agents, checks its `trace`, `state`, `error_class`, and `verdict` against the agent's transition table (`qa` has no table, so only state, error class, and verdict), and appends one line to `fsa-log.jsonl` in the plugin data directory (newest 500 lines kept). A line holds timestamp, session id, event, agent type, agent id, the block's state, verdict, error class, and trace, the number of `out_of_scope` items, and the problem codes. It never holds prompts, report text, artifact paths, questions, out-of-scope items, or file contents. A stop that follows the same agent's newest handback is not checked twice; the hook writes a marker line (`stop-after-handback`) in its place.
 
 `fsa-log` runs in warn mode. When a final report has no block or an illegal one, you see one line, `assist-plugin fsa: <agent> final report <problem summary>; see /assist-plugin:health`, and the run continues unchanged: the hook never blocks a subagent, never sends it back, and never adds context, because either would make the subagent keep running. The session-start check counts new problem reports since the last notice, and `/assist-plugin:health` lists them with the problem codes.
 
@@ -315,18 +329,18 @@ assist-marketplace-plugin/
 ├── plugins/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
-│       ├── agents/ (15 agent definitions)
+│       ├── agents/ (16 agent definitions)
 │       ├── skills/ (22 skills: 18 user-invocable, 4 internal)
 │       ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
 │       │   ├── hooks.json (hook registration)
-│       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc)
+│       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc, .mmd input and .svg, .png, or .pdf output under specs/)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
 │       │   ├── commit-attribution-guard.js (entry: denies AI attribution lines in commit messages and PR bodies)
 │       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
 │       │   ├── prose-gate.js (entry: denies added block-tier tells in prose writes)
 │       │   ├── prose-advisor.js (entry: advisory note on added tells after a prose write)
 │       │   ├── writing-context.js (entry: injects the compact writing standard at SessionStart and SubagentStart)
-│       │   ├── fsa-write-bar.js (entry: keeps developer-tester to test paths and developer out of them)
+│       │   ├── fsa-write-bar.js (entry: per-agent write limits and the protected .agent/main-plan/** and DECISIONS.md paths)
 │       │   ├── fsa-log.js (entry: logs and checks subagent terminal blocks, warn mode)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
 │       │   ├── impl/ (guard, injection-filter, prose-hook, FSA-hook, and health-check logic)
