@@ -14,8 +14,13 @@
 // writes (code, quotes, Mermaid, traceability markers, numeric ranges, CLI flags, kept tells; must pass).
 // The prose-advisor is tested like the filter: clean writes must get no advice and writes that add
 // advisory tells must get it; a miss in either direction disables it.
-// The fsa-write-bar is a guard: its corpus holds developer-tester writes outside the test globs and developer
-// writes inside them (must be denied) and in-scope writes, other agents, and the main session (must pass).
+// The fsa-write-bar is a guard: its corpus holds developer-tester writes outside the test globs, developer
+// writes inside them, task-planner writes outside a root-level task-plan-*.md or the project, writes to
+// .agent/main-plan/** and DECISIONS.md (in any case spelling) from any subagent, other plugins' agents and built-ins
+// included, hidden paths and CLAUDE.md, CLAUDE.local.md, or AGENTS.md from requirements-gatherer and
+// solutions-architect, and over-long paths (must be denied), and in-scope writes, devops and worker writes to
+// .github/ and similar, other plugins' agents elsewhere, and the main session (must pass). Subagent cases carry an
+// agent_id; a non-plugin agent_type without one is a main session started with --agent and passes.
 // The fsa-log is tested like the filter: clean subagent reports must log no problems and store no message text,
 // and broken terminal blocks (missing, unknown state, illegal transition, terminal mismatch, bad error class,
 // bad verdict) must log problems; a miss in either direction disables it (it then logs nothing and warns once).
@@ -318,10 +323,14 @@ function injectionFlagged(input) {
 const FSA_ROOT = "/assist-selftest/project";
 const TESTER = fsaWriteBar.TESTER;
 const DEVELOPER = fsaWriteBar.DEVELOPER;
+const PLANNER = fsaWriteBar.PLANNER;
 
 function fsaWrite(agentType, file, tool, roots) {
   const key = tool === "NotebookEdit" ? "notebook_path" : "file_path";
-  return { agent_type: agentType, tool_name: tool || "Write", roots: roots || [FSA_ROOT], tool_input: { [key]: file } };
+  const call = { agent_type: agentType, tool_name: tool || "Write", roots: roots || [FSA_ROOT], tool_input: { [key]: file } };
+  // agent_id is present only inside a subagent; the main session has none.
+  if (typeof agentType === "string" && agentType.length > 0) call.agent_id = "selftest-agent";
+  return call;
 }
 
 const FSA_WRITE_ALLOW = [
@@ -346,6 +355,25 @@ const FSA_WRITE_ALLOW = [
   fsaWrite(TESTER, `${FSA_ROOT}/.claude/worktrees/w/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/.claude/worktrees/w`]),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.mdx`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/claude.md.test.js`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-auth-20261013-1200.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.md`, "Edit"),
+  fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/specs/spec-x.md`),
+  fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/specs/openapi/api.yaml`, "Edit"),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/FR-NFR-x.md`),
+  fsaWrite("assist-plugin:devops", `${FSA_ROOT}/.github/workflows/ci.yml`),
+  fsaWrite("assist-plugin:devops", `${FSA_ROOT}/.gitlab-ci.yml`),
+  fsaWrite("assist-plugin:worker", `${FSA_ROOT}/.github/dependabot.yml`),
+  { agent_type: "my-main-agent", tool_name: "Write", roots: [FSA_ROOT], tool_input: { file_path: `${FSA_ROOT}/DECISIONS.md` } },
+  { agent_type: "my-main-agent", tool_name: "Edit", roots: [FSA_ROOT], tool_input: { file_path: `${FSA_ROOT}/.agent/main-plan/x.md` } },
+  { agent_type: "my-main-agent", tool_name: "Write", roots: [FSA_ROOT], tool_input: { file_path: `${FSA_ROOT}/${"a/".repeat(2100)}x.md` } },
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/BRD-auth.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/.agent/main-plan.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/docs/DECISIONS.md.bak`),
+  fsaWrite(undefined, `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaWrite(undefined, `${FSA_ROOT}/DECISIONS.md`, "Edit"),
+  fsaWrite(PLANNER, "task-plan-x.md"),
+  fsaWrite(PLANNER, "c:\\proj\\task-plan-x.md", "Write", ["C:\\proj"]),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/tests/api.test.js`),
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/src/app.js`),
   fsaWrite("other-plugin:developer", `${FSA_ROOT}/tests/api.test.js`),
@@ -388,6 +416,67 @@ const FSA_WRITE_DENY = [
   fsaWrite(DEVELOPER, `${FSA_ROOT}/test/fixtures/data.json`),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/tests/nb/check.ipynb`, "NotebookEdit"),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/src/../tests/a.js`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/src/app.ts`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/CLAUDE.md`, "Edit"),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/AGENTS.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/.claude/task-plan-x.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.md/../src/app.ts`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.txt`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-a\u0000.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/DECISIONS.md`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/DECISIONS.md`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/.agent/main-plan/plan-x.md`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/DECISIONS.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/sub/DECISIONS.md`, "MultiEdit"),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/DECISIONS.md`),
+  fsaWrite("assist-plugin:qa", `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaWrite("assist-plugin:planner", `${FSA_ROOT}/sub/.agent/main-plan/plan-x.md`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
+  fsaWrite(DEVELOPER, "DECISIONS.md"),
+  fsaWrite("other-plugin:developer", `${FSA_ROOT}/DECISIONS.md`),
+  fsaWrite("other-plugin:developer", `${FSA_ROOT}/.agent/main-plan/plan-x.md`, "Edit"),
+  { agent_id: "selftest-agent", tool_name: "Write", roots: [FSA_ROOT], tool_input: { file_path: `${FSA_ROOT}/DECISIONS.md` } },
+  fsaWrite("general-purpose", `${FSA_ROOT}/DECISIONS.md`),
+  fsaWrite("general-purpose", `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaWrite("Explore", `${FSA_ROOT}/sub/DECISIONS.md`, "MultiEdit"),
+  fsaWrite("other-plugin:developer", `${FSA_ROOT}/${"a/".repeat(2100)}DECISIONS.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Edit"),
+  fsaWrite(PLANNER, `${FSA_ROOT}/docs/plans/task-plan-x.md`, "MultiEdit"),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Write", [FSA_ROOT]),
+  fsaWrite(PLANNER, `${FSA_ROOT}/CLAUDE.local.md`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.local.md`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.claude/rules/x.md`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.claude/settings.local.json`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/CLAUDE.md`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/CLAUDE.local.md`, "Edit"),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/sub/claude.local.md`),
+  fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/AGENTS.md`),
+  fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/specs/.hidden/spec-x.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/src/../.agent/main-plan/x.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/decisions.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/Decisions.MD`, "Edit"),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/DECISIONS.md.`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/DECISIONS.md:stream`),
+  fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.Agent/Main-Plan/x.md`),
+  fsaWrite("assist-plugin:qa", `${FSA_ROOT}/.AGENT./main-plan/x.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/${"a/".repeat(2100)}x.ts`),
+  fsaWrite("assist-plugin:qa", `${FSA_ROOT}/src/a\u0000.ts`),
+  fsaWrite(PLANNER, "/elsewhere/task-plan-x.md"),
+  fsaWrite(PLANNER, "../outside/task-plan-x.md"),
+  fsaWrite(PLANNER, "~/elsewhere/task-plan-x.md"),
+  fsaWrite(PLANNER, "~", "Write"),
+  fsaWrite(PLANNER, "D:task-plan-x.md"),
+  fsaWrite(PLANNER, "D:\\other\\task-plan-x.md", "Write", ["C:\\proj"]),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/deci\u017Fions.md`),
+  fsaWrite(DEVELOPER, `${FSA_ROOT}/DEC\u0131SIONS.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/AGENT\u017F.md`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/AGENT\u017F.md`),
+  fsaWrite(PLANNER, `${FSA_ROOT}/Claude.md`, "Edit"),
+  fsaWrite(PLANNER, `${FSA_ROOT}/sub/agents.MD`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/claude.md`),
+  fsaWrite(TESTER, `${FSA_ROOT}/tests/AGENTS.md.`),
 ];
 
 const SENTINEL = "SENTINEL-7731";
@@ -398,9 +487,9 @@ const TRACES = {
   developer: "Intake > AssembleContext > Plan > ProduceEdit > SelfCheck > Done",
   "intake-reviewer": "Intake > Review > Decide > Done",
   qa: "Testing > Done",
-  "task-plan": "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done",
+  "task-planner": "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done",
 };
-const VERDICTS = { "developer-tester": "covered=7 uncovered=1", reviewer: "approved", "code-reviewer": "returned", developer: "self-check=pass", "intake-reviewer": "needs-changes", qa: "returned", "task-plan": "steps=6" };
+const VERDICTS = { "developer-tester": "covered=7 uncovered=1", reviewer: "approved", "code-reviewer": "returned", developer: "self-check=pass", "intake-reviewer": "needs-changes", qa: "returned", "task-planner": "steps=6" };
 
 // The final message of a subagent: prose that holds the sentinel, then the terminal block.
 function fsaReport(name, overrides) {
@@ -444,11 +533,29 @@ const FSA_LOG_CLEAN = [
   Object.assign(stopEvent("stop: reviewer approved", `${PLUGIN}reviewer`, fsaReport("reviewer")), { expectRecord: true }),
   Object.assign(stopEvent("stop: code-reviewer returned", `${PLUGIN}code-reviewer`, fsaReport("code-reviewer")), { expectRecord: true }),
   Object.assign(stopEvent("stop: developer self-check=fail", `${PLUGIN}developer`, fsaReport("developer", { verdict: "self-check=fail" })), { expectRecord: true }),
-  Object.assign(stopEvent("stop: developer reports a task-plan block", `${PLUGIN}developer`, fsaReport("task-plan")), { expectRecord: true }),
+  Object.assign(stopEvent("stop: task-planner Done", `${PLUGIN}task-planner`, fsaReport("task-planner", { artifact: `task-plan-${SENTINEL}.md` })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: task-planner NeedsInput", `${PLUGIN}task-planner`, fsaReport("task-planner", {
+    state: "NeedsInput", trace: "Intake > ClassifyContext > NeedsInput", verdict: "none", artifact: "none", questions: `1. ${SENTINEL}?`, resume_at: "ClassifyContext",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: task-planner CheckPlan Error", `${PLUGIN}task-planner`, fsaReport("task-planner", {
+    state: "Error", trace: "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > PlanSteps > CheckPlan > Error", verdict: "none", artifact: "none", error_class: "budget-exhausted",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: task-planner WritePlan Error", `${PLUGIN}task-planner`, fsaReport("task-planner", {
+    state: "Error", trace: "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Error", verdict: "none", artifact: "none", error_class: "policy-rejection",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: task-planner CheckPlan loop", `${PLUGIN}task-planner`, fsaReport("task-planner", {
+    trace: "Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > PlanSteps > CheckPlan > WritePlan > Done",
+  })), { expectRecord: true }),
   Object.assign(handbackEvent("handback: reviewer approved", `${PLUGIN}reviewer`, fsaReport("reviewer")), { expectRecord: true }),
   Object.assign(resultEvent("result: content array", `${PLUGIN}developer-tester`, { status: "completed", content: [{ type: "text", text: fsaReport("developer-tester") }] }), { expectRecord: true }),
   Object.assign(stopEvent("stop: the last block wins", `${PLUGIN}reviewer`, fsaReport("reviewer", { state: "Done", trace: "Intake > Decide" }) + fsaReport("reviewer")), { expectRecord: true }),
   Object.assign(stopEvent("stop: intake-reviewer accepted", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { verdict: "accepted" })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: intake-reviewer conflict-check clear", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", {
+    trace: "Intake > AssembleContext > Compare > Verify > Done", verdict: "clear",
+  })), { expectRecord: true }),
+  Object.assign(stopEvent("stop: intake-reviewer conflict-check needs-clarification after a Verify loop", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", {
+    trace: "Intake > AssembleContext > Compare > Verify > Compare > Verify > Done", verdict: "needs-clarification",
+  })), { expectRecord: true }),
   Object.assign(stopEvent("stop: intake-reviewer NeedsInput", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", {
     state: "NeedsInput", trace: "Intake > NeedsInput", verdict: "none", artifact: "none", questions: `1. ${SENTINEL}?`, resume_at: "Intake",
   })), { expectRecord: true }),
@@ -494,6 +601,12 @@ const FSA_LOG_BROKEN = [
   stopEvent("stop: developer ProduceEdit has no Error edge", `${PLUGIN}developer`, fsaReport("developer", { state: "Error", trace: "Intake > AssembleContext > Plan > ProduceEdit > Error", verdict: "none", error_class: "tool-failed" })),
   stopEvent("stop: developer verdict outside the enum", `${PLUGIN}developer`, fsaReport("developer", { verdict: "self-check=skipped" })),
   stopEvent("stop: intake-reviewer verdict of a reviewer", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { verdict: "approved" })),
+  stopEvent("stop: intake-reviewer review run with a conflict-check verdict", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { trace: "Intake > Review > Decide > Done", verdict: "clear" })),
+  stopEvent("stop: intake-reviewer conflict-check run with a review verdict", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { trace: "Intake > AssembleContext > Compare > Verify > Done", verdict: "accepted" })),
+  stopEvent("stop: intake-reviewer Compare goes straight to Done", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { trace: "Intake > AssembleContext > Compare > Done", verdict: "clear" })),
+  stopEvent("stop: developer reports a task-plan block", `${PLUGIN}developer`, fsaReport("task-planner")),
+  stopEvent("stop: task-planner verdict outside the enum", `${PLUGIN}task-planner`, fsaReport("task-planner", { verdict: "self-check=pass" })),
+  stopEvent("stop: task-planner skips CheckPlan", `${PLUGIN}task-planner`, fsaReport("task-planner", { trace: "Intake > ClassifyContext > ExtractRequirements > PlanSteps > WritePlan > Done" })),
   stopEvent("stop: intake-reviewer skips Review", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { trace: "Intake > Decide > Done" })),
   stopEvent("stop: intake-reviewer needs a resume state", `${PLUGIN}intake-reviewer`, fsaReport("intake-reviewer", { state: "NeedsInput", trace: "Intake > NeedsInput", verdict: "none" })),
   stopEvent("stop: qa verdict outside the enum", `${PLUGIN}qa`, fsaReport("qa", { verdict: "pass" })),
@@ -645,15 +758,25 @@ const GUARDS = [
       bash("which mmdc", SOLUTIONS_ARCHITECT),
       bash("where mmdc", SOLUTIONS_ARCHITECT),
       bash("mmdc --version", SOLUTIONS_ARCHITECT),
-      bash("mmdc -i a.mmd -o a.svg", SOLUTIONS_ARCHITECT),
-      bash("mmdc -i docs/a.mmd -o docs/a.png -t dark -b transparent -w 800 -H 600 -s 2", SOLUTIONS_ARCHITECT),
-      bash("mmdc --input a.mmd --output a.svg --theme dark --width 800", SOLUTIONS_ARCHITECT),
-      bash("mmdc -i a.mmd -o \"my dir/a.svg\"", "plugin:assist:solutions-architect"),
+      bash("mmdc -i specs/spec-a.mmd -o specs/spec-a.png", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/diagrams/a.mmd -o specs/diagrams/a.svg -t dark -b transparent -w 800 -H 600 -s 2", SOLUTIONS_ARCHITECT),
+      bash("mmdc --input pkg/specs/a.mmd --output pkg/specs/a.pdf --theme dark --width 800", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o \"specs/my dir/a.svg\"", "plugin:assist:solutions-architect"),
       bash("mmdc -i a.mmd -o a.svg", "dev"),
       bash("rm -rf /", "dev"),
       bash("rm -rf /"),
     ],
     deny: [
+      bash("mmdc -i specs/x.md -o CLAUDE.md", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o specs/x.md", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o .claude/x.png", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o specs/.hidden/x.png", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o docs/a.png", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i a.mmd -o specs/a.svg", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o a/b/specs/a.svg", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o specs/", SOLUTIONS_ARCHITECT),
+      bash("mmdc --output=CLAUDE.md -i specs/a.mmd", SOLUTIONS_ARCHITECT),
+      bash("mmdc -i specs/a.mmd -o specs/../CLAUDE.md", SOLUTIONS_ARCHITECT),
       bash("mmdc -i a.mmd -o ../x.md", SOLUTIONS_ARCHITECT),
       bash("mmdc -i a.mmd -p cfg.json", SOLUTIONS_ARCHITECT),
       bash("mmdc -i a.mmd -o $HOME/x", SOLUTIONS_ARCHITECT),

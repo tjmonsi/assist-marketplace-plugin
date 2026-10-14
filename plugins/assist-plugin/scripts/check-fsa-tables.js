@@ -24,7 +24,7 @@ const fsaPaths = require(path.join(PLUGIN_ROOT, "hooks", "lib", "fsa-paths.js"))
 
 const TEMPLATE = "skills/do/references/fsa-template.md";
 const WRITE_SCOPE_FILE = "agents/developer-tester.md";
-const EXAMPLE_FILES = [TEMPLATE, "agents/developer-tester.md"];
+const EXAMPLE_FILES = [TEMPLATE, "agents/developer-tester.md", "agents/task-planner.md"];
 const FENCE = /^[ \t]{0,3}(`{3,10}|~{3,10})/;
 const NEXT_STATE = /^\s{0,4}([A-Z][A-Za-z]{0,30})(?:\(([a-z-]{1,30})\))?/;
 const MAX_ROWS = 40;

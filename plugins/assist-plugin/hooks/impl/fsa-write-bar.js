@@ -1,20 +1,39 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Toni-Jan Keith Monserrat
-// PreToolUse guard for Write, Edit, MultiEdit, and NotebookEdit: the write bar between the two coding agents.
+// PreToolUse guard for Write, Edit, MultiEdit, and NotebookEdit: the write bar between the agents.
 //   assist-plugin:developer-tester  may write only test paths (agents/developer-tester.md, "Write scope"), and
-//                                   never a hidden path (a segment starting with "."), CLAUDE.md, AGENTS.md, a
-//                                   path over 4096 characters, or a path with a NUL character.
+//                                   never a hidden path (a segment starting with "."), CLAUDE.md,
+//                                   CLAUDE.local.md, AGENTS.md, a path over 4096 characters, or a path with a
+//                                   NUL character.
 //   assist-plugin:developer         may not write test paths (agents/developer.md, "Write scope").
-// Other agents and the main session are untouched (allowed, no output). The globs are in lib/fsa-paths.js and
+//   assist-plugin:task-planner      may write only a task-plan-*.md file at the project root (agents/task-planner.md,
+//                                   "Write scope"), inside the project, and never a hidden path, CLAUDE.md,
+//                                   CLAUDE.local.md, AGENTS.md, a path over 4096 characters, or a path with a NUL
+//                                   character.
+//   assist-plugin:requirements-gatherer and assist-plugin:solutions-architect
+//                                   read untrusted documents before the user signs off, so they may not write a
+//                                   hidden path or CLAUDE.md, CLAUDE.local.md, or AGENTS.md. Other plugin agents
+//                                   (devops, worker, qa, general-purpose, and so on) are not held to this: they
+//                                   must write .github/, .gitlab-ci.yml, and similar dot paths.
+//   every assist-plugin:* agent     may not write a path over 4096 characters or with a NUL character.
+//   every subagent (a call with a non-empty agent_id, any agent_type: other plugins and built-ins included)
+//                                   may not write .agent/main-plan/** (the /do plan files, which hold sign-off and
+//                                   waiver state) or a file named DECISIONS.md, in any directory. These names
+//                                   match without regard to case, trailing dots or spaces, or a `:stream` suffix.
+//                                   An over-long or NUL path is denied for them too, so it cannot hide one.
+// The main session is untouched (allowed, no output), and so are other agents for every other rule. A call with
+// an agent_type but no agent_id (a main session started with --agent) is a main-session call, except for
+// assist-plugin:* agent types, whose rules key on agent_type alone. The test globs are in lib/fsa-paths.js and
 // are checked against the Write scope table by scripts/check-fsa-tables.js.
 // A path inside the session's working directory (or CLAUDE_PROJECT_DIR) is judged relative to it, so a project
 // that lives under a directory named `tests` is not all test paths. When both roots contain the path, every
 // relative form counts for the test globs: developer is denied if any form matches a test glob; developer-tester
-// needs a form that matches. developer-tester's denials (hidden, CLAUDE.md, AGENTS.md) apply to the innermost
+// needs a form that matches. The hidden-path and auto-loaded-file denials apply to the innermost
 // form only, the path relative to the longest root that contains it, so a worktree under .claude/worktrees is
 // not hidden from its own tests directory.
 // Scope: the tools above only. A Bash command can write any path and is not covered. Paths are judged as
-// written (symlinks are not resolved) and the match is case-sensitive.
+// written (symlinks and Windows 8.3 short names such as CLAUDE~1 for .claude are not resolved). Test globs and task-plan-*.md match case-sensitively; the protected names and
+// the CLAUDE.md and AGENTS.md denials fold case (see lib/fsa-paths.js).
 // Fail-open: evaluate(input) -> {deny, reason}; a call is blocked only when it positively returns deny. Any
 // failure (exception, malformed input, unsupported Node, disable flag) lets the write proceed with a
 // systemMessage warning (see ../lib/health.js). It is a guardrail, not a security boundary.
@@ -25,6 +44,10 @@ const paths = require("../lib/fsa-paths.js");
 const NAME = "fsa-write-bar";
 const TESTER = "assist-plugin:developer-tester";
 const DEVELOPER = "assist-plugin:developer";
+const PLANNER = "assist-plugin:task-planner";
+const PLUGIN_PREFIX = "assist-plugin:";
+// Chain agents that read untrusted documents before sign-off: no hidden paths, no auto-loaded files.
+const CHAIN_AGENTS = ["assist-plugin:requirements-gatherer", "assist-plugin:solutions-architect"];
 const FILE_KEYS = { Write: "file_path", Edit: "file_path", MultiEdit: "file_path", NotebookEdit: "notebook_path" };
 const ALLOW = { deny: false, reason: "" };
 
@@ -32,14 +55,17 @@ function shown(file) {
   return String(file).slice(0, 400).replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ").slice(0, 200);
 }
 
-const TESTER_DENIALS = {
-  limit: "the path is empty, longer than 4096 characters, or holds a NUL character",
-  hidden: "a segment of the path starts with a dot, and developer-tester never writes hidden paths",
-  "auto-loaded": "CLAUDE.md and AGENTS.md load into later sessions, and developer-tester never writes them",
-};
+function denialCause(who, why) {
+  const causes = {
+    limit: "the path is empty, longer than 4096 characters, or holds a NUL character",
+    hidden: "a segment of the path starts with a dot, and " + who + " never writes hidden paths",
+    "auto-loaded": "CLAUDE.md, CLAUDE.local.md, and AGENTS.md load into later sessions, and " + who + " never writes them",
+  };
+  return causes[why];
+}
 
 function testerReason(file, why) {
-  const cause = why ? TESTER_DENIALS[why] + " (Write scope in agents/developer-tester.md)"
+  const cause = why ? denialCause("developer-tester", why) + " (Write scope in agents/developer-tester.md)"
     : "developer-tester writes only test paths, and this path matches none of the test globs listed under Write scope in agents/developer-tester.md";
   return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": " + cause + ". " +
     "Do not write it. End in Error(policy-rejection) and name the path in the prose above the terminal block.";
@@ -52,6 +78,31 @@ function developerReason(file, glob) {
     "name it in the prose above the block, and continue with the rest of the work.";
 }
 
+function plannerReason(file, why) {
+  let cause = "task-planner writes only a task-plan-*.md file at the project root (Write scope in agents/task-planner.md)";
+  if (why === "outside") cause = "the path is outside the project, and task-planner writes only a task-plan-*.md file at the project root (Write scope in agents/task-planner.md)";
+  else if (why) cause = denialCause("task-planner", why) + " (Write scope in agents/task-planner.md)";
+  return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": " + cause + ". " +
+    "Do not write it. If this is the task-plan file, end in Error(policy-rejection); otherwise list the path in the out_of_scope field of the terminal block and name it in the prose above the block.";
+}
+
+function chainReason(file, why, agentType) {
+  const who = agentType.slice(PLUGIN_PREFIX.length);
+  return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": " + denialCause(who, why) + ". " +
+    "Do not write it. List the path in the out_of_scope field of the terminal block and name it in the prose above the block.";
+}
+
+function limitReason(file) {
+  return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": " + denialCause("", "limit") + ". " +
+    "Do not write it. List the path in the out_of_scope field of the terminal block (or end in Error(policy-rejection) if the task cannot continue) and name it in the prose above the block.";
+}
+
+function protectedReason(file, rule) {
+  return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": no subagent writes " + rule +
+    ". The /do plan files hold the user's sign-off and waivers, and DECISIONS.md holds the user's decisions; only the user changes them. " +
+    "Do not write it. List the path in the out_of_scope field of the terminal block (or end in Error(policy-rejection) if the task cannot continue) and name it in the prose above the block.";
+}
+
 // Roots that make a path project-relative: the hook's cwd and CLAUDE_PROJECT_DIR. options.roots replaces them in tests.
 function rootsFor(input, options) {
   if (options && Array.isArray(options.roots)) return options.roots;
@@ -61,15 +112,47 @@ function rootsFor(input, options) {
 // Pure decision function: no I/O. options: {roots} for tests.
 function evaluate(input, options) {
   if (!input || typeof input !== "object" || !input.tool_input || typeof input.tool_input !== "object") return ALLOW;
-  if (input.agent_type !== TESTER && input.agent_type !== DEVELOPER) return ALLOW;
+  const agentType = typeof input.agent_type === "string" ? input.agent_type : "";
+  const plugin = agentType.indexOf(PLUGIN_PREFIX) === 0;
+  // agent_id is present only when the hook fires inside a subagent; agent_type alone can also come from a main
+  // session started with --agent. assist-plugin:* rules key on agent_type; every other agent needs an agent_id.
+  const subagent = typeof input.agent_id === "string" && input.agent_id.length > 0;
+  if (!plugin && !subagent) return ALLOW;
   const key = Object.prototype.hasOwnProperty.call(FILE_KEYS, input.tool_name) ? FILE_KEYS[input.tool_name] : null;
   const file = key ? input.tool_input[key] : null;
   if (typeof file !== "string" || file.length === 0) return ALLOW;
-  const tester = input.agent_type === TESTER;
-  if (tester && paths.testerDenial(file) === "limit") return { deny: true, reason: testerReason(file, "limit") };
-  if (file.length > paths.MAX_PATH_CHARS) return ALLOW;
-  const forms = paths.relativeForms(file, rootsFor(input, options));
+  const tester = agentType === TESTER;
+  const planner = agentType === PLANNER;
+  const chain = CHAIN_AGENTS.indexOf(agentType) !== -1;
+  // An unusable path (over 4096 characters or a NUL) is denied for every subagent: the protected-path check below
+  // cannot judge it, so it must not be a way around that check.
+  if (paths.testerDenial(file) === "limit") {
+    if (tester) return { deny: true, reason: testerReason(file, "limit") };
+    return { deny: true, reason: planner ? plannerReason(file, "limit") : limitReason(file) };
+  }
+  const roots = rootsFor(input, options);
+  const forms = paths.relativeForms(file, roots);
   if (forms.length === 0) return ALLOW;
+  // Every subagent: the plan files and the decision log are the user's to change.
+  for (let i = 0; i < forms.length; i++) {
+    const rule = paths.protectedRule(forms[i]);
+    if (rule) return { deny: true, reason: protectedReason(forms[i], rule) };
+  }
+  if (!plugin) return ALLOW;
+  if (chain) {
+    // Judged on the innermost form: a worktree under <root>/.claude/worktrees/ is hidden relative to the outer root.
+    const inner = paths.relativeTo(file, roots);
+    const why = paths.testerDenial(inner);
+    return why ? { deny: true, reason: chainReason(inner, why, agentType) } : ALLOW;
+  }
+  if (planner) {
+    if (paths.outsideRoots(file, roots)) return { deny: true, reason: plannerReason(file, "outside") };
+    const inner = paths.relativeTo(file, roots);
+    const why = paths.testerDenial(inner);
+    if (why) return { deny: true, reason: plannerReason(inner, why) };
+    return paths.isTaskPlanFile(inner, roots.length === 0) ? ALLOW : { deny: true, reason: plannerReason(inner) };
+  }
+  if (!tester && agentType !== DEVELOPER) return ALLOW;
   if (!tester) {
     for (let i = 0; i < forms.length; i++) {
       const glob = paths.testGlobFor(forms[i]);
@@ -79,7 +162,7 @@ function evaluate(input, options) {
   }
   // Denials judge the innermost form only: a worktree under <root>/.claude/worktrees/ is hidden relative to
   // the outer root but not relative to its own root.
-  const inner = paths.relativeTo(file, rootsFor(input, options));
+  const inner = paths.relativeTo(file, roots);
   const why = paths.testerDenial(inner);
   if (why) return { deny: true, reason: testerReason(inner, why) };
   const matched = forms.some((form) => paths.testGlobFor(form) !== null);
@@ -90,6 +173,6 @@ function main() {
   require("../lib/health.js").guard(NAME, evaluate);
 }
 
-module.exports = { NAME, TESTER, DEVELOPER, evaluate, main };
+module.exports = { NAME, TESTER, DEVELOPER, PLANNER, evaluate, main };
 
 if (require.main === module) main();

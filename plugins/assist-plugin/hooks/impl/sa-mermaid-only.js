@@ -7,8 +7,10 @@
 // disable flag) lets the command run and shows a systemMessage warning (see ../lib/health.js).
 // It is a guardrail, not a security boundary.
 //
-// mmdc is accepted only with a fixed flag allowlist. Path arguments (-i, -o) must be relative
-// and contain no ".." segment. No npx download forms are accepted: when mmdc is missing the
+// mmdc is accepted only with a fixed flag allowlist. -i/--input takes a `.mmd` file and -o/--output takes a
+// `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`: a relative path with no empty, "." or
+// ".." segment and no segment that starts with a dot. That keeps the diagram output out of CLAUDE.md, hidden
+// directories, and any file a later session loads. No npx download forms are accepted: when mmdc is missing the
 // agent shows the user the install command and never installs anything itself.
 "use strict";
 
@@ -17,12 +19,13 @@ const AGENT_PATTERN = /(^|:)solutions-architect$/;
 const UNSAFE_CHARACTERS = /[;&|`<>\n\r$\{\\*?\[\]()~!]/;
 const EXACT_COMMANDS = new Set(["which mmdc", "where mmdc", "mmdc --version"]);
 
-const PATH_VALUE = "path";
+const INPUT_PATH = "input-path";
+const OUTPUT_PATH = "output-path";
 const WORD_VALUE = /^#?[A-Za-z0-9_-]+$/;
 const NUMBER_VALUE = /^\d+(\.\d+)?$/;
 const ALLOWED_FLAGS = new Map([
-  ["-i", PATH_VALUE], ["--input", PATH_VALUE],
-  ["-o", PATH_VALUE], ["--output", PATH_VALUE],
+  ["-i", INPUT_PATH], ["--input", INPUT_PATH],
+  ["-o", OUTPUT_PATH], ["--output", OUTPUT_PATH],
   ["-t", WORD_VALUE], ["--theme", WORD_VALUE],
   ["-b", WORD_VALUE], ["--backgroundColor", WORD_VALUE],
   ["-w", NUMBER_VALUE], ["--width", NUMBER_VALUE],
@@ -32,7 +35,8 @@ const ALLOWED_FLAGS = new Map([
 
 const NAME = "sa-mermaid-only";
 const DENY_REASON =
-  "solutions-architect may only run mermaid-cli (mmdc) with -i/-o/-t/-b/-w/-H/-s and relative paths. " +
+  "solutions-architect may only run mermaid-cli (mmdc) with -i/-o/-t/-b/-w/-H/-s, a .mmd input, and a .svg, .png, or .pdf output, " +
+  "both under specs/ or <dir>/specs/ (relative, no .., no segment starting with a dot). " +
   "If mmdc is missing, show the user: npm install -g @mermaid-js/mermaid-cli";
 const ALLOW = { deny: false, reason: "" };
 
@@ -48,13 +52,19 @@ function tokenize(cmd) {
   return tokens;
 }
 
-function isSafeRelativePath(value) {
+// A relative path of the form specs/<...>/<file> or <dir>/specs/<...>/<file> whose file name matches `extension`.
+function isSpecsPath(value, extension) {
   if (!value || value.startsWith("-") || value.startsWith("/") || /^[A-Za-z]:/.test(value)) return false;
-  return !value.split("/").includes("..");
+  const segments = value.split("/");
+  if (segments.some((part) => part.length === 0 || part.charAt(0) === ".")) return false;
+  const root = segments[0] === "specs" ? 0 : segments[1] === "specs" ? 1 : -1;
+  return root !== -1 && segments.length > root + 1 && extension.test(segments[segments.length - 1]);
 }
 
 function isValidValue(spec, value) {
-  return spec === PATH_VALUE ? isSafeRelativePath(value) : spec.test(value);
+  if (spec === INPUT_PATH) return isSpecsPath(value, /\.mmd$/i);
+  if (spec === OUTPUT_PATH) return isSpecsPath(value, /\.(svg|png|pdf)$/i);
+  return spec.test(value);
 }
 
 function isAllowedMmdc(tokens) {

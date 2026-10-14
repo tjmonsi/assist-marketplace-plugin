@@ -24,8 +24,9 @@ const ERROR_CLASSES = [
 
 // One entry per FSA. `agent` is true when /do dispatches it as `assist-plugin:<name>`. `source` is the file that
 // holds the `## States` table (for a tableless agent, the file with its example block), relative to the plugin
-// root. `verdict` is the pattern of the block's verdict on Done. `alsoEmits` names tables the agent may report
-// under another `fsa:` name.
+// root. `verdict` is the pattern of the block's verdict on Done. `verdictByStep` (optional) narrows it: when the
+// state before Done in the trace is a key, the verdict must also match that pattern. `alsoEmits` names tables the
+// agent may report under another `fsa:` name.
 const TABLES = {
   "developer-tester": {
     version: 1,
@@ -77,18 +78,24 @@ const TABLES = {
     version: 1,
     source: "agents/intake-reviewer.md",
     agent: true,
-    verdict: /^(accepted|needs-changes)$/,
+    verdict: /^(accepted|needs-changes|clear|needs-clarification)$/,
+    verdictByStep: {
+      Decide: /^(accepted|needs-changes)$/,
+      Verify: /^(clear|needs-clarification)$/,
+    },
     transitions: {
-      Intake: ["Review", "Error", "NeedsInput"],
+      Intake: ["Review", "AssembleContext", "Error", "NeedsInput"],
+      AssembleContext: ["Compare", "Error"],
       Review: ["Decide"],
+      Compare: ["Verify"],
       Decide: ["Done"],
+      Verify: ["Done", "Compare", "Error"],
     },
   },
   developer: {
     version: 1,
     source: "agents/developer.md",
     agent: true,
-    alsoEmits: ["task-plan"],
     verdict: /^self-check=(pass|fail|not-run)$/,
     transitions: {
       Intake: ["AssembleContext", "Error", "NeedsInput"],
@@ -98,11 +105,12 @@ const TABLES = {
       SelfCheck: ["Done", "ProduceEdit"],
     },
   },
-  // A skill, not an agent: the developer agent reports it when task-plan is the whole step.
-  "task-plan": {
+  // The task-planner agent runs the task-plan skill's States table and reports it as task-planner/1, like
+  // developer-tester with create-test.
+  "task-planner": {
     version: 1,
     source: "skills/task-plan/SKILL.md",
-    agent: false,
+    agent: true,
     verdict: /^steps=\d{1,6}$/,
     transitions: {
       Intake: ["ClassifyContext", "NeedsInput", "Error"],
@@ -110,7 +118,7 @@ const TABLES = {
       ExtractRequirements: ["PlanSteps"],
       PlanSteps: ["CheckPlan"],
       CheckPlan: ["WritePlan", "PlanSteps", "Error"],
-      WritePlan: ["Done"],
+      WritePlan: ["Done", "Error"],
     },
   },
 };
@@ -146,7 +154,7 @@ function statesOf(name) {
 }
 
 // Short agent name for an `assist-plugin:<name>` agent_type (or the bare name when lenient), else null.
-// Only agents with `agent: true` match: task-plan is a skill.
+// Only agents with `agent: true` match.
 function agentFromType(agentType, lenient) {
   if (typeof agentType !== "string" || agentType.length > 80) return null;
   let name = agentType;
@@ -211,6 +219,7 @@ function checkTrace(agent, block) {
   if (block.fsa !== expectedFsa) problems.push("fsa-mismatch: " + safe(block.fsa, tableNames().map((key) => key + "/" + TABLES[key].version)));
 
   const state = block.state;
+  let steps = [];
   if (TERMINALS.indexOf(state) === -1) problems.push("bad-state: " + safe(state, Object.keys(table.transitions)));
 
   if (table.tableless) {
@@ -222,12 +231,13 @@ function checkTrace(agent, block) {
     if (trace.length > MAX_TRACE_STATES) {
       problems.push("trace-too-long");
     } else {
+      steps = trace;
       checkPath(table, trace, state, problems);
     }
   }
 
   checkError(block.error_class, state, problems);
-  checkVerdict(table, block.verdict, state, problems);
+  checkVerdict(table, block.verdict, state, steps, problems);
   if (state === "NeedsInput" && !table.tableless && statesOf(name).indexOf(block.resume_at) === -1) {
     problems.push("bad-resume-at");
   }
@@ -265,9 +275,17 @@ function checkError(errorClass, state, problems) {
   }
 }
 
-function checkVerdict(table, verdict, state, problems) {
+function checkVerdict(table, verdict, state, steps, problems) {
   if (verdict === "none" && state !== "Done") return;
-  if (typeof verdict !== "string" || !table.verdict.test(verdict)) problems.push("bad-verdict");
+  if (typeof verdict !== "string" || !table.verdict.test(verdict)) {
+    problems.push("bad-verdict");
+    return;
+  }
+  // The state before Done may allow only some of the verdicts (the trace is checked separately).
+  const before = state === "Done" && steps.length >= 2 ? steps[steps.length - 2] : null;
+  if (before !== null && table.verdictByStep && has(table.verdictByStep, before) && !table.verdictByStep[before].test(verdict)) {
+    problems.push("bad-verdict");
+  }
 }
 
 // Number of items in the block's `out_of_scope` field: 0 for `none` or a missing field, else the count of

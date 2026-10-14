@@ -10,7 +10,9 @@
 // The matcher works on path segments, not on a regular expression built from user input, so a long path
 // cannot cause runaway backtracking. testerDenial() lists the paths developer-tester may not write even when a
 // glob matches (agents/developer-tester.md, "Write scope"). Paths are judged as written: symlinks are not
-// resolved and the comparison is case-sensitive. ES2015 syntax, no dependencies.
+// resolved. Glob matching is case-sensitive; the protected-name checks (protectedRule, the CLAUDE.md and AGENTS.md
+// denial) fold case, trailing dots and spaces, and a `:stream` suffix first, because Windows and macOS file
+// systems treat those spellings as the same file. ES2015 syntax, no dependencies.
 "use strict";
 
 const path = require("path");
@@ -27,9 +29,18 @@ const TEST_GLOBS = [
   "**/*_test.go",
 ];
 
-// Files Claude Code loads into later sessions. A write there plants instructions, so developer-tester may not
-// write them, whatever directory they sit in.
-const AUTO_LOADED = ["CLAUDE.md", "AGENTS.md"];
+// The only files task-planner may write: a task-plan file at the project root, one path segment relative to the
+// root (agents/task-planner.md, "Write scope"). With no known root the write bar falls back to "**/" + this glob.
+const TASK_PLAN_GLOB = "task-plan-*.md";
+
+// Paths no subagent may write: the /do plan files (they hold sign-off and waiver state) and the decision log.
+// Only the user, through the main conversation, changes them.
+const PROTECTED_GLOBS = ["**/.agent/main-plan/**"];
+const PROTECTED_FILES = ["DECISIONS.md"];
+
+// Files Claude Code loads into later sessions. A write there plants instructions, so developer-tester,
+// task-planner, requirements-gatherer, and solutions-architect may not write them, whatever directory they sit in.
+const AUTO_LOADED = ["CLAUDE.md", "CLAUDE.local.md", "AGENTS.md"];
 
 const MAX_PATH_CHARS = 4096;
 const MAX_SEGMENTS = 128;
@@ -86,15 +97,66 @@ function matchGlob(glob, file) {
   return matchSegments(glob.split("/"), 0, segments, 0);
 }
 
-// Why developer-tester may not write `file` even when a test glob matches, or null. Reasons: "limit" (empty,
-// over 4096 characters, or a NUL character), "hidden" (a segment starts with "."), "auto-loaded" (CLAUDE.md or
-// AGENTS.md as the file name).
+// Why a restricted agent (developer-tester, task-planner, requirements-gatherer, solutions-architect) may not
+// write `file`, or null. Reasons: "limit" (empty, over 4096 characters, or a NUL character), "hidden" (a segment
+// starts with "."), "auto-loaded" (CLAUDE.md, CLAUDE.local.md, or AGENTS.md as the file name).
 function testerDenial(file) {
   if (typeof file !== "string" || file.length === 0 || file.length > MAX_PATH_CHARS || file.indexOf("\0") !== -1) return "limit";
   const segments = file.replace(/\\/g, "/").split("/").filter((part) => part.length > 0 && part !== ".");
   if (segments.some((part) => part.charAt(0) === ".")) return "hidden";
-  if (segments.length > 0 && AUTO_LOADED.indexOf(segments[segments.length - 1]) !== -1) return "auto-loaded";
+  if (segments.length > 0 && AUTO_LOADED.some((name) => foldSegment(segments[segments.length - 1]) === name.toUpperCase().toLowerCase())) return "auto-loaded";
   return null;
+}
+
+// True when `file` is a task-plan file at the root of the path as given (the task-planner write scope). Pass the
+// path relative to the project root. `anyDirectory` accepts the file name in any directory (no root known).
+function isTaskPlanFile(file, anyDirectory) {
+  return matchGlob(anyDirectory ? "**/" + TASK_PLAN_GLOB : TASK_PLAN_GLOB, file);
+}
+
+// One path segment as a case-insensitive file system sees it: lower case, no `:stream` suffix (NTFS alternate
+// data streams), no trailing dots or spaces.
+function foldSegment(segment) {
+  const colon = segment.indexOf(":");
+  const base = colon === -1 ? segment : segment.slice(0, colon);
+  // Upper then lower folds characters such as U+017F (long s) and U+0131 (dotless i) the way a case-insensitive
+  // file system compares them.
+  return base.toUpperCase().toLowerCase().replace(/[. ]+$/, "");
+}
+
+// The rule that makes `file` off limits to every assist-plugin subagent (a glob, or the file name), or null.
+function protectedRule(file) {
+  const clean = normalize(file);
+  if (!clean) return null;
+  const folded = clean.split("/").map(foldSegment).filter((part) => part.length > 0);
+  if (folded.length === 0) return null;
+  for (let i = 0; i < PROTECTED_FILES.length; i++) {
+    if (folded[folded.length - 1] === PROTECTED_FILES[i].toUpperCase().toLowerCase()) return PROTECTED_FILES[i];
+  }
+  for (let i = 0; i < PROTECTED_GLOBS.length; i++) {
+    if (matchGlob(PROTECTED_GLOBS[i], folded.join("/"))) return PROTECTED_GLOBS[i];
+  }
+  return null;
+}
+
+// True when the normalized `clean` path sits below the normalized `base` root. A root that starts with a drive
+// letter compares without regard to case, as Windows does.
+function underRoot(clean, base) {
+  if (/^[A-Za-z]:\//.test(base)) return clean.slice(0, base.length + 1).toLowerCase() === (base + "/").toLowerCase();
+  return clean.indexOf(base + "/") === 0;
+}
+
+// True when `file` is absolute, home-relative (`~`), drive-relative (`C:name`), or climbs out with `..`, and no root
+// contains it. False when there are no roots or the path is relative to the working directory.
+function outsideRoots(file, roots) {
+  const clean = normalize(file);
+  if (!clean || !Array.isArray(roots) || roots.length === 0) return false;
+  const inside = roots.some((root) => {
+    const base = typeof root === "string" ? normalize(root).replace(/\/+$/, "") : "";
+    return base.length > 0 && underRoot(clean, base);
+  });
+  if (inside) return false;
+  return clean.charAt(0) === "/" || clean.charAt(0) === "~" || /^[A-Za-z]:/.test(clean) || clean === ".." || clean.indexOf("../") === 0;
 }
 
 // The first test glob that `file` matches, or null.
@@ -113,7 +175,7 @@ function relativeTo(file, roots) {
   let best = "";
   (roots || []).forEach((root) => {
     const base = normalize(root).replace(/\/+$/, "");
-    if (base && base.length > best.length && clean.indexOf(base + "/") === 0) best = base;
+    if (base && base.length > best.length && underRoot(clean, base)) best = base;
   });
   return best ? clean.slice(best.length + 1) : clean;
 }
@@ -127,11 +189,11 @@ function relativeForms(file, roots) {
   const forms = [];
   (roots || []).forEach((root) => {
     const base = typeof root === "string" ? normalize(root).replace(/\/+$/, "") : "";
-    if (!base || clean.indexOf(base + "/") !== 0) return;
+    if (!base || !underRoot(clean, base)) return;
     const form = clean.slice(base.length + 1);
     if (form && forms.indexOf(form) === -1) forms.push(form);
   });
   return forms.length > 0 ? forms : [clean];
 }
 
-module.exports = { TEST_GLOBS, AUTO_LOADED, MAX_PATH_CHARS, normalize, matchGlob, testGlobFor, testerDenial, relativeTo, relativeForms };
+module.exports = { TEST_GLOBS, TASK_PLAN_GLOB, PROTECTED_GLOBS, PROTECTED_FILES, AUTO_LOADED, MAX_PATH_CHARS, normalize, matchGlob, isTaskPlanFile, protectedRule, outsideRoots, testGlobFor, testerDenial, relativeTo, relativeForms };
