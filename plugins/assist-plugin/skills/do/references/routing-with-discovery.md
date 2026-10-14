@@ -4,7 +4,7 @@ How the `do` orchestrator discovers plugins/skills at runtime and how the ask ag
 
 ## Why discovery
 
-The static [agent-registry.md](agent-registry.md) covers the 15 known agents. Discovery extends routing to:
+The static [agent-registry.md](agent-registry.md) covers the 16 known agents. Discovery extends routing to:
 - Skills installed by other plugins that aren't in the registry yet
 - New agents added after this document was last updated
 - Task-specific tools a subagent should know about, even if the orchestrator doesn't invoke them directly

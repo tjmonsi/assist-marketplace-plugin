@@ -14,7 +14,8 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | **qa** | Sonnet | Yes | Can upgrade to Opus for critical test planning |
 | **solutions-architect** | Opus | Yes | Can downgrade to Sonnet for simple specs |
 | **requirements-gatherer** | Sonnet | No | Sonnet sufficient for most requirements |
-| **intake-reviewer** | Sonnet | No | Read-only review of a user file; Sonnet suffices and no override is needed |
+| **intake-reviewer** | Sonnet | No | Read-only `review` of a user file and read-only `conflict-check` of a build request against existing documents; Sonnet suffices and no override is needed |
+| **task-planner** | Sonnet | Yes | Turns an approved spec into a task-plan file; can upgrade to Opus for a large multi-module spec |
 | **devops** | Sonnet | Yes | Can upgrade to Opus for complex infrastructure |
 | **researcher** | Opus | No | Opus + web search for comprehensive research |
 | **code-reviewer** | Opus | No | Always use Opus for critical sign-off |
@@ -35,7 +36,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 ### Medium Cost (Sonnet): Core Development
 - Implementation, testing, requirements, DevOps, planning
 - Good reasoning + cost efficiency balance
-- **Agents:** developer, developer-tester, qa, requirements-gatherer, intake-reviewer, devops, general-purpose, worker, planner
+- **Agents:** developer, developer-tester, qa, requirements-gatherer, intake-reviewer, task-planner, devops, general-purpose, worker, planner
 - **Strategy:** Iterate + refine if first pass incomplete
 
 ### High Cost (Opus): Decisions & Architecture
@@ -60,7 +61,8 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | qa | high | Test design, coverage, validation |
 | solutions-architect | xhigh | API/schema design, complex specs (Opus tier) |
 | requirements-gatherer | medium | Requirements elicitation |
-| intake-reviewer | medium | Read-only review of a user file against the gather-requirements checklist |
+| intake-reviewer | medium | Read-only `review` of a user file against the gather-requirements checklist, and read-only `conflict-check` of a build request against existing documents |
+| task-planner | high | Spec-to-task-plan conversion with traceable, ordered steps |
 | devops | high | Infrastructure, deployment, monitoring |
 | researcher | xhigh | Research, documentation, best practices (Opus tier) |
 | code-reviewer | xhigh | Formal review, sign-off authority |
@@ -86,6 +88,7 @@ When should you override the default model?
 - **qa:** Critical test planning
 - **devops:** Complex infrastructure
 - **solutions-architect:** Default is already Opus; stays there for complex specs
+- **task-planner:** Large multi-module specs
 
 ### ✗ NO, Keep Default (Non-Negotiable)
 - **orchestrator:** Always Opus (non-negotiable)
@@ -95,7 +98,7 @@ When should you override the default model?
 - **commit:** Always Haiku (non-negotiable; mechanical formatting only)
 - **researcher:** Always Opus (comprehensive research quality)
 - **requirements-gatherer:** Sonnet by default (straightforward elicitation)
-- **intake-reviewer:** Always Sonnet (read-only review; no override needed)
+- **intake-reviewer:** Always Sonnet (read-only `review` and `conflict-check`; no override needed)
 
 ### Fix Phase (Non-Negotiable)
 - **All fixing agents (including developer-tester):** Always Sonnet (non-negotiable)

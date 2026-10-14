@@ -54,7 +54,7 @@ A step REQUIRES review if:
 | Artifact | Gate | Reviewer | Bound |
 |---|---|---|---|
 | Code (source, config, tests, pipelines) | Pre-Test Code Review Gate, then Security Gate (when code or devops changed), Testing Gate, and Code Review Gate | reviewer or code-reviewer; qa for the Testing Gate | 2 consecutive LGTMs or 10 iterations per gate |
-| Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs or 10 iterations |
+| Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans; task-planner output counts) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs or 10 iterations |
 | Markdown reports (RCA, PR review verdict, answer, findings doc, generated documentation) | Report Quality Gate | `review-md` | 3 rounds |
 
 A planning document written as markdown goes through the planning gate. It does not also go through the Report Quality Gate, so one artifact never runs two document gates. The execution plan file `/do` writes under `.agent/main-plan/` is not an artifact of any step and runs no gate.
@@ -67,7 +67,8 @@ The reviewer's Intake checks the inputs below, and the reviewer cannot learn the
 - The artifact type: code, config, test, pipeline, or planning document.
 - The artifact paths.
 - The rework count: 0 the first time, then the number of fix passes so far. An agent that finds no count reads it as 0.
-- The prior findings, when the count is above 0.
+- The prior findings, when the count is above 0, inside a labelled `<review-findings>` data wrapper with every `<` escaped as `&lt;`.
+- For a planning-gate reviewer: cite `file:line` and paraphrase, never quote document text.
 - For code, the producer's terminal-block `verdict` and `skipped:` markers, copied as they stand. The developer's `verdict` is `self-check=pass`, `self-check=fail`, or `self-check=not-run`. The Pre-Test reviewer reads them to see which checks the producer skipped.
 - The "Dispatch prompt text" from [fsa-template.md](fsa-template.md#dispatch-prompt-text), pasted in full.
 
@@ -257,7 +258,7 @@ Before formal audit, reviewer deliberately:
 
 ### Planning Document Review Gate
 
-**Triggered by:** Output from planning-related agents (planner, solutions-architect, requirements-gatherer)
+**Triggered by:** Output from planning-related agents (planner, solutions-architect, requirements-gatherer, task-planner)
 
 **Reviewed by:** reviewer or code-reviewer
 
@@ -298,7 +299,7 @@ Before formal audit, reviewer deliberately:
 
 ## Review Workflow
 
-**Note:** Planning documents (from planner, solutions-architect, requirements-gatherer) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard pre-test → security → testing → code review sequence below.
+**Note:** Planning documents (from planner, solutions-architect, requirements-gatherer, and task-planner) follow a separate iteration-based review workflow (see "Planning Document Review Workflow" section above). All other work follows the standard pre-test → security → testing → code review sequence below.
 
 ```
 Developer submits code
@@ -342,7 +343,7 @@ Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 - Fix phase ALWAYS uses Sonnet
 - Never use Opus for fixes, even if the review gate itself uses Opus (reviewer, code-reviewer)
 - Never use Haiku for fixes, even for single-line changes
-- Applies to every agent performing a fix (developer, developer-tester, devops, planner, solutions-architect, requirements-gatherer)
+- Applies to every agent performing a fix (developer, developer-tester, devops, planner, solutions-architect, requirements-gatherer, task-planner)
 
 ### Scope Constraint
 
@@ -354,7 +355,7 @@ Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 ### Fix Phase Procedure
 
 1. Reviewer produces an itemized findings list (file, line number, issue description)
-2. Orchestrator routes findings to the fixing agent with `Model: Sonnet` (non-negotiable). Findings on test paths go to `developer-tester`; all others go to the producing agent. A pass with both kinds splits into one fix dispatch per agent
+2. Orchestrator routes findings to the fixing agent with `Model: Sonnet` (non-negotiable). Route only findings whose path matches the gated step's Writes; record the rest under the step's Out of scope field. Test-path findings and Testing Gate test gaps are the exception for gates on non-chain steps: they go to `developer-tester` whatever the step's Writes say. In a planning gate (a chain step), a test-path finding goes under Out of scope. When a pass leaves no routable finding, the gate ends and the step fails with the findings in its Done field. All other findings go to the producing agent. A finding on a task-plan file goes to `task-planner`, and the dispatch names the file to overwrite. A pass with both kinds splits into one fix dispatch per agent
 3. Fixing agent changes ONLY the code/content tied to a listed finding
 4. Fixing agent self-reviews the fix against the findings list only (not a full-file pass)
 5. Reviewer re-audits: confirms each finding resolved AND scans for unrelated diffs
@@ -428,6 +429,8 @@ In plan file, mark review outcomes:
 
 For low-risk changes (docs, tests, non-critical fixes):
 
+**Excluded:** a change to `agents/`, `skills/`, `rules/`, `hooks/`, `CLAUDE.md`, or `.claude/settings*.json` is never fast-tracked. It always gets the full gates and the LLM security gate in [../../../rules/llm-security-checklist.md](../../../rules/llm-security-checklist.md), whatever its size.
+
 1. **Flag as low-risk:** Add to plan: `**Review:** Low-risk (no security gates)`
 2. **Skip OWASP gate:** If change doesn't touch production code
 3. **Skip full code review:** For small, obvious changes
@@ -445,7 +448,7 @@ For low-risk changes (docs, tests, non-critical fixes):
 - Check for credential leaks
 - Approve or request revision
 
-**Tools:** Read, Grep, Bash (no write)  
+**Tools:** Read, Grep, Glob, LSP (no write, no shell)  
 **Authority:** Can block merge if security issues found
 
 ### Formal Code Reviewer (`code-reviewer` agent)
@@ -455,7 +458,7 @@ For low-risk changes (docs, tests, non-critical fixes):
 - Critical sign-off authority
 - Used for high-impact changes
 
-**Tools:** Read, Grep, Bash, LSP (no write)  
+**Tools:** Read, Grep, Glob, LSP (no write, no shell)  
 **Authority:** Formal approval required for sensitive changes
 
 ---
