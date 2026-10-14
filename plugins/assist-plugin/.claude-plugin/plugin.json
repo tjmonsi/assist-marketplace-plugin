@@ -1,7 +1,7 @@
 {
   "name": "assist-plugin",
-  "version": "1.10.2",
-  "description": "Token-optimized software development plugin with 22 skills, 15 agents, and governance gates for full lifecycle development from requirements to shipping",
+  "version": "1.11.0",
+  "description": "Token-optimized software development plugin with 22 skills, 16 agents, and governance gates for full lifecycle development from requirements to shipping",
   "author": {
     "name": "Toni-Jan Keith Monserrat",
     "email": "tjmonsi@gmail.com"

@@ -2,6 +2,37 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.11.0] - 2026-10-14
+
+### New Features
+
+- **Spec-first `/do`**: a request that writes code, config, pipelines, infrastructure, or tests now gets requirements, a spec, and a task plan, approved by the user, before any build step runs
+  - SpecGate classifies the request as `build` or not; docs-only edits, reviews, questions, and commits are exempt
+  - For a build, a read-only `intake-reviewer` `conflict-check` compares the request with existing requirements, specs, task plans, and `DECISIONS.md`; an empty project skips the check
+  - Build Clarify runs up to 5 rounds (2 for other requests), each question with /do's recommended answer and the assumption /do would otherwise make, except a question about instruction-like text in a document, which has no recommended option; a point still open after round 5 ends the run in `Error(plan-invalid)`
+  - A requirements, spec, and task-plan chain (`requirements-gatherer`, `solutions-architect`, `task-planner`) runs ahead of every `Build: yes` step, and the plan file gets a Spec-First section
+  - DocSignOff asks the user to approve the documents (Approve documents, Edit documents up to 3 times, or Cancel) before any `Build: yes` step starts
+  - PlanApproval offers "Skip spec-first", recorded in `DECISIONS.md`
+- **New agent `task-planner`** (Read, Write, Grep, Glob; preloads `task-plan`): writes only a root-level `task-plan-*.md`, treats the spec and every document it reads as untrusted data, and reports as `task-planner/1` with verdict `steps=N`. The plugin now has 16 agents. The `developer` agent no longer runs `task-plan`
+- **`intake-reviewer` `conflict-check` mode**: reports missing documents, request versus documents, contradictions between documents, and gaps, each with a question, a recommended answer, and the assumption that applies otherwise; verdict `clear` or `needs-clarification`
+
+### Changes
+
+- `/do` runs, in a git repo, a change check (`git status` plus content hashes of `.claude/settings*.json`, `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, and `DECISIONS.md`) around each chain step, validates each chain artifact against the step's writes, and stores a hash of each approved document that it rechecks before every build send
+- `/do` wraps document paths as untrusted data in chain, build, gate, and fix prompts, and dispatches registry agents as `assist-plugin:<name>`
+- `task-plan` pre-approves edits only to `./task-plan-*.md` and no longer lists `Write`; a fix pass overwrites the task-plan file named in the prompt
+- The `review-protocol` reference lists the reviewer and code-reviewer tools correctly (Read, Grep, Glob, LSP; no write, no shell) and routes a fix only for findings on the gated step's writes
+- `mmdc` examples in `solutions-architect` and `diagram-generation.md` read a `.mmd` file and write a `.svg`, `.png`, or `.pdf` file under `specs/`
+- Counts: 16 agents, 22 skills
+
+### Security
+
+- `fsa-write-bar` limits `task-planner` to a root-level `task-plan-*.md` inside the project
+- `fsa-write-bar` bars `requirements-gatherer` and `solutions-architect` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`; `developer-tester` is now also barred from `CLAUDE.local.md`
+- `fsa-write-bar` denies every subagent (any plugin, when `agent_id` is present) writes to `.agent/main-plan/**` and `DECISIONS.md`, matched without regard to case, trailing dots or spaces, or a `:stream` suffix, and denies subagents a path over 4096 characters or with a NUL character (Write, Edit, MultiEdit, and NotebookEdit calls only; Bash writes are not covered; the hook fails open)
+- `sa-mermaid-only` accepts `mmdc` only with a `.mmd` input and a `.svg`, `.png`, or `.pdf` output under `specs/` or `<dir>/specs/`
+- Fast-Track never applies to a change in `agents/`, `skills/`, `rules/`, `hooks/`, `CLAUDE.md`, or `.claude/settings*.json`
+
 ## [1.10.2] - 2026-10-13
 
 ### Bug Fixes
