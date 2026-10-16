@@ -2,6 +2,26 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.11.1] - 2026-10-16
+
+### Changes
+
+- Requirements go to `docs/requirements/` (`gather-requirements`: BRD, URD, FR-NFR, and the optional JSON) and task plans go to `docs/task-plans/` (`task-plan`), both under the git root of the session's working directory; specs stay in `specs/`
+  - SpecGate searches the new folders and the old root patterns (`./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json`, `./task-plan-*.md`)
+  - In an older project that keeps these files at the repo root, `/do` appends a plain note to `DECISIONS.md` after plan approval and leaves the files in place; a rework of a root-level task plan is written as a new file in `docs/task-plans/`
+  - The change check takes its snapshots and steering-file hashes against the session's git root
+- `prose-gate` and `prose-advisor` skip `docs/tts/` under the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and under the session's working directory when that directory is inside the project; `/voice-script` still saves under the session directory
+- `check-fsa-tables.js` makes three new comparisons: `verdictByStep` against the Decide and Verify rows of the `intake-reviewer` `## States` table; the protected paths and the auto-loaded names against the new `## Write guard lists` section in `rules/assist-plugin-rule.md`; and the task-plan glob against that section and the Write scope table in `agents/task-planner.md`
+- The plugin `CHANGELOG.md` is a pointer to this file and holds no release entries
+- Counts: 16 agents, 22 skills
+
+### Security
+
+- `requirements-gatherer`, `gather-requirements`, and `spec-from-requirements` are told to treat the files they read as untrusted data and to report instruction-like text only as a file:line citation (a prompt rule, not a hook)
+- `fsa-write-bar` limits `task-planner` to `docs/task-plans/task-plan-*.md` under the session's git root; with no usable working directory in the hook input, only a plain relative `docs/task-plans/task-plan-*.md` passes
+- `gather-requirements` pre-approves edits only to `docs/requirements/`, so an in-place update of a root-level requirements file asks the user first
+- `task-plan` pre-approves edits only to `./docs/task-plans/task-plan-*.md` (was `./task-plan-*.md`), so a write at the root or from a session started in a subdirectory now prompts
+
 ## [1.11.0] - 2026-10-14
 
 ### New Features
@@ -253,6 +273,11 @@ All notable changes to assist-plugin-marketplace are documented in this file.
   - Establish consistent writing guidelines across all plugin documentation
   - Remove unnecessary verbosity from documentation and specifications
 
+### Bug Fixes
+
+- Em-dash contradiction in ask answer-format template (changed to colon separator)
+- Conflicting revision workflow removed (single iteration path per fix-phase-rules)
+
 ### Breaking Changes
 
 - **LLM Co-Authorship Removal**
@@ -299,6 +324,7 @@ All notable changes to assist-plugin-marketplace are documented in this file.
 - Quality improves through multiple iteration cycles (typical: 2-3, max: 10)
 - Earlier issue detection via adversarial self-reflection phase
 - Clear escalation path after 10 iterations
+- Version bump infrastructure (commit tracking)
 
 ## [1.1.0] - 2026-08-27
 

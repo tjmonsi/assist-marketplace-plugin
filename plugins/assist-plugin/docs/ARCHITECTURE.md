@@ -66,7 +66,7 @@ assist-plugin follows these core principles:
 #### Architecture Tier
 - **planner**: System design, roadmap, risk assessment
 - **solutions-architect**: Feature specs, API design, data flow
-- **task-planner**: Approved spec to an ordered task-plan file (writes only a root-level `task-plan-*.md`)
+- **task-planner**: Approved spec to an ordered task-plan file (writes only `docs/task-plans/task-plan-*.md` under the session's git root)
 
 #### Quality Tier
 - **qa**: Test planning, acceptance validation
@@ -141,7 +141,7 @@ assist-plugin follows these core principles:
    ## Step 1: Requirements (chain)
    Agent: requirements-gatherer
    Model: Sonnet
-   Files: FR-NFR-auth.md
+   Files: docs/requirements/FR-NFR-auth.md
 
    ## Step 2: Spec (chain)
    Agent: solutions-architect
@@ -151,7 +151,7 @@ assist-plugin follows these core principles:
    ## Step 3: Task plan (chain)
    Agent: task-planner
    Model: Sonnet
-   Files: task-plan-auth-<timestamp>.md
+   Files: docs/task-plans/task-plan-auth-<timestamp>.md
 
    ## Step 4: Implement Authentication (Build: yes)
    Agent: developer
@@ -205,7 +205,7 @@ Guards around the chain:
 - **Change check:** in a git repo, `/do` snapshots `git status` and content hashes of the files that steer agents (`.claude/settings*.json`, `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, `DECISIONS.md`) around each chain step and flags any change it cannot attribute. It validates each chain artifact against the step's writes.
 - **Approved-document hashes:** `/do` recomputes the hash of each approved document before every build send and holds the build steps if one changed.
 - **Untrusted-data wrappers:** chain, build, gate, and fix prompts name every document path inside a data wrapper, so the agent is told to treat document text as content, not commands.
-- **Write guards:** `fsa-write-bar` limits `task-planner` to a root-level `task-plan-*.md`, bars `requirements-gatherer`, `solutions-architect`, `task-planner`, and `developer-tester` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`, and denies every subagent `.agent/main-plan/**` and `DECISIONS.md` (Write, Edit, MultiEdit, and NotebookEdit calls only; Bash writes are not covered; the hook fails open). `sa-mermaid-only` lets `mmdc` read a `.mmd` file and write a `.svg`, `.png`, or `.pdf` file under `specs/` or `<dir>/specs/`.
+- **Write guards:** `fsa-write-bar` limits `task-planner` to `docs/task-plans/task-plan-*.md` under the session's git root, bars `requirements-gatherer`, `solutions-architect`, `task-planner`, and `developer-tester` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`, and denies every subagent `.agent/main-plan/**` and `DECISIONS.md` (Write, Edit, MultiEdit, and NotebookEdit calls only; Bash writes are not covered; the hook fails open). `sa-mermaid-only` lets `mmdc` read a `.mmd` file and write a `.svg`, `.png`, or `.pdf` file under `specs/` or `<dir>/specs/`.
 - **Qualified dispatch:** `/do` dispatches each registry agent as `assist-plugin:<name>`.
 
 ---

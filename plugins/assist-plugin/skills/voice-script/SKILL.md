@@ -159,7 +159,7 @@ Apply the model file only. Compose in this order.
 
 1. Run `date +%Y%m%d-%H%M` once. Accept the output only if it matches `^[0-9]{8}-[0-9]{4}$`.
 2. Build the slug from the topic or the draft's file name or first words: lowercase ASCII letters, digits, and single hyphens only, at most 40 characters, `script` when empty. No dots, slashes, or other characters.
-3. Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory (the primary working directory, not the git root). The prose-hook exemption for `docs/tts/` is anchored to that directory.
+3. Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory (the primary working directory, not the git root). The prose-hook exemption for `docs/tts/` covers the project root, and that directory when it is inside the project.
 4. When the date command fails, use the session date as `YYYYMMDD` and name the file `voice-<slug>-YYYYMMDD.md`. Write `time n/a` in the header.
 5. Never overwrite. Glob `docs/tts/voice-<slug>-<stamp>*.md` first. On a clash, add `-2`, `-3`, and so on before `.md`, and Glob again for the new name.
 6. Create the file with Write, using the layout in [references/output-template.md](references/output-template.md). Never use Edit or Write on an existing script file.

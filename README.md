@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.11.0
+### assist-plugin v1.11.1
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
@@ -116,6 +116,9 @@ For a full breakdown of token savings by scenario, cost implications, and method
 - **[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth for the prose hooks)
 - **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)**: Writing standards and conciseness checklist
 - **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)**: Traceability marker convention
+- **[docs/requirements/](docs/requirements/)**: Requirements documents (BRD, URD, FR-NFR)
+- **[specs/](specs/)**: Feature specs
+- **[docs/task-plans/](docs/task-plans/)**: Task plans
 - **[MARKETPLACE.md](MARKETPLACE.md)**: Marketplace overview
 
 ## Installation
@@ -290,7 +293,7 @@ Source: https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts
 - **`prose-advisor`** (PostToolUse on the same tools): adds a short advisory note about hedges, intensifiers, AI vocabulary, throat-clearing, and similar tells in the added text. It never blocks.
 - **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent.
 
-Both per-write hooks skip files under the system temp directory and files under `docs/tts/` in the session's working directory (the hook's working directory, not the git root), where voice scripts from `/voice-script` may use em dashes as pause marks. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
+Both per-write hooks skip files under the system temp directory and files under `docs/tts/` in the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and in the session's working directory when that directory is inside the project, where voice scripts from `/voice-script` may use em dashes as pause marks. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
 
 All three fail open. The per-write hooks add about 80 to 110 ms to each write. The plugin also ships an opt-in output style, `assist-plugin:terse`: answer-first replies with no preamble, recap, or sign-off. Select it with `/output-style`; subagents do not use it.
 
@@ -301,7 +304,7 @@ To rewrite existing prose, run `/deslop edit <file>`; `/deslop detect <file>` li
 The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, `developer`, and `task-planner` follow a finite-state automaton: a `## States` table in the agent or skill file. Every dispatched agent, `qa` included, ends its final message with a terminal block (a fenced `fsa` block of ten fields) ([skills/do/references/fsa-template.md](plugins/assist-plugin/skills/do/references/fsa-template.md)). Two hooks check what is visible from outside the model:
 
 - **`fsa-write-bar`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): `developer-tester` may write only test paths, and `developer` may not write them. Test paths are the globs under "Write scope" in `agents/developer-tester.md` (`**/tests/**`, `**/*.test.*`, `**/*_test.go`, and six more). A denial names the path, the rule, and that section. Other limits:
-  - `task-planner` may write only a root-level `task-plan-*.md` inside the project ("Write scope" in `agents/task-planner.md`).
+  - `task-planner` may write only a `task-plan-*.md` file directly under `docs/task-plans/` of the session's git root ("Write scope" in `agents/task-planner.md`).
   - `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` are denied any path with a segment that starts with a dot and any file named `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md`. `devops`, `worker`, `qa`, `general-purpose`, and `developer` keep dot-path writes because CI and config files such as `.github/` are their work.
   - Every subagent, from any plugin when the call carries an `agent_id`, is denied `.agent/main-plan/**` and any file named `DECISIONS.md`, so only the orchestrator records plans, sign-off, waivers, and decisions.
   - Every subagent is denied a path over 4096 characters or with a NUL character.
@@ -313,7 +316,7 @@ The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, `
 
 `fsa-log` runs in warn mode. When a final report has no block or an illegal one, you see one line, `assist-plugin fsa: <agent> final report <problem summary>; see /assist-plugin:health`, and the run continues unchanged: the hook never blocks a subagent, never sends it back, and never adds context, because either would make the subagent keep running. The session-start check counts new problem reports since the last notice, and `/assist-plugin:health` lists them with the problem codes.
 
-Both hooks fail open like the rest: any crash, bad input, timeout, or disabled hook lets the write or the report through with a one-line warning. The tables in `hooks/lib/fsa-tables.js` mirror the markdown tables. After you edit a `## States` table or the Write scope table, run `node plugins/assist-plugin/scripts/check-fsa-tables.js --check`; it exits 1 and lists each difference while the two disagree.
+Both hooks fail open like the rest: any crash, bad input, timeout, or disabled hook lets the write or the report through with a one-line warning. The tables in `hooks/lib/fsa-tables.js` mirror the markdown tables. After you edit a `## States` table, a Write scope table (`agents/developer-tester.md` or `agents/task-planner.md`), or the `## Write guard lists` in `rules/assist-plugin-rule.md`, run `node plugins/assist-plugin/scripts/check-fsa-tables.js --check`; it exits 1 and lists each difference while the code and the markdown disagree. The markdown wins, so edit the JavaScript to match, except that a write guard value found only in `lib/fsa-paths.js`, or a task-plan glob change, needs a user decision recorded in `DECISIONS.md` first (the script prints this line).
 
 ## Marketplace Structure
 
@@ -326,6 +329,10 @@ assist-marketplace-plugin/
 ├── CLAUDE.md (repo quick reference)
 ├── MARKETPLACE.md (marketplace overview)
 ├── README.md (this file)
+├── DECISIONS.md (decision log)
+├── docs/ (requirements/ for BRD, URD, and FR-NFR documents; task-plans/ for task plans)
+├── specs/ (feature specs)
+├── tests/ (node:test files for the hooks, scripts, skills, and documents)
 ├── plugins/
 │   └── assist-plugin/
 │       ├── .claude-plugin/plugin.json (plugin metadata)
@@ -344,7 +351,7 @@ assist-marketplace-plugin/
 │       │   ├── fsa-log.js (entry: logs and checks subagent terminal blocks, warn mode)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
 │       │   ├── impl/ (guard, injection-filter, prose-hook, FSA-hook, and health-check logic)
-│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, fsa-tables.js, fsa-paths.js)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, git-root.js, fsa-tables.js, fsa-paths.js)
 │       ├── output-styles/ (terse.md: opt-in `assist-plugin:terse` output style)
 │       ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
 │       ├── scripts/ (sync-writing-standard.js: syncs the Report Writing Standard blocks; check-fsa-tables.js: checks the FSA tables against the markdown)
