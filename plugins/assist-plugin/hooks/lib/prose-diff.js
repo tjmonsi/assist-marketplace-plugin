@@ -15,12 +15,15 @@
 //   4. When only some hits of a rule are new, the reported ones are those whose surrounding text does not
 //      appear in the removed lines.
 //
-// Pure apart from reading the target file, which callers can replace through options.readFile.
+// Pure apart from three reads of the environment: the target file (callers can replace it through
+// options.readFile), CLAUDE_PROJECT_DIR (options.projectDir), and the file-system walk for .git through
+// hooks/lib/git-root.js (options.findGitRoot).
 "use strict";
 
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const gitRoot = require("./git-root.js");
 const rules = require("./prose-rules.js");
 
 const EDIT_TOOLS = ["Write", "Edit", "MultiEdit", "NotebookEdit"];
@@ -92,21 +95,55 @@ function tmpdirs(options) {
   return dirs;
 }
 
-// True when file, resolved against the hook input's cwd (the session's working directory, which can differ from
-// the project root), sits inside <cwd>/docs/tts/. Paths are normalized first, so docs/tts/../README.md is
-// outside. No cwd (missing, empty, or relative) exempts nothing. Symlinks are not resolved.
-function isVoiceScript(file, cwd) {
-  if (typeof cwd !== "string" || cwd.length === 0 || !path.isAbsolute(cwd)) return false;
-  return isUnder(path.resolve(cwd, file), path.join(path.resolve(cwd), "docs", "tts"));
+// A non-empty absolute path string, the only form a root or a cwd may take.
+function usableDir(value) {
+  return typeof value === "string" && value.length > 0 && path.isAbsolute(value);
+}
+
+// [FR-181] Project root: CLAUDE_PROJECT_DIR when a non-empty absolute path; else the first directory from
+// the input cwd upward that holds .git (walked without starting git); else the input cwd; else null.
+// options.projectDir replaces the environment variable (null = unset; a missing or undefined key reads
+// process.env.CLAUDE_PROJECT_DIR). options.findGitRoot (a function; any other value counts as absent)
+// replaces the file-system walk. The walk runs only from a usable cwd, never from the process directory.
+function projectRoot(cwd, options) {
+  const configured = options.projectDir === undefined ? process.env.CLAUDE_PROJECT_DIR : options.projectDir;
+  if (usableDir(configured)) return path.resolve(configured);
+  if (!usableDir(cwd)) return null;
+  const find = typeof options.findGitRoot === "function" ? options.findGitRoot : gitRoot.findGitRoot;
+  let found = null;
+  try {
+    found = find(cwd);
+  } catch (err) {
+    found = null; // a failing lookup only means no git root is known; the cwd becomes the root
+  }
+  return path.resolve(usableDir(found) ? found : cwd);
+}
+
+// [FR-181] Exempt roots for docs/tts/: the project root, plus the session root, which is the input cwd when it
+// sits inside the project root (a cwd outside the project gives none).
+function voiceRoots(cwd, options) {
+  const project = projectRoot(cwd, options);
+  if (!project) return [];
+  return usableDir(cwd) && isUnder(cwd, project) ? [project, path.resolve(cwd)] : [project];
+}
+
+// True when file sits inside docs/tts/ under an exempt root (see voiceRoots). The file must be absolute: a
+// relative target with no usable cwd cannot be placed in the project, so it is never exempt and the process
+// directory (the plugin root) is never a root. Paths are normalized first, so docs/tts/../README.md is
+// outside. Symlinks are not resolved. options: {projectDir, findGitRoot} as for changes().
+function isVoiceScript(file, cwd, options) {
+  if (!usableDir(file)) return false;
+  return voiceRoots(cwd, options || {}).some((root) => isUnder(file, path.join(root, "docs", "tts")));
 }
 
 // Files the prose hooks never judge: scratch files under the system temp directory, voice scripts under
-// <cwd>/docs/tts/, and paths matching an allowlist entry ("*" matches every path). options: {allowlist, tmpdir}
-// replace the defaults (tests); {cwd} is the hook input's working directory.
+// docs/tts/ of the project root or the session directory, and paths matching an allowlist entry ("*" matches
+// every path). options: {allowlist, tmpdir, projectDir, findGitRoot} replace the defaults (tests); {cwd} is
+// the hook input's working directory.
 function isExempt(file, options) {
   const opts = options || {};
   if (tmpdirs(opts).some((dir) => isUnder(file, dir))) return true;
-  if (isVoiceScript(file, opts.cwd)) return true;
+  if (isVoiceScript(file, opts.cwd, opts)) return true;
   const allowlist = Array.isArray(opts.allowlist) ? opts.allowlist : loadAllowlist();
   const slashed = file.replace(/\\/g, "/");
   return allowlist.some((entry) => entry === ALLOW_ALL || file.indexOf(entry) !== -1 || slashed.indexOf(entry) !== -1);
@@ -115,7 +152,9 @@ function isExempt(file, options) {
 function targetPath(input, key) {
   const raw = input.tool_input[key];
   if (typeof raw !== "string" || raw.length === 0) return null;
-  if (path.isAbsolute(raw) || typeof input.cwd !== "string" || input.cwd.length === 0) return raw;
+  // A relative target resolves only against a usable cwd; otherwise it stays as written, so the process
+  // directory (the plugin root) never places it anywhere.
+  if (path.isAbsolute(raw) || !usableDir(input.cwd)) return raw;
   return path.resolve(input.cwd, raw);
 }
 
@@ -239,15 +278,16 @@ function notebookPairs(input, file, phase, readFile) {
 }
 
 // Returns null when the call writes no prose, else {file, pairs: [{before, after, where}]}.
-// options: {phase: "pre" | "post", readFile(file) -> string | null, allowlist, tmpdir}; a call that targets
-// a temp-directory, <input.cwd>/docs/tts/, or allowlisted path writes no judged prose (null).
+// options: {phase: "pre" | "post", readFile(file) -> string | null, allowlist, tmpdir, projectDir,
+// findGitRoot}; a call that targets a temp-directory, allowlisted, or docs/tts/ path (under the project root
+// or the input cwd, see voiceRoots) writes no judged prose (null).
 function changes(input, options) {
   const opts = Object.assign({}, options);
   const phase = opts.phase === "post" ? "post" : "pre";
   const readFile = typeof opts.readFile === "function" ? opts.readFile : readText;
   if (!isObject(input) || !isObject(input.tool_input) || EDIT_TOOLS.indexOf(input.tool_name) === -1) return null;
   const tool = input.tool_name;
-  opts.cwd = input.cwd; // the docs/tts/ exemption is relative to the hook input's cwd, not CLAUDE_PROJECT_DIR
+  opts.cwd = input.cwd; // the session directory: one of the two docs/tts/ roots, and where the git walk starts
   if (tool === "NotebookEdit") {
     const notebook = targetPath(input, "notebook_path");
     if (!notebook || !isProseNotebook(notebook) || isExempt(notebook, opts)) return null;

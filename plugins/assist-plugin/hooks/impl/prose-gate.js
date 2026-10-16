@@ -6,8 +6,9 @@
 // deny (prose-advisor reports them after the write). Text already in the file is not judged (see
 // lib/prose-diff.js), so files with old tells stay editable. The deny reason lists each hit with its line, rule
 // id, and fix so the next attempt rewrites only the flagged text. Files under the system temp directory, voice
-// scripts under <cwd>/docs/tts/ (em dashes there are pause marks), and paths in
-// ${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json ("*" = every path) are never judged.
+// scripts under docs/tts/ of the project root (CLAUDE_PROJECT_DIR, else the git root of the input cwd, else
+// that cwd) or of the input cwd when it sits inside the project (em dashes there are pause marks), and paths
+// in ${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json ("*" = every path) are never judged.
 // Fail-open: evaluate(input) -> {deny, reason}; any failure lets the write proceed (see ../lib/health.js).
 // It never rewrites the write itself and never exits 2.
 "use strict";
@@ -50,11 +51,19 @@ function describe(file, findings) {
   return lines.join("\n");
 }
 
-// Decision function. options: {readFile, allowlist, tmpdir} replace the disk read and the exemptions (tests
-// and the health check).
+// Decision function. options: {readFile, allowlist, tmpdir, projectDir, findGitRoot} replace the disk read,
+// the exemptions, and the project-root lookup (tests and the health check); projectDir null = unset, and a
+// missing or undefined key falls back to the environment and the file system.
 function evaluate(input, options) {
   const opts = options || {};
-  const change = diff.changes(input, { phase: "pre", readFile: opts.readFile, allowlist: opts.allowlist, tmpdir: opts.tmpdir });
+  const change = diff.changes(input, {
+    phase: "pre",
+    readFile: opts.readFile,
+    allowlist: opts.allowlist,
+    tmpdir: opts.tmpdir,
+    projectDir: opts.projectDir,
+    findGitRoot: opts.findGitRoot,
+  });
   if (!change) return ALLOW;
   const findings = diff.addedFindings(change, "block");
   return findings.length > 0 ? { deny: true, reason: describe(change.file, findings) } : ALLOW;
