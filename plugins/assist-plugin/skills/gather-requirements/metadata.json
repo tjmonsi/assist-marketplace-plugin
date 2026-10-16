@@ -7,10 +7,10 @@
     "Grep",
     "Glob",
     "AskUserQuestion",
-    "Edit(./BRD-*.md)",
-    "Edit(./URD-*.md)",
-    "Edit(./FR-NFR-*.md)",
-    "Edit(./requirements-*.json)"
+    "Edit(./docs/requirements/BRD-*.md)",
+    "Edit(./docs/requirements/URD-*.md)",
+    "Edit(./docs/requirements/FR-NFR-*.md)",
+    "Edit(./docs/requirements/requirements-*.json)"
   ],
   "argument-hint": "[elicit | document | review] [topic | file]"
 }

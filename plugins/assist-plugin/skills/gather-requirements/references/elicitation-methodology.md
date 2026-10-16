@@ -13,7 +13,7 @@ Interactively gather requirements through structured questioning. Used by `/gath
 - Ask: What is the project or initiative?
 - Ask: Who are the stakeholders? (users, operators, business owners, regulators)
 - Ask: What problem does this solve, or what opportunity does it address?
-- Check the working directory for existing BRDs, URDs, specs, or documentation before asking about anything already written down.
+- Check `docs/requirements/` under the git root for existing `BRD-*.md`, `URD-*.md`, and `FR-NFR-*.md` documents (in an older project, also the root-level files of those names), and check `specs/` and other project documentation, before asking about anything already written down.
 
 ### 2. Elicit business requirements
 

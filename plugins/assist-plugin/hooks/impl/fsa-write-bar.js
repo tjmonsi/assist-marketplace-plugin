@@ -6,10 +6,12 @@
 //                                   CLAUDE.local.md, AGENTS.md, a path over 4096 characters, or a path with a
 //                                   NUL character.
 //   assist-plugin:developer         may not write test paths (agents/developer.md, "Write scope").
-//   assist-plugin:task-planner      may write only a task-plan-*.md file at the project root (agents/task-planner.md,
-//                                   "Write scope"), inside the project, and never a hidden path, CLAUDE.md,
-//                                   CLAUDE.local.md, AGENTS.md, a path over 4096 characters, or a path with a NUL
-//                                   character.
+//   assist-plugin:task-planner      may write only a task-plan-*.md file directly under docs/task-plans/ of the
+//                                   session's git root (agents/task-planner.md, "Write scope"), and never a hidden
+//                                   path, CLAUDE.md, CLAUDE.local.md, AGENTS.md, a path over 4096 characters, or a
+//                                   path with a NUL character. The root is the git root of the input cwd (found
+//                                   with lib/git-root.js; the cwd itself outside a git repository). Without a usable
+//                                   cwd only a plain relative docs/task-plans/task-plan-*.md passes.
 //   assist-plugin:requirements-gatherer and assist-plugin:solutions-architect
 //                                   read untrusted documents before the user signs off, so they may not write a
 //                                   hidden path or CLAUDE.md, CLAUDE.local.md, or AGENTS.md. Other plugin agents
@@ -32,14 +34,16 @@
 // form only, the path relative to the longest root that contains it, so a worktree under .claude/worktrees is
 // not hidden from its own tests directory.
 // Scope: the tools above only. A Bash command can write any path and is not covered. Paths are judged as
-// written (symlinks and Windows 8.3 short names such as CLAUDE~1 for .claude are not resolved). Test globs and task-plan-*.md match case-sensitively; the protected names and
-// the CLAUDE.md and AGENTS.md denials fold case (see lib/fsa-paths.js).
+// written (symlinks and Windows 8.3 short names such as CLAUDE~1 for .claude are not resolved). Test globs and the
+// task-plan glob match case-sensitively; the protected names and the CLAUDE.md and AGENTS.md denials fold case
+// (see lib/fsa-paths.js).
 // Fail-open: evaluate(input) -> {deny, reason}; a call is blocked only when it positively returns deny. Any
 // failure (exception, malformed input, unsupported Node, disable flag) lets the write proceed with a
 // systemMessage warning (see ../lib/health.js). It is a guardrail, not a security boundary.
 "use strict";
 
 const paths = require("../lib/fsa-paths.js");
+const gitRoot = require("../lib/git-root.js");
 
 const NAME = "fsa-write-bar";
 const TESTER = "assist-plugin:developer-tester";
@@ -79,8 +83,10 @@ function developerReason(file, glob) {
 }
 
 function plannerReason(file, why) {
-  let cause = "task-planner writes only a task-plan-*.md file at the project root (Write scope in agents/task-planner.md)";
-  if (why === "outside") cause = "the path is outside the project, and task-planner writes only a task-plan-*.md file at the project root (Write scope in agents/task-planner.md)";
+  const scope = "task-planner writes only a task-plan-*.md file directly under docs/task-plans/ of the session's git root, " +
+    "and writes a rework of a root-level plan as a new file there (Write scope in agents/task-planner.md)";
+  let cause = scope;
+  if (why === "outside") cause = "the path is outside the session's git root, and " + scope;
   else if (why) cause = denialCause("task-planner", why) + " (Write scope in agents/task-planner.md)";
   return "assist-plugin fsa-write-bar denied this write to " + shown(file) + ": " + cause + ". " +
     "Do not write it. If this is the task-plan file, end in Error(policy-rejection); otherwise list the path in the out_of_scope field of the terminal block and name it in the prose above the block.";
@@ -109,7 +115,57 @@ function rootsFor(input, options) {
   return [input.cwd, process.env.CLAUDE_PROJECT_DIR].filter((root) => typeof root === "string" && root.length > 0);
 }
 
-// Pure decision function: no I/O. options: {roots} for tests.
+// [FR-186] True when `value` is absolute by the string rule, on every platform: it starts with `/`, or with a drive
+// letter, `:`, and `/` (backslashes count as slashes). The hook does not ask the host platform (path.isAbsolute),
+// because a Linux host would treat `C:/proj` as relative and resolve it against the plugin directory.
+function absoluteByString(value) {
+  return /^(\/|[A-Za-z]:\/)/.test(value.replace(/\\/g, "/"));
+}
+
+// [FR-186] The session root R: the git root of the hook input's cwd (options.findGitRoot replaces the walk in tests),
+// else the cwd itself. CLAUDE_PROJECT_DIR plays no part. The walk never throws and starts no git process.
+function sessionRoot(cwd, options) {
+  const find = options && typeof options.findGitRoot === "function" ? options.findGitRoot : gitRoot.findGitRoot;
+  const found = find(cwd);
+  return typeof found === "string" && found.length > 0 ? found : cwd;
+}
+
+// The path of `target` below `base` ("" when they are the same directory), or null when `target` is neither.
+// Both are normalized with forward slashes. A drive-letter base compares without regard to case, as Windows does:
+// the cut is made on the original `target` and folded afterwards, as underRoot does in lib/fsa-paths.js, so a
+// character whose lower case has a different length (U+0130) cannot shift it.
+function belowRoot(target, base) {
+  const drive = /^[A-Za-z]:(\/|$)/.test(base);
+  const same = (head, expected) => (drive ? head.toLowerCase() === expected.toLowerCase() : head === expected);
+  if (target.length === base.length && same(target, base)) return "";
+  return same(target.slice(0, base.length + 1), base + "/") ? target.slice(base.length + 1) : null;
+}
+
+// [FR-186] task-planner: only docs/task-plans/task-plan-*.md directly under the session root. Returns ALLOW or a deny.
+function judgePlanner(file, cwd, options) {
+  let relative;
+  if (typeof cwd === "string" && absoluteByString(cwd)) {
+    // The target counts as absolute by the same string rule; any other target is joined to the cwd.
+    const target = paths.normalize(absoluteByString(file) ? file : cwd.replace(/\\/g, "/") + "/" + file.replace(/\\/g, "/"));
+    const base = paths.normalize(sessionRoot(cwd, options)).replace(/\/+$/, "");
+    relative = belowRoot(target, base);
+    if (relative === null) return { deny: true, reason: plannerReason(file, "outside") };
+  } else {
+    // No usable cwd (tests and malformed input): never wider than a plain relative docs/task-plans/task-plan-*.md.
+    const clean = paths.normalize(file);
+    if (absoluteByString(clean) || clean.charAt(0) === "~" || /^[A-Za-z]:/.test(clean) || clean === ".." || clean.indexOf("../") === 0) {
+      return { deny: true, reason: plannerReason(file, "outside") };
+    }
+    relative = clean;
+  }
+  if (relative.length === 0) return { deny: true, reason: plannerReason(file) };
+  const why = paths.testerDenial(relative);
+  if (why) return { deny: true, reason: plannerReason(relative, why) };
+  return paths.isTaskPlanFile(relative) ? ALLOW : { deny: true, reason: plannerReason(relative) };
+}
+
+// Decision function. The only I/O is the .git walk of the task-planner branch (lib/git-root.js).
+// options: {roots, findGitRoot} for tests.
 function evaluate(input, options) {
   if (!input || typeof input !== "object" || !input.tool_input || typeof input.tool_input !== "object") return ALLOW;
   const agentType = typeof input.agent_type === "string" ? input.agent_type : "";
@@ -145,13 +201,7 @@ function evaluate(input, options) {
     const why = paths.testerDenial(inner);
     return why ? { deny: true, reason: chainReason(inner, why, agentType) } : ALLOW;
   }
-  if (planner) {
-    if (paths.outsideRoots(file, roots)) return { deny: true, reason: plannerReason(file, "outside") };
-    const inner = paths.relativeTo(file, roots);
-    const why = paths.testerDenial(inner);
-    if (why) return { deny: true, reason: plannerReason(inner, why) };
-    return paths.isTaskPlanFile(inner, roots.length === 0) ? ALLOW : { deny: true, reason: plannerReason(inner) };
-  }
+  if (planner) return judgePlanner(file, input.cwd, options);
   if (!tester && agentType !== DEVELOPER) return ALLOW;
   if (!tester) {
     for (let i = 0; i < forms.length; i++) {

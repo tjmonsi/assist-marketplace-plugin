@@ -38,9 +38,9 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 [Build plans only; omit for a non-build plan.]
 
 **Build:** yes  
-**Documents found:** [requirements: path or missing; spec: path or missing; task plan: path or missing; DECISIONS.md: path or missing. Name any cut, for example `specs: 20 of 37, newest first`]  
+**Documents found:** [requirements: path or missing; spec: path or missing; task plan: path or missing; DECISIONS.md: path or missing. Paths resolve against the git root of the session's working directory (the working directory outside a git repository); mark a path that came from an old root pattern. Name any cut, for example `specs: 20 of 37, newest first`]  
 **Conflict findings:** [By group (missing documents, request versus documents, contradictions inside documents, gaps): citations and descriptions only, never quoted text, each with the user's answer or `open`. `none` when the check found nothing; `skipped (no documents)` on an empty project. Also list any `not read (cap)` paths the reviewer reported, so a `clear` run still shows them]  
-**Change check:** git | skipped: change-check not-run (no git)  
+**Change check:** git | skipped: change-check not-run (no git) | skipped: change-check not-run (git failed)  
 **Approved hashes:** [content hash per approved document, written at DocSignOff Approve; empty before approval and when waived]  
 **Documents approved:** pending | YYYY-MM-DD HH:mm | waived
 
@@ -138,7 +138,7 @@ The intake-reviewer's findings for each user-provided file, shown to the user at
 
 ### Spec-First
 
-Present for a build plan. A build step writes code, config, pipelines, infrastructure, or tests. Such a plan carries three `chain` steps ahead of every build step: requirements (requirements-gatherer), spec (solutions-architect), and task plan (task-planner). `Documents approved` is the gate, and `/do` reads waiver and sign-off state only from it, comparing it with the value `/do` itself last wrote: a `Build: yes` step stays held while it reads `pending` or while the two disagree (the mismatch is treated as `pending` and shown to the user), and the Spec-first question is asked only while it reads `pending`. Only `/do` writes this file: fsa-write-bar denies every subagent's Write, Edit, MultiEdit, and NotebookEdit calls on `.agent/main-plan/**` and `DECISIONS.md`; Bash writes are not covered, and the hook fails open. `Documents found` lists at most 20 paths per document type, newest first, and names any cut. `Change check` records whether `/do` could compare git status and content-hash snapshots around the document chain; without git it reads `skipped: change-check not-run (no git)`. `Documents approved` becomes a timestamp when the user approves the three documents at DocSignOff (with `Approved hashes` written beside it; a later change to an approved document resets it to `pending`), or `waived` when the user picks Skip spec-first at PlanApproval (the chain steps are then removed). Only that answer waives; a Clarify or NeedsInput answer never does. On resume the only correction is a reset to `pending`, which Branch writes; a typed edit never sets a timestamp or `waived`. A reused document has no chain step; its path is under Documents found. An unresolved finding stays `open` until a Clarify answer settles it; after round 5 an open finding ends the run in Error(plan-invalid).
+Present for a build plan. A build step writes code, config, pipelines, infrastructure, or tests. Such a plan carries three `chain` steps ahead of every build step: requirements (requirements-gatherer), spec (solutions-architect), and task plan (task-planner). `Documents approved` is the gate, and `/do` reads waiver and sign-off state only from it, comparing it with the value `/do` itself last wrote: a `Build: yes` step stays held while it reads `pending` or while the two disagree (the mismatch is treated as `pending` and shown to the user), and the Spec-first question is asked only while it reads `pending`. Only `/do` writes this file: fsa-write-bar denies every subagent's Write, Edit, MultiEdit, and NotebookEdit calls on `.agent/main-plan/**` and `DECISIONS.md`; Bash writes are not covered, and the hook fails open. `Documents found` lists at most 20 paths per document type, newest first, and names any cut. `Change check` records whether `/do` could compare git status and content-hash snapshots around the document chain; without git it reads `skipped: change-check not-run (no git)`, and when `.git` exists but a snapshot command fails it reads `skipped: change-check not-run (git failed)`. `Documents approved` becomes a timestamp when the user approves the three documents at DocSignOff (with `Approved hashes` written beside it; a later change to an approved document resets it to `pending`), or `waived` when the user picks Skip spec-first at PlanApproval (the chain steps are then removed). Only that answer waives; a Clarify or NeedsInput answer never does. On resume the only correction is a reset to `pending`, which Branch writes; a typed edit never sets a timestamp or `waived`. A reused document has no chain step; its path is under Documents found. An unresolved finding stays `open` until a Clarify answer settles it; after round 5 an open finding ends the run in Error(plan-invalid).
 
 ### Step Fields
 - **Goal:** What this step accomplishes in 1-2 sentences
@@ -199,9 +199,9 @@ Implement JWT-based user authentication with register/login endpoints, test cove
 
 | # | Step | Agent | Model | Effort | Runs | Build | Files |
 |---|---|---|---|---|---|---|---|
-| 1 | Requirements | requirements-gatherer | Sonnet | medium | Starts first | no | `FR-NFR-auth.md` |
+| 1 | Requirements | requirements-gatherer | Sonnet | medium | Starts first | no | `docs/requirements/FR-NFR-auth.md` |
 | 2 | API Specification | solutions-architect | Opus | xhigh | After step 1 | no | `specs/spec-auth.md` |
-| 3 | Task Plan | task-planner | Sonnet | high | After step 2 | no | `task-plan-auth-*.md` |
+| 3 | Task Plan | task-planner | Sonnet | high | After step 2 | no | `docs/task-plans/task-plan-auth-*.md` |
 | 4 | Implementation | developer | Sonnet | high | After step 3 | yes | `src/auth/`, `src/middleware/`, `src/types/auth.ts` |
 | 5 | Test Suite | qa | Sonnet | high | Wave 5, parallel with 6 | yes | `tests/auth/`, `tests/integration/` |
 | 6 | Security Review | reviewer | Opus | xhigh | Wave 5, parallel with 5 | no | `src/auth/`, `src/middleware/` |
@@ -235,10 +235,10 @@ Order: 1, then 2, then 3, then document sign-off, then 4, then 5 and 6 in parall
 **Effect:** write  
 **Chain:** yes  
 **Build:** no  
-**Writes:** FR-NFR-auth.md  
+**Writes:** docs/requirements/FR-NFR-auth.md  
 **Reads:** none  
 **Relevant Files:**
-- FR-NFR-auth.md
+- docs/requirements/FR-NFR-auth.md
 
 **Details:**
 - Run `gather-requirements` `elicit`, then `document`
@@ -257,7 +257,7 @@ Order: 1, then 2, then 3, then document sign-off, then 4, then 5 and 6 in parall
 **Chain:** yes  
 **Build:** no  
 **Writes:** specs/spec-auth.md, specs/spec-auth.json, specs/openapi/*, specs/*.mmd, specs/*.png, specs/*.svg, specs/*.pdf  
-**Reads:** FR-NFR-auth.md  
+**Reads:** docs/requirements/FR-NFR-auth.md  
 **Relevant Files:**
 - specs/spec-auth.md
 
@@ -279,13 +279,13 @@ Order: 1, then 2, then 3, then document sign-off, then 4, then 5 and 6 in parall
 **Effect:** write  
 **Chain:** yes  
 **Build:** no  
-**Writes:** task-plan-auth-*.md  
+**Writes:** docs/task-plans/task-plan-auth-*.md  
 **Reads:** specs/spec-auth.md  
 **Relevant Files:**
-- task-plan-auth-*.md
+- docs/task-plans/task-plan-auth-*.md
 
 **Details:**
-- Run `task-plan` on `specs/spec-auth.md`; a fix pass overwrites the same task-plan file
+- Run `task-plan` on `specs/spec-auth.md`; a fix pass overwrites the same task-plan file only when it is already in `docs/task-plans/`
 
 **Status:** pending
 
@@ -299,7 +299,7 @@ Order: 1, then 2, then 3, then document sign-off, then 4, then 5 and 6 in parall
 **Effect:** write  
 **Build:** yes  
 **Writes:** src/auth/, src/middleware/, src/types/auth.ts  
-**Reads:** task-plan-auth-*.md, specs/spec-auth.md  
+**Reads:** docs/task-plans/task-plan-auth-*.md, specs/spec-auth.md  
 **Relevant Files:**
 - src/auth/
 - src/middleware/

@@ -33,7 +33,7 @@ The write bar lets `developer` write source, config, and docs but not test paths
 | Finding path | Fixing agent |
 |---|---|
 | A test path (the globs in [developer-tester Write scope](../../../agents/developer-tester.md#write-scope)) | `developer-tester` |
-| A task-plan file (`task-plan-*.md`) | `task-planner`. The dispatch names the file to overwrite; the fix pass rewrites that same file and creates no second one |
+| A task-plan file (`task-plan-*.md`) | `task-planner`. The dispatch names the file to overwrite only when it is already in `docs/task-plans/`; the fix pass rewrites that same file and creates no second one. A fix on a root-level plan writes a new file under `docs/task-plans/`, and the gate reviews it |
 | Any other path | The step's producing agent (developer, devops, planner, solutions-architect, requirements-gatherer) |
 | Missing or failing tests reported by the Testing Gate | `developer-tester` |
 
@@ -68,7 +68,7 @@ Before submitting a fix, the fixing agent (developer, developer-tester, devops, 
 1. Every changed line maps to a specific reviewer finding
 2. No file is touched that wasn't named in a finding
 3. No function/section is touched beyond what the finding's line range requires
-4. No new files created unless the finding explicitly required one (e.g., a missing test file, which only `developer-tester` creates). A task-plan fix overwrites the file named in the dispatch
+4. No new files created unless the finding explicitly required one (e.g., a missing test file, which only `developer-tester` creates). A task-plan fix overwrites the file named in the dispatch only when it is already in `docs/task-plans/`; a fix on a root-level plan writes a new file under `docs/task-plans/`, and the gate reviews it
 5. No formatting/linting changes outside the touched lines
 6. No dependency, config, or unrelated import changes
 7. Commit/diff reviewed line-by-line against the findings list before resubmitting

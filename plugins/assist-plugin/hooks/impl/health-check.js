@@ -15,7 +15,8 @@
 // The prose-advisor is tested like the filter: clean writes must get no advice and writes that add
 // advisory tells must get it; a miss in either direction disables it.
 // The fsa-write-bar is a guard: its corpus holds developer-tester writes outside the test globs, developer
-// writes inside them, task-planner writes outside a root-level task-plan-*.md or the project, writes to
+// writes inside them, task-planner writes outside docs/task-plans/task-plan-*.md of the session's git root (its cases
+// carry a cwd and a findGitRoot stub, so the real .git walk never runs), writes to
 // .agent/main-plan/** and DECISIONS.md (in any case spelling) from any subagent, other plugins' agents and built-ins
 // included, hidden paths and CLAUDE.md, CLAUDE.local.md, or AGENTS.md from requirements-gatherer and
 // solutions-architect, and over-long paths (must be denied), and in-scope writes, devops and worker writes to
@@ -28,10 +29,11 @@
 // AI co-author trailer or another AI attribution line (must be denied) and commands that only mention the
 // trailer, human co-authors, git tag, and unreadable message files (must pass). The cases use a fixed cwd and a
 // stub file reader, so the result does not depend on where the check runs.
-// Both prose hooks skip temp-directory paths, voice scripts under <cwd>/docs/tts/ (the hook input's cwd), and
-// paths in prose-gate-allowlist.json. The self-tests pass an explicit allowlist per case, so a user's real
-// allowlist never masks a deny case, and the allowlist file is separate from hooks-disabled.json, so a passing
-// self-test never changes it.
+// Both prose hooks skip temp-directory paths, voice scripts under docs/tts/ of the project root or of the
+// session directory, and paths in prose-gate-allowlist.json. The self-tests pass an explicit allowlist per case,
+// and projectDir and findGitRoot per case (diskReader throws for a case without them), so neither a user's real
+// allowlist, the real CLAUDE_PROJECT_DIR, nor the real file system masks or changes a result. The allowlist file is
+// separate from hooks-disabled.json, so a passing self-test never changes it.
 //
 // The report also lists Claude Code's attribution settings (attribution.commit and attribution.pr in the user,
 // project, and local settings files). Each key works on its own: an unset or non-empty attribution.commit adds
@@ -152,25 +154,46 @@ const EN = "\u2013";
 const ARROW = "\u2192";
 const PROSE_FILE = "/assist-selftest/notes.md";
 
+// [FR-181] Every prose case carries the two project-root keys: projectDir (a string, or null for unset) and
+// findGitRoot (a function from a directory to a git root or null). By default there is no project directory and no
+// git root, so the project root falls back to the case's cwd and the real environment never matters.
+const NO_GIT_ROOT = () => null;
+
+// Adds the two keys to a case written as an object literal, keeping values the case already sets.
+function withRoot(input) {
+  return Object.assign({ projectDir: null, findGitRoot: NO_GIT_ROOT }, input);
+}
+
 function proseWrite(label, content, disk) {
-  return { label, disk, tool_name: "Write", tool_input: { file_path: PROSE_FILE, content } };
+  return withRoot({ label, disk, tool_name: "Write", tool_input: { file_path: PROSE_FILE, content } });
 }
 
 function proseEdit(label, oldText, newText, disk) {
-  return { label, disk, tool_name: "Edit", tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false } };
+  return withRoot({ label, disk, tool_name: "Edit", tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false } });
 }
 
-// Options for the prose hooks: the file contents stand-in, the case's own allowlist (empty by default), and the
-// case's temp-directory override (the real temp directory when unset).
+// Options for the prose hooks: the file contents stand-in, the case's own allowlist (empty by default), the
+// case's temp-directory override (the real temp directory when unset), and its project directory and git-root
+// finder. A case without projectDir or findGitRoot throws, so it is listed under "case threw" instead of reading
+// the real CLAUDE_PROJECT_DIR or file system.
 function diskReader(input) {
-  return { readFile: () => (typeof input.disk === "string" ? input.disk : null), allowlist: input.allowlist || [], tmpdir: input.tmpdir };
+  if (!Object.prototype.hasOwnProperty.call(input, "projectDir") || typeof input.findGitRoot !== "function") {
+    throw new Error(`prose case "${input.label}" lacks the projectDir key or a findGitRoot function`);
+  }
+  return {
+    readFile: () => (typeof input.disk === "string" ? input.disk : null),
+    allowlist: input.allowlist || [],
+    tmpdir: input.tmpdir,
+    projectDir: input.projectDir,
+    findGitRoot: input.findGitRoot,
+  };
 }
 
 const ALLOWED_FILE = "/assist-selftest-allowed/notes.md";
 const TMP_FILE = path.join(os.tmpdir(), "assist-selftest", "notes.md");
 
 function proseAt(label, file, content, allowlist) {
-  return { label, allowlist, tool_name: "Write", tool_input: { file_path: file, content } };
+  return withRoot({ label, allowlist, tool_name: "Write", tool_input: { file_path: file, content } });
 }
 
 // Calls with the hook input's cwd set, for the docs/tts/ exemption (voice scripts may hold em dashes).
@@ -179,11 +202,21 @@ const TTS_ROOT = "/assist-selftest/project";
 // relative path resolves against the check's own working directory, which may sit under the real temp directory.
 const TTS_TMP = "/assist-selftest-tmp";
 
-function proseIn(label, file, cwd, content) {
-  const input = { label, tmpdir: TTS_TMP, tool_name: "Write", tool_input: { file_path: file, content } };
+// `roots` optionally sets projectDir and findGitRoot for the case.
+function proseIn(label, file, cwd, content, roots) {
+  const input = withRoot(Object.assign({ label, tmpdir: TTS_TMP, tool_name: "Write", tool_input: { file_path: file, content } }, roots));
   if (cwd !== undefined) input.cwd = cwd;
   return input;
 }
+
+// Project-root keys for the cases of the voice-script exemption under the project root and the session directory.
+function gitRootAt(root) {
+  return { projectDir: null, findGitRoot: () => root };
+}
+function projectAt(dir) {
+  return { projectDir: dir, findGitRoot: NO_GIT_ROOT };
+}
+const GATE_TEXT = `A ${EM} B.\n`;
 
 const PROSE_GATE_DENY = [
   proseIn("tts: docs/tts/../README.md normalizes outside", "docs/tts/../README.md", TTS_ROOT, `A ${EM} B.\n`),
@@ -196,7 +229,7 @@ const PROSE_GATE_DENY = [
   proseIn("tts: empty cwd, relative path", "docs/tts/a.md", "", `A ${EM} B.\n`),
   proseIn("tts: relative cwd, relative path", "docs/tts/a.md", "assist-selftest/project", `A ${EM} B.\n`),
   proseIn("tts: no cwd, absolute path", `${TTS_ROOT}/docs/tts/a.md`, undefined, `A ${EM} B.\n`),
-  { label: "tts: notebook outside docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/ttsx/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `A ${EM} B.` } },
+  withRoot({ label: "tts: notebook outside docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/ttsx/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `A ${EM} B.` } }),
   proseWrite("write: em dash", `The cache is stale ${EM} restart it.\n`),
   proseWrite("write: horizontal bar", "The cache is stale \u2015 restart it.\n"),
   proseWrite("write: sign-off", "Run the tests first.\n\nI hope this helps!\n"),
@@ -210,8 +243,14 @@ const PROSE_GATE_DENY = [
   proseEdit("edit: adds an em dash", "The flag is set.", `The flag is set ${EM} always.`),
   proseAt("write: allowlist entry that does not match", "/assist-selftest/notes.md", `The cache is stale ${EM} restart it.\n`, ["assist-selftest-allowed"]),
   proseEdit("edit: adds a second em dash", `A ${EM} B.`, `A ${EM} B ${EM} C.`),
-  { label: "multiedit: second edit adds a tell", tool_name: "MultiEdit", tool_input: { file_path: PROSE_FILE, edits: [{ old_string: "one", new_string: "two" }, { old_string: "three", new_string: `three ${EM} four` }] } },
-  { label: "notebook: markdown cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Results ${EM} final.` } },
+  withRoot({ label: "multiedit: second edit adds a tell", tool_name: "MultiEdit", tool_input: { file_path: PROSE_FILE, edits: [{ old_string: "one", new_string: "two" }, { old_string: "three", new_string: `three ${EM} four` }] } }),
+  withRoot({ label: "notebook: markdown cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Results ${EM} final.` } }),
+  // [FR-181] Voice scripts under the project root and the session directory.
+  proseIn("tts: project variable, session in a subdirectory, session directory has no docs/tts", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, session in another project", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, other docs path", `${TTS_ROOT}/docs/guide.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, no cwd, relative path", "docs/tts/a.md", undefined, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: relative project variable, no cwd, relative path", "docs/tts/a.md", undefined, GATE_TEXT, projectAt("app")),
 ];
 
 const PROSE_GATE_ALLOW = [
@@ -219,7 +258,13 @@ const PROSE_GATE_ALLOW = [
   proseIn("tts: em dash in docs/tts (absolute path)", `${TTS_ROOT}/docs/tts/a.md`, TTS_ROOT, `Pause here ${EM} then go on.\n`),
   proseIn("tts: em dash in a docs/tts subdirectory", "docs/tts/ep1/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
   proseIn("tts: dot segments that stay inside docs/tts", "docs/tts/ep1/../a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
-  { label: "tts: notebook markdown cell in docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/tts/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Pause ${EM} here.` } },
+  withRoot({ label: "tts: notebook markdown cell in docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/tts/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Pause ${EM} here.` } }),
+  // [FR-181] Voice scripts under the project root and the session directory.
+  proseIn("tts: project variable, session in a subdirectory (project root)", `${TTS_ROOT}/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, session in a subdirectory (relative path above the cwd)", "../docs/tts/a.md", `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, session in a subdirectory (session directory)", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: project variable, worktree session (session directory)", `${TTS_ROOT}/.claude/worktrees/w/docs/tts/a.md`, `${TTS_ROOT}/.claude/worktrees/w`, GATE_TEXT, projectAt(TTS_ROOT)),
+  proseIn("tts: no project variable, git root above the session directory", `${TTS_ROOT}/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, gitRootAt(TTS_ROOT)),
   proseWrite("write: clean prose", "The cache expires after 10 minutes. Restart the worker to clear it.\n"),
   proseAt("write: temp-directory path", TMP_FILE, `The cache is stale ${EM} restart it.\n`),
   proseAt("write: allowlisted path", ALLOWED_FILE, `The cache is stale ${EM} restart it.\n`, ["assist-selftest-allowed"]),
@@ -238,35 +283,38 @@ const PROSE_GATE_ALLOW = [
   proseWrite("write: overwrite rewords a line with a tell", `Old ${EM} kept, now reworded.\n`, `Old ${EM} kept.\n`),
   proseEdit("edit: old_string and new_string keep the em dash", `A ${EM} B.`, `A ${EM} B, and C.`),
   proseEdit("edit: removes an em dash", `A ${EM} B.`, "A. B."),
-  { label: "write: non-prose file", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: `// a ${EM} b\n` } },
-  { label: "write: CHANGELOG", tool_name: "Write", tool_input: { file_path: "/assist-selftest/CHANGELOG.md", content: `- Fixed ${EM} done.\n` } },
-  { label: "notebook: code cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "code", new_source: `x = "${EM}"` } },
-  { label: "read tool", tool_name: "Read", tool_input: { file_path: PROSE_FILE } },
+  withRoot({ label: "write: non-prose file", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: `// a ${EM} b\n` } }),
+  withRoot({ label: "write: CHANGELOG", tool_name: "Write", tool_input: { file_path: "/assist-selftest/CHANGELOG.md", content: `- Fixed ${EM} done.\n` } }),
+  withRoot({ label: "notebook: code cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "code", new_source: `x = "${EM}"` } }),
+  withRoot({ label: "read tool", tool_name: "Read", tool_input: { file_path: PROSE_FILE } }),
 ];
 
 function postWrite(label, content, originalFile) {
-  return {
+  return withRoot({
     label,
     hook_event_name: "PostToolUse",
     tool_name: "Write",
     tool_input: { file_path: PROSE_FILE, content },
     tool_response: { type: originalFile === null ? "create" : "update", originalFile },
-  };
+  });
 }
 
 function postEdit(label, originalFile, oldText, newText) {
-  return {
+  return withRoot({
     label,
     hook_event_name: "PostToolUse",
     tool_name: "Edit",
     tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false },
     tool_response: { originalFile },
-  };
+  });
 }
 
-function postIn(label, file, cwd, content) {
-  return Object.assign(postWrite(label, content, null), { cwd, tmpdir: TTS_TMP, tool_input: { file_path: file, content } });
+// `roots` optionally sets projectDir and findGitRoot for the case.
+function postIn(label, file, cwd, content, roots) {
+  return Object.assign(postWrite(label, content, null), { cwd, tmpdir: TTS_TMP, tool_input: { file_path: file, content } }, roots);
 }
+
+const ADVISOR_TEXT = "This is very robust.\n";
 
 const PROSE_ADVISOR_FLAGGED = [
   postIn("tts: docs/tts/../README.md normalizes outside", "docs/tts/../README.md", TTS_ROOT, "This is very robust.\n"),
@@ -277,10 +325,14 @@ const PROSE_ADVISOR_FLAGGED = [
   postWrite("write: en dash in prose", `The build passed ${EN} mostly.\n`, null),
   postWrite("write: prose arrow", `Config ${ARROW} runtime.\n`, null),
   postEdit("edit: adds throat-clearing", "Run it.\n", "Run it.", "In order to finish, run it."),
+  // [FR-181] Advisory tells outside the exempt docs/tts/ directories.
+  postIn("tts: project variable, session at the root, docs/tts below a subdirectory", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, ADVISOR_TEXT, projectAt(TTS_ROOT)),
+  postIn("tts: project variable, session in another project", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", ADVISOR_TEXT, projectAt(TTS_ROOT)),
 ];
 
 const PROSE_ADVISOR_CLEAN = [
   postIn("tts: advisory tells in docs/tts", "docs/tts/a.md", TTS_ROOT, `This is very robust ${EN} arguably.\n`),
+  postIn("tts: project variable, session in a subdirectory (session directory)", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, ADVISOR_TEXT, projectAt(TTS_ROOT)),
   postWrite("write: clean prose", "The cache expires after 10 minutes.\n", null),
   postWrite("write: block tier only", "I hope this helps!\n", null),
   postWrite("write: fenced code", "```\nvery robust\n```\n", null),
@@ -289,7 +341,7 @@ const PROSE_ADVISOR_CLEAN = [
   postWrite("write: arrow flow and table", `A ${ARROW} B ${ARROW} C\n\n| from | to |\n|---|---|\n| a | ${ARROW} b |\n`, null),
   postWrite("write: tell kept on an unchanged line", "This is very old.\nNew clean line.\n", "This is very old.\n"),
   postEdit("edit: keeps the advisory word", "It is very old.\n", "It is very old.", "It is very old, still."),
-  { label: "write: non-prose file", hook_event_name: "PostToolUse", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: "very\n" }, tool_response: { type: "create", originalFile: null } },
+  withRoot({ label: "write: non-prose file", hook_event_name: "PostToolUse", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: "very\n" }, tool_response: { type: "create", originalFile: null } }),
 ];
 
 // End-to-end cases for the hook logic itself: the tool result must keep its shape.
@@ -333,6 +385,24 @@ function fsaWrite(agentType, file, tool, roots) {
   return call;
 }
 
+// [FR-186] A task-planner write. The write bar judges it against the git root of `cwd`, so the case carries a cwd
+// (none = a hook input without one) and a findGitRoot stub that returns `gitRoot` for every directory. The stub is
+// required: the self-test wrapper throws for a task-planner case without one, so the real .git walk never runs.
+function fsaPlan(file, cwd, gitRoot, tool) {
+  const call = fsaWrite(PLANNER, file, tool, [cwd === undefined ? FSA_ROOT : cwd]);
+  if (cwd !== undefined) call.cwd = cwd;
+  call.findGitRoot = () => gitRoot;
+  return call;
+}
+
+// A task-planner write from a session at the project root, which is also its git root.
+function fsaPlanAtRoot(file, tool) {
+  return fsaPlan(file, FSA_ROOT, FSA_ROOT, tool);
+}
+
+const PLAN_FILE = `${FSA_ROOT}/docs/task-plans/task-plan-x.md`;
+const WORKTREE = `${FSA_ROOT}/.claude/worktrees/w`;
+
 const FSA_WRITE_ALLOW = [
   fsaWrite(TESTER, `${FSA_ROOT}/tests/auth/login.test.ts`),
   fsaWrite(TESTER, `${FSA_ROOT}/src/__tests__/helper.js`),
@@ -355,8 +425,15 @@ const FSA_WRITE_ALLOW = [
   fsaWrite(TESTER, `${FSA_ROOT}/.claude/worktrees/w/tests/a.test.js`, "Write", [FSA_ROOT, `${FSA_ROOT}/.claude/worktrees/w`]),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.mdx`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/claude.md.test.js`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-auth-20261013-1200.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.md`, "Edit"),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/task-plan-auth-20261016-1000.md`),
+  fsaPlanAtRoot(PLAN_FILE, "Edit"),
+  fsaPlanAtRoot("docs/task-plans/task-plan-x.md"),
+  fsaPlan(PLAN_FILE, `${FSA_ROOT}/src`, FSA_ROOT),
+  fsaPlan(`${WORKTREE}/docs/task-plans/task-plan-x.md`, WORKTREE, WORKTREE),
+  fsaPlan("/assist-selftest/nogit/docs/task-plans/task-plan-x.md", "/assist-selftest/nogit", null),
+  fsaPlan("c:\\proj\\docs\\task-plans\\task-plan-x.md", "C:\\proj", "C:\\proj"),
+  fsaPlan("docs\\task-plans\\task-plan-x.md", "C:\\proj", "C:\\proj"),
+  fsaPlan("docs/task-plans/task-plan-x.md", undefined, FSA_ROOT),
   fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/specs/spec-x.md`),
   fsaWrite("assist-plugin:solutions-architect", `${FSA_ROOT}/specs/openapi/api.yaml`, "Edit"),
   fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/FR-NFR-x.md`),
@@ -371,9 +448,6 @@ const FSA_WRITE_ALLOW = [
   fsaWrite(DEVELOPER, `${FSA_ROOT}/docs/DECISIONS.md.bak`),
   fsaWrite(undefined, `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
   fsaWrite(undefined, `${FSA_ROOT}/DECISIONS.md`, "Edit"),
-  fsaWrite(PLANNER, "task-plan-x.md"),
-  fsaWrite(PLANNER, "c:\\proj\\task-plan-x.md", "Write", ["C:\\proj"]),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Write", [FSA_ROOT, `${FSA_ROOT}/sub`]),
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/tests/api.test.js`),
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/src/app.js`),
   fsaWrite("other-plugin:developer", `${FSA_ROOT}/tests/api.test.js`),
@@ -416,16 +490,30 @@ const FSA_WRITE_DENY = [
   fsaWrite(DEVELOPER, `${FSA_ROOT}/test/fixtures/data.json`),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/tests/nb/check.ipynb`, "NotebookEdit"),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/src/../tests/a.js`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/src/app.ts`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/CLAUDE.md`, "Edit"),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/AGENTS.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/.claude/task-plan-x.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.md/../src/app.ts`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-x.txt`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/task-plan-a\u0000.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/DECISIONS.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/src/app.ts`),
+  fsaPlanAtRoot(`${FSA_ROOT}/.agent/main-plan/plan-x.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/CLAUDE.md`, "Edit"),
+  fsaPlanAtRoot(`${FSA_ROOT}/sub/AGENTS.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/.claude/docs/task-plans/task-plan-x.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/task-plan-x.md/../../src/app.ts`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/task-plan.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/task-plan-x.txt`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/task-plan-a\u0000.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/DECISIONS.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/DECISIONS.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/task-plan-x.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/sub/task-plan-x.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/plan-x.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/Docs/task-plans/task-plan-x.md`),
+  fsaPlanAtRoot("/elsewhere/docs/task-plans/task-plan-x.md"),
+  fsaPlan(`${FSA_ROOT}/src/docs/task-plans/task-plan-x.md`, `${FSA_ROOT}/src`, FSA_ROOT),
+  fsaPlan("docs/task-plans/task-plan-x.md", `${FSA_ROOT}/src`, FSA_ROOT),
+  fsaPlan(PLAN_FILE, WORKTREE, WORKTREE),
+  fsaPlan("/elsewhere/docs/task-plans/task-plan-x.md", undefined, FSA_ROOT),
+  fsaPlan("../outside/docs/task-plans/task-plan-x.md", undefined, FSA_ROOT),
+  fsaPlan("~/docs/task-plans/task-plan-x.md", undefined, FSA_ROOT),
+  fsaPlan("C:docs/task-plans/task-plan-a.md", undefined, FSA_ROOT),
+  fsaPlan("x/docs/task-plans/task-plan-x.md", undefined, FSA_ROOT),
   fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
   fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/DECISIONS.md`, "Edit"),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/.agent/main-plan/plan-x.md`, "Edit"),
@@ -442,10 +530,9 @@ const FSA_WRITE_DENY = [
   fsaWrite("general-purpose", `${FSA_ROOT}/.agent/main-plan/plan-x.md`),
   fsaWrite("Explore", `${FSA_ROOT}/sub/DECISIONS.md`, "MultiEdit"),
   fsaWrite("other-plugin:developer", `${FSA_ROOT}/${"a/".repeat(2100)}DECISIONS.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Edit"),
-  fsaWrite(PLANNER, `${FSA_ROOT}/docs/plans/task-plan-x.md`, "MultiEdit"),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/task-plan-x.md`, "Write", [FSA_ROOT]),
-  fsaWrite(PLANNER, `${FSA_ROOT}/CLAUDE.local.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/sub/task-plan-x.md`, "Edit"),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/plans/task-plan-x.md`, "MultiEdit"),
+  fsaPlanAtRoot(`${FSA_ROOT}/CLAUDE.local.md`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/CLAUDE.local.md`),
   fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.claude/rules/x.md`),
   fsaWrite("assist-plugin:requirements-gatherer", `${FSA_ROOT}/.claude/settings.local.json`),
@@ -463,18 +550,18 @@ const FSA_WRITE_DENY = [
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/.AGENT./main-plan/x.md`),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/${"a/".repeat(2100)}x.ts`),
   fsaWrite("assist-plugin:qa", `${FSA_ROOT}/src/a\u0000.ts`),
-  fsaWrite(PLANNER, "/elsewhere/task-plan-x.md"),
-  fsaWrite(PLANNER, "../outside/task-plan-x.md"),
-  fsaWrite(PLANNER, "~/elsewhere/task-plan-x.md"),
-  fsaWrite(PLANNER, "~", "Write"),
-  fsaWrite(PLANNER, "D:task-plan-x.md"),
-  fsaWrite(PLANNER, "D:\\other\\task-plan-x.md", "Write", ["C:\\proj"]),
+  fsaPlanAtRoot("../outside/docs/task-plans/task-plan-x.md"),
+  fsaPlanAtRoot("~/elsewhere/docs/task-plans/task-plan-x.md"),
+  fsaPlanAtRoot("~", "Write"),
+  fsaPlan("D:\\other\\docs\\task-plans\\task-plan-x.md", "C:\\proj", "C:\\proj"),
+  fsaPlan("C:\\\u0130\\Xdocs\\task-plans\\task-plan-x.md", "C:\\i\u0307", "C:\\i\u0307"),
+  fsaPlanAtRoot(`${FSA_ROOT}/docs/task-plans/${"a/".repeat(2100)}task-plan-x.md`),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/deci\u017Fions.md`),
   fsaWrite(DEVELOPER, `${FSA_ROOT}/DEC\u0131SIONS.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/AGENT\u017F.md`),
+  fsaPlanAtRoot(`${FSA_ROOT}/sub/AGENT\u017F.md`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/AGENT\u017F.md`),
-  fsaWrite(PLANNER, `${FSA_ROOT}/Claude.md`, "Edit"),
-  fsaWrite(PLANNER, `${FSA_ROOT}/sub/agents.MD`),
+  fsaPlanAtRoot(`${FSA_ROOT}/Claude.md`, "Edit"),
+  fsaPlanAtRoot(`${FSA_ROOT}/sub/agents.MD`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/claude.md`),
   fsaWrite(TESTER, `${FSA_ROOT}/tests/AGENTS.md.`),
 ];
@@ -813,7 +900,14 @@ const GUARDS = [
   {
     name: fsaWriteBar.NAME,
     nouns: { allow: "allow cases", deny: "deny cases", falseDeny: "known-safe write", falseAllow: "known-prohibited write" },
-    evaluate: (input) => fsaWriteBar.evaluate(input, { roots: input.roots || [] }),
+    evaluate: (input) => {
+      // [FR-186] A task-planner case needs a findGitRoot stub, or the write bar would walk the real file system.
+      // The throw lists the case under "case threw"; it fails the self-test and never disables the guard.
+      if (input.agent_type === PLANNER && typeof input.findGitRoot !== "function") {
+        throw new Error(`task-planner case "${describeCase(input)}" lacks a findGitRoot function`);
+      }
+      return fsaWriteBar.evaluate(input, { roots: input.roots || [], findGitRoot: input.findGitRoot });
+    },
     allow: FSA_WRITE_ALLOW,
     deny: FSA_WRITE_DENY,
   },

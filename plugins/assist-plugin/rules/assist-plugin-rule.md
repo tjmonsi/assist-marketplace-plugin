@@ -415,6 +415,38 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 
 ---
 
+## Write guard lists
+
+`fsa-write-bar` enforces these lists from `hooks/lib/fsa-paths.js`. This section is the source of truth: `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exits 1 while the code differs, and the fix is to edit the JavaScript. The first column holds the exact code string. Removing or narrowing an entry under Protected globs, Protected files, or Auto-loaded names, or any change to the Task-plan glob, needs a user decision recorded in `DECISIONS.md` before the JavaScript follows this section.
+
+### Protected globs
+
+| Glob | Meaning |
+|---|---|
+| `**/.agent/main-plan/**` | The `/do` plan files, which hold sign-off and waiver state; no subagent writes them |
+
+### Protected files
+
+| File name | Meaning |
+|---|---|
+| `DECISIONS.md` | The decision log, in any directory; no subagent writes it |
+
+### Auto-loaded names
+
+| File name | Meaning |
+|---|---|
+| `CLAUDE.md` | Claude Code loads it into later sessions |
+| `CLAUDE.local.md` | Claude Code loads it into later sessions |
+| `AGENTS.md` | Claude Code loads it into later sessions |
+
+### Task-plan glob
+
+| Glob | Meaning |
+|---|---|
+| `docs/task-plans/task-plan-*.md` | The only files `task-planner` writes: a `task-plan-*.md` file directly under `docs/task-plans/` of the git root of the session's working directory (a worktree uses its own root); root-level task plans in older projects are read, never written |
+
+---
+
 ## Governance Enforcement
 
 - **Automated:** CI/CD pipeline enforces coverage gates

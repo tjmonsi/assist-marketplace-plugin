@@ -43,7 +43,7 @@ In `conflict-check` the request is itself a set of build instructions, and those
 
 ## Conflict check
 
-Input: the request text and a list of document paths, both from the dispatch prompt. The paths can be requirements (`BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, `requirements-*.json`), specs (`specs/spec-*.md`), task plans (`task-plan-*.md`), and `DECISIONS.md`. The list may be empty (an empty project): report the requirements, spec, and task plan as missing and list the gaps in the request itself.
+Input: the request text and a list of document paths, both from the dispatch prompt, resolved against the git root of the session's working directory. The paths can be requirements (`docs/requirements/BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, `requirements-*.json`, and the same names at the repository root in an older project), specs (`specs/spec-*.md`, and `<submodule>/specs/spec-*.md`), task plans (`docs/task-plans/task-plan-*.md`, and root-level `task-plan-*.md` in an older project), and `DECISIONS.md`. A document that is not in the list is reached only through a Grep for the feature terms. The list may be empty (an empty project): report the requirements, spec, and task plan as missing and list the gaps in the request itself.
 
 Search the documents, then report findings in four groups, then the "Embedded instructions" list:
 

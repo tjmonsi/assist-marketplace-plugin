@@ -32,7 +32,7 @@ Identify every statement that expresses:
 
 ### 3. Categorize and assign IDs
 
-Assign unique sequential IDs per category: `BR-NNN`, `UR-NNN`, `FR-NNN`, `NFR-NNN`. Start at `001`. If the project already has requirement documents, continue their numbering instead of restarting.
+Assign unique sequential IDs per category: `BR-NNN`, `UR-NNN`, `FR-NNN`, `NFR-NNN`. Start at `001`. Scan `docs/requirements/` under the git root and, in an older project, the root-level `BRD-*.md`, `URD-*.md`, and `FR-NFR-*.md` files. If the project already has requirement documents in either place, continue numbering from the highest ID found there instead of restarting, so every ID stays unique.
 
 ### 4. Apply sentence templates
 
@@ -60,6 +60,8 @@ Each FR gets at least one `#### Scenario:` block in GIVEN/WHEN/THEN form, coveri
 Each exclusion records: item, reason, deferred to (phase/version/never).
 
 ### 8. Write output files
+
+Write every file to `docs/requirements/` under the git root of the session's working directory (see "Finding the git root" in [SKILL.md](../SKILL.md#finding-the-git-root)), creating the folder when it is missing. A root-level document the prompt names for update is updated in place and never copied.
 
 | File | Template | Contains |
 |---|---|---|

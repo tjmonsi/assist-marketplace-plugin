@@ -9,7 +9,7 @@ allowed-tools:
   - Read
   - Grep
   - Glob
-  - Edit(./task-plan-*.md)
+  - Edit(./docs/task-plans/task-plan-*.md)
 argument-hint: "<spec-file-or-prompt> [target-language]"
 ---
 
@@ -19,11 +19,11 @@ Plan the implementation of a feature by validating its specification and produci
 
 ## Routing
 
-Parse input: target spec file path, optional target language (detected from codebase if omitted). A rework (a fix pass) also gives an existing task-plan file path; WritePlan then overwrites that file instead of creating a new one.
+Parse input: target spec file path, optional target language (detected from codebase if omitted). A rework (a fix pass) also gives an existing task-plan file path; WritePlan then overwrites that file when it is already in `docs/task-plans/`, and writes a new timestamped file there when it is a legacy root-level plan.
 
-`/do` runs this skill through the [task-planner](../../agents/task-planner.md) agent, which has no Bash, Edit, or PowerShell tool and can write only a `task-plan-*.md` file at the project root.
+`/do` runs this skill through the [task-planner](../../agents/task-planner.md) agent, which has no Bash, Edit, or PowerShell tool and can write only a `task-plan-*.md` file directly under `docs/task-plans/` of the git root.
 
-Write scope: the skill pre-approves edits only to `./task-plan-*.md` in the working directory; a write to any other path asks the user first.
+Write scope: the skill pre-approves edits only to `./docs/task-plans/task-plan-*.md` in the working directory; a write to any other path asks the user first. A session started in a subdirectory of the repository writes to the repository's `docs/task-plans/`, so Claude Code asks the user first; that prompt is intended.
 
 ## States
 
@@ -36,7 +36,7 @@ Write scope: the skill pre-approves edits only to `./task-plan-*.md` in the work
 | ExtractRequirements | check | List each `SPEC-NNN` ID, each linked `FR-NNN` or `NFR-NNN`, and each Scenario title | `listed` -> PlanSteps |
 | PlanSteps | model | Write the ordered coding steps: files, `Satisfies` IDs, `code` skill references | `planned` -> CheckPlan |
 | CheckPlan | check | Every Intake requirement appears in some step's `Satisfies`. Every cited ID exists in the spec or its requirement documents (Grep). Every cited code reference exists in the `code` skill (Glob). Every file path a step modifies exists | `complete` -> WritePlan; `gaps` with rounds < 2 -> PlanSteps; `gaps` with rounds = 2 -> Error(budget-exhausted) |
-| WritePlan | model | Write the plan file from the template. A rework overwrites the task-plan file whose path the prompt gives; a first run creates a new timestamped file | `written` -> Done; `denied` (the write bar refused the path) -> Error(policy-rejection) |
+| WritePlan | model | Write the plan file from the template to `docs/task-plans/` under the git root, creating the folder when missing. A rework overwrites the file whose path the prompt gives when it is already in `docs/task-plans/`; a first run, or a rework of a legacy root-level plan, creates a new timestamped file | `written` -> Done; `denied` (the write bar refused the path) -> Error(policy-rejection) |
 | Done, NeedsInput, Error | terminal | End with the terminal block below | none |
 
 `rounds` counts PlanSteps passes after a CheckPlan `gaps`. `NeedsInput` carries numbered questions and `resume_at` (`Intake` for `no-spec`, `ClassifyContext` for `undetected`).
@@ -49,7 +49,7 @@ When `task-plan` runs inside the `task-planner` agent, the final message ends wi
 fsa: task-planner/1
 state: Done
 trace: Intake > ClassifyContext > ExtractRequirements > PlanSteps > CheckPlan > WritePlan > Done
-artifact: task-plan-user-api-20261012-101500.md
+artifact: docs/task-plans/task-plan-user-api-20261012-101500.md
 verdict: steps=6
 skipped: none
 out_of_scope: none
@@ -125,7 +125,11 @@ Order steps so:
 
 ### 5. Output (state: WritePlan)
 
-Write `task-plan-[feature-slug]-[timestamp].md` using the template at [references/task-plan-template.md](references/task-plan-template.md). When the prompt gives the path of an existing task-plan file to rework, overwrite that file and keep its name.
+Write `task-plan-[feature-slug]-[timestamp].md` to `docs/task-plans/` under the git root of the session's working directory, using the template at [references/task-plan-template.md](references/task-plan-template.md). Create the folder when it is missing. A worktree uses its own root. Outside a git repository, the working directory is the root. This holds on a first run and on a rework.
+
+When the prompt gives the path of an existing task-plan file to rework, overwrite that file and keep its name only when it is already in `docs/task-plans/`. For a legacy root-level plan, write a new timestamped file in `docs/task-plans/` and leave the root-level file unchanged.
+
+This skill has no Bash tool, so it cannot run `git rev-parse`. Use the root and the absolute output path that the `/do` prompt names. Without them, probe the working directory and then each parent in turn for `.git/HEAD` (a normal clone, where `.git` is a directory) or a file named `.git` (a linked worktree or submodule). The first directory that holds either is the root. A Glob for the bare name `.git` misses a directory, so do not rely on it. When no parent matches, use the working directory.
 
 The file is ready for the `developer` agent to follow: each step becomes one implementation task.
 

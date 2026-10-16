@@ -29,9 +29,10 @@ const TEST_GLOBS = [
   "**/*_test.go",
 ];
 
-// The only files task-planner may write: a task-plan file at the project root, one path segment relative to the
-// root (agents/task-planner.md, "Write scope"). With no known root the write bar falls back to "**/" + this glob.
-const TASK_PLAN_GLOB = "task-plan-*.md";
+// [FR-186] The only files task-planner may write: a task-plan file directly under docs/task-plans/ of the session's
+// git root, three path segments relative to that root (agents/task-planner.md, "Write scope"). It is matched
+// exactly as written, also when the write bar has no root and judges a plain relative path.
+const TASK_PLAN_GLOB = "docs/task-plans/task-plan-*.md";
 
 // Paths no subagent may write: the /do plan files (they hold sign-off and waiver state) and the decision log.
 // Only the user, through the main conversation, changes them.
@@ -108,10 +109,11 @@ function testerDenial(file) {
   return null;
 }
 
-// True when `file` is a task-plan file at the root of the path as given (the task-planner write scope). Pass the
-// path relative to the project root. `anyDirectory` accepts the file name in any directory (no root known).
-function isTaskPlanFile(file, anyDirectory) {
-  return matchGlob(anyDirectory ? "**/" + TASK_PLAN_GLOB : TASK_PLAN_GLOB, file);
+// [FR-186] True when `file`, the path relative to the session's git root, is a task-plan file: exactly
+// docs/task-plans/task-plan-*.md (the task-planner write scope). An absolute path never matches.
+function isTaskPlanFile(file) {
+  const clean = normalize(file);
+  return clean.length > 0 && clean.charAt(0) !== "/" && matchGlob(TASK_PLAN_GLOB, clean);
 }
 
 // One path segment as a case-insensitive file system sees it: lower case, no `:stream` suffix (NTFS alternate
