@@ -1,0 +1,11 @@
+flowchart TD
+  S(["SessionStart startup, resume, clear, compact; or SubagentStart"]) --> A["Read rules/writing-standard-compact.md under the plugin root"]
+  A --> B{"Readable?"}
+  B -->|no| L1["Health log: missing-standard; emit nothing"]
+  B -->|yes| C{"Empty after trimming trailing whitespace?"}
+  C -->|yes| L2["Health log: empty-standard; emit nothing"]
+  C -->|no| D["Context = header line, newline, body"]
+  D --> E{"Longer than 10,000 characters?"}
+  E -->|yes| F["Cut at the last line break before 10,000; health log: standard-truncated"]
+  E -->|no| G["Emit additionalContext under the event's name"]
+  F --> G

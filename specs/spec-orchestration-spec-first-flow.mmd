@@ -1,0 +1,18 @@
+flowchart TD
+  R(["Request"]) --> C{"SpecGate: writes code, config,<br/>pipelines, infrastructure, or tests?"}
+  C -->|"no"| NB["non-build: Decompose"]
+  C -->|"yes"| G["Glob documents: 20 paths per type,<br/>newest first, paths only"]
+  G -->|"nothing found"| BE["build-empty: Conflict findings<br/>skipped (no documents)"]
+  G -->|"at least one found"| CC["Conflict check: one intake-reviewer,<br/>request and paths wrapped as untrusted"]
+  CC -->|"Done with clear or needs-clarification"| D["Decompose: findings are open points"]
+  CC -->|"any other state or verdict"| E(["Error: plan-invalid"])
+  BE --> D
+  D -->|"open points, round below 5"| CL["Clarify: findings first,<br/>Recommended answer and assumption"]
+  CL -->|"answered"| D
+  D -->|"open after round 5"| E
+  D -->|"all settled"| CH["Chain steps ahead of every build step:<br/>requirements, spec, task plan"]
+  CH --> PA{"PlanApproval: Spec-first question"}
+  PA -->|"Keep spec-first"| RUN["Chain runs with change check,<br/>then DocSignOff"]
+  PA -->|"Skip spec-first with Approve"| WV["waived: chain dropped,<br/>DECISIONS.md entry"]
+  RUN -->|"Documents approved: timestamp"| B["Build steps ready"]
+  WV --> B

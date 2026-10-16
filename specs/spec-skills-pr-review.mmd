@@ -1,0 +1,18 @@
+sequenceDiagram
+  actor User
+  participant Skill as pr-review skill
+  participant Git as git remote
+  participant CLI as gh or bkt
+  User->>Skill: /pr-review 123 with optional verdict flag
+  Skill->>Git: git remote -v
+  Git-->>Skill: github, bitbucket.org, or /scm/ URL
+  Skill->>CLI: fetch PR details, read-only
+  CLI-->>Skill: title, description, author, state, files, comments, reviewers, conflicts
+  Skill->>Skill: draft verdict and the exact text to post
+  Skill->>User: Do you approve this verdict? (yes/no)
+  alt explicit affirmative
+    Skill->>Skill: Write confirmed text to a temp file
+    Skill->>CLI: review command with --body-file or --message-file
+  else no, edits, or unclear answer
+    Skill->>Skill: revise draft, ask again, run no state-changing command
+  end

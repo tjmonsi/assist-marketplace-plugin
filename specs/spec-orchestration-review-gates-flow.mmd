@@ -1,0 +1,24 @@
+flowchart TD
+  A["Step Done with files;<br/>agent is not a reviewer"] --> T{"Artifact type"}
+  T -->|"code, config, test, pipeline"| CG["Pre-Test review, Security when code or<br/>devops changed, Testing by qa, Code Review"]
+  T -->|"planning document"| PG["Planning Document Review Gate"]
+  T -->|"markdown report"| RQ["Report Quality Gate: review-md"]
+  CG --> RV["Reviewer pass: gate name, type, wrapped paths,<br/>rework count, prior findings as data"]
+  PG --> RV
+  RV --> V{"verdict"}
+  V -->|"approved"| L{"Second consecutive approved?"}
+  L -->|"yes"| OK["Gate cleared; signature recorded"]
+  L -->|"no"| RV
+  V -->|"returned"| B{"Iterations below 10?"}
+  B -->|"yes"| R{"Any finding routable by path?"}
+  R -->|"yes"| FX["Fix pass on Sonnet: test paths to developer-tester,<br/>task-plan to task-planner, others to the producer"]
+  FX --> RV
+  R -->|"no"| FL["Step failed; findings in Done"]
+  B -->|"no"| BP["One binding code-reviewer pass"]
+  BP -->|"approved"| OK
+  BP -->|"returned"| FL
+  RQ --> RQV{"review-md: No issues found?"}
+  RQV -->|"yes"| OK
+  RQV -->|"no, rounds below 3"| FXR["Producer fixes flagged issues on Sonnet"]
+  FXR --> RQ
+  RQV -->|"no, 3 rounds used"| RQE["completed with findings attached;<br/>failed for a wrong claim or a missing path or ID"]

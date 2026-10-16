@@ -1,0 +1,15 @@
+flowchart TD
+  S(["node scripts/sync-writing-standard.js, with or without --check"]) --> A["Load rules/writing-standard-compact.md"]
+  A --> B{"Only bullet lines and at most 1400 characters?"}
+  B -->|no| X2(["stderr message, exit 2"])
+  B -->|yes| C["List agents/*.md and skills/**/*.md, skip symlinks"]
+  C --> D["Find each ## Report Writing Standard block outside code fences"]
+  D --> E{"Any block found?"}
+  E -->|no| X2
+  E -->|yes| F["Render each block from the compact bullets"]
+  F --> G{"--check?"}
+  G -->|yes| H{"Any file would change?"}
+  H -->|yes| X1(["Print drifted files, exit 1"])
+  H -->|no| X0(["exit 0"])
+  G -->|no| I["Write the drifted files"]
+  I --> X0

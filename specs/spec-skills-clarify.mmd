@@ -1,0 +1,13 @@
+flowchart TD
+  S(["/clarify, optional target"]) --> P["List the unclear points, one line each"]
+  P --> Z{"Any points?"}
+  Z -->|"no"| N(["Nothing unclear in target. No log entry"])
+  Z -->|"yes"| E["Explain Claude's points with evidence; correct earlier errors plainly"]
+  E --> A["Ask the user's points: up to 4 per call, at most 2 rounds"]
+  A --> L["Settled-points list in chat"]
+  L --> F{"Daily log file exists?"}
+  F -->|"no"| W["Write the header and the end marker"]
+  F -->|"yes"| K{"Full marker exactly once and the last non-blank line?"}
+  W --> ED
+  K -->|"no"| X(["Write nothing; tell the user the log needs repair"])
+  K -->|"yes"| ED(["One Edit: replace the marker line with the entries plus the marker"])

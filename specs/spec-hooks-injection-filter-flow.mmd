@@ -1,0 +1,19 @@
+flowchart TD
+  S(["Hook input"]) --> E{"hook_event_name"}
+  E -->|PostToolUse| P1{"WebFetch, WebSearch, mcp__*, Agent, Task, or Bash running firecrawl, curl, wget, ctx7?"}
+  P1 -->|no| NONE["Emit nothing"]
+  P1 -->|yes| P2{"Every source plugin-owned or allowlisted?"}
+  P2 -->|yes| NONE
+  P2 -->|no| P3["Rebuild tool_response: scan text fields, keep the shape"]
+  P3 --> P4{"Findings or invisible characters stripped?"}
+  P4 -->|no| NONE
+  P4 -->|yes| P5["updatedToolOutput plus additionalContext with rule ids"]
+  E -->|PreToolUse| Q1{"Agent or Task call with a string prompt?"}
+  Q1 -->|no| NONE
+  Q1 -->|yes| Q2{"Rule match?"}
+  Q2 -->|no| NONE
+  Q2 -->|yes| Q3["updatedInput with the cleaned prompt, permissionDecision ask"]
+  E -->|UserPromptSubmit| U1{"Rule match in the typed prompt?"}
+  U1 -->|no| NONE
+  U1 -->|yes| U2["additionalContext note plus systemMessage warning; prompt unchanged"]
+  E -->|other| NONE

@@ -1,0 +1,17 @@
+flowchart TD
+  S(["node hooks/health-check.js with its arguments"]) --> A["--data-dir DIR sets CLAUDE_PLUGIN_DATA when DIR is non-empty"]
+  A --> B["Self-test 8 hooks against fixed allow and deny cases"]
+  B --> C["Update hooks-disabled.json: disable on a false deny (guards) or any failure (filters); remove on a full pass"]
+  C --> D["Read hook-health.jsonl, fsa-log.jsonl, health-state.json"]
+  D --> E{"--session-start?"}
+  E -->|yes| F{"Any problem?"}
+  F -->|yes| G["Print one systemMessage"]
+  F -->|no| H["Print nothing"]
+  E -->|no| I{"--clear?"}
+  I -->|yes| J["Truncate hook-health.jsonl; the report keeps the entries read before"]
+  I -->|no| K["Read attribution settings, read-only"]
+  J --> K
+  K --> L["Print the report"]
+  G --> M["Record notice timestamps in health-state.json"]
+  H --> M
+  L --> M

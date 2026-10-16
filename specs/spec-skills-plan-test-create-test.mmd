@@ -1,0 +1,15 @@
+flowchart TD
+  I["Intake"] -->|"ok"| A["AssembleContext"]
+  I -->|"no-spec"| N1(["NeedsInput"])
+  I -->|"scenario-missing"| E1(["Error precondition-failed"])
+  A -->|"ready"| P["PlanCoverage"]
+  A -->|"interface-undocumented or framework-unknown"| N2(["NeedsInput"])
+  P -->|"mapped"| C["CheckCoverage"]
+  C -->|"gaps, rounds below 2"| P
+  C -->|"gaps, rounds at 2"| E2(["Error budget-exhausted"])
+  C -->|"complete"| W["WriteTests"]
+  W -->|"written"| S["SelfCheck"]
+  W -->|"needs-non-test-path"| E3(["Error policy-rejection"])
+  S -->|"issues, fixes below 2"| W
+  S -->|"issues, fixes at 2"| E4(["Error budget-exhausted"])
+  S -->|"clean"| D(["Done, verdict covered=N uncovered=M"])

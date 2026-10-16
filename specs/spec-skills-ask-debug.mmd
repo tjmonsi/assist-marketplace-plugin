@@ -1,0 +1,19 @@
+flowchart TD
+  A(["/ask question, optional --web"]) --> B["Grep and Glob the repository, Read matches"]
+  B --> C{"Repository answers it?"}
+  C -->|"yes"| D["Draft answer: relative paths in Found In"]
+  C -->|"no, without --web"| E(["Say the repository has no answer; suggest --web"])
+  C -->|"no or incomplete, with --web"| F["WebSearch, then WebFetch top 1 to 3 results"]
+  F --> G{"Claims confirmed?"}
+  G -->|"yes"| H["Combine: repository wins conflicts; label source per claim"]
+  G -->|"no"| I(["Say it cannot be answered and stop"])
+  D --> R["review-md on the draft"]
+  H --> R
+  R --> P(["Present answer"])
+  X(["/debug first argument"]) --> Y{"Subcommand"}
+  Y -->|"analyze"| Z(["RCA from rca-template; no code change"])
+  Y -->|"fix"| F1{"Approved RCA or human-report file?"}
+  F1 -->|"no"| F2(["Halt with the fix-gate message"])
+  F1 -->|"yes"| F3(["Minimal root-cause fix; run tests"])
+  Y -->|"review"| V(["Fix Verified or Fix Not Verified"])
+  Y -->|"empty or unmatched"| Q(["Ask which mode"])

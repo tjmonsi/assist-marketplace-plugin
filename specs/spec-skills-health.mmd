@@ -1,0 +1,12 @@
+flowchart TD
+  S(["/health, optional --clear"]) --> C{"User passed --clear?"}
+  C -->|"no"| R1["node health-check.js --data-dir plugin data dir"]
+  C -->|"yes"| R2["Same command with --clear"]
+  R1 --> O{"Output is a systemMessage?"}
+  R2 --> O
+  O -->|"yes"| F["Treat the message as the finding; apply the matching fix row"]
+  O -->|"no"| P["Read the report: Node, self-tests, disabled guards, logs, attribution settings"]
+  P --> H{"Healthy?"}
+  H -->|"yes"| One(["One-line healthy result"])
+  H -->|"no"| Fx(["Status line, then one entry per finding with its fix"])
+  F --> Fx

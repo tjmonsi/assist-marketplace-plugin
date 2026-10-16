@@ -1,0 +1,18 @@
+sequenceDiagram
+  participant Do as /do
+  participant Ag as Agent assist-plugin:name
+  participant Log as fsa-log hook, Area B
+  participant U as User
+  Do->>Ag: Prompt with the Dispatch prompt text
+  Ag-->>Do: Final message ending in one fsa block
+  Ag-->>Log: SubagentStop, SubagentHandback, or Agent result
+  Log-->>Log: Parse last block, check table, append one line
+  alt state NeedsInput
+    Do->>U: Relay questions verbatim, at most 4 per call
+    U-->>Do: Answers
+    Do->>Ag: SendMessage: answers, resume_at, Dispatch prompt text
+  else no valid block
+    Do->>Ag: One SendMessage retry with the Dispatch prompt text
+  else state Done or Error
+    Do->>Do: Run the gate, record the step, or fail it
+  end

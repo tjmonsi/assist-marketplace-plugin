@@ -1,0 +1,22 @@
+flowchart TD
+  P(["Prompt"]) --> I{"Ingest: control word?"}
+  I -->|"stop"| S["Stop mode: start nothing new"]
+  I -->|"resume plan"| R{"Plan exists, Status Paused<br/>or In Progress, approval line?"}
+  R -->|"no"| E(["Error: plan-invalid"])
+  R -->|"yes"| RS["Reset in_progress and<br/>waiting-user steps to pending"]
+  RS --> PA["PlanApproval: steps not completed"]
+  I -->|"none"| SG["SpecGate"]
+  SG --> D["Decompose: step fields, build flag"]
+  D -->|"ambiguous, rounds below limit"| C["Clarify: at most 4 questions per call"]
+  C -->|"answered"| D
+  D -->|"ambiguous at limit, non-build:<br/>record assumptions"| DA
+  D -->|"ok"| DA["DependencyAnalysis: edges, waves, Runs"]
+  DA -->|"cycle"| E
+  DA -->|"ok"| AS{"AgentSelection: question intent?"}
+  AS -->|"yes"| Ask["ask"]
+  AS -->|"no"| Reg{"First registry agent that matches,<br/>or a discovered agent"}
+  Reg -->|"no match, rounds below limit"| C
+  Reg -->|"no match at limit"| E
+  Ask --> M["Model and effort from model-routing.md;<br/>ask per Requirement 10 (OPEN-4)"]
+  Reg -->|"matched"| M
+  M --> B["Branch"]

@@ -1,0 +1,28 @@
+flowchart TD
+  PF["Preflight, git repo: baseline snapshot<br/>(a) status, (b) ignored status, (c) hashes"] --> W["Chain step dispatched: add hashes of<br/>existing Writes-matching files to (c)"]
+  W --> L["Chain step leaves in_progress<br/>or waiting-user"]
+  L --> RH{"Snapshot files re-hash to the<br/>sha256 values kept in context?"}
+  RH -->|"no, or values lost"| UH["Unexpected change for the steps since the<br/>last snapshot; hold every Build: yes step;<br/>step outcome pending OPEN-3"]
+  RH -->|"yes"| CMP
+  UH --> CMP["Take new snapshot; compare with baseline;<br/>new snapshot becomes the baseline"]
+  CMP --> EX{"Every changed path matches the Writes<br/>of a step that ran since the last snapshot?"}
+  EX -->|"no, exactly one step ran"| F["Step failed: policy-rejection"]
+  EX -->|"no, several steps ran<br/>or not attributable"| UR["Unexpected change row<br/>at DocSignOff"]
+  UR --> WHY
+  EX -->|"yes"| WHY{"Why the step left"}
+  WHY -->|"Done after its gate"| AV{"Artifact matches Writes and changed,<br/>or is a named existing document?"}
+  WHY -->|"Error, no valid block, gate returned,<br/>or relay limit"| FE["Step failed with its own error_class"]
+  WHY -->|"stop"| PD["Step back to pending"]
+  AV -->|"yes"| OK["Step completed"]
+  AV -->|"no"| F
+  F --> SK0["Later chain and build steps skipped;<br/>no sign-off asked"]
+  FE --> SK0
+  OK --> DS["Every chain step completed: DocSignOff"]
+  DS -->|"Approve documents"| AP["Documents approved: timestamp;<br/>Approved hashes stored"]
+  DS -->|"Edit documents, edits below 3"| RR["Named and later chain steps<br/>back to pending"]
+  RR --> W
+  DS -->|"Cancel"| SK["Build steps skipped; plan ends Partial"]
+  AP --> SEND{"Before each build send: file value equals<br/>last written value and hashes unchanged?"}
+  SEND -->|"yes"| BUILD["Dispatch build step"]
+  SEND -->|"no"| HOLD["Hold build steps; tell the user;<br/>return to DocSignOff"]
+  HOLD --> DS

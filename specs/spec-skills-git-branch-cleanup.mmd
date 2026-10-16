@@ -1,0 +1,14 @@
+flowchart TD
+  S(["/branch cleanup, optional --dry-run"]) --> D1["Record df -h . as before"]
+  D1 --> D2{"Default branch from origin/HEAD, else main, else master?"}
+  D2 -->|"none"| X(["Stop: default branch unknown, change nothing"])
+  D2 -->|"found"| L["git worktree list --porcelain"]
+  L --> E{"Per linked worktree: main or current, unsafe name, protected branch, locked, dirty incl. untracked, or not merged?"}
+  E -->|"any check fails"| K["Skip and record the reason"]
+  E -->|"eligible"| EL["Add to the eligible list; list its ignored files"]
+  K --> DR{"--dry-run?"}
+  EL --> DR
+  DR -->|"yes"| DRep(["Dry-run report: would remove, would delete, would clear, ignored files, skipped with reasons; no space-freed line; nothing changed"])
+  DR -->|"no"| R["git worktree remove path, then git branch -d branch"]
+  R --> C["git worktree prune --dry-run --verbose; go clean -cache -testcache from HOME when Go was present"]
+  C --> Rep(["Report: removed, deleted, caches, ignored files, space freed, skipped with reasons, stale entries"])

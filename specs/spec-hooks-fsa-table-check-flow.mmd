@@ -1,0 +1,12 @@
+flowchart TD
+  S(["node scripts/check-fsa-tables.js, with or without --check"]) --> A["Per table in lib/fsa-tables.js: parse ## States in its source file and compare"]
+  A --> B["Check every fsa example block against its table"]
+  B --> C["Compare TEST_GLOBS with the ## Write scope table in agents/developer-tester.md"]
+  C --> P1["PLANNED FR-126: compare verdictByStep with the intake-reviewer Outcome cells"]
+  P1 --> P2["PLANNED FR-128, FR-129, FR-180: compare PROTECTED_GLOBS, PROTECTED_FILES, AUTO_LOADED with the ## Write guard lists tables"]
+  P2 --> P3["PLANNED FR-127: compare TASK_PLAN_GLOB with two one-row tables"]
+  P3 --> D["Print ok or DRIFT per result, then the total line"]
+  D --> E{"Drift found and --check given?"}
+  E -->|yes| X1(["exit 1"])
+  E -->|no| X0(["exit 0"])
+  A -.->|"file unreadable or no States table"| X2(["stderr message, exit 2"])

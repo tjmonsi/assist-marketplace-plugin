@@ -1,0 +1,20 @@
+flowchart TD
+  B["Branch: write plan file,<br/>Status PENDING_APPROVAL"] --> IR{"Write step and a<br/>user-provided file?"}
+  IR -->|"yes"| IS["Insert one intake-reviewer<br/>step per file, wave 1"]
+  IS --> DI["Dispatch intake reviews<br/>before approval"]
+  DI -->|"intake-done"| PA
+  IR -->|"no"| X{"Exactly one read step<br/>by ask or explore?"}
+  X -->|"yes"| AP0["Status Approved;<br/>approval-skipped line"]
+  AP0 --> PF
+  X -->|"no"| PA["PlanApproval: table, Order line,<br/>one AskUserQuestion call"]
+  PA -->|"Approve, or Proceed without the review"| AP["Status Approved; Approved: timestamp;<br/>append decisions to DECISIONS.md"]
+  PA -->|"Skip spec-first with Approve"| W["Drop chain steps;<br/>Documents approved: waived"]
+  W --> AP
+  PA -->|"Edit steps or Change models"| ED["Rerun Decompose to Branch"]
+  ED --> PA
+  PA -->|"Rerun the review"| DI
+  PA -->|"Cancel"| C(["Cancelled"])
+  AP --> PF{"Preflight: df -h .<br/>2G or more free?"}
+  PF -->|"under 2G, user stops"| C
+  PF -->|"ok, or user continues"| SN["git repo: baseline snapshot;<br/>else skipped marker"]
+  SN --> IP["Status In Progress; Dispatch"]

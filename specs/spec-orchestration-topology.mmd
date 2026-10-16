@@ -1,0 +1,12 @@
+flowchart LR
+  User(["User"]) <-->|"AskUserQuestion, chat"| Do["/do Communicator<br/>main session, Opus"]
+  Refs["/do references<br/>agent-registry, model-routing,<br/>plan-format, fsa-template,<br/>review-protocol, fix-phase-rules"] -->|"Read"| Do
+  Do -->|"Write, Edit"| Plan[("Plan file<br/>.agent/main-plan/")]
+  Do -->|"Write once, then Edit append"| Dec[("DECISIONS.md")]
+  Do -->|"Bash: git status, hashes"| Snap[("Change-check snapshots<br/>session scratchpad")]
+  Do -->|"Agent, run_in_background"| Agents["Registry agents<br/>assist-plugin:name"]
+  Do -->|"SendMessage: answers, retry"| Agents
+  Agents -->|"final message, fsa block"| Do
+  Agents -->|"Write, Edit within Writes"| Files[("Project files")]
+  Hooks["Hooks, Area B<br/>fsa-write-bar, sa-mermaid-only,<br/>injection-filter, fsa-log"] -.->|"deny or warn"| Agents
+  Agents -.->|"SubagentStop, handback"| Log[("fsa-log.jsonl")]

@@ -1,0 +1,5 @@
+flowchart LR
+  U(["User runs /output-style"]) --> P["Picks assist-plugin:terse"]
+  P --> M["Main session replies follow output-styles/terse.md"]
+  M -.->|"not applied"| SUB["Subagents keep their own prompts"]
+  N(["No selection"]) --> D["Default output style"]

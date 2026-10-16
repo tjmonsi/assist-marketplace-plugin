@@ -1,0 +1,24 @@
+flowchart TD
+  S(["PreToolUse Bash or PowerShell call"]) --> A{"Command text names git or gh as a word?"}
+  A -->|no| OK["Allow, no output"]
+  A -->|yes| B["Lex into segments; resolve quotes; attach heredoc and here-string text to its segment"]
+  B --> C["Per segment: find the program after VAR=value words, wrappers, and shell keywords"]
+  C --> D{"git commit, git merge, gh pr create, or gh pr edit?"}
+  D -->|no| N{"sh -c script or eval, nesting depth below 2?"}
+  N -->|yes| B
+  N -->|no| NEXT["Next segment"]
+  D -->|yes| E["Collect message sources: text, trailer, file"]
+  E --> F{"Source kind"}
+  F -->|"file -"| G["Use the segment's heredoc or here-string text"]
+  F -->|"file path"| H["Resolve: ~ to home, absolute as given, relative against input cwd; skip $, NUL, UNC"]
+  H --> I["Read a regular file, first 64 KB"]
+  F -->|"text or trailer"| J["Use the value; trailer Key=value becomes Key: value"]
+  G --> K["Judge each line outside closed code fences"]
+  I --> K
+  J --> K
+  K --> L{"5 hits reached?"}
+  L -->|yes| DENY
+  L -->|no| NEXT
+  NEXT --> Q{"Any hit after the last segment?"}
+  Q -->|yes| DENY["Deny: list up to 5 lines, no updatedInput"]
+  Q -->|no| OK

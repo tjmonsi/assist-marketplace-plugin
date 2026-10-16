@@ -1,0 +1,10 @@
+flowchart TD
+  S(["Report path or in-memory draft"]) --> U{"Reviewed earlier this session and unchanged?"}
+  U -->|"yes"| N0(["No re-review"])
+  U -->|"no"| F["1. Factual soundness: each claim traces to evidence in the file"]
+  F --> C["2. Consistency: no conclusion stated twice, no contradiction"]
+  C --> Z["3. Conciseness: deslop catalogs, keep lists, quotations exempt"]
+  Z --> Q{"Findings?"}
+  Q -->|"none"| O1(["Output: No issues found in path."])
+  Q -->|"some"| O2["Write report-name.review.md next to the report, or return inline to the calling skill"]
+  O2 --> End(["Reviewed file unchanged"])

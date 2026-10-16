@@ -1,0 +1,35 @@
+flowchart TD
+  A(["Claude Code fires a registered event"]) --> B["Run: cd CLAUDE_PLUGIN_ROOT, then node hooks/NAME.js"]
+  B --> C{"Entry file loads lib/launch.js?"}
+  C -->|no| Z1["Print fixed systemMessage: launch-error"]
+  C -->|yes| D{"Node major version 6 or newer?"}
+  D -->|no| Z2["failOpen: unsupported-node"]
+  D -->|yes| E["require impl module, call main()"]
+  E --> F["Start 3 s watchdog, read stdin"]
+  F -.->|"no result in 3 s"| ZT["failOpen: timeout"]
+  F --> G{"stdin error?"}
+  G -->|yes| Z3["failOpen: stdin-error"]
+  G -->|no| H{"Listed in hooks-disabled.json?"}
+  H -->|yes| Z4["Warn disabled: guard on every call, filter once per disable"]
+  H -->|no| I{"Input parses as JSON?"}
+  I -->|no| Z5["failOpen: malformed-input"]
+  I -->|yes| J["evaluate(input)"]
+  J --> K{"Threw?"}
+  K -->|yes| Z6["failOpen: exception"]
+  K -->|no| L{"Result"}
+  L -->|"guard: deny is true"| M["Print permissionDecision deny JSON"]
+  L -->|"filter: stdout object"| N["Print the filter JSON"]
+  L -->|"no match"| O["Print nothing"]
+  Z2 --> LOG["Append record to hook-health.jsonl"]
+  Z3 --> LOG
+  Z5 --> LOG
+  Z6 --> LOG
+  ZT --> LOG
+  LOG --> W["Print systemMessage warning"]
+  Z1 --> X(["exit 0"])
+  W --> X
+  Z4 --> X
+  M --> X
+  N --> X
+  O --> X
+  X --> END(["Call proceeds unless deny JSON was printed"])

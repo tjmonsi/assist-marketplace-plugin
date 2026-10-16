@@ -1,0 +1,25 @@
+flowchart TD
+  RDY{"Ready: depends_on completed, no write<br/>overlap with a running step, build hold released?"} -->|"yes"| SEND["Send every ready step in one message,<br/>run_in_background: true; Status in_progress"]
+  SEND --> BLK{"Final message ends with<br/>a valid fsa block?"}
+  BLK -->|"no"| RETRY["One SendMessage retry carrying<br/>the Dispatch prompt text"]
+  RETRY -->|"valid block"| ST
+  RETRY -->|"still missing"| FAIL["Step failed: no-terminal-block"]
+  BLK -->|"yes"| ST{"state"}
+  ST -->|"Done"| GATE["Review gate; for a chain step,<br/>change check and artifact validation"]
+  GATE -->|"passed"| COMP["completed: timestamp, review outcome,<br/>skipped markers"]
+  GATE -->|"failed"| FAIL
+  ST -->|"NeedsInput"| REL{"Relays below 3 in this phase<br/>and below 10 in total?"}
+  REL -->|"yes"| ASK["waiting-user: relay questions verbatim;<br/>SendMessage answers, resume_at, Dispatch prompt text"]
+  ASK --> BLK
+  REL -->|"no"| FAIL
+  ST -->|"Error"| FAIL
+  FAIL --> SKIP["Dependents skipped;<br/>independent steps continue"]
+  COMP --> RDY
+  SKIP --> RDY
+  RDY -->|"nothing running, nothing ready"| EXIT{"Leaving Dispatch"}
+  EXIT -->|"docs-ready"| DS["DocSignOff"]
+  EXIT -->|"all-settled"| DISP["Display"]
+  DISP -->|"shown"| CL{"Cleanup"}
+  CL -->|"stopped"| PAU(["Paused"])
+  CL -->|"some-failed-or-skipped"| PAR(["Partial"])
+  CL -->|"all-completed"| COM(["Complete"])

@@ -1,0 +1,13 @@
+flowchart TD
+  I1["Intake"] -->|"ok"| C1["ClassifyContext"]
+  I1 -->|"no-spec"| N1(["NeedsInput, resume_at Intake"])
+  I1 -->|"scenario-missing or no-requirements"| E1(["Error precondition-failed"])
+  C1 -->|"detected"| X1["ExtractRequirements"]
+  C1 -->|"undetected"| N2(["NeedsInput, resume_at ClassifyContext"])
+  X1 -->|"listed"| P1["PlanSteps"]
+  P1 -->|"planned"| K1["CheckPlan"]
+  K1 -->|"gaps, rounds below 2"| P1
+  K1 -->|"gaps, rounds at 2"| E2(["Error budget-exhausted"])
+  K1 -->|"complete"| W1["WritePlan"]
+  W1 -->|"written"| D1(["Done, verdict steps=N"])
+  W1 -->|"denied"| E3(["Error policy-rejection"])

@@ -1,0 +1,24 @@
+flowchart TD
+  S(["Write, Edit, MultiEdit, or NotebookEdit"]) --> A["Resolve target: absolute as given, relative against input cwd"]
+  A --> B{"Prose file or markdown notebook cell?"}
+  B -->|no| NONE["Not judged: no output"]
+  B -->|yes| C{"Under the system temp directory?"}
+  C -->|yes| NONE
+  C -->|no| R{"Root for docs/tts"}
+  R -->|"Built"| R1["ROOT = input cwd"]
+  R -->|"PLANNED FR-181"| R2["ROOT = project root (CLAUDE_PROJECT_DIR, else git root of input cwd, else input cwd), plus input cwd when inside the project"]
+  R1 --> D{"Inside any ROOT/docs/tts/?"}
+  R2 --> D
+  D -->|yes| NONE
+  D -->|no| E{"Path holds a prose-gate-allowlist.json entry, or the entry is *?"}
+  E -->|yes| NONE
+  E -->|no| F["Build before and after text pairs"]
+  F --> G["Added lines: after lines with no equal line left in before"]
+  G --> H["Blank exempt regions, scan the tier's rules, count hits on added lines minus hits on removed lines"]
+  H --> I{"Which hook"}
+  I -->|"prose-gate, PreToolUse"| J{"Block-tier hits?"}
+  J -->|yes| DENY["Deny: hits by family with line, rule id, fix"]
+  J -->|no| NONE
+  I -->|"prose-advisor, PostToolUse"| K{"Advisory-tier hits?"}
+  K -->|yes| ADV["additionalContext: one line per family, 10 lines at most"]
+  K -->|no| NONE

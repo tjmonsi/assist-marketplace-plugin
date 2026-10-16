@@ -1,0 +1,19 @@
+flowchart TD
+  S(["Hook input"]) --> A{"Event"}
+  A -->|SubagentStop| B1["agent_type, agent_id, last_assistant_message"]
+  A -->|"PostToolUse SubagentHandback"| B2["agent_type, agent_id, tool_input.message"]
+  A -->|"PostToolUse Agent"| B3{"tool_response status absent or completed?"}
+  B3 -->|no| NONE["Emit nothing"]
+  B3 -->|yes| B4["tool_input.subagent_type, tool_response.agentId, text fields"]
+  A -->|other| NONE
+  B1 --> C{"One of the 7 table agents?"}
+  B2 --> C
+  B4 --> C
+  C -->|no| NONE
+  C -->|yes| D["Parse the last closed fsa block; check it against the table"]
+  D --> E{"SubagentStop and the agent's newest record is a handback?"}
+  E -->|yes| MK["Append stop-after-handback marker; no warning"]
+  E -->|no| F["Append record: validated fields and problem codes"]
+  F --> G{"Problems, and the event is a stop or a handback?"}
+  G -->|yes| W["systemMessage: one-line warning"]
+  G -->|no| NONE

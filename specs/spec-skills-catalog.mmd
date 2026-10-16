@@ -1,0 +1,26 @@
+flowchart LR
+  User(["User types /name args"])
+  subgraph UI["User-invocable skills (18)"]
+    Do["do (Area A)"]
+    QD["ask, debug"]
+    Git["commit, bump, branch"]
+    PR["pr-review"]
+    Docs["map-project, technical-writing"]
+    RMD["review-md"]
+    Chain["gather-requirements, spec-from-requirements, task-plan, create-test"]
+    Prose["deslop, voice-script, clarify"]
+    Health["health"]
+  end
+  subgraph INT["Internal skills (4), user-invocable: false"]
+    Code["code"]
+    QA3["pentest, integrated-test, run-test"]
+  end
+  User --> UI
+  ChainAgents["requirements-gatherer, intake-reviewer, solutions-architect, task-planner, developer-tester"] -->|"skills: frontmatter"| Chain
+  Dev["developer agent"] -->|"skills: frontmatter"| Code
+  QA["qa agent"] -->|"skills: frontmatter"| QA3
+  QD -->|"caller per review-md SKILL.md:31 only; ask also states it"| RMD
+  Git -->|"caller per review-md SKILL.md:31 only"| RMD
+  PR -->|"caller per review-md SKILL.md:31 only"| RMD
+  Docs -->|"caller per review-md SKILL.md:31 only"| RMD
+  Do -->|"Report Quality Gate"| RMD

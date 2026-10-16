@@ -1,0 +1,32 @@
+flowchart TD
+  S(["PreToolUse Write, Edit, MultiEdit, NotebookEdit"]) --> A{"assist-plugin agent_type, or a non-empty agent_id?"}
+  A -->|no| OK["Allow, no output"]
+  A -->|yes| B{"Path string present?"}
+  B -->|no| OK
+  B -->|yes| C{"Over 4096 characters or holds NUL?"}
+  C -->|yes| DENY["Deny with the agent's reason"]
+  C -->|no| D["Relative forms against input cwd and CLAUDE_PROJECT_DIR"]
+  D --> E{"Any form protected: .agent/main-plan/** or DECISIONS.md, case folded?"}
+  E -->|yes| DENY
+  E -->|no| F{"assist-plugin agent?"}
+  F -->|no| OK
+  F -->|yes| G{"Which agent"}
+  G -->|"requirements-gatherer, solutions-architect"| H{"Innermost form hidden or auto-loaded name?"}
+  H -->|yes| DENY
+  H -->|no| OK
+  G -->|task-planner| T1{"Outside every root? PLANNED FR-186: outside the git root of input cwd?"}
+  T1 -->|yes| DENY
+  T1 -->|no| T2{"Hidden or auto-loaded name, in the innermost form (PLANNED: relative to that git root)?"}
+  T2 -->|yes| DENY
+  T2 -->|no| T3{"Matches TASK_PLAN_GLOB? Built: task-plan-*.md; PLANNED FR-186: docs/task-plans/task-plan-*.md"}
+  T3 -->|yes| OK
+  T3 -->|no| DENY
+  G -->|developer| V{"Any form matches a test glob?"}
+  V -->|yes| DENY
+  V -->|no| OK
+  G -->|developer-tester| X1{"Innermost form hidden or auto-loaded name?"}
+  X1 -->|yes| DENY
+  X1 -->|no| X2{"Any form matches a test glob?"}
+  X2 -->|yes| OK
+  X2 -->|no| DENY
+  G -->|"any other"| OK

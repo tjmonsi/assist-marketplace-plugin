@@ -1,0 +1,16 @@
+flowchart LR
+  CC["Claude Code<br/>hook event"] -->|"stdin: hook input JSON"| ENTRY["hooks/NAME.js<br/>ES5 entry file"]
+  ENTRY -->|require| LAUNCH["lib/launch.js<br/>Node 6+ gate"]
+  LAUNCH -->|"require, main()"| IMPL["impl/NAME.js<br/>evaluate(input)"]
+  IMPL -->|"runs inside"| RT["lib/health.js<br/>guard() or transform()"]
+  RT -->|"stdout JSON, exit 0"| CC
+  RT -->|append| HLOG[("hook-health.jsonl<br/>newest 200 lines")]
+  RT -->|read| DIS[("hooks-disabled.json")]
+  IMPL -->|"fsa-log appends"| FLOG[("fsa-log.jsonl<br/>newest 500 lines")]
+  HC["impl/health-check.js<br/>SessionStart and /health"] -->|"self-test evaluate()"| IMPL
+  HC -->|write| DIS
+  HC -->|read| HLOG
+  HC -->|read| FLOG
+  IMPL -->|require| TABLES["lib/fsa-tables.js<br/>lib/fsa-paths.js"]
+  SCRIPTS["scripts/check-fsa-tables.js<br/>scripts/sync-writing-standard.js"] -->|require| TABLES
+  SCRIPTS -->|read| MD["agents, skills, rules<br/>markdown"]

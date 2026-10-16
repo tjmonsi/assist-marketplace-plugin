@@ -1,0 +1,14 @@
+flowchart TD
+  S(["/voice-script topic or draft-file"]) --> L["Live list check: one WebFetch of the OpenRouter speech list"]
+  L --> M["Ask the model: family, line, id menus, one question per call"]
+  M --> F["Read the chosen model file only"]
+  F --> EP{"OpenRouter id with a links.details path that matches its pattern?"}
+  EP -->|"yes"| EC["One endpoint WebFetch; warn on zero endpoints"]
+  EP -->|"no"| Q["One call: voice, length, delivery, source"]
+  EC --> Q
+  Q --> C["Compose from the model file: limits, tags, pauses, delivery"]
+  C --> DT["Run the date command once; check its format"]
+  DT --> G["Glob for a name clash; add -2, -3 on a clash"]
+  G --> W{"Write docs/tts/voice-slug-stamp.md allowed?"}
+  W -->|"yes"| R(["Reply: path, model, voice, block count, live check, warnings"])
+  W -->|"no"| P(["Print the script in chat; say it was not saved"])

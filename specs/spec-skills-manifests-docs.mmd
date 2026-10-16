@@ -1,0 +1,11 @@
+flowchart TD
+  S(["Release X.Y.Z"]) --> B["Set version in plugin.json and in the marketplace.json plugin entry"]
+  B --> EQ{"Both versions equal?"}
+  EQ -->|"no"| F1(["Release check fails"])
+  EQ -->|"yes"| N{"Marketplace name, plugin name, and source unchanged?"}
+  N -->|"no"| F2(["Reject: a rename breaks existing installs"])
+  N -->|"yes"| CT{"Counts and lists in the 8 files match agents/*.md and skills/*/SKILL.md?"}
+  CT -->|"no"| F3(["Fix the stale file before release"])
+  CT -->|"yes"| SC["sync-writing-standard.js --check and check-fsa-tables.js --check exit 0"]
+  SC --> CL["Release notes in the root CHANGELOG.md"]
+  CL --> C(["Commit with no AI attribution"])

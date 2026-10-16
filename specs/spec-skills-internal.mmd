@@ -1,0 +1,13 @@
+flowchart TD
+  S(["qa applies run-test"]) --> L["Detect language: pyproject.toml, package.json, go.mod, Cargo.toml, build.gradle.kts"]
+  L --> PY{"Python project with uv?"}
+  PY -->|"yes"| V{"Glob finds .venv/bin/pytest or .venv/Scripts/pytest.exe?"}
+  V -->|"no"| X(["Show uv sync; stop; install nothing"])
+  V -->|"yes"| U["uv run --no-sync --no-python-downloads pytest"]
+  PY -->|"no"| T["Run the language's listed test command"]
+  U --> CV["Run the listed coverage command"]
+  T --> CV
+  CV --> A{"Line coverage at least 70%?"}
+  A -->|"yes"| R(["Report from test-report-template: verdict, counts, coverage, failures"])
+  A -->|"no"| G["List uncovered files and lines as a finding"]
+  G --> R

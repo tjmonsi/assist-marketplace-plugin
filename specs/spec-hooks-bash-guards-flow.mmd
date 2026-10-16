@@ -1,0 +1,17 @@
+flowchart TD
+  S(["PreToolUse Bash call"]) --> SA{"sa-mermaid-only: agent_type is solutions-architect or ends in :solutions-architect?"}
+  SA -->|no| SAOK["Allow, no output"]
+  SA -->|yes| M1{"Shell metacharacter in the command?"}
+  M1 -->|yes| SADENY["Deny with the fixed reason and the install command"]
+  M1 -->|no| M2{"Exactly which mmdc, where mmdc, or mmdc --version?"}
+  M2 -->|yes| SAOK
+  M2 -->|no| M3{"First word mmdc, every flag allowed, every value valid?"}
+  M3 -->|yes| SAOK
+  M3 -->|no| SADENY
+  S --> D1{"doc-cli-guard: endpoint variable assigned before the program?"}
+  D1 -->|yes| DDENY["Deny with the rule's reason"]
+  D1 -->|no| D2{"Program is firecrawl or ctx7?"}
+  D2 -->|no| DOK["Allow, no output"]
+  D2 -->|yes| D3{"Metacharacter, endpoint variable, quote inside a word, forbidden subcommand, or output or endpoint flag?"}
+  D3 -->|yes| DDENY
+  D3 -->|no| DOK
