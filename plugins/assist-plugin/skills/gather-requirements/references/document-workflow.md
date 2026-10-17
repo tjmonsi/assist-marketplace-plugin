@@ -70,7 +70,7 @@ Write every file to `docs/requirements/` under the git root of the session's wor
 | `FR-NFR-<project-slug>.md` | [fr-nfr-template.md](fr-nfr-template.md) | Functional requirements with scenarios, non-functional requirements, traceability matrix |
 | `requirements-<project-slug>.json` | [json-output-format.md](json-output-format.md) | Machine-readable projection; written only with `--json` |
 
-Use the project name or topic in kebab-case as `<project-slug>`. Fill the **Author** field from `git config user.name`; if that fails, leave `[Author]`.
+Use the project name or topic in kebab-case as `<project-slug>`. Write `[Author]` in the **Author** field of a new document and leave the name for the user; on an update keep the existing Author value.
 
 ### 9. Quality pass
 

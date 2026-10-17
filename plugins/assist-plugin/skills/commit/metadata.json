@@ -1,7 +1,8 @@
 {
   "name": "commit",
-  "description": "Create conventional commits with git staging, messaging, and optional squash/amend.",
+  "description": "Create conventional commits with git. Stages files, composes messages using conventional commits format, and supports squash/amend.",
   "effort": "low",
+  "model": "haiku",
   "allowed-tools": [
     "Bash"
   ],

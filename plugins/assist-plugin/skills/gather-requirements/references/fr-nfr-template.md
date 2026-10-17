@@ -2,7 +2,7 @@
 
 Use this template when producing the combined functional and non-functional requirements output file via `/gather-requirements document`.
 
-Fill **Author** from `git config user.name`. If that is unavailable, leave `[Author]` for the user to complete. Never hardcode a name.
+Leave `[Author]` for the user to complete. Never hardcode a name.
 
 ---
 

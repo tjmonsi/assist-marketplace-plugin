@@ -102,12 +102,12 @@ commit 3: BREAKING CHANGE: remove deprecated LoginWidget class
 
 ### No Commits Since Last Release
 
-If HEAD points to a version tag or no commits exist since last version:
+If no commits exist since the last version:
 ```
 error: No commits since version X.Y.Z; nothing to bump
 ```
 
-Resolution: Make commits before bumping.
+Resolution: Make commits before bumping. A tag of the current version at HEAD is a different case: see "Current Version Already Released".
 
 ## Changelog Format
 
@@ -180,7 +180,7 @@ Automatically generated at bottom:
 → new version = 1.1.0
 
 # Updated files:
-✅ .claude-plugin/plugin.json: version = 1.1.0
+✅ package.json: version = 1.1.0
 ✅ CHANGELOG.md: new [1.1.0] section added
 ✅ Git commit: "chore: bump version to 1.1.0"
 ✅ Git tag: "v1.1.0"
@@ -191,10 +191,12 @@ Automatically generated at bottom:
 ### Current Version Already Released
 
 ```
-error: Version 1.0.0 already has a tag (v1.0.0)
+error: Version 1.0.0 is already released (tag v1.0.0 points at HEAD)
 → Cannot bump: version already released
 → Resolve: Check git log; either delete tag or update version files
 ```
+
+The skill refuses only when a tag of the current version points at HEAD: `vX.Y.Z`, `release-X.Y.Z`, or `<tagdir>-vX.Y.Z` under a `--path` below the root. A tag of that version on an older commit does not block the bump. This check runs before the commits-since check, so a version released at HEAD reports "already released", not "No commits since version X.Y.Z".
 
 ### Working Tree Not Clean
 
@@ -235,7 +237,7 @@ The `bump` skill uses these shells commands internally:
 ```bash
 # Detect version
 grep '"version"' package.json | sed 's/.*: "\([^"]*\)".*/\1/'
-git describe --tags --abbrev=0  # Last tag
+git describe --tags --abbrev=0  # Last tag; under --path add --match '<tagdir>-v*'
 
 # Parse commits
 git log v1.0.0..HEAD --format="%s"
@@ -258,9 +260,9 @@ When using `--path ./subproject`:
 1. Searches for version files **within** `./subproject/`
 2. Parses git commits affecting **only** `./subproject/` (git diff + log)
 3. Updates versions in `./subproject/`
-4. Creates `./subproject/CHANGELOG.md`
-5. **Commits at root level** (not inside subproject)
-6. Tags at root: `subproject-v1.1.0` or `v1.1.0-subproject`
+4. Writes the changelog entry in `./subproject/CHANGELOG.md`. A pointer-only `CHANGELOG.md` (no `## [x.y.z]` heading and exactly one relative link to a local file) sends the entry one hop to the file it points to, when that file is named `CHANGELOG.md`, resolves inside the git root, is not hidden, is not `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md`, and is not itself a pointer. On any other stop, the skill asks: write in place, name another `CHANGELOG.md` that passes the same checks, or skip the changelog, then continues the same run
+5. **Commits at root level** (not inside subproject): `chore: bump <dir> to X.Y.Z`
+6. Tags at root: `<tagdir>-vX.Y.Z`, where `<dir>` is the path relative to the repository root (leading `./` and trailing `/` removed, `\` read as `/`) and `<tagdir>` is `<dir>` with every `/` replaced by `-`. `--no-commit` creates no tag
 
 **Example:**
 ```bash

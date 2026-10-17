@@ -1,6 +1,6 @@
 {
   "name": "map-project",
-  "description": "Discover and document repository structure, identify stack and modules.",
+  "description": "Discover repository structure. Identifies key directories, detects technology stack, maps module/package dependencies, and generates architecture summary.",
   "effort": "medium",
   "allowed-tools": ["Read", "Glob", "Bash"],
   "argument-hint": ""

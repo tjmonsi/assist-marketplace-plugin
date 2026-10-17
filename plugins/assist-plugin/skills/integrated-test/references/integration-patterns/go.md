@@ -26,15 +26,24 @@ package tests
 import (
 	"context"
 	"database/sql"
+	"net"
+	"net/url"
 	"os"
 	"testing"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/testcontainers/testcontainers-go/resources"
 )
 
 var testDB *sql.DB
+
+// Test-only database settings, declared once so the container and the URL agree.
+const (
+	dbUser     = "postgres"
+	dbPassword = "test"
+	dbName     = "testdb"
+)
 
 func TestMain(m *testing.M) {
 	ctx := context.Background()
@@ -44,8 +53,9 @@ func TestMain(m *testing.M) {
 		Image:        "postgres:16",
 		ExposedPorts: []string{"5432/tcp"},
 		Env: map[string]string{
-			"POSTGRES_PASSWORD": "test",
-			"POSTGRES_DB":       "testdb",
+			"POSTGRES_USER":     dbUser,
+			"POSTGRES_PASSWORD": dbPassword,
+			"POSTGRES_DB":       dbName,
 		},
 		WaitingFor: wait.ForLog("database system is ready to accept connections"),
 	}
@@ -62,7 +72,13 @@ func TestMain(m *testing.M) {
 	// Get connection string
 	host, _ := container.Host(ctx)
 	port, _ := container.MappedPort(ctx, "5432")
-	dsn := fmt.Sprintf("postgres://postgres:test@%s:%s/testdb?sslmode=disable", host, port.Port())
+	dsn := (&url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(dbUser, dbPassword),
+		Host:     net.JoinHostPort(host, port.Port()),
+		Path:     "/" + dbName,
+		RawQuery: "sslmode=disable",
+	}).String()
 
 	// Connect to database
 	testDB, err = sql.Open("pgx", dsn)

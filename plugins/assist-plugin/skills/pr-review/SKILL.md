@@ -57,7 +57,7 @@ git remote -v
 → Detected: Bitbucket Cloud, uses `bkt` CLI
 
 # Bitbucket Server/DC
-→ origin  https://bitbucket.company.com/scm/repo/project.git
+→ origin  https://bitbucket.example.net/scm/repo/project.git
 → Detected: Bitbucket Server, uses custom SSH/HTTPS
 ```
 
@@ -79,18 +79,18 @@ Three ways to specify PR:
 
 ### 4. Review Submission (Confirmation Required)
 
-`--approve` and `--changes-requested` are **state-changing commands and are never executed automatically**, not even when the flag was passed on the command line, and not even when the `reviewer` agent decided the verdict itself. The skill always pauses for explicit human confirmation before running them:
+`--approve`, `--changes-requested`, and `--comment` are **state-changing commands and are never executed automatically**, not even when the flag was passed on the command line, and not even when the `reviewer` agent drafted the verdict itself. The skill always pauses for explicit human confirmation before running them:
 
 1. Fetch the PR and analyze it (read-only; no state-changing command runs yet).
 2. Draft the verdict and reasoning as plain text, e.g. *"Recommend approval because: tests cover the new branch, no security issues found, matches project conventions."*
 3. Present the draft verdict to the user (for changes-requested/comment, include the exact comment body) and ask: **"Do you approve this verdict? (yes/no)"**
-4. Only on an explicit "yes" (or clear affirmative) does the skill run the actual `gh pr review <n> --approve` / `--request-changes` (or `bkt pr approve` / `bkt pr decline`) command.
+4. Only on an explicit "yes" (or clear affirmative) does the skill run the actual `gh pr review <n> --approve` / `--request-changes` / `--comment` (or `bkt pr approve` / `bkt pr comment`) command. On Bitbucket a confirmed `--changes-requested` posts a comment with the findings through `bkt pr comment --message-file` and leaves the PR open. Declining a PR is a manual choice outside the verdict mapping.
 5. On "no", or if the user requests edits, revise the draft and re-confirm. Never fall back to executing the command anyway.
 
 | Verdict | Command | Effect | Requires Confirmation? |
 |---------|---------|--------|--------------------------|
 | **Approve** | `--approve` | Marks PR approved, ready to merge | Yes, always, before every execution |
-| **Changes Requested** | `--changes-requested` | Blocks merge, requires changes | Yes, always, before every execution |
+| **Changes Requested** | `--changes-requested` | GitHub: blocks merge, requires changes. Bitbucket: posts a comment and leaves the PR open | Yes, always, before every execution |
 | **Comment** | `--comment` | Leaves feedback, doesn't block | Yes; user must see the exact text before it's posted |
 
 Optional message: `--message "Your feedback here"` is treated as a **draft** to confirm, never auto-posted. Draft text is written to a temp file and passed to the CLI via `--body-file` / `--message-file`. It is never interpolated directly into a shell command string. See [references/review-workflow.md](references/review-workflow.md) for the full confirmation flow and injection-safe posting mechanics.
@@ -132,12 +132,10 @@ bkt pr reviewers <project>/<repo>/<id>
 # Approve: only after the user confirms the draft verdict (see step 4 above)
 bkt pr approve <project>/<repo>/<id>
 
-# Decline (request changes): only after the user confirms the draft verdict.
-# Draft body text is written to a temp file first; never interpolate model
-# output directly into the command string.
-bkt pr decline <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
-
-# Comment
+# Comment (also the Bitbucket form of a changes-requested verdict; the PR stays
+# open): only after the user confirms the draft verdict. Draft body text is
+# written to a temp file first; never interpolate model output directly into
+# the command string.
 bkt pr comment <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
 ```
 
@@ -155,20 +153,18 @@ bkt pr comment <project>/<repo>/<id> --message-file /tmp/pr-review-body.txt
 
 ## Workflow Integration
 
-Pair with `/do` orchestrator:
+Pair with `/do` orchestrator. `/do` does not call `/pr-review` in this flow:
 
 ```
 /do review PR #123
-→ Routes to reviewer agent
-→ reviewer invokes /pr-review 123 --no-comment
-→ Fetches PR details and changes (read-only)
-→ reviewer analyzes code and drafts a verdict + rationale
-→ reviewer presents the draft to the user: "Do you approve this verdict? (yes/no)"
+→ /do fetches the PR through Bash with gh, for a github.com remote (output redirected to a file, capped)
+→ the read-only reviewer agent reads that file and drafts a verdict + rationale
+→ /do shows the draft to the user and asks for one confirmation
 → user confirms "yes"
-→ only now does reviewer submit: /pr-review 123 --approve
+→ only now does /do post the confirmed draft with gh pr review --repo 'github.com/<owner>/<repo>'
 ```
 
-The reviewer agent never submits `--approve` or `--changes-requested` on its own judgment alone. Confirmation from the user is required every time, regardless of how confident the analysis is.
+The `reviewer` agent only drafts text; `/do` fetches the PR and posts the confirmed draft. The `/do` flow supports `github.com` remotes only and runs no Bitbucket command. For any other host, Bitbucket included, `/do` fails the step and tells the user to run `/pr-review` directly. Confirmation from the user is required every time, regardless of how confident the analysis is. The full flow is in `skills/do/references/pr-review-flow.md`.
 
 Or standalone:
 
@@ -204,9 +200,7 @@ See [references/review-workflow.md](references/review-workflow.md) for:
 - Requires valid git remote configured
 - Requires authentication to GitHub/Bitbucket
 - Cannot review own PR (returns error)
-- Cannot approve if already approved (optional override flag)
-- Cannot request changes if already declined (optional override flag)
-- **Never executes `--approve`, `--changes-requested` (or `bkt pr approve` / `bkt pr decline`) without explicit user confirmation of the drafted verdict:** applies even when invoked by the `reviewer` agent or with the flag pre-supplied on the command line
+- **Never executes `--approve`, `--changes-requested`, `--comment` (or `bkt pr approve` / `bkt pr comment`) without explicit user confirmation of the drafted verdict:** applies even when the `reviewer` agent drafted the verdict or the flag was pre-supplied on the command line
 - **Never interpolates model-generated text directly into a shell command.** Draft body/message text is written to a temp file and passed via `--body-file` / `--message-file` (or the closest equivalent flag); see [references/review-workflow.md](references/review-workflow.md)
 
 ## Review Output Rules

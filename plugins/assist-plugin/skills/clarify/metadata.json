@@ -1,6 +1,6 @@
 {
   "name": "clarify",
-  "description": "Clarify unclear points from the current discussion. Claude explains its own output with evidence, asks the user about points only the user can settle, and logs both to a daily file.",
+  "description": "Clarify unclear points from the current discussion. Use on /clarify or when the user says something Claude wrote is unclear. Claude explains its own output with evidence, asks the user about points only the user can settle, shows both in chat, and appends them to a daily log.",
   "effort": "medium",
   "allowed-tools": ["Read", "Grep", "Glob", "AskUserQuestion", "Edit(./.agent/clarify/clarify-*.md)", "Bash(date +%Y-%m-%dT%H:%M)"],
   "argument-hint": "[what is unclear]"

@@ -1,6 +1,6 @@
 {
   "name": "voice-script",
-  "description": "Write a paste-ready text-to-speech script for the chosen TTS model, using only that model's own paralinguistic tags and style field. Asks for the model, voice, length, delivery, and a topic or draft, then saves the script to docs/tts/.",
+  "description": "Write a paste-ready text-to-speech script for the chosen TTS model, using only that model's own paralinguistic tags and style field. Use on /voice-script or when the user asks for a voice, narration, or TTS script. Asks for the model, voice, length, delivery, and a topic or draft, then saves the script to docs/tts/.",
   "effort": "medium",
   "allowed-tools": ["Read", "Glob", "AskUserQuestion", "WebFetch(domain:openrouter.ai)", "Edit(./docs/tts/voice-*.md)", "Bash(date +%Y%m%d-%H%M)"],
   "argument-hint": "[topic | draft-file]"

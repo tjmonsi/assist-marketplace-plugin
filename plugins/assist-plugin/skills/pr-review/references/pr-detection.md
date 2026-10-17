@@ -20,8 +20,8 @@ git@github.com:USER/REPO
 
 **GitHub Enterprise:**
 ```
-https://github.company.com/USER/REPO.git
-git@github.company.com:USER/REPO.git
+https://github.example.com/USER/REPO.git
+git@github.example.com:USER/REPO.git
 ```
 
 **Detection:** URL contains `github.com` or `github.` prefix
@@ -49,14 +49,14 @@ git@bitbucket.org:USER/REPO.git
 
 **HTTPS:**
 ```
-https://bitbucket.company.com/scm/PROJECT/REPO.git
-https://bitbucket.internal/bitbucket/scm/PROJECT/REPO.git
+https://bitbucket.example.com/scm/PROJECT/REPO.git
+https://bitbucket.example.net/bitbucket/scm/PROJECT/REPO.git
 ```
 
 **SSH:**
 ```
-ssh://git@bitbucket.company.com:7999/PROJECT/REPO.git
-git@bitbucket.company.com:7999/PROJECT/REPO.git
+ssh://git@bitbucket.example.com:7999/PROJECT/REPO.git
+git@bitbucket.example.com:7999/PROJECT/REPO.git
 ```
 
 **Detection:** URL contains `/scm/` path or custom domain with `bitbucket`
@@ -108,7 +108,7 @@ Authentication: `gh auth login`
 **Bitbucket Server/DC:**
 - May require custom scripts or Bitbucket REST API
 - Alternative: Use `curl` with `--user` for authentication
-- Rest API docs: `https://bitbucket.company.com/rest/api/1.0/`
+- Rest API docs: `https://bitbucket.example.com/rest/api/1.0/`
 
 ## PR Identification
 
@@ -165,7 +165,7 @@ pr_id=$(echo $url | cut -d'/' -f7)
 
 ### Bitbucket Server
 
-**PR URL:** `https://bitbucket.company.com/projects/PROJECT/repos/repo/pull-requests/789`
+**PR URL:** `https://bitbucket.example.com/projects/PROJECT/repos/repo/pull-requests/789`
 
 Parse:
 ```bash
@@ -221,10 +221,10 @@ bkt auth status
 
 # Bitbucket Server (via SSH key)
 SSH_KEY_PATH=~/.ssh/id_rsa
-git clone git@bitbucket.company.com:PROJECT/repo.git
+git clone git@bitbucket.example.com:PROJECT/repo.git
 
 # Or via REST API with basic auth
-curl -u username:password https://bitbucket.company.com/rest/api/1.0/...
+curl -u <user>:<token> https://bitbucket.example.com/rest/api/1.0/...
 ```
 
 ## Edge Cases
@@ -255,11 +255,11 @@ If reviewing on a fork:
 If behind proxy:
 ```bash
 # GitHub Enterprise
-gh config set api_hostname github.company.com
+gh config set api_hostname github.example.com
 
 # Bitbucket Server
 # May require VPN or SSH tunnel
-ssh -L 7990:bitbucket.internal:7990 jumphost.company.com
+ssh -L 7990:bitbucket.example.net:7990 jumphost.example.com
 ```
 
 ## Test Detection

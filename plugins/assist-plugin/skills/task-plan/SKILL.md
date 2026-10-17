@@ -112,7 +112,7 @@ Example:
 ### Step 1: User API endpoint
 - **Files:** `src/api/users.ts`
 - **Satisfies:** [SPEC-003 -> FR-045 -> UC-012 -> AC-1]
-- **Code references:** `languages/typescript.md`, `frameworks/fastify.md`, `patterns/typescript/rest-crud-endpoint.md`
+- **Code references:** `languages/typescript.md`, `frameworks/fastify.md`, `patterns/typescript/rest-crud.md`
 - **Notes:** Implement GET /users/:id with validation per the spec.
 ```
 

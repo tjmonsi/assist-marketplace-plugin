@@ -217,10 +217,11 @@ where mmdc
 
 **Step 3: Render if Available**
 
-If `mmdc` is found, write the Mermaid source to a `.mmd` file under `specs/` first, then render it. The `sa-mermaid-only` hook accepts only a `.mmd` input and a `.svg`, `.png`, or `.pdf` output, each under `specs/` or `<dir>/specs/`:
+If `mmdc` is found, write the Mermaid source to a `.mmd` file beside the spec first, in the specs folder the prompt names, using that prompt's absolute path, then render it. Use the relative `specs/` form only when the prompt names no folder. The `sa-mermaid-only` hook accepts only a `.mmd` input and a `.svg`, `.png`, or `.pdf` output, each under `specs/` or `<dir>/specs/`, as a relative path or an absolute path under the git root:
 ```bash
-mmdc -i specs/spec-feature-architecture.mmd -o specs/spec-feature-architecture.png
+mmdc -i <specs-folder>/spec-feature-architecture.mmd -o <specs-folder>/spec-feature-architecture.png
 ```
+Here `<specs-folder>` is the absolute specs folder from the prompt, or `specs` when the prompt names none.
 
 **Step 4: Embed in Spec**
 

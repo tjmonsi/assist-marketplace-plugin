@@ -22,9 +22,9 @@ Before submitting a review, check:
 
 ## Confirmation Gate (Required Before Any State Change)
 
-`--approve`, `--changes-requested` (and their platform equivalents `gh pr review --request-changes`, `bkt pr approve`, `bkt pr decline`) change state visible to the whole team: they can unblock or block a merge and notify the author. **They are never executed without an explicit, affirmative confirmation from the human user in the current turn**, even when:
+`--approve`, `--changes-requested`, `--comment` (and their platform equivalents `gh pr review --request-changes`, `bkt pr approve`, `bkt pr comment`) change state visible to the whole team: they can unblock or block a merge and notify the author. **They are never executed without an explicit, affirmative confirmation from the human user in the current turn**, even when:
 
-- the verdict flag (`--approve` / `--changes-requested`) was already supplied on the command line,
+- the verdict flag (`--approve` / `--changes-requested` / `--comment`) was already supplied on the command line,
 - the `reviewer` agent is fully confident in its own analysis,
 - a previous PR in the same session was already confirmed (each PR/verdict needs its own confirmation).
 
@@ -34,10 +34,10 @@ Before submitting a review, check:
 2. **Draft, don't post.** Compose the verdict and the exact comment body as plain text, e.g. *"Recommend approval because: tests cover the new branch, no security issues found, matches project conventions."* Write the draft body to a temp file (see [Injection-Safe Posting](#injection-safe-posting) below); do not post it anywhere yet.
 3. **Present and ask.** Show the user the draft verdict and the exact text that would be posted, then ask directly: **"Do you approve this verdict? (yes/no)"**
 4. **Wait for an explicit answer.** Only a clear affirmative ("yes", "approve it", "go ahead") counts as confirmation. Silence, an ambiguous reply, or the user changing the subject is **not** confirmation. Re-ask or treat it as "no" and take no action.
-5. **Execute only after "yes".** Run the actual `gh pr review` / `bkt pr approve` / `bkt pr decline` command using the confirmed draft text (via `--body-file` / `--message-file`), unmodified from what the user saw.
+5. **Execute only after "yes".** Run the actual `gh pr review` / `bkt pr approve` / `bkt pr comment` command using the confirmed draft text (via `--body-file` / `--message-file`), unmodified from what the user saw.
 6. **On "no" or requested edits:** revise the draft and return to step 3. Never execute the state-changing command as a fallback.
 
-This gate applies regardless of entry point: standalone `/pr-review`, `/do review PR #123`, or the reviewer agent calling the skill internally.
+This gate applies to every run of `/pr-review`, standalone or with a flag supplied by an agent. A `/do review PR #123` run does not call this skill; `/do` shows the user the draft and asks for one confirmation before it posts (see [Agent-Assisted Review](#agent-assisted-review)).
 
 ### Injection-Safe Posting
 
@@ -78,19 +78,18 @@ Shows:
 
 ### Step 3: Analyze Code
 
-Use the `reviewer` agent for deep analysis:
+Use `/do` for deep analysis by the `reviewer` agent:
 
 ```bash
 /do review PR #123
-→ Routes to reviewer agent
-→ Agent fetches details and changes
-→ Agent analyzes for bugs, security, performance
-→ Agent drafts a verdict + rationale (does not submit yet)
+→ /do fetches the PR details and diff through Bash with gh, for a github.com remote
+→ The read-only reviewer agent analyzes for bugs, security, performance
+→ The reviewer agent drafts a verdict + rationale (posts nothing)
 ```
 
 ### Step 4: Confirm, Then Submit Review
 
-Follow the [Confirmation Gate](#confirmation-gate-required-before-any-state-change) before running any of these. The agent presents the draft verdict and message, asks "Do you approve this verdict? (yes/no)", and only on "yes" runs the command below, with the draft text passed via a temp file, never a raw quoted string:
+Follow the [Confirmation Gate](#confirmation-gate-required-before-any-state-change) before running any of these. The commands below are the direct-run form of `/pr-review`: the skill presents the draft verdict and message, asks "Do you approve this verdict? (yes/no)", and only on "yes" runs the command, with the draft text passed via a temp file, never a raw quoted string. Under `/do`, for a `github.com` remote, `/do` shows the draft once and posts it with `gh pr review --repo 'github.com/<owner>/<repo>'` after the user confirms; it runs none of these `/pr-review` commands. For any other host, Bitbucket included, `/do` fails the step and the user runs `/pr-review` directly.
 
 ```bash
 # Approve (message optional; confirmed with the user first)
@@ -127,7 +126,7 @@ Approve. No findings.
 
 **Effect:**
 - GitHub: Blocks merge until resolved (if configured)
-- Bitbucket: Blocks merge until resolved
+- Bitbucket: posts a comment with the findings and leaves the PR open; declining the PR is a manual choice
 - Prevents auto-merge
 
 **Message example (each item as what happened, why it matters, what to do next):**
@@ -227,15 +226,14 @@ Verdict: Changes Requested (if breaking) or Approve
 
 ```bash
 /do review PR #123
-→ do skill invokes reviewer agent
-→ reviewer fetches details via /pr-review (read-only)
-→ reviewer analyzes code and drafts a verdict + message
-→ reviewer asks: "Do you approve this verdict? (yes/no)"
+→ /do fetches the PR through Bash with gh, for a github.com remote (output redirected to a file, capped)
+→ the read-only reviewer agent reads the file and drafts a verdict + message
+→ /do shows the draft to the user and asks for one confirmation
 → user answers "yes"
-→ only then: reviewer submits /pr-review 123 --approve (or --changes-requested)
+→ only then: /do posts the confirmed draft with gh pr review --repo 'github.com/<owner>/<repo>' (no /pr-review call)
 ```
 
-The reviewer agent's own confidence is never sufficient. The human confirmation in the last two steps is mandatory every time, per the [Confirmation Gate](#confirmation-gate-required-before-any-state-change).
+For any other host, Bitbucket included, `/do` fails the step and the user runs `/pr-review` directly; `/do` runs no Bitbucket command. The reviewer agent's own confidence is never sufficient. The user's confirmation of the draft `/do` shows is mandatory every time, before anything is posted. The direct `/pr-review` run keeps its own [Confirmation Gate](#confirmation-gate-required-before-any-state-change).
 
 ### Two-Stage Review
 
@@ -336,8 +334,10 @@ bkt pr comment PROJECT/REPO/123 --message-file /tmp/pr-review-body.txt
 # Approve: only after user confirmation
 bkt pr approve PROJECT/REPO/123
 
-# Decline (request changes): only after user confirmation, message via --message-file
-bkt pr decline PROJECT/REPO/123 --message-file /tmp/pr-review-body.txt
+# Request changes: Bitbucket has no blocking verdict here, so a confirmed
+# changes-requested verdict posts a comment and leaves the PR open
+# (declining the PR is a manual choice outside the skill)
+bkt pr comment PROJECT/REPO/123 --message-file /tmp/pr-review-body.txt
 
 # List reviewers
 bkt pr reviewers PROJECT/REPO/123

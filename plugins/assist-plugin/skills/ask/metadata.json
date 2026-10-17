@@ -1,6 +1,6 @@
 {
   "name": "ask",
-  "description": "Answer questions using repo search and optional web research. Add --web to include web results. Always cites sources.",
+  "description": "Answer questions using repository search and optional web research. Searches repo files first. Add --web to also search the web when repo context is insufficient. Always cites sources.",
   "effort": "medium",
   "allowed-tools": ["Read", "Grep", "Glob", "WebSearch", "WebFetch"],
   "argument-hint": "[--web] <question>"

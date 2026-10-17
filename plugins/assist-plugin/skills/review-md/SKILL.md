@@ -28,11 +28,11 @@ Invoked directly on any markdown file the user names.
 
 ### Automated
 
-Auto-invoked as the last step of a report-producing skill (`ask`, `debug analyze`/`review`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) right after that skill writes or drafts its report, and before the report is presented to the user. The invoking skill passes the path (or in-memory draft) of the report it just produced.
+Auto-invoked by `ask` and `do` right after they write or draft a report, and before the report is presented to the user. The invoking skill passes the path (or in-memory draft) of the report it just produced.
 
 ## What It Checks
 
-Check in this order; stop and report as soon as a category has findings rather than waiting to exhaustively check every rule in every category first.
+Check all three categories on every run, in this order, and report the findings of every category together, in the order checked. A category with no findings is omitted.
 
 1. **Factual soundness:** Does every claim trace to evidence in the file (code snippet, log line, file:line reference, command output)? Flag claims stated as fact with no cited source.
 2. **Consistency:** Does the report state the same conclusion more than once, in different words? Does any section contradict an earlier one?
