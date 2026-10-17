@@ -2,6 +2,60 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.12.0] - 2026-10-17
+
+### Added
+
+- **`/do` PR review flow** (GitHub only): "review PR N" runs one `reviewer` step on a diff that `/do` fetches without reading it, then shows the draft and asks before posting
+  - The fetch redirects `gh pr diff` and `gh pr view` to files, and every `gh` call pins `--repo 'github.com/<owner>/<repo>'` taken from `origin`
+  - A symlink guard refuses a linked `.agent` or `.agent/pr-review` folder before any write
+  - Tamper hashes cover the scratch diff and the body file; a changed file fails the step with `policy-rejection` and nothing is posted
+  - The review draft is capped at 16,000 bytes
+  - The confirmation names the repository, the PR, the verdict, and the command behind each option
+  - A `bitbucket.org` remote or any other host fails with `precondition-failed` and a pointer to `/pr-review`
+- OWASP for LLM named gate: `/do` runs it on any step whose artifacts change the LLM surface (`agents/`, `skills/` with `metadata.json`, `rules/`, `hooks/`, `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, and `.claude/settings*.json`); the path set is under "LLM Security Review Gate" in `rules/assist-plugin-rule.md`
+- `doc-cli-guard` judges PowerShell commands and each part of a chained command, reads Windows program names and package-runner launch forms, and skips `sudo`, `exec`, `eval`, and shell keywords to find the program. It is best-effort string matching, and Claude Code's permission prompts stay the main control. Known gaps remain; rule 9 of `specs/spec-hooks-bash-guards.md` lists them, and the header of `hooks/impl/doc-cli-guard.js` gives examples
+- `injection-filter` covers PowerShell downloads and skips `sudo`, `exec`, and `eval` to find the program. It does not catch a PowerShell download inside a `{ }` script block; the header of `hooks/impl/injection-filter.js` states this gap
+- `sa-mermaid-only` accepts absolute paths under the git root
+- `writing-context` self-test in `/health`. A failed self-test is reported and never disables the hook. When `rules/writing-standard-compact.md` is missing, the session-start notice reports the failed writing-context self-test.
+- A guard whose self-test only misses known-prohibited cases gets "; protection is weak" and keeps its state
+- Shared lexer `hooks/lib/shell-lex.js` for `commit-attribution-guard` and `doc-cli-guard`
+- `/bump` refuses only when a tag of the current version is at HEAD. It names the commit and tag for `--path` (`chore: bump services/auth to X.Y.Z`, tag `services-auth-vX.Y.Z`) and makes no tag under `--no-commit`. A pointer `CHANGELOG.md` is followed one hop to the `CHANGELOG.md` it names inside the git root. When the changelog target is unclear, `/bump` asks whether to write in place, name another `CHANGELOG.md` (checked the same way), or skip, and continues the same run. `--no-changelog` is in the argument hint
+- `ask` row in `skills/do/references/model-routing.md`
+
+### Changed
+
+- `/commit` runs on `model: haiku`
+- `code-reviewer` and `researcher` run at `effort: high` (was `xhigh`); `model-routing.md`, the agent files, and the security checklist match
+- `/review-md` checks all three categories (consistency, conciseness, accuracy)
+- `/pr-review` on Bitbucket: a `returned` verdict posts a comment and does not decline the PR
+- Every `metadata.json` mirrors its `SKILL.md` frontmatter
+- `gather-requirements` leaves `[Author]` as a placeholder
+- Spec-first specs are written under `specs/` at the git root, also when the session starts in a subdirectory
+- The `/health` catalog rows mention the writing-context self-test
+- `/do` Cleanup prints its own report after Display and chooses the terminal state
+- An `Error` before the Branch state writes no plan file
+- A snapshot-file mismatch or lost hashes fails the one step that ran (`policy-rejection`); with several steps running, `/do` holds the build steps and adds an "unexpected change" row
+- The three untrusted-input rules number citations as answer N and block M: 1-based, per run, one per answered question
+
+### Fixed
+
+- `rules/llm-security-checklist.md` no longer says every skill grants unrestricted `Bash`: `health`, `pentest`, `code`, `run-test`, `branch`, `clarify`, `voice-script`, and `integrated-test` use scoped grants; `bump`, `commit`, `debug`, `do`, `map-project`, and `pr-review` keep bare `Bash` as accepted NFR-013 exceptions; the rest grant no `Bash`
+
+### Security
+
+- The PR review flow treats the PR body, comments, and diff as untrusted data: `/do` does not read the diff text, the reviewer gets it by file path, and the posted body is the draft written verbatim to a file, never text built into a shell string
+- `doc-cli-guard` now judges PowerShell commands and each part of a chained command, and reads Windows program names, package runners, and `sudo`, `exec`, and `eval`, which the 1.11.1 check missed. `injection-filter` (which already split chained Bash commands in 1.11.1) now also reads PowerShell downloads and `sudo`, `exec`, and `eval`. Both are best-effort string matching with known gaps, and permission prompts stay the main control. Each hook lists its own gaps: `doc-cli-guard` in rule 9 of `specs/spec-hooks-bash-guards.md`; `injection-filter` in rule 7 of `specs/spec-hooks-injection-filter.md` and the header of `hooks/impl/injection-filter.js`
+
+### Not yet verified
+
+- The 22-row manual `/do` checklist ran no row. All 22 rows are `not-run`: (1) FR-195 post a GitHub PR review; (2) FR-195 body edited before the post; (3) FR-195 `upstream` remote; (4) FR-195 no `origin`, Enterprise `origin`, no PR number; (5) FR-195 Bitbucket `origin`; (6) FR-199 OWASP for LLM Gate path set; (7) FR-062, FR-063, FR-064 Cleanup report order; (8) FR-012 clarify limit ends in `Error`; (9) FR-032 overwritten snapshot file; (10) FR-190, FR-093 spec step from a subdirectory; (11) FR-094, FR-099 PowerShell guard and `iwr` filter; (12) FR-137, FR-138, FR-139, FR-200 `/bump` scratch repos; (13) FR-118, FR-091 missing `writing-standard-compact.md`; (14) FR-195 `origin` URL with `$(id)`; (15) FR-195 token-bearing `origin` URL; (16) FR-195 PR URL for another repository; (17) FR-195 scratch diff edited during the review; (18) FR-195 instruction-like text in a draft; (19) FR-195 symlinked `.agent/pr-review`; (20) FR-195 `GH_HOST` set; (21) FR-195 body written with one Write call; (22) FR-195 body hash lost before the post. The reason is the same for each: a subagent cannot drive `/do` in scratch repositories or reach a PR host.
+- The PowerShell tool result shape is unverified, so the `injection-filter` handling of PowerShell results has not been checked on a host with the PowerShell tool
+
+### Known follow-ups
+
+- Follow-up: `bkt` command forms for `/pr-review`, and Bitbucket support in the `/do` PR review flow
+
 ## [1.11.1] - 2026-10-16
 
 ### Changes

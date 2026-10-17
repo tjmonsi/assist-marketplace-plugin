@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.11.1
+### assist-plugin v1.12.0
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
@@ -42,7 +42,7 @@ Then use the `/do` orchestrator:
 - `spec-from-requirements`: Feature specs and delta change logs
 - `task-plan`: Ordered coding steps from specs (run by the `task-planner` agent)
 - `create-test`: Black-box acceptance-criteria tests
-- `health`: Hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
+- `health`: Hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 - `deslop`: Remove AI writing tells from prose; `/deslop [edit | detect] <file-or-text>` (edit returns cleaned text, detect lists findings)
 - `voice-script`: Paste-ready text-to-speech script for a chosen TTS model with its own tags; `/voice-script [topic | draft-file]` (saves to `docs/tts/`)
 - `clarify`: Explain unclear points from the discussion with evidence and ask the user about points only the user can settle; `/clarify [what is unclear]` (appends to `.agent/clarify/clarify-YYYYMMDD.md`)
@@ -291,7 +291,7 @@ Source: https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts
 
 - **`prose-gate`** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies a write to a prose file (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`) only when the text the call adds holds a block-tier tell: an em dash, chatbot residue, a curly quote, or a summary-label phrase. Text already in the file is not judged. The denial lists each hit with its fix. Text that must stay verbatim (a quotation, your own words, a title) passes inside double quotes, a blockquote, or a code span.
 - **`prose-advisor`** (PostToolUse on the same tools): adds a short advisory note about hedges, intensifiers, AI vocabulary, throat-clearing, and similar tells in the added text. It never blocks.
-- **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent.
+- **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent. The health check self-tests it; a failure is reported and never disables it.
 
 Both per-write hooks skip files under the system temp directory and files under `docs/tts/` in the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and in the session's working directory when that directory is inside the project, where voice scripts from `/voice-script` may use em dashes as pause marks. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
 
@@ -340,7 +340,7 @@ assist-marketplace-plugin/
 │       ├── skills/ (22 skills: 18 user-invocable, 4 internal)
 │       ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
 │       │   ├── hooks.json (hook registration)
-│       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc, .mmd input and .svg, .png, or .pdf output under specs/)
+│       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc, .mmd input and .svg, .png, or .pdf output under specs/, as a relative path or an absolute path under the git root)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
 │       │   ├── commit-attribution-guard.js (entry: denies AI attribution lines in commit messages and PR bodies)
 │       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
@@ -351,7 +351,7 @@ assist-marketplace-plugin/
 │       │   ├── fsa-log.js (entry: logs and checks subagent terminal blocks, warn mode)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
 │       │   ├── impl/ (guard, injection-filter, prose-hook, FSA-hook, and health-check logic)
-│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, git-root.js, fsa-tables.js, fsa-paths.js)
+│       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, git-root.js, fsa-tables.js, fsa-paths.js, shell-lex.js, shell-program.js, attribution-rules.js)
 │       ├── output-styles/ (terse.md: opt-in `assist-plugin:terse` output style)
 │       ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
 │       ├── scripts/ (sync-writing-standard.js: syncs the Report Writing Standard blocks; check-fsa-tables.js: checks the FSA tables against the markdown)

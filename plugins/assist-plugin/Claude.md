@@ -40,7 +40,7 @@ Use `/do` to route any development task to the right agent:
 | **do** | `/do [task description or prompt]` | Route task to best agent + orchestrate; a build request gets requirements, a spec, and a task plan approved first |
 | **ask** | `/ask [--web] <question>` | Answer questions using repo + optional web research |
 | **debug** | `/debug [analyze \| fix \| review] [description \| file:line]` | Root cause analysis & iterative fixes |
-| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit]` | Semantic versioning & changelog generation |
+| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit] [--no-changelog]` | Semantic versioning & changelog generation |
 | **pr-review** | `/pr-review [PR#\|branch-name] [--approve\|--changes-requested\|--comment] [--message TEXT]` | Auto-detect GitHub/Bitbucket, review PRs |
 | **commit** | `/commit [--squash] [--amend] [--scope SCOPE] [TYPE: message]` | Conventional commit with git |
 | **branch** | `/branch [create \| switch \| list \| cleanup] [branch-name \| --dry-run]` | Branch management and merged worktree cleanup |
@@ -51,7 +51,7 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards |
 | **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 | **voice-script** | `/voice-script [topic \| draft-file]` | Write a paste-ready TTS script for a chosen model with its own tags; saves to `docs/tts/` |
 | **clarify** | `/clarify [what is unclear]` | Explain unclear points with evidence, ask the user about points only the user can settle, log each to `.agent/clarify/` |
@@ -77,8 +77,10 @@ Use `/do` to route any development task to the right agent:
 - **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks. It skips `docs/tts/` like prose-gate.
 - **commit-attribution-guard** (PreToolUse on `Bash` and `PowerShell`): denies `git commit` and `git merge` (with `-m`, `--message`, `-F`, `--file`, `--trailer`) and `gh pr create` and `gh pr edit` (with `--body`, `-b`, `--body-file`, `-F`) when the message or body holds an AI attribution line: a Co-Authored-By trailer naming an AI tool or vendor (human co-authors pass), a "Generated with/by" footer, an Assisted-by or Generated-by trailer, or a `*-Session:` trailer or bare session link at an AI host. It lists up to 5 lines to remove, never rewrites the command, and does not cover `git tag` or a message built from a variable or stdin. `/assist-plugin:health` reports when Claude Code's `attribution.commit` or `attribution.pr` setting is unset or not `""`.
 - **fsa-write-bar** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): keeps `developer-tester` to test paths and `developer` out of them; limits `task-planner` to `docs/task-plans/task-plan-*.md` under the session's git root; bars `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`. Every subagent (any plugin, when `agent_id` is present) is denied `.agent/main-plan/**` and `DECISIONS.md`, and every subagent is denied a path over 4096 characters or with a NUL character. Bash writes are not covered; symlinks are not resolved.
-- **sa-mermaid-only** (PreToolUse on `Bash`): limits `solutions-architect` to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with a fixed flag allowlist. `-i` takes a `.mmd` file and `-o` takes a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`.
-- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
+- **sa-mermaid-only** (PreToolUse on `Bash`): limits `solutions-architect` to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with a fixed flag allowlist. `-i` takes a `.mmd` file and `-o` takes a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`, as a relative path or an absolute path under the git root.
+- **doc-cli-guard** (PreToolUse on `Bash` and `PowerShell`): denies `ctx7` and `firecrawl` calls with output or endpoint flags, shell operators, or credential commands. Judges each chained part; reads Windows names, runners. Best-effort, known gaps.
+- **injection-filter** (PreToolUse on `Agent`; PostToolUse on `WebFetch`, `WebSearch`, `mcp__*`, `Agent`, and `Bash` and `PowerShell` downloads; UserPromptSubmit): replaces injection phrasing with a marker; warns on typed prompts. Never blocks.
+- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent). The health check self-tests it; a failure is reported and never disables it.
 - **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
 - All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
 

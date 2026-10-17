@@ -7,7 +7,7 @@ Claude Code marketplace hosting `assist-plugin`, a token-optimized software deve
 - **GitHub repo:** `tjmonsi/assist-marketplace-plugin`
 - **Marketplace name:** `assist-plugin-marketplace` (from `.claude-plugin/marketplace.json`)
 - **Install id:** `assist-plugin@assist-plugin-marketplace`
-- **Plugin:** `plugins/assist-plugin` (v1.11.1)
+- **Plugin:** `plugins/assist-plugin` (v1.12.0)
 
 GitHub URLs and `/plugin marketplace add` use the repo path (`tjmonsi/assist-marketplace-plugin`). Install ids (`/plugin install assist-plugin@assist-plugin-marketplace`) use the marketplace name (`assist-plugin-marketplace`). Do not rename the marketplace; it breaks existing installs.
 
@@ -51,7 +51,7 @@ Use `/do` to route any development task to the right agent:
 | **do** | `/do [task description or prompt]` | Route a task to the best agent and orchestrate with review loops; a build request gets requirements, a spec, and a task plan approved first |
 | **ask** | `/ask [--web] <question>` | Answer questions from the repo, optionally with web research |
 | **debug** | `/debug [analyze \| fix \| review] [description \| file:line]` | Root cause analysis and iterative fixes |
-| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit]` | Semantic version bump with changelog generation |
+| **bump** | `/bump [patch \| minor \| major \| auto] [--path PATH] [--no-tag] [--no-commit] [--no-changelog]` | Semantic version bump with changelog generation |
 | **pr-review** | `/pr-review [PR#\|branch-name] [--approve\|--changes-requested\|--comment] [--message TEXT]` | Review GitHub or Bitbucket PRs with platform auto-detection |
 | **commit** | `/commit [--squash] [--amend] [--scope SCOPE] [TYPE: message]` | Create conventional commits |
 | **branch** | `/branch [create \| switch \| list \| cleanup] [branch-name \| --dry-run]` | Create, switch, and list git branches; clean up merged worktrees and branches, and clear the Go build cache |
@@ -62,7 +62,7 @@ Use `/do` to route any development task to the right agent:
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Write feature specs and delta change logs from requirements |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Turn a spec into ordered coding steps |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Generate black-box acceptance-criteria tests (also used by developer-tester) |
-| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards |
+| **health** | `/health [--clear]` | Check hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards |
 | **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 | **voice-script** | `/voice-script [topic \| draft-file]` | Write a paste-ready text-to-speech script for a chosen TTS model, using that model's own tags; saves it to `docs/tts/` |
 | **clarify** | `/clarify [what is unclear]` | Explain unclear points from the discussion with evidence, ask the user about points only the user can settle, and append each to a daily log in `.agent/clarify/` |
@@ -99,9 +99,11 @@ Use `/do` to route any development task to the right agent:
 - **prose-gate** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): denies only added block-tier tells (em dash, chatbot residue, curly quotes, summary-label phrases) in prose files. It skips files under `docs/tts/` in the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and in the session's working directory when that directory is inside the project, so voice scripts may use em dashes as pause marks.
 - **prose-advisor** (PostToolUse on the same tools): adds an advisory note about the added advisory-tier tells; never blocks. It skips `docs/tts/` like prose-gate.
 - **commit-attribution-guard** (PreToolUse on `Bash` and `PowerShell`): denies `git commit` and `git merge` (with `-m`, `--message`, `-F`, `--file`, `--trailer`) and `gh pr create` and `gh pr edit` (with `--body`, `-b`, `--body-file`, `-F`) when the message or body holds an AI attribution line: a Co-Authored-By trailer naming an AI tool or vendor (human co-authors pass), a "Generated with/by" footer, an Assisted-by or Generated-by trailer, or a `*-Session:` trailer or bare session link at an AI host. It lists up to 5 lines to remove, never rewrites the command, and does not cover `git tag` or a message built from a variable or stdin. `/assist-plugin:health` reports when Claude Code's `attribution.commit` or `attribution.pr` setting is unset or not `""`.
-- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent).
+- **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent). The health check self-tests it; a failure is reported and never disables it.
 - **fsa-write-bar** (PreToolUse on `Write`, `Edit`, `MultiEdit`, `NotebookEdit`): keeps `developer-tester` to test paths and `developer` out of them; limits `task-planner` to `docs/task-plans/task-plan-*.md` under the session's git root; bars `developer-tester`, `task-planner`, `requirements-gatherer`, and `solutions-architect` from dot paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md`. Every subagent (any plugin, when `agent_id` is present) is denied `.agent/main-plan/**` and `DECISIONS.md`, and every subagent is denied a path over 4096 characters or with a NUL character. Bash writes are not covered; symlinks are not resolved.
-- **sa-mermaid-only** (PreToolUse on `Bash`): limits `solutions-architect` to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with a fixed flag allowlist. `-i` takes a `.mmd` file and `-o` takes a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`.
+- **sa-mermaid-only** (PreToolUse on `Bash`): limits `solutions-architect` to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with a fixed flag allowlist. `-i` takes a `.mmd` file and `-o` takes a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`, as a relative path or an absolute path under the git root.
+- **doc-cli-guard** (PreToolUse on `Bash` and `PowerShell`): denies `ctx7` and `firecrawl` calls with output or endpoint flags, shell operators, or credential commands. Judges each chained part; reads Windows names, runners. Best-effort, known gaps.
+- **injection-filter** (PreToolUse on `Agent`; PostToolUse on `WebFetch`, `WebSearch`, `mcp__*`, `Agent`, and `Bash` and `PowerShell` downloads; UserPromptSubmit): replaces injection phrasing with a marker; warns on typed prompts. Never blocks.
 - **fsa-log** (SubagentStop, PostToolUse on `SubagentHandback` and `Agent`): checks each subagent's terminal block against its `## States` table and logs it to `fsa-log.jsonl`. Warn mode: never blocks.
 - **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
 - All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
@@ -111,7 +113,7 @@ Use `/do` to route any development task to the right agent:
 - **Security:** OWASP top 10 review on code changes
 - **Testing:** >=70% coverage required for new code
 - **Review:** Code reviewer sign-off required before merge
-- **LLM security:** OWASP for LLM gate on changes to `agents/`, `skills/`, `rules/`, `hooks/`, or `CLAUDE.md` (see [plugins/assist-plugin/rules/llm-security-checklist.md](plugins/assist-plugin/rules/llm-security-checklist.md))
+- **LLM security:** OWASP for LLM gate on changes to `agents/`, `skills/` (any depth, `metadata.json` included), `rules/`, or `hooks/` (each at the repository root, under any `plugins/<name>/`, or under `.claude/`), any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth, or `.claude/settings*.json`; not an application folder such as `src/hooks/` (see [plugins/assist-plugin/rules/llm-security-checklist.md](plugins/assist-plugin/rules/llm-security-checklist.md))
 - See [plugins/assist-plugin/rules/assist-plugin-rule.md](plugins/assist-plugin/rules/assist-plugin-rule.md)
 
 ## Keeping counts in sync
@@ -125,9 +127,9 @@ When adding or removing a skill or agent, update the counts and lists in:
 - [ ] `CLAUDE.md`
 - [ ] `plugins/assist-plugin/Claude.md`
 - [ ] `plugins/assist-plugin/docs/SPECIFICATION.md`
-- [ ] `plugins/assist-plugin/skills/do/references/agent-registry.md`
+- [ ] `plugins/assist-plugin/skills/do/references/agent-registry.md` (agent count only; it states no skill total)
 - [ ] Run `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` (exits 1 while any `## Report Writing Standard` block differs from `rules/writing-standard-compact.md`; drop `--check` to fix them)
 - [ ] Run `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` after editing a `## States` table, the Write scope table in `agents/developer-tester.md`, the one-row Write scope table in `agents/task-planner.md`, the `## Write guard lists` in `rules/assist-plugin-rule.md`, or a terminal-block example (exits 1 while `hooks/lib/fsa-tables.js` or `hooks/lib/fsa-paths.js` differs from the markdown; the markdown wins, so edit the JavaScript to match, except that a write guard value found only in `lib/fsa-paths.js`, or a task-plan glob change, needs a user decision recorded in `DECISIONS.md` first (the script prints this line))
 - When an agent depends on a skill, list it in the agent's `skills:` frontmatter; never set `disable-model-invocation: true` on a skill an agent preloads.
 
-When releasing, update the version in `plugins/assist-plugin/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`.
+When releasing, update the version in `plugins/assist-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `CLAUDE.md` (the Plugin line), `README.md` (the `### assist-plugin v` heading), and `MARKETPLACE.md` (the heading and the Versioning sentence).

@@ -78,7 +78,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Data flow diagrams
   - Error handling strategy
 - **Model default:** Opus
-- **Tools:** Read, Write, Edit, Grep, Glob, Bash (Bash is limited to mermaid-cli `mmdc` commands, enforced by `hooks/sa-mermaid-only.js`: `-i` takes a `.mmd` file and `-o` a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`)
+- **Tools:** Read, Write, Edit, Grep, Glob, Bash (Bash is limited to mermaid-cli `mmdc` commands, enforced by `hooks/sa-mermaid-only.js`: `-i` takes a `.mmd` file and `-o` a `.svg`, `.png`, or `.pdf` file, each under `specs/` or `<dir>/specs/`, as a relative path or an absolute path under the git root)
 
 ### Planning & Requirements Agents (3)
 
@@ -289,12 +289,14 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 ---
 
 ### technical-writing
-**Command:** `/technical-writing [docs | readme]`  
+**Command:** `/technical-writing [docs | readme | guide | api] [topic | file]`  
 **Purpose:** Generate and update documentation
 
 **Subcommands:**
 - `docs`: Create user/developer documentation
 - `readme`: Generate or update README
+- `guide`: Create implementation or setup guides
+- `api`: Generate API documentation
 
 **Model:** Sonnet  
 **Effort:** medium
@@ -359,7 +361,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 **Modes:**
 - Manual: invoked directly on any report file
-- Automated: auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
+- Automated: auto-invoked by `ask` and `do` on a report they produce, before the report reaches the user
 
 **Model:** Sonnet  
 **Effort:** medium
@@ -372,10 +374,10 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 ### health
 **Command:** `/health [--clear]`  
-**Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, prose-hook, and FSA-hook self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
+**Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 
 **Workflow:**
-1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, and `fsa-log` against fixed allow and deny cases)
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, and `fsa-log` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only)
 2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
 3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
 4. With `--clear`, truncate `hook-health.jsonl` after showing it
