@@ -9,13 +9,13 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-009, UR-015, FR-095, FR-096, FR-097, FR-098, NFR-009, NFR-014 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-`commit-attribution-guard` is a PreToolUse guard on Bash and PowerShell. It reads the commit message or pull request body that a `git commit`, `git merge`, `gh pr create`, or `gh pr edit` command carries, and denies the command when a line in that text is an AI attribution trailer, footer, or session link. It implements the 2026-10-12 decision "No AI attribution in commits or PRs" (`DECISIONS.md`) and the No AI Attribution Rule in `rules/assist-plugin-rule.md`. It judges only text it can read, never rewrites the command, and fails open. This spec describes the behavior at commit 4803a0d. The read-only attribution-settings report is FR-120 (spec-hooks-health-check.md).
+`commit-attribution-guard` is a PreToolUse guard on Bash and PowerShell. It reads the commit message or pull request body that a `git commit`, `git merge`, `gh pr create`, or `gh pr edit` command carries, and denies the command when a line in that text is an AI attribution trailer, footer, or session link. It implements the 2026-10-12 decision "No AI attribution in commits or PRs" (`DECISIONS.md`) and the No AI Attribution Rule in `rules/assist-plugin-rule.md`. It judges only text it can read, never rewrites the command, and fails open. This spec describes the behavior at commit 4803a0d, which assist-plugin 1.11.1 (commit 41034c1) keeps at every cited line of `commit-attribution-guard.js` (read 2026-10-16); the self-test cites point at 1.11.1. The read-only attribution-settings report is FR-120 (spec-hooks-health-check.md).
 
 ## Triggered by
 
@@ -362,13 +362,13 @@ Not applicable: a leaf feature of spec-hooks-platform.md.
 |---|---|---|
 | Latency | Within the 5 s registration (NFR-007) | Early exit when the command does not name `git` or `gh`; at most one 64 KB read per file source |
 | Rule cost | Bounded per line | Each line rule runs on at most 600 characters; the fence scan is linear (`attribution-rules.js:17-18`) |
-| Self-test | 22 deny and 17 allow cases pass (FR-118) | Fixed `cwd` and a stub file reader (`impl/health-check.js:650-712`) |
+| Self-test | 22 deny and 17 allow cases pass (FR-118) | Fixed `cwd` and a stub file reader (`impl/health-check.js:734-799`, `:835-840`) |
 
 ## Traceability
 
 | Requirement | Spec section | Verified by |
 |---|---|---|
-| BR-009 | Requirement: Attribution line rules | SC-006: deny corpus in `impl/health-check.js:669-692` |
+| BR-009 | Requirement: Attribution line rules | SC-006: deny corpus in `impl/health-check.js:756-779` |
 | UR-015 | Requirement: Covered commands and message sources | Self-test allow and deny corpora |
 | FR-095 | Requirement: Command lexing; Requirement: Covered commands and message sources; Requirement: Nested scripts | Heredoc, PowerShell, `sh -c`, and `git tag` scenarios |
 | FR-096 | Requirement: Attribution line rules | AI co-author, human co-author, fence, and docs-link scenarios |

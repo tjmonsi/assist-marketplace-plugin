@@ -14,9 +14,9 @@ flowchart TD
   DA -->|"cycle"| E
   DA -->|"ok"| AS{"AgentSelection: question intent?"}
   AS -->|"yes"| Ask["ask"]
-  AS -->|"no"| Reg{"First registry agent that matches,<br/>or a discovered agent"}
+  AS -->|"no"| Reg{"First registry agent that matches;<br/>a discovered agent only when no<br/>registry agent matches (PLANNED 1.12.0)"}
   Reg -->|"no match, rounds below limit"| C
   Reg -->|"no match at limit"| E
-  Ask --> M["Model and effort from model-routing.md;<br/>ask per Requirement 10 (OPEN-4)"]
+  Ask --> M["Model and effort from model-routing.md;<br/>ask row: Sonnet, medium, Can Override Yes<br/>(PLANNED 1.12.0)"]
   Reg -->|"matched"| M
   M --> B["Branch"]

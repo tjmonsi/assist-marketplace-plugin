@@ -8,5 +8,8 @@ flowchart LR
   Do -->|"SendMessage: answers, retry"| Agents
   Agents -->|"final message, fsa block"| Do
   Agents -->|"Write, Edit within Writes"| Files[("Project files")]
+  Do -.->|"Bash: gh, fetch, then post the<br/>confirmed draft (PLANNED 1.12.0)"| PR[("PR host<br/>github.com only")]
+  PR -.->|"Bash redirect, 200 KB cap,<br/>never in /do's context"| PRS[(".agent/pr-review/<br/>pr-N.diff, pr-N-review.body")]
+  PRS -.->|"Read by the reviewer step"| Agents
   Hooks["Hooks, Area B<br/>fsa-write-bar, sa-mermaid-only,<br/>injection-filter, fsa-log"] -.->|"deny or warn"| Agents
   Agents -.->|"SubagentStop, handback"| Log[("fsa-log.jsonl")]

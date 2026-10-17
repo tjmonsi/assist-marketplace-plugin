@@ -9,7 +9,7 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-008, UR-025, FR-125 |
 | **Feature type** | Configuration |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 

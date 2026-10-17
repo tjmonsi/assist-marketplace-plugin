@@ -9,7 +9,7 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-008, UR-043, FR-123, FR-124, NFR-018 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 

@@ -1,0 +1,7 @@
+flowchart TD
+  S(["Test run over every skills/name directory"]) --> H{"metadata.json exists?"}
+  H -->|"no"| L(["List the skill as without metadata; no failure"])
+  H -->|"yes"| F["Read the SKILL.md frontmatter, the source"]
+  F --> C{"name, description, effort, allowed-tools, argument-hint, model: each present on both sides with equal values, or absent on both?"}
+  C -->|"yes"| P(["Pass for this skill"])
+  C -->|"no"| X(["Fail: name the skill and the field; fix metadata.json from the frontmatter"])

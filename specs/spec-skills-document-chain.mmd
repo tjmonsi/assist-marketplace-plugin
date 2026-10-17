@@ -2,13 +2,13 @@ flowchart LR
   E["gather-requirements elicit: six phases, 3 to 5 questions per turn"] --> SUM{"User confirms the summary?"}
   SUM -->|"no"| E
   SUM -->|"yes"| D["document: categorize, assign BR, UR, FR, NFR IDs"]
-  D --> R1[("BRD-slug.md, URD-slug.md, FR-NFR-slug.md: working directory at 4803a0d, git-root docs/requirements/ after FR-182")]
+  D --> R1[("BRD-slug.md, URD-slug.md, FR-NFR-slug.md in docs/requirements/ under the git root, FR-182")]
   R1 --> SC["spec-from-requirements create: classify, template, Requirement refs"]
   SC --> S1[("specs/spec-feature.md")]
   S1 --> TP["task-plan: Intake gate, Satisfies IDs"]
-  TP --> T1[("task-plan-slug-timestamp.md: root at 4803a0d, git-root docs/task-plans/ after FR-184")]
+  TP --> T1[("task-plan-slug-timestamp.md in docs/task-plans/ under the git root, FR-184")]
   S1 --> CT["create-test: Scenarios to tests with traceability comments"]
   CT --> T2[("test files")]
   RV["gather-requirements review"] -.->|"PASS or NEEDS REVISION"| R1
-  SR["spec-from-requirements review"] -.->|"CRITICAL, WARNING, SUGGESTION"| S1
-  DL["spec-from-requirements delta"] -.->|"Change Log entry"| S1
+  SR["spec-from-requirements review"] -.->|"CRITICAL, WARNING, SUGGESTION; Status unchanged"| S1
+  DL["spec-from-requirements delta"] -.->|"Change Log entry; Status to Review unless approved in the same turn"| S1

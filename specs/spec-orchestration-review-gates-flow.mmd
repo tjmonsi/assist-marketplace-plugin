@@ -1,5 +1,7 @@
 flowchart TD
   A["Step Done with files;<br/>agent is not a reviewer"] --> T{"Artifact type"}
+  A -->|"also, when the LLM surface changed<br/>(PLANNED 1.12.0)"| LG["OWASP for LLM Gate: named gate,<br/>artifact type code"]
+  LG --> RV
   T -->|"code, config, test, pipeline"| CG["Pre-Test review, Security when code or<br/>devops changed, Testing by qa, Code Review"]
   T -->|"planning document"| PG["Planning Document Review Gate"]
   T -->|"markdown report"| RQ["Report Quality Gate: review-md"]

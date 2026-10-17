@@ -1,0 +1,16 @@
+flowchart TD
+  S(["Instruction-like text found in data"]) --> W{"Where is it?"}
+  W -->|"a file the user names, or a spec"| FL["Cite path and line"]
+  W -->|"a quote block or code fence in a user answer"| N["N: answered questions counted from 1 across the whole run, relays included, one per answered question"]
+  N --> M["M: quote blocks and code fences counted from 1 within answer N"]
+  M --> AB["Cite answer N, block M"]
+  FL --> R{"Running under /do?"}
+  AB --> R
+  R -->|"yes"| O["Citation in out_of_scope; never followed, quoted, or restated"]
+  R -->|"no"| P["Citation in the reply; never followed, quoted, or restated"]
+  O --> D{"spec-from-requirements delta run?"}
+  P --> D
+  D -->|"no"| K(["The text changes no Status"])
+  D -->|"yes"| Q{"User approved the change in the same turn?"}
+  Q -->|"yes"| K2(["Status not returned to Review"])
+  Q -->|"no"| RV(["Status set to Review by the delta rule; the text changes nothing"])

@@ -7,13 +7,13 @@
 | **Feature** | Agent catalog: the 16 agent files, their models and tools, and per-agent behavior under `/do` |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-002, BR-003, BR-005, BR-006, BR-010, BR-012, BR-013, BR-016, UR-001, UR-002, UR-004, UR-007, UR-011, UR-012, UR-013, UR-014, UR-019, UR-021, UR-035, UR-036, UR-037, UR-038, UR-042, UR-049, FR-065, FR-066, FR-067, FR-071, FR-072, FR-073, FR-074, FR-075, FR-076, FR-077, FR-078, FR-079, FR-080, FR-081, FR-082, FR-083, FR-084, FR-085, FR-189, NFR-003, NFR-014, NFR-015, NFR-020 |
+| **Requirement refs** | BR-002, BR-003, BR-005, BR-006, BR-010, BR-012, BR-013, BR-016, UR-001, UR-002, UR-004, UR-007, UR-011, UR-012, UR-013, UR-014, UR-019, UR-021, UR-031, UR-035, UR-036, UR-037, UR-038, UR-042, UR-049, FR-061, FR-065, FR-066, FR-067, FR-071, FR-072, FR-073, FR-074, FR-075, FR-076, FR-077, FR-078, FR-079, FR-080, FR-081, FR-082, FR-083, FR-084, FR-085, FR-093, FR-189, FR-190, FR-195, FR-199, NFR-003, NFR-014, NFR-015, NFR-020 |
 | **Feature type** | Configuration |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: assist-plugin 1.11.0 at commit 4803a0d; every behavior here is Built unless marked PLANNED, as `docs/requirements/FR-NFR-assist-plugin.md` marks it. Paths are relative to `plugins/assist-plugin/`. Hooks that enforce agent write paths (FR-092, FR-093, FR-108 to FR-114) and skills the agents preload (FR-130 onward) belong to Areas B and C and are cited by ID only.
+Baseline: assist-plugin 1.11.1 at commit 41034c1. Every behavior in the main body is Built, the items that read "Built (1.11.1)" included, as `docs/requirements/FR-NFR-assist-plugin.md` (v1.1) marks them. Text that says "at 4803a0d" describes the earlier 1.11.0 baseline. The Change Log at the end of this file records the PLANNED (1.12.0) changes and holds where it differs from the main body. Paths are relative to `plugins/assist-plugin/`. Hooks that enforce agent write paths (FR-092, FR-093, FR-108 to FR-114) and skills the agents preload (FR-130 onward) belong to Areas B and C and are cited by ID only.
 
 ## Description
 
@@ -40,12 +40,12 @@ The plugin ships 16 agent files that `/do` dispatches as `assist-plugin:<name>`.
 
 The plugin SHALL ship 16 agent files (ask, code-reviewer, developer, developer-tester, devops, explore, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, researcher, reviewer, solutions-architect, task-planner, worker) that each declare name, model, effort, and tools in frontmatter. (FR-065; `agents/*.md` lines 1 to 10)
 
-Frontmatter as read at the baseline:
+Frontmatter as read at the baseline, except that the `effort` of code-reviewer and researcher follows the 2026-10-17 change (Change Log 2026-10-17):
 
 | Agent | `model` | `effort` | `tools` | `skills` |
 |---|---|---|---|---|
 | ask | sonnet | medium | Read, Grep, Glob, WebSearch, WebFetch | none |
-| code-reviewer | opus | xhigh | Read, Grep, Glob, LSP | none |
+| code-reviewer | opus | high | Read, Grep, Glob, LSP | none |
 | developer | sonnet | high | Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP | code |
 | developer-tester | sonnet | high | Read, Write, Grep, Glob | create-test |
 | devops | sonnet | high | Read, Write, Edit, Grep, Glob, Bash, PowerShell | none |
@@ -55,13 +55,13 @@ Frontmatter as read at the baseline:
 | planner | sonnet | xhigh | Read, Write, Edit, Grep, Glob | none |
 | qa | sonnet | high | Read, Write, Edit, Grep, Glob, Bash, PowerShell, LSP | pentest, integrated-test, run-test |
 | requirements-gatherer | sonnet | medium | Read, Write, Edit, Grep, Glob | gather-requirements |
-| researcher | opus | xhigh | Read, Write, Edit, Grep, Glob, Bash, PowerShell, WebSearch, WebFetch | none |
+| researcher | opus | high | Read, Write, Edit, Grep, Glob, Bash, PowerShell, WebSearch, WebFetch | none |
 | reviewer | opus | xhigh | Read, Grep, Glob, LSP | none |
 | solutions-architect | opus | xhigh | Read, Write, Edit, Grep, Glob, Bash | spec-from-requirements |
 | task-planner | sonnet | high | Read, Write, Grep, Glob | task-plan |
 | worker | sonnet | high | Read, Write, Edit, Grep, Glob, Bash, PowerShell | none |
 
-Source difference, recorded and not settled here: the `general-purpose` frontmatter `description` says the agent is not a fallback, but its body at `agents/general-purpose.md:15`, `:27`, and `:38` describes it as the agent for work no other agent matches, which disagrees with FR-007. This spec follows FR-007 (spec-orchestration-planning.md, Requirement 9). Whether the body is corrected is pending the user (OPEN-5 in spec-orchestration.md).
+Source difference: the `general-purpose` frontmatter `description` says the agent is not a fallback, but at 1.11.1 its body at `agents/general-purpose.md:15`, `:27`, and `:38` describes it as the agent for work no other agent matches, which disagrees with FR-007. This spec follows FR-007 (spec-orchestration-planning.md, Requirement 9). OPEN-5 is closed: the body is corrected (FR-007, PLANNED 1.12.0; spec-orchestration-planning.md, Change Log 2026-10-16, Requirement 9).
 
 #### Scenario: Catalog complete
 
@@ -129,7 +129,7 @@ The `reviewer`, `code-reviewer`, `intake-reviewer`, `explore`, and `ask` agents 
 
 Each agent `description` in frontmatter SHALL NOT exceed 400 characters. (NFR-003; `docs/TOKEN_OPTIMIZATION.md`)
 
-`docs/requirements/FR-NFR-assist-plugin.md:3529` (NFR-003 row) records that the 16 descriptions were read on 2026-10-14 with the longest about 255 characters; that figure is an estimate and was not measured for this spec.
+`docs/requirements/FR-NFR-assist-plugin.md:4287` (NFR-003 row) records that the 16 descriptions were read on 2026-10-14 with the longest about 255 characters; that figure is an estimate and was not measured for this spec.
 
 #### Scenario: Within the limit
 
@@ -158,7 +158,7 @@ No agent file SHALL contain a hardcoded token, API key, or internal hostname. (N
 - **GIVEN** an edit that pastes an API key into `agents/researcher.md`
 - **WHEN** a secret scan runs over `agents/`
 - **THEN** the scan SHALL report the key with its `file:line`
-- **AND** the change SHALL NOT merge until `✓ OWASP Clear` and `✓ LLM Security Clear` appear in the commit message or plan file (`rules/assist-plugin-rule.md:348-350`); how `/do` dispatches the LLM gate is pending OPEN-1
+- **AND** the change SHALL NOT merge until `✓ OWASP Clear` and `✓ LLM Security Clear` appear in the commit message or plan file (`rules/assist-plugin-rule.md:348-350`); PLANNED (1.12.0, OPEN-1 closed): `/do` runs the named OWASP for LLM Gate on the change (FR-199; spec-orchestration-review-gates.md, Change Log 2026-10-16)
 
 ### Requirement: Keep agent counts and lists in every count document
 
@@ -250,11 +250,11 @@ Requirements documents and `DECISIONS.md` are read first, then other matches by 
 - **WHEN** the loop bound is reached
 - **THEN** the agent SHALL end `Error` with class `budget-exhausted`
 
-### Requirement: Conflict-check path list follows the document locations (PLANNED)
+### Requirement: Conflict-check path list follows the document locations (Built 1.11.1)
 
-The `intake-reviewer` agent in `conflict-check` mode SHALL accept requirements, specs, task plans, and `DECISIONS.md` paths from the locations in FR-187 and read them within the existing read cap. (FR-189, PLANNED 1.11.1; `docs/requirements/FR-NFR-assist-plugin.md:927-941`; `DECISIONS.md` 2026-10-16)
+The `intake-reviewer` agent in `conflict-check` mode SHALL accept requirements, specs, task plans, and `DECISIONS.md` paths from the locations in FR-187 and read them within the existing read cap. (FR-189, Built 1.11.1; `docs/requirements/FR-NFR-assist-plugin.md:972-991`; `DECISIONS.md` 2026-10-16)
 
-At 4803a0d the Conflict check section lists root-level requirements (`BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, `requirements-*.json`), `specs/spec-*.md`, root-level `task-plan-*.md`, and `DECISIONS.md` as the path types (`agents/intake-reviewer.md:46`). The locations of FR-187 are in spec-orchestration-spec-first.md, Requirement 14: every pattern resolves against the git root of the session's working directory, so in a session started in a subdirectory the listed paths sit at the repository's top level, outside that subdirectory. The list holds no path taken from `DECISIONS.md` (FR-191).
+At 4803a0d the Conflict check section listed root-level requirements (`BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, `requirements-*.json`), `specs/spec-*.md`, root-level `task-plan-*.md`, and `DECISIONS.md` as the path types (`agents/intake-reviewer.md:46`). The locations of FR-187 are in spec-orchestration-spec-first.md, Requirement 14: every pattern resolves against the git root of the session's working directory, so in a session started in a subdirectory the listed paths sit at the repository's top level, outside that subdirectory. The list holds no path taken from `DECISIONS.md` (FR-191).
 
 #### Scenario: Path in a new folder
 
@@ -270,11 +270,11 @@ At 4803a0d the Conflict check section lists root-level requirements (`BRD-*.md`,
 
 ### Requirement: Task-planner writes only its task-plan file
 
-The `task-planner` agent SHALL write only `task-plan-<feature-slug>-<timestamp>.md` at the project root and, on a fix pass, overwrite the task-plan file named in the prompt. (FR-074; `docs/requirements/FR-NFR-assist-plugin.md:1454-1468`; `agents/task-planner.md:40-42`; `DECISIONS.md` 2026-10-13)
+The `task-planner` agent SHALL write only `task-plan-<feature-slug>-<timestamp>.md` at the project root and, on a fix pass, overwrite the task-plan file named in the prompt. (FR-074; `docs/requirements/FR-NFR-assist-plugin.md:1600-1614`; `agents/task-planner.md:40-42`; `DECISIONS.md` 2026-10-13)
 
-Status as the requirements mark it (`docs/requirements/FR-NFR-assist-plugin.md:1457`): Built at 4803a0d with the project root; the folder moves to `docs/task-plans/` in 1.11.1 (FR-184 in Area C, FR-186 in Area B), resolved against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory), per `DECISIONS.md` 2026-10-16. The statement above and the "First run" and "Fix pass" Scenarios describe 4803a0d. The agent has no Edit, Bash, or PowerShell tool. The fsa-write-bar hook enforces the path and also denies hidden paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md` (FR-110 at 4803a0d; FR-186 when the folder moves, Area B). The one-row Write scope table in `agents/task-planner.md` that will state the glob in code form is PLANNED (1.11.1), FR-180.
+Status as the requirements mark it (`docs/requirements/FR-NFR-assist-plugin.md:1603`): Built (1.11.1); the folder was the project root at 4803a0d and moved to `docs/task-plans/` in 1.11.1 (FR-184 in Area C, FR-186 in Area B), resolved against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory), per `DECISIONS.md` 2026-10-16. The statement above and the "First run" and "Fix pass" Scenarios describe 4803a0d; the Change Log 2026-10-16 gives the 1.11.1 statement. The agent has no Edit, Bash, or PowerShell tool. The fsa-write-bar hook enforces the path and also denies hidden paths, `CLAUDE.md`, `CLAUDE.local.md`, and `AGENTS.md` (FR-110 at 4803a0d; FR-186 since 1.11.1, Area B). The one-row Write scope table in `agents/task-planner.md` that states the glob in code form is Built (1.11.1), FR-180.
 
-#### Scenario: First run
+#### Scenario: First run (4803a0d, replaced in 1.11.1)
 
 - **GIVEN** an approved spec
 - **WHEN** WritePlan runs
@@ -286,25 +286,25 @@ Status as the requirements mark it (`docs/requirements/FR-NFR-assist-plugin.md:1
 - **WHEN** the agent decides
 - **THEN** it SHALL NOT write the path and SHALL list it in `out_of_scope`
 
-#### Scenario: Fix pass
+#### Scenario: Fix pass (4803a0d, replaced in 1.11.1)
 
 - **GIVEN** a planning-gate finding on `task-plan-auth-20261012-101500.md` and a fix prompt that names that file
 - **WHEN** the agent runs WritePlan
 - **THEN** it SHALL overwrite that file and create no second task-plan file
 
-#### Scenario: New folder (PLANNED 1.11.1)
+#### Scenario: New folder (Built 1.11.1)
 
 - **GIVEN** FR-184 and FR-186 are built and an approved spec
 - **WHEN** WritePlan runs
 - **THEN** the agent SHALL write one timestamped `task-plan-*.md` file directly under `docs/task-plans/` of the session's git root, and a write to a root-level `task-plan-*.md` SHALL be denied
 
-#### Scenario: Subdirectory session (PLANNED 1.11.1)
+#### Scenario: Subdirectory session (Built 1.11.1)
 
 - **GIVEN** FR-184 and FR-186 are built and a session started in `<repo>/src`
 - **WHEN** WritePlan runs
 - **THEN** the agent SHALL write under `<repo>/docs/task-plans/`, and a write under `<repo>/src/docs/task-plans/` SHALL be denied (FR-186, Area B)
 
-#### Scenario: Rework of a root-level plan (PLANNED 1.11.1)
+#### Scenario: Rework of a root-level plan (Built 1.11.1)
 
 - **GIVEN** FR-184, FR-186, and FR-190 are built, and the fix prompt names the root-level `./task-plan-shop-20261001-0900.md`
 - **WHEN** the agent runs WritePlan
@@ -470,7 +470,7 @@ The check uses ToolSearch for a Playwright MCP, then the CLI (`npx --no playwrig
 
 The `requirements-gatherer` agent SHALL end each elicitation round with state `NeedsInput`, 3 to 5 numbered questions, and `resume_at` naming the phase heading to continue from. (FR-083; `agents/requirements-gatherer.md:26`; `skills/gather-requirements/references/elicitation-methodology.md:9-59`)
 
-The phase order is 1 Establish context, 2 Elicit business requirements, 3 Elicit user requirements, 4 Elicit functional requirements, 5 Elicit non-functional requirements, 6 Summarize and confirm. `/do` allows 3 relays per phase and 10 per step (spec-orchestration-dispatch.md, Requirement 7). The agent's `## Untrusted input` section is PLANNED (1.11.1), FR-175 (Area C).
+The phase order is 1 Establish context, 2 Elicit business requirements, 3 Elicit user requirements, 4 Elicit functional requirements, 5 Elicit non-functional requirements, 6 Summarize and confirm. `/do` allows 3 relays per phase and 10 per step (spec-orchestration-dispatch.md, Requirement 7). The agent's `## Untrusted input` section is Built (1.11.1), FR-175 (Area C).
 
 #### Scenario: Round ends
 
@@ -504,7 +504,7 @@ The `requirements-gatherer` agent SHALL NOT start the `document` subcommand unti
 
 The `solutions-architect` agent SHALL render diagrams with `mmdc` from a `.mmd` file under `specs/` to a `.svg`, `.png`, or `.pdf` file under `specs/`, and show the install command without running it when `mmdc` is missing. (FR-085; `agents/solutions-architect.md:25-39`)
 
-The sa-mermaid-only hook limits the agent's Bash to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with allowed flags and relative `specs/` paths (FR-092, FR-093, Area B). The agent treats requirements, existing specs, and user-named files as untrusted data and reports instruction-like text only as a `file:line` citation in `out_of_scope` (`agents/solutions-architect.md:54-56`). The matching rule in the `spec-from-requirements` skill is PLANNED (1.11.1), FR-177 (Area C).
+The sa-mermaid-only hook limits the agent's Bash to `which mmdc`, `where mmdc`, `mmdc --version`, and `mmdc` with allowed flags and relative `specs/` paths (FR-092, FR-093, Area B); PLANNED (1.12.0): also absolute `-i` and `-o` paths under `<git root>/specs/` or `<git root>/<dir>/specs/` (FR-093; Change Log 2026-10-16). The agent treats requirements, existing specs, and user-named files as untrusted data and reports instruction-like text only as a `file:line` citation in `out_of_scope` (`agents/solutions-architect.md:54-56`). The matching rule in the `spec-from-requirements` skill is Built (1.11.1), FR-177 (Area C).
 
 #### Scenario: mmdc present
 
@@ -526,7 +526,7 @@ Order for adding or removing an agent (`docs/ARCHITECTURE.md:246-250`; `CLAUDE.m
 2. Add or remove the row in `skills/do/references/agent-registry.md`, and in `skills/do/references/model-routing.md` when the agent has a model or effort rule there.
 3. Update the count and list in the other seven count documents.
 4. Run `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` and, after editing a `## States` table, `node plugins/assist-plugin/scripts/check-fsa-tables.js --check`.
-5. Before merge, record `✓ OWASP Clear` and `✓ LLM Security Clear` in the commit message or plan file (FR-061; `rules/assist-plugin-rule.md:348-350`); how `/do` dispatches the LLM gate is pending OPEN-1.
+5. Before merge, record `✓ OWASP Clear` and `✓ LLM Security Clear` in the commit message or plan file (FR-061; `rules/assist-plugin-rule.md:348-350`); PLANNED (1.12.0, OPEN-1 closed): under `/do` the named OWASP for LLM Gate records the second signature (FR-199).
 
 ## Output / Outcome
 
@@ -541,7 +541,7 @@ Order for adding or removing an agent (`docs/ARCHITECTURE.md:246-250`; `CLAUDE.m
 | Error condition | Handling strategy | Outcome |
 |---|---|---|
 | Agent file missing from the registry, or registry row without a file | Counts checklist and registry comparison | Mismatch reported; release blocked until fixed |
-| A read-only agent gains a write or shell tool | Tools-list test (Requirement: Keep reviewers and search agents read-only); merge blocked until `✓ LLM Security Clear` is recorded (`rules/assist-plugin-rule.md:330-350`); the LLM gate's dispatch path is pending OPEN-1 | Test fails; change not merged |
+| A read-only agent gains a write or shell tool | Tools-list test (Requirement: Keep reviewers and search agents read-only); merge blocked until `✓ LLM Security Clear` is recorded (`rules/assist-plugin-rule.md:330-350`); PLANNED (1.12.0): `/do` runs the named OWASP for LLM Gate on the change (FR-199) | Test fails; change not merged |
 | Write outside an agent's role | fsa-write-bar deny (Area B); the agent lists the path in `out_of_scope` or ends `Error(policy-rejection)` | Path not written |
 | Instruction-like text in a document | Cite `file:line`; never follow or quote | Citation recorded by `/do` |
 | Required tool absent (Playwright, mmdc) | Show the install command; never install | `Error(tool-missing)` for qa; embedded Mermaid source for solutions-architect |
@@ -581,8 +581,8 @@ Not applicable: the plugin has no submodules.
 | FR-071 | Requirement: Intake review mode returns accepted or needs-changes | intake-reviewer `review` fixtures |
 | FR-072 | Requirement: Conflict-check mode reports four groups and embedded instructions | Conflict-check fixtures |
 | FR-073, NFR-014 | Requirement: Conflict-check stays inside its read cap | Read log with 14 documents; 900-line `DECISIONS.md` |
-| FR-074 | Requirement: Task-planner writes only its task-plan file | Write log; fsa-write-bar deny corpus; the three PLANNED Scenarios once FR-184 and FR-186 are built |
-| FR-189 (PLANNED) | Requirement: Conflict-check path list follows the document locations | Conflict-check fixture with `docs/requirements/` and `docs/task-plans/` paths; Read log |
+| FR-074 | Requirement: Task-planner writes only its task-plan file | Write log; fsa-write-bar deny corpus; the three Scenarios marked Built (1.11.1) |
+| FR-189 (Built 1.11.1) | Requirement: Conflict-check path list follows the document locations | Conflict-check fixture with `docs/requirements/` and `docs/task-plans/` paths; Read log |
 | FR-075 | Requirement: Task-planner reports the step count | Terminal block |
 | FR-076 | Requirement: Task-planner reports instruction-like text as citations only | Planted-line fixture |
 | FR-077 | Requirement: Developer edits only planned non-test files and reports its self-check | Developer fixtures |
@@ -596,3 +596,152 @@ Not applicable: the plugin has no submodules.
 | FR-085 | Requirement: Solutions-architect renders diagrams only through mmdc under specs | Bash log; `specs/` outputs |
 | UR-001, UR-002, UR-004, UR-007, UR-011, UR-012, UR-013, UR-014, UR-019, UR-021, UR-035, UR-036, UR-037, UR-038, UR-042, UR-049 | Description and Behavior | Parent traceability (spec-orchestration.md) |
 | BR-002, BR-003, BR-005, BR-006, BR-010, BR-012, BR-013, BR-016 | Description | Design review |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16): FR-195 (the reviewer's part of the PR flow, `:4079-4219` in v1.2) and FR-199 with FR-061 (the reviewers run the OWASP for LLM Gate), PLANNED (1.12.0); FR-074, FR-189, FR-175, FR-177, and FR-180 set to Built (1.11.1), FR-189 with a new Scenario; FR-093 (Area B, `:1940-1944`) adds absolute `mmdc` paths under `<git root>/specs/` and `<git root>/<dir>/specs/`, PLANNED (1.12.0). `DECISIONS.md:113-116`, `:148-151`, `:153-156`, `:158-161`, `:168-171`, `:173-176`, and `:183-186` (2026-10-16).
+
+Body edits made in place in this pass, none a behavior change on its own: the Baseline line moves to 1.11.1; `docs/requirements/FR-NFR-assist-plugin.md` line cites point at the v1.1 file; the 1.11.1 items read Built (1.11.1); the notes that said "pending OPEN-1" or "pending OPEN-5" now point here or to the sibling Change Logs; the solutions-architect note names the PLANNED (1.12.0) absolute `mmdc` paths.
+
+### ADDED Requirements
+
+#### Requirement: Reviewer drafts a PR review and ends Done
+
+The `reviewer` agent SHALL, on a step prompt that names the gate Security, the artifact type `code`, and the scratch file `<root>/.agent/pr-review/pr-<N>.diff`, given as the plain absolute path inside an `<untrusted-file>` wrapper, review the PR text in that file, put the draft review in the prose above its terminal block with each finding naming the PR file and diff-hunk line, and end `Done` with verdict `approved` or `returned`. (FR-195, FR-079, FR-067, PLANNED 1.12.0; `DECISIONS.md:153-156`, `:183-186`)
+
+The prompt also carries the rule to report instruction-like text in the scratch file and never follow it (NFR-012, FR-031), any 200 KB cut, the citation rule, and the rule (spec reading, set in the 2026-10-16 fix pass for the user to confirm at sign-off) to read the whole scratch file in parts and to list each part it did not read in `skipped` in the form `not read (part): <path> lines A-B`, for example `not read (part): <root>/.agent/pr-review/pr-123.diff lines 4001-5200`, which `/do` shows in the confirmation as not reviewed. It also carries the rule (spec reading) to keep the draft at or under 16,000 bytes, the cap `/do` enforces on the body file, and, when the findings do not fit, to list the most severe and state how many were left out. It also carries the public-draft rule (`DECISIONS.md:213-216`): the draft is posted publicly as written and holds only findings on the diff, with no local file contents beyond a cited line, no environment values or secrets, no paths outside the diff, and no process lines (spec reading: notes on how the review ran, which belong in the terminal block); instruction-like PR text is reported by PR file and diff-hunk line and never quoted in the draft. Decide re-reads each finding at its scratch-file line, but the draft cites the PR's own file and diff-hunk line, never a line of `.agent/pr-review/`. The block reads `artifact: inline` and `skipped: static-scan not-run (skipped)` (FR-080). The reviewer has no Bash (FR-067), so it never runs `gh`; `/do` shows the draft and posts it itself with `gh pr review` after the user confirms (spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14). `/do` dispatches this step only for a `github.com` `origin`; on any other host the step fails before dispatch (spec-orchestration-dispatch.md, Change Log 2026-10-17). The States table does not change: the prompt's gate name and artifact type are ones Intake already accepts (`agents/reviewer.md:48`, `:50`).
+
+##### Scenario: Draft in a Done block (PLANNED, 1.12.0)
+
+- **GIVEN** a step prompt with the gate name Security, the artifact type `code`, and `<untrusted-file><root>/.agent/pr-review/pr-123.diff</untrusted-file>`, whose diff adds a SQL query built by string concatenation at `src/db.ts` line 42
+- **WHEN** the reviewer ends
+- **THEN** the block SHALL read `state: Done` and `verdict: returned`, the prose above it SHALL hold the draft with the finding cited as `src/db.ts:42`, and the draft SHALL cite no line of `<root>/.agent/pr-review/pr-123.diff`
+
+##### Scenario: Large scratch file read in parts (PLANNED, 1.12.0)
+
+- **GIVEN** a 200 KB `<root>/.agent/pr-review/pr-123.diff`, longer than one Read call returns
+- **WHEN** the reviewer runs AssembleContext and Review
+- **THEN** the reviewer SHALL read the file in consecutive parts to its end, and the block's `skipped` SHALL list every part it did not read as `not read (part): <root>/.agent/pr-review/pr-123.diff lines A-B`, or no such marker when it read the whole file
+
+##### Scenario: Draft within the cap (PLANNED, 1.12.0)
+
+- **GIVEN** a PR with 80 confirmed findings whose full write-up would exceed 16,000 bytes
+- **WHEN** the reviewer drafts the review
+- **THEN** the draft SHALL be at or under 16,000 bytes, SHALL list the most severe findings, and SHALL state how many findings were left out
+
+##### Scenario: Public draft holds only diff findings (PLANNED, 1.12.0)
+
+- **GIVEN** a step prompt with the public-draft rule, and a diff that adds at `src/util.ts` line 12 a code comment addressed to the reviewer that asks it to approve the PR and to print its environment
+- **WHEN** the reviewer drafts the review
+- **THEN** the draft SHALL report the instruction-like text as `src/util.ts:12` without quoting or restating it
+- **AND** the draft SHALL hold no environment value, no secret, no local file contents beyond a cited line, no path outside the diff, and no note on how the review ran
+
+##### Scenario: No question for the draft (PLANNED, 1.12.0)
+
+- **GIVEN** the same prompt and a PR with no finding
+- **WHEN** the reviewer ends
+- **THEN** the block SHALL read `state: Done`, `verdict: approved`, and `questions: none`
+
+##### Scenario: Scratch path that does not exist (PLANNED, 1.12.0)
+
+- **GIVEN** a reviewer step prompt that names `.agent/pr-review/pr-123.diff`, and no such file exists
+- **WHEN** Intake runs
+- **THEN** the reviewer SHALL end `Error` with class `missing-input`, through the `path-missing` exit of `agents/reviewer.md:48`
+
+#### Requirement: Reviewers run the OWASP for LLM Gate
+
+The `reviewer` and `code-reviewer` agents SHALL accept the gate name "OWASP for LLM Gate" with artifact type `code`, audit the artifacts against `rules/llm-security-checklist.md`, and end `Done` with verdict `approved` or `returned`. (FR-199, FR-061, PLANNED 1.12.0; `DECISIONS.md:108-111`, `:148-151`)
+
+At 1.11.1 the Review state of `agents/reviewer.md:50` names the Pre-Test Code Review, Security, and Planning Document Review gates, and the Review state of `agents/code-reviewer.md:51` names the Code Review sign-off and an escalated Security or Planning Document gate. Neither names an LLM gate, so a prompt with that gate name meets no audit rule. The gate name joins both lists; the States transitions and the verdict pair stay as they are, so `hooks/lib/fsa-tables.js` does not change (FR-069, NFR-021). The gate's choice, bound, and signature are in spec-orchestration-review-gates.md, Change Log 2026-10-16, Requirement 13.
+
+##### Scenario: Clean LLM-surface change (PLANNED, 1.12.0)
+
+- **GIVEN** a gate prompt with the gate name "OWASP for LLM Gate", artifact type `code`, and `plugins/assist-plugin/hooks/lib/fsa-paths.js`, whose change raises no checklist finding
+- **WHEN** the reviewer runs
+- **THEN** the trace SHALL read `Intake > AssembleContext > Review > Decide > Done` and the block `verdict: approved`
+
+##### Scenario: Checklist finding (PLANNED, 1.12.0)
+
+- **GIVEN** the same gate on a change that adds `Bash` to the `tools` list of `plugins/assist-plugin/agents/explore.md`
+- **WHEN** the reviewer runs
+- **THEN** the block SHALL read `verdict: returned` and the prose SHALL cite `plugins/assist-plugin/agents/explore.md` with its line, the problem, and the fix
+
+### MODIFIED Requirements
+
+#### Requirement: Task-planner writes only its task-plan file
+
+**Was:** The `task-planner` agent SHALL write only `task-plan-<feature-slug>-<timestamp>.md` at the project root and, on a fix pass, overwrite the task-plan file named in the prompt.
+**Now:** The `task-planner` agent SHALL write only `task-plan-<feature-slug>-<timestamp>.md` directly under `docs/task-plans/` of the git root and, on a fix pass, overwrite the task-plan file named in the prompt when that file is already in `docs/task-plans/`.
+**Reason:** FR-074 v1.1 states the 1.11.1 behavior (Built 1.11.1; `docs/requirements/FR-NFR-assist-plugin.md:1600-1614`). The Scenarios marked Built (1.11.1) in the main body apply; "First run" and "Fix pass" there describe 4803a0d.
+
+##### Scenario: First run (Built 1.11.1)
+
+- **GIVEN** an approved spec
+- **WHEN** WritePlan runs
+- **THEN** the agent SHALL create one timestamped `task-plan-*.md` file under `docs/task-plans/` of the git root
+
+#### Requirement: Conflict-check path list follows the document locations
+
+**Was:** The statement as in the main body, with the Scenarios Path in a new folder and Unlisted path.
+**Now:** The statement is unchanged. The Scenario below is added.
+**Reason:** FR-189 v1.1 adds the specs case of a subdirectory session (`docs/requirements/FR-NFR-assist-plugin.md:983-986`; `DECISIONS.md:113-116`). It passes at 1.11.1, because the agent reads whatever path the prompt lists and SpecGate already resolves `specs/` against `<root>`.
+
+##### Scenario: Spec at the git root from a subdirectory session (Built 1.11.1)
+
+- **GIVEN** a session started in `<repo>/src` and the dispatch prompt lists `<repo>/specs/spec-auth.md`
+- **WHEN** the agent runs `AssembleContext`
+- **THEN** the agent SHALL treat it as a readable spec and count it in the 10-document read cap
+
+#### Requirement: Solutions-architect renders diagrams only through mmdc under specs
+
+**Was:** The statement as in the main body, with relative `specs/` paths only.
+**Now:** The statement is unchanged. In a subdirectory session the Spec step names absolute paths under `<root>/specs/` or `<root>/<submodule>/specs/` (FR-190), and sa-mermaid-only accepts absolute `-i` and `-o` paths under `<git root>/specs/` and `<git root>/<dir>/specs/` with the same segment rules (FR-093, Area B), so the agent can render wherever the Spec step writes.
+**Reason:** `DECISIONS.md:113-116`, `:148-151`, and `:173-176` (PLANNED 1.12.0). The two Scenarios in the main body stay.
+
+##### Scenario: Absolute path under the git root (PLANNED, 1.12.0)
+
+- **GIVEN** a session started in `<repo>/src` and a Spec step whose prompt names `<repo>/specs/`
+- **WHEN** the agent runs `mmdc -i <repo>/specs/spec-auth-flow.mmd -o <repo>/specs/spec-auth-flow.png`
+- **THEN** sa-mermaid-only SHALL allow the command (FR-093) and the agent SHALL embed the image
+
+##### Scenario: Absolute path under a subproject specs folder (PLANNED, 1.12.0)
+
+- **GIVEN** a session started in `<repo>/src` and a Spec step whose prompt names `<repo>/backend/specs/`
+- **WHEN** the agent runs `mmdc -i <repo>/backend/specs/spec-auth-flow.mmd -o <repo>/backend/specs/spec-auth-flow.png`
+- **THEN** sa-mermaid-only SHALL allow the command (FR-093) and the agent SHALL embed the image
+
+### Traceability for this change
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-195, FR-079, UR-031 (PLANNED) | ADDED Requirement: Reviewer drafts a PR review and ends Done | Reviewer fixtures with and without the scratch path; Read calls covering a 200 KB scratch file in parts; `skipped` parts; draft citations; draft size at or under 16,000 bytes with the left-out count |
+| FR-199, FR-061 (PLANNED) | ADDED Requirement: Reviewers run the OWASP for LLM Gate | Gate prompt fixtures on clean and flagged LLM-surface changes |
+| FR-074 (Built 1.11.1) | MODIFIED Requirement: Task-planner writes only its task-plan file | Write log under `docs/task-plans/` |
+| FR-189 (Built 1.11.1) | MODIFIED Requirement: Conflict-check path list follows the document locations | Conflict-check fixture in a subdirectory session |
+| FR-085, FR-093, FR-190 (PLANNED) | MODIFIED Requirement: Solutions-architect renders diagrams only through mmdc under specs | Bash log of an absolute-path render in a subdirectory session |
+
+## Change Log: 2026-10-17
+
+**Source:** `DECISIONS.md:208-211` (2026-10-17), which refines the 2026-10-16 PR review entries for FR-195 (PLANNED 1.12.0; `docs/requirements/FR-NFR-assist-plugin.md` v1.2, `:4079-4219`): the `/do` PR review flow supports `github.com` remotes only in 1.12.0; any other host, Bitbucket included, fails the step with `precondition-failed` before any dispatch. Status stays Approved: the change is the user's recorded decision.
+
+The reviewer's part of the flow does not change: its prompt, draft, cap, and block are as in the Change Log 2026-10-16. One edit is made in place in the ADDED Requirement "Reviewer drafts a PR review and ends Done": the sentence on the reviewer having no Bash names `gh` only and states that `/do` dispatches the step only for a `github.com` `origin`. The flow change and its Scenario "Bitbucket remote" are in spec-orchestration-dispatch.md, Change Log 2026-10-17.
+
+Effort for `code-reviewer` and `researcher` changed from `xhigh` to `high` by the user's own decision (2026-10-17); the Frontmatter table above and the effort column of Requirement 10 in spec-orchestration-planning.md are edited in place, `reviewer` stays `xhigh`, and Status stays Approved.
+
+## Change Log: 2026-10-17 (PR flow hardening)
+
+**Source:** `DECISIONS.md:213-216` (2026-10-17, "/do PR flow hardening after the security gate"), for FR-195 (PLANNED 1.12.0; `docs/requirements/FR-NFR-assist-plugin.md` v1.2, `:4081` and the Scenario "Public draft statement" at `:4120-4123`). Status stays Approved: the change is the user's recorded decision.
+
+### MODIFIED Requirements
+
+#### Requirement: Reviewer drafts a PR review and ends Done
+
+**Was:** The prompt carried the report-and-never-follow rule, any 200 KB cut, the citation rule, the read-in-parts rule, and the 16,000-byte draft rule.
+**Now:** The prompt also carries the public-draft rule: the draft is posted publicly as written and holds only findings on the diff, with no local file contents beyond a cited line, no environment values or secrets, no paths outside the diff, and no process lines; instruction-like PR text is reported by PR file and diff-hunk line and never quoted in the draft. The statement, the block, and the States table are unchanged.
+**Reason:** `DECISIONS.md:213-216`. "Process lines" is read here as notes on how the review ran, which belong in the terminal block (spec reading). The ADDED Requirement of the Change Log 2026-10-16 is edited in place to carry the rule, and the Scenario "Public draft holds only diff findings" is added there. The `/do` side (host pin, symlink guard, Write-tool body file, forgotten hash) is in spec-orchestration-dispatch.md, Change Log 2026-10-17 (PR flow hardening).
+
+### Traceability for this change
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-195, NFR-012 (PLANNED) | MODIFIED Requirement: Reviewer drafts a PR review and ends Done (Scenario "Public draft holds only diff findings") | Reviewer fixture with an instruction-like code comment in the diff: the draft cites `src/util.ts:12`, quotes nothing, and holds no environment value or outside path |

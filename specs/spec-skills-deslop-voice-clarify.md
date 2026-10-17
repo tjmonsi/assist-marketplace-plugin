@@ -9,11 +9,11 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-006, BR-008, BR-010, UR-039, UR-040, UR-041, FR-161, FR-162, FR-163, FR-164, FR-165, NFR-013, NFR-014 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Paths that start with `skills/`, `hooks/`, or `docs/` (other than `docs/requirements/` and the script folder `docs/tts/`) are relative to `plugins/assist-plugin/`; `docs/requirements/`, `docs/tts/`, `.agent/`, and `DECISIONS.md` are relative to the repository root or, for `docs/tts/` and `.agent/`, to the session's working directory as each requirement states. Baseline: commit 4803a0d; references into `DECISIONS.md` point at its current text (re-checked on 2026-10-16).
+Paths that start with `skills/`, `hooks/`, or `docs/` (other than `docs/requirements/` and the script folder `docs/tts/`) are relative to `plugins/assist-plugin/`; `docs/requirements/`, `docs/tts/`, `.agent/`, and `DECISIONS.md` are relative to the repository root or, for `docs/tts/` and `.agent/`, to the session's working directory as each requirement states. Baseline: assist-plugin 1.11.1 at commit 41034c1; 1.11.1 changed only `skills/voice-script/SKILL.md:162` among the cited skill files (re-read on 2026-10-16), and references into `DECISIONS.md` point at its current text. This spec received no delta in the 2026-10-16 pass (`spec-skills.md`, Change Log 2026-10-16, Direct edits).
 
 ## Description
 
@@ -158,7 +158,7 @@ The `/voice-script` skill SHALL save the script to `docs/tts/voice-<slug>-YYYYMM
 
 **Requirement refs:** FR-163, UR-040, NFR-013 | **Status:** Built | **Source:** `skills/voice-script/SKILL.md:158-170`; `skills/voice-script/references/output-template.md:1-62`; `DECISIONS.md` (2026-10-12, voice-script output format; voice-script tool grants)
 
-The path is under the session's working directory (`SKILL.md:162`), and the skill keeps saving there (`DECISIONS.md:73-76`, 2026-10-16). Under that decision, FR-181 (PLANNED, Area B) exempts `docs/tts/` from the prose hooks in two locations: under the project root, and under the session's working directory when that directory is inside the project. `SKILL.md:162` still says the exemption is anchored to the session directory alone; its 1.11.1 text must name both locations (OP-2, decided, text update pending, in `spec-skills.md`). The stamp comes from one `date +%Y%m%d-%H%M` run and must match `^[0-9]{8}-[0-9]{4}$`; when the command fails the name drops the time and the header reads `time n/a`. The slug holds lowercase ASCII letters, digits, and single hyphens, at most 40 characters, `script` when empty. The skill never overwrites: it globs for the name and adds `-2`, `-3`, and so on. The header table also holds Delivery applied, Script source, Catalog verified, Live check, and Created; a Notes list follows when there are warnings. A brief script has exactly one fenced `text` block; a longer script has one per numbered segment and no other fenced block anywhere.
+The path is under the session's working directory (`SKILL.md:162`), and the skill keeps saving there (`DECISIONS.md:73-76`, 2026-10-16). Under that decision, FR-181 (Area B, built in 1.11.1) exempts `docs/tts/` from the prose hooks in two locations: under the project root, and under the session's working directory when that directory is inside the project. Since 1.11.1 `SKILL.md:162` names both locations (OP-2, done). The stamp comes from one `date +%Y%m%d-%H%M` run and must match `^[0-9]{8}-[0-9]{4}$`; when the command fails the name drops the time and the header reads `time n/a`. The slug holds lowercase ASCII letters, digits, and single hyphens, at most 40 characters, `script` when empty. The skill never overwrites: it globs for the name and adds `-2`, `-3`, and so on. The header table also holds Delivery applied, Script source, Catalog verified, Live check, and Created; a Notes list follows when there are warnings. A brief script has exactly one fenced `text` block; a longer script has one per numbered segment and no other fenced block anywhere.
 
 #### Scenario: Saved file
 
@@ -295,7 +295,7 @@ flowchart TD
   W -->|"no"| P(["Print the script in chat; say it was not saved"])
 ```
 
-Render source: `specs/spec-skills-voice-script.mmd`.
+Render source: `specs/spec-skills-voice-script.mmd`. Rendering skipped: see the note in `spec-skills.md`.
 
 **`/clarify`:**
 
@@ -315,7 +315,7 @@ flowchart TD
   K -->|"yes"| ED(["One Edit: replace the marker line with the entries plus the marker"])
 ```
 
-Render source: `specs/spec-skills-clarify.mmd`.
+Render source: `specs/spec-skills-clarify.mmd`. Rendering skipped: see the note in `spec-skills.md`.
 
 ## Output / Outcome
 
@@ -356,7 +356,7 @@ Not applicable: the skills write files and chat output and emit no events.
 | `deslop` grants | Runtime | yes | Read, Grep, Glob (`skills/deslop/SKILL.md:7-10`); file edits go through the permission prompt |
 | `voice-script` grants | Runtime | yes | Read, Glob, AskUserQuestion, `WebFetch(domain:openrouter.ai)`, `Edit(./docs/tts/voice-*.md)`, `Bash(date +%Y%m%d-%H%M)` (`skills/voice-script/SKILL.md:9-15`) |
 | `clarify` grants | Runtime | yes | Read, Grep, Glob, AskUserQuestion, `Edit(./.agent/clarify/clarify-*.md)`, `Bash(date +%Y-%m-%dT%H:%M)` (`skills/clarify/SKILL.md:9-15`) |
-| `prose-gate` and `prose-advisor` | Runtime | no (fail open) | Skip `docs/tts/` (Area B FR-104). Per `DECISIONS.md:73-76` (2026-10-16) and FR-181 (PLANNED), the exemption covers `docs/tts/` under the project root and under the session's working directory when that directory is inside the project; today the code resolves it against the hook's working directory only (`hooks/lib/prose-diff.js:95-101`). The script's fenced block is an exempt region in any case (FR-105) |
+| `prose-gate` and `prose-advisor` | Runtime | no (fail open) | Skip `docs/tts/` (Area B FR-104). Per `DECISIONS.md:73-76` (2026-10-16) and FR-181 (built in 1.11.1), the exemption covers `docs/tts/` under the project root and under the session's working directory when that directory is inside the project (`hooks/lib/prose-diff.js:103-137`, read on 2026-10-16; at 4803a0d the code used the hook's working directory only). The script's fenced block is an exempt region in any case (FR-105) |
 | OpenRouter API | External | no | Live checks only; the catalog is the fallback |
 | `injection-filter` | Runtime | no (fail open) | Filters WebFetch results (Area B FR-099) |
 

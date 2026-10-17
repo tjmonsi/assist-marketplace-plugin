@@ -1,0 +1,29 @@
+flowchart TD
+  S(["/bump patch, minor, major, or auto, optional --path dir"]) --> R{"Git repo and clean tree?"}
+  R -->|"no"| E1(["Error: report the failed check, bump nothing"])
+  R -->|"yes"| V["Detect version: package.json, pyproject.toml, Cargo.toml, pubspec.yaml, VERSION, else the latest v* or release-* tag; under a --path below the root, files in dir and tagdir-v* tags; never .claude-plugin/plugin.json"]
+  V --> H{"Tag of the current version at HEAD?"}
+  H -->|"yes"| E3(["Error: version already released, bump nothing"])
+  H -->|"no"| CS{"Commits since the last release?"}
+  CS -->|"no"| E5(["Error: no commits since version X.Y.Z, bump nothing"])
+  CS -->|"yes"| C{"Detected version files agree?"}
+  C -->|"no"| E2(["Error: version mismatch, update nothing"])
+  C -->|"yes"| T["Bump type: explicit, or auto: breaking is major, feat is minor, else patch"]
+  T --> L{"--no-changelog?"}
+  L -->|"no"| G["Resolve the changelog target: in place, or one hop through a pointer CHANGELOG.md (FR-200)"]
+  G --> GQ{"Target resolved?"}
+  GQ -->|"yes"| U1["Update every detected version file atomically; add the dated entry to the target"]
+  L -->|"yes"| U2["Update every detected version file atomically"]
+  GQ -->|"no"| A["Stop with no file changed; ask: write in place, name another target that passes the same checks, or skip the changelog"]
+  A -->|"another target"| NT{"Named target: a file named CHANGELOG.md, inside the git root, not hidden, not auto-loaded, not itself a pointer?"}
+  NT -->|"yes"| U1
+  NT -->|"no"| A
+  A -->|"in place"| U1
+  A -->|"skip"| U2
+  U1 --> K{"--no-commit?"}
+  U2 --> K
+  K -->|"yes"| End1(["Stop: files changed, no commit and no tag"])
+  K -->|"no"| M["Commit at the root: chore: bump version to X.Y.Z, or chore: bump dir to X.Y.Z under a --path below the root; no AI attribution, developer identity"]
+  M --> N{"--no-tag?"}
+  N -->|"yes"| End2(["Done: commit only"])
+  N -->|"no"| O(["Tag vX.Y.Z or release-X.Y.Z; tagdir-vX.Y.Z under a --path below the root"])

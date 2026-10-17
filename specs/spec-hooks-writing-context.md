@@ -7,15 +7,15 @@
 | **Feature** | Writing context: inject the compact writing standard at session and subagent start |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-003, BR-008, UR-024, FR-107, NFR-001, NFR-002, NFR-009 |
+| **Requirement refs** | BR-003, BR-008, UR-024, FR-107, FR-118, NFR-001, NFR-002, NFR-009 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-`writing-context` adds the compact writing standard (`rules/writing-standard-compact.md`) under a one-sentence header to the context of the main session and of every subagent, so all prose follows the standard without the user loading it (UR-024). It reads the file at run time, so an edit to the file changes the next session. It never blocks, has no self-test, and reports its own problems only in the health log. This spec describes the behavior at commit 4803a0d.
+`writing-context` adds the compact writing standard (`rules/writing-standard-compact.md`) under a one-sentence header to the context of the main session and of every subagent, so all prose follows the standard without the user loading it (UR-024). It reads the file at run time, so an edit to the file changes the next session. It never blocks, has no self-test at 1.11.1, and reports its own problems only in the health log. This spec describes the behavior at commit 4803a0d, which assist-plugin 1.11.1 (commit 41034c1) keeps at every cited line (read 2026-10-16). The change log at the end records the 1.12.0 (PLANNED) report-only self-test (FR-118).
 
 ## Triggered by
 
@@ -156,7 +156,7 @@ The sync script enforces a separate hard limit of 1,400 characters (spec-hooks-w
 | Rule ID | Rule | Traces to | Applied at step | Example |
 |---|---|---|---|---|
 | RULE-001 | The file is read at run time, never cached | FR-107 | Requirement: Injected context | An edit reaches the next session |
-| RULE-002 | The hook never blocks and has no self-test; its problems show only in the health log | FR-107, FR-118 | Requirement: Missing or empty standard | `missing-standard` |
+| RULE-002 | The hook never blocks and has no self-test at 1.11.1; its problems show only in the health log. PLANNED (1.12.0): see the Change Log 2026-10-16 | FR-107, FR-118 | Requirement: Missing or empty standard | `missing-standard` |
 
 ## Data transformations
 
@@ -214,3 +214,57 @@ Not applicable: a leaf feature of spec-hooks-platform.md.
 | NFR-001 | Requirement: Context size cap | Oversized file test |
 | NFR-002 | Requirement: Compact standard size | `wc -m` on the compact file |
 | NFR-009 | Requirement: Missing or empty standard; Error handling | Platform failure-path tests |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16, final and approved; baseline assist-plugin 1.11.1, commit 41034c1): FR-118 (`:2478-2507`, scenarios `:2484-2492`) and FR-091 (scenario `:1907-1910`); `DECISIONS.md:168-171` (a failed writing-context self-test is reported and never disables writing-context); the answer to OP-B5a in `.agent/main-plan/plan-deferred-decisions-20261016-1059.md` (User Decisions).
+
+### Body edits without a behavior change
+
+- Status: Draft -> Review. Requirement refs: FR-118 added.
+- Description and RULE-002: "no self-test" is stated for 1.11.1, with a pointer to this change log.
+
+### ADDED Requirements
+
+#### Requirement: Self-test coverage
+
+The health check SHALL self-test `writing-context` at session start and in report mode by calling this hook's `evaluate(input, options)` with fixed SessionStart, SubagentStart, and other-event inputs and stub readers, plus one case that reads the installed `rules/writing-standard-compact.md`, and SHALL report a failure without adding `writing-context` to `hooks-disabled.json`.
+
+**Requirement refs:** FR-118, FR-091, FR-107
+**Status:** PLANNED (1.12.0)
+**Source:** `hooks/impl/writing-context.js:40-45` (`evaluate` already takes `{env, readFile}`, so this hook's code does not change); the case list and the report-only rule are in spec-hooks-health-check.md (Change Log 2026-10-16, Requirement: Self-tests)
+
+##### Scenario: Installed standard readable
+
+- **GIVEN** `rules/writing-standard-compact.md` is present and readable
+- **WHEN** the session-start self-test runs `writing-context` against a fixed SessionStart input
+- **THEN** the hook SHALL return the header and the compact standard, and the health check SHALL pass the case
+
+##### Scenario: Installed standard missing
+
+- **GIVEN** `rules/writing-standard-compact.md` is missing
+- **WHEN** the session starts
+- **THEN** the health check SHALL print a notice naming `writing-context`
+- **AND** the health check SHALL NOT add `writing-context` to `hooks-disabled.json`, so the hook keeps running and keeps logging `missing-standard` at every start
+
+### MODIFIED Requirements
+
+#### Business rule: RULE-002
+
+**Was:** The hook never blocks and has no self-test; its problems show only in the health log.
+
+**Now:** The hook never blocks. The health check self-tests it, report only: a failed self-test appears in the session notice and the report and never disables the hook. Its run-time problems still show in the health log.
+
+**Reason:** FR-118 (answer to OP-B5a, option (b)) and `DECISIONS.md:168-171`.
+
+**Status:** PLANNED (1.12.0)
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-118 | Change Log 2026-10-16: Requirement: Self-test coverage | Installed-standard readable and missing scenarios |

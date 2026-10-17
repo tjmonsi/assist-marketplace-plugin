@@ -9,11 +9,11 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-005, BR-010, UR-014, UR-042, UR-049, FR-167, FR-168, FR-169, FR-170, FR-171, NFR-024 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Paths that start with `skills/`, `agents/`, or `docs/` are relative to `plugins/assist-plugin/`. Baseline: commit 4803a0d.
+Paths that start with `skills/`, `agents/`, or `docs/` are relative to `plugins/assist-plugin/`. Baseline: assist-plugin 1.11.1 at commit 41034c1; 1.11.1 changed none of the cited internal skill files (`CHANGELOG.md:5-23`), and `skills/pentest/SKILL.md:1-42`, `agents/developer.md:1-10`, and `agents/qa.md:1-12` were re-read on 2026-10-16. This spec received no delta in the 2026-10-16 pass (`spec-skills.md`, Change Log 2026-10-16, Direct edits). The NFR-015 change in that Change Log (PLANNED 1.12.0, `DECISIONS.md:193-196`) rewrites reference examples such as `skills/integrated-test/references/integration-patterns/go.md:65`, whose DSN holds the literal credential `postgres:test`, to build database URLs from variables; the requirements below do not change with it.
 
 ## Description
 
@@ -194,7 +194,7 @@ Integration tests use real containers over mocks, a database per suite, cleanup 
 
 The internal `run-test` skill SHALL run the project's existing unit and integration suites with the exact commands in its `allowed-tools`, capture coverage, install no package, and produce one consolidated test report that lists every unrun check as skipped.
 
-**Requirement refs:** FR-171, UR-042, NFR-024 | **Status:** Built | **Source:** `skills/run-test/SKILL.md:8-39`, `:56-174`; `skills/run-test/references/test-report-template.md:1-195`; `README.md:156-161`
+**Requirement refs:** FR-171, UR-042, NFR-024 | **Status:** Built | **Source:** `skills/run-test/SKILL.md:8-39`, `:56-174`; `skills/run-test/references/test-report-template.md:1-195`; `README.md:159-164`
 
 For Python, uv is detected with `command -v uv` (or `uv.lock`, or `[tool.uv]`); the uv form `uv run --no-sync --no-python-downloads pytest ...` needs an existing `.venv`, checked by Glob. Plain `uv run` is never used because it syncs first. Missing dependencies get `uv add --dev pytest pytest-cov` then `uv sync`, or `python -m pip install pytest pytest-cov`, shown for the user to run. Coverage is judged against 70 percent of lines; below it, uncovered files and lines are a finding. The report verdict is `PASS`, `FAIL`, or `NEEDS ATTENTION`. Under `/do`, qa lists unrun checks in its terminal block's `skipped` field (Area A FR-081).
 
@@ -240,7 +240,7 @@ flowchart TD
   G --> R
 ```
 
-Render source: `specs/spec-skills-internal.mmd` (see the rendering note in `spec-skills.md`).
+Render source: `specs/spec-skills-internal.mmd`. Rendering skipped: see the note in `spec-skills.md`.
 
 ## Output / Outcome
 
@@ -274,14 +274,14 @@ Not applicable: the skills run inside agents and emit no events.
 
 | Dependency | Type | Required | Notes |
 |---|---|---|---|
-| `code` grants | Runtime | yes | Read, Write, Edit, Grep, Glob, and the seven CLI shapes (`skills/code/SKILL.md:8-20`); Write and Edit are unscoped (open point OP-6 in `spec-skills.md`) |
-| `pentest` grants | Runtime | yes | Read, Grep, Glob, and 28 audit command forms: 27 exact and the wildcard `govulncheck *` (`skills/pentest/SKILL.md:10-41`) |
-| `integrated-test` grants | Runtime | yes | Read, Write, Edit, Grep, Glob, and exact test, coverage, and Playwright forms (`skills/integrated-test/SKILL.md:9-52`); Write and Edit are unscoped (OP-6) |
-| `run-test` grants | Runtime | yes | Read, Write, Grep, Glob, and exact test and coverage forms (`skills/run-test/SKILL.md:8-39`); Write is unscoped (OP-6) |
+| `code` grants | Runtime | yes | Read, Write, Edit, Grep, Glob, and the seven CLI shapes (`skills/code/SKILL.md:8-20`); Write and Edit are unscoped, an accepted NFR-013 exception (OP-6 decided; `spec-skills.md` Change Log 2026-10-16) |
+| `pentest` grants | Runtime | yes | Read, Grep, Glob, and 28 audit command forms: 27 exact and the wildcard `govulncheck *` (`skills/pentest/SKILL.md:10-41`); `govulncheck *` is a read-only fixed program, so it counts as scoped under NFR-013 (`DECISIONS.md:163-166`) |
+| `integrated-test` grants | Runtime | yes | Read, Write, Edit, Grep, Glob, and exact test, coverage, and Playwright forms (`skills/integrated-test/SKILL.md:9-52`); Write and Edit are unscoped, an accepted NFR-013 exception |
+| `run-test` grants | Runtime | yes | Read, Write, Grep, Glob, and exact test and coverage forms (`skills/run-test/SKILL.md:8-39`); Write is unscoped, an accepted NFR-013 exception |
 | `doc-cli-guard` hook | Runtime | no (fail open) | Area B FR-094 |
-| `ctx7`, `firecrawl` | External | no | `README.md:172-177` |
-| Docker, Playwright | External | no | `README.md:185-190` |
-| Audit tools and scanners | External | no | `README.md:194-239` |
+| `ctx7`, `firecrawl` | External | no | `README.md:175-180` |
+| Docker, Playwright | External | no | `README.md:188-193` |
+| Audit tools and scanners | External | no | `README.md:197-242` |
 | `/do` plan step for active tests | Runtime | yes under `/do` | Area A FR-053 |
 
 ## Sub-feature breakdown (if applicable)

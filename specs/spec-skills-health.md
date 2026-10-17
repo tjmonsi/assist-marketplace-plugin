@@ -7,25 +7,25 @@
 | **Feature** | Hook health skill: `/health` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, UR-018, FR-166 |
+| **Requirement refs** | BR-007, UR-018, FR-166, FR-118 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Paths that start with `skills/` or `hooks/` are relative to `plugins/assist-plugin/`. Baseline: commit 4803a0d.
+Paths that start with `skills/` or `hooks/` are relative to `plugins/assist-plugin/`. Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/health/SKILL.md` was re-read on 2026-10-16 and every cite below holds. The PLANNED (1.12.0) change for a failed `writing-context` self-test is in the Change Log at the end; the body keeps the built behavior.
 
 ## Description
 
-`/health` runs the plugin's health-check script, then summarizes the result in a few lines and pairs each finding with its fix. The script itself (self-tests, auto-disable, the report sections, the attribution-settings check, and `--clear`) belongs to Area B (FR-091, FR-118 to FR-120); this spec covers what the skill runs, how it reads the output, and what it tells the user.
+`/health` runs the plugin's health-check script, then summarizes the result in a few lines and pairs each finding with its fix. The script itself (self-tests, auto-disable, the report sections, the attribution-settings check, and `--clear`) belongs to Area B (FR-091, FR-118 to FR-120); this spec covers what the skill runs, how it reads the output, and what it tells the user. The 1.12.0 changes to the script (FR-091, FR-118, Area B) add a `writing-context` self-test whose failure is reported and never disables the hook; the skill's summary gains the matching finding and fix row (Change Log 2026-10-16).
 
-Source difference: the skill's overview (`skills/health/SKILL.md:17`) says the prose hooks skip `docs/tts/` in the hook input's working directory, not the git root. Per `DECISIONS.md:73-76` (2026-10-16) and FR-181 (PLANNED, Area B), the exemption covers `docs/tts/` in two locations: under the project root, and under the session's working directory when that directory is inside the project. `docs/requirements/FR-NFR-assist-plugin.md:3786` lists `skills/health/SKILL.md:17` among the documents that change with FR-181, and its 1.11.1 text must name both locations (OP-2, decided, text update pending, in `spec-skills.md`). No requirement in this spec depends on that line.
+Resolved source difference (OP-2, built in 1.11.1): the skill's overview (`skills/health/SKILL.md:17`) now says the prose hooks skip `docs/tts/` under the project root and under the session's working directory when that directory is inside the project, as `DECISIONS.md:73-76` and FR-181 (Area B, built in 1.11.1) state. No requirement in this spec depends on that line.
 
 ## Triggered by
 
 | Trigger type | Source | Condition |
 |---|---|---|
-| User action | `/health [--clear]` (`skills/health/SKILL.md:12`); `README.md:256` uses `/assist-plugin:health` | The user wants hook status, or a hook warning or session-start notice pointed here |
+| User action | `/health [--clear]` (`skills/health/SKILL.md:12`); `README.md:259` uses `/assist-plugin:health` | The user wants hook status, or a hook warning or session-start notice pointed here |
 | Fix follow-up | A finding's fix says to run `/assist-plugin:health` again (`skills/health/SKILL.md:40-58`, `:88`) | After the user fixed a cause |
 
 ## Required data
@@ -147,7 +147,7 @@ flowchart TD
   F --> Fx
 ```
 
-Render source: `specs/spec-skills-health.mmd` (see the rendering note in `spec-skills.md`).
+Render source: `specs/spec-skills-health.mmd`. Rendering skipped: see the note in `spec-skills.md`.
 
 ## Output / Outcome
 
@@ -177,7 +177,7 @@ Not applicable: the skill reports in chat and emits no events.
 | Dependency | Type | Required | Notes |
 |---|---|---|---|
 | `hooks/health-check.js` | Runtime | yes | Area B FR-091, FR-118 to FR-120 |
-| Node.js 6 or newer | External | yes | Without it the script cannot run (`README.md:152`) |
+| Node.js 6 or newer | External | yes | Without it the script cannot run (`README.md:155`) |
 | `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA` | Runtime | yes | Set by Claude Code (FR-NFR section 7) |
 | Health and FSA logs | Runtime | no | Area B FR-090 and FR-115 fix their content and line caps |
 | Tool grants | Runtime | yes | The two exact Bash forms and Read (`skills/health/SKILL.md:8-11`) |
@@ -197,3 +197,59 @@ Not applicable: the repository has no submodules.
 | FR-166 | Requirement: Run the health check with the user's flag; Requirement: Short summary with a fix per finding; Requirement: System message read as the finding | Manual `/health` and `/health --clear` runs with a healthy state, a disabled guard, an unset attribution key, and Node below 6; command log shows only the two allowed forms |
 | UR-018 | All requirements | As above |
 | BR-007 | Requirement: Short summary with a fix per finding | As above |
+| FR-166, FR-118 (1.12.0 change) | Change Log 2026-10-16, MODIFIED Requirement: Short summary with a fix per finding | `/health` run with `rules/writing-standard-compact.md` made unreadable: the summary names the failed `writing-context` self-test, says the hook stays enabled, gives the restore fix, and `hooks-disabled.json` holds no `writing-context` entry; read of the findings table for the new row |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.1 (2026-10-16, final and approved, read for fix pass 1; line cites checked against the current file on 2026-10-17): FR-118 (`:2478-2507`, Area B) adds the `writing-context` self-test, PLANNED (1.12.0), and its scenario "Failed writing-context self-test" (`:2489-2492`) has the health check report the failure and never add `writing-context` to `hooks-disabled.json`; FR-166 (Area C) holds what `/health` tells the user. Decisions: `DECISIONS.md:168-171` ("A failed writing-context self-test is reported and never disables writing-context"); the answers to OP-B5a and OP-B5b under User Decisions in `.agent/main-plan/plan-deferred-decisions-20261016-1059.md`.
+
+Every change in this entry is PLANNED (1.12.0). This spec received a delta in fix pass 1, so its Status moves to `Review` (FR-154).
+
+### MODIFIED Requirements
+
+#### Requirement: Short summary with a fix per finding
+
+**Was:** The `/health` skill SHALL summarize the status in a few lines and give each finding its fix from the findings table. At 1.11.1 `writing-context` has no self-test (`skills/health/SKILL.md:17`), and the findings table (`:36-66`) has no row for one.
+**Now:** The statement is unchanged, and the findings table gains a row for a failed `writing-context` self-test: the hook stays enabled, sessions and subagents may start without the writing standard, and the fix is to restore `rules/writing-standard-compact.md` by reinstalling or updating the plugin and to report the bug when the plugin files are unmodified.
+**Reason:** FR-118 adds the self-test, and `DECISIONS.md:168-171` makes its failure report-only.
+**Requirement refs:** FR-166, FR-118, UR-018, BR-007 | **Status:** PLANNED (1.12.0) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:2480`, `:2489-2492`; `skills/health/SKILL.md:17`, `:36-66`
+
+##### Scenario: Failed writing-context self-test
+
+- **GIVEN** the report shows the `writing-context` self-test failed because `rules/writing-standard-compact.md` is unreadable
+- **WHEN** the skill summarizes
+- **THEN** the entry SHALL say `writing-context` stays enabled and sessions may start without the writing standard, and SHALL give the fix: restore the file by reinstalling or updating the plugin, then run `/assist-plugin:health` again
+- **AND** the entry SHALL NOT list `writing-context` under disabled guards, and no settings or `hooks-disabled.json` file SHALL change because of the skill
+
+##### Scenario: Passing writing-context self-test
+
+- **GIVEN** every self-test, the `writing-context` one included, passes and no guard is disabled
+- **WHEN** the user runs `/health`
+- **THEN** the skill SHALL report the healthy result in one line and SHALL NOT mention `writing-context`
+
+##### Scenario: Overview no longer says there is no self-test
+
+- **GIVEN** `skills/health/SKILL.md` after the change
+- **WHEN** a test reads the overview (`:17` at 1.11.1)
+- **THEN** it SHALL say `writing-context` has a self-test whose failure is reported and never disables the hook, and SHALL NOT say the hook has no self-test
+
+### ADDED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Planned conformance (files that change with this entry)
+
+| File and line at 1.11.1 | Change | Requirement |
+|---|---|---|
+| `skills/health/SKILL.md:17` | The `writing-context` sentence "it has no self-test, so its failures show only in the log" becomes a self-test whose failure is reported and never disables the hook | FR-118, FR-166 |
+| `skills/health/SKILL.md:36-66` | The findings table gains a row: `writing-context` self-test FAIL, meaning (the hook stays enabled; sessions may start without the standard), fix (restore `rules/writing-standard-compact.md` by reinstalling or updating the plugin; report the bug if the plugin files are unmodified) | FR-166 |
+
+The self-test itself and the notice text live in `hooks/impl/health-check.js` (Area B, FR-118); this spec covers only what `/health` tells the user.
+
+### Direct edits in this pass (no behavior change)
+
+Status set to `Review`; Requirement refs gain FR-118; the baseline note and the Description sentence on the 1.12.0 script changes point here. On 2026-10-17 the FR-118 cites were checked against the current file, in which FR-094 gained scenarios: `:2468-2497` to `:2478-2507`, `:2470` to `:2480`, `:2479-2482` to `:2489-2492`.

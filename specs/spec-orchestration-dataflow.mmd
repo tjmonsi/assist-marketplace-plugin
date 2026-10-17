@@ -1,7 +1,7 @@
 flowchart TD
   Start(["User runs /do"]) --> Ingest{"Ingest"}
   Ingest -->|"stop"| DStop["Dispatch, stop mode"]
-  Ingest -->|"refused"| Err(["Error: plan-invalid"])
+  Ingest -->|"refused"| Err(["Error: plan-invalid;<br/>a plan file only if Branch wrote one"])
   Ingest -->|"resume"| PA["PlanApproval"]
   Ingest -->|"new"| SG{"SpecGate"}
   SG -->|"non-build or build-empty"| Dec["Decompose"]
@@ -30,10 +30,10 @@ flowchart TD
   PF -->|"ok"| DFull["Dispatch, full mode"]
   DFull -->|"docs-ready"| DS["DocSignOff"]
   DS -->|"approve or edit"| DFull
-  DS -->|"cancel"| Disp["Display"]
+  DS -->|"cancel"| Disp["Display: results;<br/>chooses no terminal (PLANNED 1.12.0)"]
   DFull -->|"all-settled"| Disp
   DStop -->|"all-settled"| Disp
-  Disp -->|"shown"| Clean{"Cleanup"}
+  Disp -->|"shown"| Clean{"Cleanup: prints its own report,<br/>chooses the terminal"}
   Clean -->|"stopped"| Pau(["Paused"])
   Clean -->|"some-failed-or-skipped"| Par(["Partial"])
   Clean -->|"all-completed"| Com(["Complete"])

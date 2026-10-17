@@ -9,13 +9,13 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-006, BR-007, UR-023, FR-115, FR-116, FR-117, NFR-009, NFR-014, NFR-016 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-`fsa-log` reads the final report of each of the seven `assist-plugin` agents that have a transition table in `hooks/lib/fsa-tables.js`, parses its last `fsa` terminal block, checks the block against the table, and appends one JSON line to `${CLAUDE_PLUGIN_DATA}/fsa-log.jsonl` with the checked fields and problem codes. It runs in warn mode: a broken report gets a one-line `systemMessage` for the user and nothing else, so the subagent never continues because of the hook (UR-023). The `/do` parsing of terminal blocks and the template (`skills/do/references/fsa-template.md`) are Area A. This spec describes the behavior at commit 4803a0d.
+`fsa-log` reads the final report of each of the seven `assist-plugin` agents that have a transition table in `hooks/lib/fsa-tables.js`, parses its last `fsa` terminal block, checks the block against the table, and appends one JSON line to `${CLAUDE_PLUGIN_DATA}/fsa-log.jsonl` with the checked fields and problem codes. It runs in warn mode: a broken report gets a one-line `systemMessage` for the user and nothing else, so the subagent never continues because of the hook (UR-023). The `/do` parsing of terminal blocks and the template (`skills/do/references/fsa-template.md`) are Area A. This spec describes the behavior at commit 4803a0d, which assist-plugin 1.11.1 (commit 41034c1) keeps at every cited line of `fsa-log.js` and `fsa-tables.js` (read 2026-10-16); the self-test cite points at 1.11.1.
 
 ## Triggered by
 
@@ -360,7 +360,7 @@ Not applicable: a leaf feature of spec-hooks-platform.md.
 |---|---|---|
 | Latency | Within the 5 s registration (NFR-007) | Bounded parse; one append; one log read on SubagentStop |
 | Log size | 500 lines (NFR-014) | Trim after append |
-| Self-test | 32 clean and 32 broken reports classified correctly (FR-118) | `impl/health-check.js:525-621`; a record that holds the sentinel text, or output other than one `systemMessage`, fails the case |
+| Self-test | 32 clean and 32 broken reports classified correctly (FR-118) | `impl/health-check.js:569-732`, `:914-921`; a record that holds the sentinel text, or output other than one `systemMessage`, fails the case |
 
 ## Traceability
 

@@ -1,8 +1,12 @@
 flowchart TD
-  S(["/bump patch, minor, major, or auto"]) --> P{"Git repo, clean tree, commits since last release, and current version not tagged at HEAD?"}
+  S(["/bump patch, minor, major, or auto"]) --> P{"Git repo and clean tree?"}
   P -->|"no"| E1(["Error: report the failed check, bump nothing"])
   P -->|"yes"| V["Detect version: package.json, pyproject.toml, Cargo.toml, pubspec.yaml, VERSION, latest v* or release-* tag"]
-  V --> C{"Detected version files agree?"}
+  V --> H{"Current version tagged at HEAD?"}
+  H -->|"yes"| E3(["Error: version already released, bump nothing"])
+  H -->|"no"| CS{"Commits since the last release?"}
+  CS -->|"no"| E4(["Error: no commits since version X.Y.Z, bump nothing"])
+  CS -->|"yes"| C{"Detected version files agree?"}
   C -->|"no"| E2(["Error: version mismatch, update nothing"])
   C -->|"yes"| T["Bump type: explicit, or auto: breaking is major, feat is minor, else patch"]
   T --> U["Update every detected version file atomically"]
@@ -10,7 +14,7 @@ flowchart TD
   L -->|"no"| G["Add ## X.Y.Z - date entry with grouped commits"]
   L -->|"yes"| K{"--no-commit?"}
   G --> K
-  K -->|"yes"| End1(["Stop: files changed, nothing committed; tagging without a commit pending, OP-7 (e)"])
+  K -->|"yes"| End1(["Stop: files changed, nothing committed; tag rule for 1.12.0 in the Change Log"])
   K -->|"no"| M["Commit: chore: bump version to X.Y.Z, no AI attribution"]
   M --> N{"--no-tag?"}
   N -->|"yes"| End2(["Done: commit only"])

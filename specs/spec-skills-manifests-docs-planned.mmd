@@ -1,0 +1,13 @@
+flowchart TD
+  S(["Release X.Y.Z"]) --> B["Set the version in plugin.json, the marketplace.json plugin entry, CLAUDE.md, README.md, and MARKETPLACE.md in both places"]
+  B --> EQ{"Both manifest versions equal?"}
+  EQ -->|"no"| F1(["Release check fails"])
+  EQ -->|"yes"| VS{"Every file the checklist names reads X.Y.Z, and no unlisted file states the version?"}
+  VS -->|"no"| F4(["Flag the stale or unlisted file"])
+  VS -->|"yes"| N{"Marketplace name, plugin name, and source unchanged?"}
+  N -->|"no"| F2(["Reject: a rename breaks existing installs"])
+  N -->|"yes"| CT{"Agent counts match in 8 files and skill counts in the 7 files other than agent-registry.md?"}
+  CT -->|"no"| F3(["Fix the stale file before release"])
+  CT -->|"yes"| SC["sync-writing-standard.js --check and check-fsa-tables.js --check exit 0"]
+  SC --> CL["Release notes in the root CHANGELOG.md"]
+  CL --> C(["Commit with no AI attribution"])

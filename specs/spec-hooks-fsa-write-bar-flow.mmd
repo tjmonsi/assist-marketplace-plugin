@@ -14,11 +14,11 @@ flowchart TD
   G -->|"requirements-gatherer, solutions-architect"| H{"Innermost form hidden or auto-loaded name?"}
   H -->|yes| DENY
   H -->|no| OK
-  G -->|task-planner| T1{"Outside every root? PLANNED FR-186: outside the git root of input cwd?"}
+  G -->|task-planner| T1{"Outside the session root R, the git root of the input cwd (else the cwd)? With no usable cwd: an absolute, ~, drive-relative, or .. target?"}
   T1 -->|yes| DENY
-  T1 -->|no| T2{"Hidden or auto-loaded name, in the innermost form (PLANNED: relative to that git root)?"}
+  T1 -->|no| T2{"Hidden or auto-loaded name, relative to R?"}
   T2 -->|yes| DENY
-  T2 -->|no| T3{"Matches TASK_PLAN_GLOB? Built: task-plan-*.md; PLANNED FR-186: docs/task-plans/task-plan-*.md"}
+  T2 -->|no| T3{"Exactly docs/task-plans/task-plan-*.md relative to R?"}
   T3 -->|yes| OK
   T3 -->|no| DENY
   G -->|developer| V{"Any form matches a test glob?"}

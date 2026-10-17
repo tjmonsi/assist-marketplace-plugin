@@ -9,15 +9,15 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-010, UR-026, UR-027, FR-131, FR-132, FR-133, FR-134 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Paths that start with `skills/` or `agents/` are relative to `plugins/assist-plugin/`. Baseline: commit 4803a0d.
+Paths that start with `skills/` or `agents/` are relative to `plugins/assist-plugin/`. Baseline: assist-plugin 1.11.1 at commit 41034c1; 1.11.1 changed none of the cited `ask` and `debug` files (`CHANGELOG.md:5-23`), and the `debug` frontmatter was re-read on 2026-10-16. This spec received no delta in the 2026-10-16 pass: its behavior is unchanged, and the decided points below only replace pending notes (`spec-skills.md`, Change Log 2026-10-16, Direct edits).
 
 ## Description
 
-`/ask` answers a question from the repository, and with `--web` also from the web, and cites every source. `/debug` diagnoses a bug with a root cause analysis (RCA), applies a fix only from an approved RCA or a human-report file, and verifies the fix. `/ask` runs `review-md` on its drafted answer before presenting it (`skills/ask/SKILL.md:40`, `:52`; FR-148, specified in `spec-skills-docs-review.md`). `skills/review-md/SKILL.md:31` also lists `debug analyze` and `debug review` as callers, but no `debug` file states the call; whether it should is pending (open point OP-3 in `spec-skills.md`).
+`/ask` answers a question from the repository, and with `--web` also from the web, and cites every source. `/debug` diagnoses a bug with a root cause analysis (RCA), applies a fix only from an approved RCA or a human-report file, and verifies the fix. `/ask` runs `review-md` on its drafted answer before presenting it (`skills/ask/SKILL.md:40`, `:52`; FR-148, specified in `spec-skills-docs-review.md`). At 1.11.1 `skills/review-md/SKILL.md:31` also lists `debug analyze` and `debug review` as callers, though no `debug` file states the call. OP-3 is decided: FR-148 names only `ask` and `do`, and the `review-md` list drops `debug` in 1.12.0 (`spec-skills-docs-review.md`, Change Log 2026-10-16). FR-193 (PLANNED 1.12.0, `spec-skills-manifests-docs.md`) adds `effort: high` to the `debug` frontmatter to match `skills/debug/metadata.json:4`, a frontmatter change that leaves the behavior of `/debug` as specified here.
 
 ## Triggered by
 
@@ -238,7 +238,7 @@ flowchart TD
   Y -->|"empty or unmatched"| Q(["Ask which mode"])
 ```
 
-Render source: `specs/spec-skills-ask-debug.mmd` (see the rendering note in `spec-skills.md`).
+Render source: `specs/spec-skills-ask-debug.mmd`. Rendering skipped: see the note in `spec-skills.md`.
 
 ## Output / Outcome
 
@@ -272,7 +272,7 @@ Not applicable: both skills reply in chat and emit no events.
 | Dependency | Type | Required | Notes |
 |---|---|---|---|
 | `ask` tool grants | Runtime | yes | Read, Grep, Glob, WebSearch, WebFetch (`skills/ask/SKILL.md:8-13`); no write tool |
-| `debug` tool grants | Runtime | yes | Read, Grep, Glob, Bash, LSP (`skills/debug/SKILL.md:6-11`). No Write or Edit grant, so Write and Edit calls during `fix` prompt in a direct run; Bash is unscoped, so a Bash command runs without a prompt, including one that writes a file (open point OP-6 in `spec-skills.md`) |
+| `debug` tool grants | Runtime | yes | Read, Grep, Glob, Bash, LSP (`skills/debug/SKILL.md:6-11`). No Write or Edit grant, so Write and Edit calls during `fix` prompt in a direct run; Bash is unscoped, so a Bash command runs without a prompt, including one that writes a file. That Bash grant is an accepted NFR-013 exception (OP-6 decided; `spec-skills.md` Change Log 2026-10-16) |
 | `review-md` | Runtime | no | Checks the drafted report (FR-148; `spec-skills-docs-review.md`); `ask` names the step at `skills/ask/SKILL.md:40`, `:52` |
 | `developer` agent | Runtime | no | Applies `debug` under `/do` (Area A FR-077) |
 | `injection-filter` hook | Runtime | no (fail open) | Filters WebFetch and WebSearch results (Area B FR-099) |

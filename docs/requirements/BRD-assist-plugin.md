@@ -1,11 +1,11 @@
 # assist-plugin: Business Requirements Document
 
-**Version:** 1.0
-**Date:** 2026-10-14
+**Version:** 1.1
+**Date:** 2026-10-16
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
-Baseline: assist-plugin 1.11.0 (commit 4803a0d). Every requirement is **Built** unless marked **PLANNED** (the three 1.11.1 changes, the write guard lists they read, the `docs/tts/` exemption fix, the move of requirements and task plans to `docs/requirements/` and `docs/task-plans/`, and BR-014, which waits for the specs and the task plan).
+Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every business requirement is **Built**. The 1.12.0 changes (the 40 deferred points answered on 2026-10-16) change no business requirement; they appear as PLANNED (1.12.0) in the user and functional requirements that serve these.
 
 ---
 
@@ -47,12 +47,12 @@ Each requirement uses the sentence template:
 | BR-011 | To keep existing installs working, the business must keep the marketplace name, plugin name, and install id stable across releases. | Must | SC-007 |
 | BR-012 | To preserve project decisions across sessions, the business must record architectural decisions in an append-only log that only the orchestrator and the user write. | Must | SC-011 |
 | BR-013 | To trace code, specs, and tests back to the need they serve, the business must carry stable requirement IDs from requirements through specs, task plans, code markers, and tests. | Should | SC-002 |
-| BR-014 | PLANNED: To follow its own process, the business must keep requirements, specs, and task plans for assist-plugin in this repository where `/do` SpecGate looks for them. | Should | SC-012 |
+| BR-014 | To follow its own process, the business must keep requirements, specs, and task plans for assist-plugin in this repository where `/do` SpecGate looks for them. | Should | SC-012 |
 | BR-015 | To keep hook enforcement equal to the documented rules, the business must check the code tables that enforce state machines and write limits against the markdown that documents them. | Must | SC-008 |
 | BR-016 | To keep published documentation accurate, the business must keep agent and skill counts and lists consistent in every document that states them. | Should | SC-013 |
 | BR-017 | To give users one place to read release history, the business must keep a single changelog. | Should | SC-014 |
 
-Status: BR-001 to BR-016 describe built behavior, except BR-014, which is PLANNED until the specs and the task plan exist and are committed. Five of them have a PLANNED part (1.11.1): BR-004 and BR-010 (requirements move to `docs/requirements/` and task plans to `docs/task-plans/`, per `DECISIONS.md` 2026-10-16, with SpecGate searching the new folders), BR-006 (untrusted-input rules for the requirements agent and two skills, and the write bar and grants for the new folders), BR-008 (the `docs/tts/` exemption under the project root and the session directory, per the 2026-10-12 and 2026-10-16 decisions), and BR-015 (drift checks for the verdict, task-plan, protected-path, and auto-loaded-file tables; the state tables and test globs are already checked). BR-017 is PLANNED.
+Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1.11.1) are built, checked on 2026-10-16 by reading the sources: BR-004 and BR-010 (requirements in `docs/requirements/`, task plans in `docs/task-plans/`, per `DECISIONS.md` 2026-10-16, with SpecGate searching the new folders), BR-006 (untrusted-input rules for the requirements agent and two skills, and the write bar and grants for the new folders), BR-008 (the `docs/tts/` exemption under the project root and the session directory), BR-014 (the specs and the task plan exist and are committed), BR-015 (drift checks for the verdict, task-plan, protected-path, and auto-loaded-file tables), and BR-017 (a pointer-only plugin changelog). Parts of BR-001 to BR-013 and BR-016 are PLANNED (1.12.0) in the functional requirements; see the status column of the traceability matrix in `docs/requirements/FR-NFR-assist-plugin.md`.
 
 ## 4. Scope
 
@@ -65,9 +65,10 @@ Status: BR-001 to BR-016 describe built behavior, except BR-014, which is PLANNE
 - The writing standard and the opt-in `assist-plugin:terse` output style.
 - Governance rules in `rules/assist-plugin-rule.md` and `rules/llm-security-checklist.md`.
 - Marketplace identity and installation (`.claude-plugin/marketplace.json`, `plugin.json`).
-- The three 1.11.1 changes (PLANNED): untrusted-input rules for the requirements agent and two skills, extended `check-fsa-tables.js` checks, and a pointer-only plugin changelog.
-- PLANNED: requirements documents in `docs/requirements/`, task plans in `docs/task-plans/`, and specs in `specs/`, with SpecGate searching those folders, the old root patterns (`./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json`, `./task-plan-*.md`), never taking a path from `DECISIONS.md`, which gets only a plain note that an older project keeps its files at the root (`DECISIONS.md`, 2026-10-16). Both folders resolve against the git root of the session's working directory. This repository's requirements are already in `docs/requirements/`.
-- One further PLANNED fix: exempt `docs/tts/` under the project root and the session's working directory (when inside the project) in `prose-gate` and `prose-advisor`, as `DECISIONS.md` (2026-10-12 and 2026-10-16) says.
+- The three 1.11.1 changes (built): untrusted-input rules for the requirements agent and two skills, extended `check-fsa-tables.js` checks, and a pointer-only plugin changelog.
+- Requirements documents in `docs/requirements/`, task plans in `docs/task-plans/`, and specs in `specs/` (built in 1.11.1), with SpecGate searching those folders, the old root patterns (`./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json`, `./task-plan-*.md`), never taking a path from `DECISIONS.md`, which gets only a plain note that an older project keeps its files at the root (`DECISIONS.md`, 2026-10-16). The requirements and task-plan folders resolve against the git root of the session's working directory; PLANNED (1.12.0): `specs/` resolves against the same root (`DECISIONS.md`, 2026-10-16, Specs resolve against the session's git root).
+- The `docs/tts/` exemption under the project root and the session's working directory (when inside the project) in `prose-gate` and `prose-advisor` (built in 1.11.1), as `DECISIONS.md` (2026-10-12 and 2026-10-16) says.
+- PLANNED (1.12.0): the changes decided on 2026-10-16 for the 40 deferred points (named OWASP for LLM gate over `skills/**`, Cleanup owning the terminal state, PowerShell coverage in `doc-cli-guard` and the injection filter, `/bump --path` naming, PR review under `/do`, skill `metadata.json` mirror, and the rest listed in `docs/requirements/FR-NFR-assist-plugin.md`, section 6).
 
 #### Out of scope
 
@@ -118,7 +119,7 @@ Status: BR-001 to BR-016 describe built behavior, except BR-014, which is PLANNE
 | SC-011 | Subagents cannot rewrite plans or decisions | Run the `fsa-write-bar` deny corpus for `.agent/main-plan/**` and `DECISIONS.md` | 100% of Write, Edit, MultiEdit, NotebookEdit calls denied |
 | SC-012 | The repository holds its own requirements | Glob `docs/requirements/BRD-*.md`, `docs/requirements/URD-*.md`, `docs/requirements/FR-NFR-*.md`, `docs/task-plans/task-plan-*.md`, `specs/spec-*.md` | Requirements and specs present for the whole plugin; task plan present for work still to do |
 | SC-013 | Counts agree across documents | Compare agent and skill counts in the files listed in `CLAUDE.md`, "Keeping counts in sync" | 16 agents and 22 skills everywhere |
-| SC-014 | One release log exists (PLANNED) | Read `plugins/assist-plugin/CHANGELOG.md` | Pointer only; root `CHANGELOG.md` holds all releases |
+| SC-014 | One release log exists | Read `plugins/assist-plugin/CHANGELOG.md` | Pointer only; root `CHANGELOG.md` holds all releases |
 | SC-015 | Every lifecycle stage has a skill or agent | Check that requirements, spec, task plan, code, test, review, version, git, and documentation each map to a skill or agent in `CLAUDE.md` | 9 of 9 stages covered |
 
 ## 8. Glossary
@@ -141,3 +142,4 @@ Status: BR-001 to BR-016 describe built behavior, except BR-014, which is PLANNE
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-10-14 | Toni-Jan Keith Monserrat | Initial draft for assist-plugin 1.11.0 plus three PLANNED 1.11.1 changes |
+| 1.1 | 2026-10-16 | Toni-Jan Keith Monserrat | Baseline moved to 1.11.1. BR-014 and BR-017 and the 1.11.1 parts of other BRs set to Built. Scope notes the 1.12.0 changes from the 40 deferred points |

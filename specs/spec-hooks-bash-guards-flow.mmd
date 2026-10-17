@@ -1,17 +1,23 @@
 flowchart TD
-  S(["PreToolUse Bash call"]) --> SA{"sa-mermaid-only: agent_type is solutions-architect or ends in :solutions-architect?"}
+  S(["PreToolUse call"]) --> T{"tool_name"}
+  T -->|Bash| SA{"sa-mermaid-only: agent_type is solutions-architect or ends in :solutions-architect?"}
   SA -->|no| SAOK["Allow, no output"]
   SA -->|yes| M1{"Shell metacharacter in the command?"}
   M1 -->|yes| SADENY["Deny with the fixed reason and the install command"]
   M1 -->|no| M2{"Exactly which mmdc, where mmdc, or mmdc --version?"}
   M2 -->|yes| SAOK
-  M2 -->|no| M3{"First word mmdc, every flag allowed, every value valid?"}
-  M3 -->|yes| SAOK
+  M2 -->|no| M3{"First word mmdc, every flag allowed, every theme, color, and number value valid?"}
   M3 -->|no| SADENY
-  S --> D1{"doc-cli-guard: endpoint variable assigned before the program?"}
+  M3 -->|yes| M4{"Every -i and -o value: relative under specs/ or dir/specs/; PLANNED 1.12.0: or absolute under git root/specs/ or git root/dir/specs/, git root found by a .git walk from the input cwd"}
+  M4 -->|yes| SAOK
+  M4 -->|"no, or absolute with no git root"| SADENY
+  T -->|"Bash; PLANNED 1.12.0: PowerShell too"| D0["doc-cli-guard: PLANNED: split at ; && || | and line breaks outside quotes and heredoc bodies, with lex, PowerShell also at braces; per part, resolved words and raw words; skip VAR=value words and wrappers; PLANNED: shell keywords and a PowerShell assignment; PLANNED FR-198: package runners and the PowerShell call operator"]
+  D0 --> D1{"Any part assigns an endpoint variable before its program, on either word list? PLANNED: or a part starts with a PowerShell env: assignment, any case, spaces around ="}
   D1 -->|yes| DDENY["Deny with the rule's reason"]
-  D1 -->|no| D2{"Program is firecrawl or ctx7?"}
+  D1 -->|no| D2{"Any part guarded: its program on either word list is firecrawl or ctx7? PLANNED FR-198: directory part with either separator, .exe, and @version removed; any case in PowerShell, case-sensitive in Bash"}
   D2 -->|no| DOK["Allow, no output"]
-  D2 -->|yes| D3{"Metacharacter, endpoint variable, quote inside a word, forbidden subcommand, or output or endpoint flag?"}
+  D2 -->|yes| D3{"That part's tokenize list: null for a quote inside a word, a program token that does not reduce to the name, a forbidden subcommand, or an output or endpoint flag?"}
   D3 -->|yes| DDENY
-  D3 -->|no| DOK
+  D3 -->|no| D4{"Whole command: metacharacter or endpoint variable?"}
+  D4 -->|yes| DDENY
+  D4 -->|no| DOK

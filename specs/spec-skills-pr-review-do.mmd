@@ -1,0 +1,22 @@
+sequenceDiagram
+  actor User
+  participant Do as /do main conversation
+  participant Rev as reviewer agent, read-only
+  participant CLI as gh
+  User->>Do: /do review PR 123
+  Do->>User: plan with a reviewer step, approval
+  alt remote is github.com
+    Do->>CLI: fetch through Bash, output redirected into .agent/pr-review/pr-123.diff, 200 KB cap
+    Do->>Rev: gate Security, artifact type code, untrusted-file path .agent/pr-review/pr-123.diff
+    Rev-->>Do: draft above the block, findings at PR file and diff line, Done, verdict approved or returned
+    Do->>Do: at block arrival, write the draft verbatim to .agent/pr-review/pr-123-review.body with the Write tool
+    Do->>User: show the draft and any cut, one confirmation
+    alt user confirms
+      Do->>CLI: gh pr review with --approve, --request-changes, or --comment, body from that file
+    else user does not confirm
+      Do->>Do: post nothing
+    end
+  else any other host, Bitbucket included
+    Do->>User: step failed, precondition-failed: run /pr-review directly
+  end
+  Note over Do,CLI: no /pr-review call and no bkt command in this flow

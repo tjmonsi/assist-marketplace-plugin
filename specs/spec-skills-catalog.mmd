@@ -2,7 +2,8 @@ flowchart LR
   User(["User types /name args"])
   subgraph UI["User-invocable skills (18)"]
     Do["do (Area A)"]
-    QD["ask, debug"]
+    Ask["ask"]
+    Dbg["debug"]
     Git["commit, bump, branch"]
     PR["pr-review"]
     Docs["map-project, technical-writing"]
@@ -19,8 +20,9 @@ flowchart LR
   ChainAgents["requirements-gatherer, intake-reviewer, solutions-architect, task-planner, developer-tester"] -->|"skills: frontmatter"| Chain
   Dev["developer agent"] -->|"skills: frontmatter"| Code
   QA["qa agent"] -->|"skills: frontmatter"| QA3
-  QD -->|"caller per review-md SKILL.md:31 only; ask also states it"| RMD
-  Git -->|"caller per review-md SKILL.md:31 only"| RMD
-  PR -->|"caller per review-md SKILL.md:31 only"| RMD
-  Docs -->|"caller per review-md SKILL.md:31 only"| RMD
-  Do -->|"Report Quality Gate"| RMD
+  Ask -->|"states the call; FR-148 caller"| RMD
+  Do -->|"Report Quality Gate; FR-148 caller"| RMD
+  Dbg -.->|"listed only in review-md SKILL.md:31; dropped by FR-148, PLANNED 1.12.0"| RMD
+  Git -.->|"listed only in review-md SKILL.md:31; dropped, PLANNED 1.12.0"| RMD
+  PR -.->|"listed only in review-md SKILL.md:31; dropped, PLANNED 1.12.0"| RMD
+  Docs -.->|"listed only in review-md SKILL.md:31; dropped, PLANNED 1.12.0"| RMD

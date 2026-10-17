@@ -7,13 +7,13 @@
 | **Feature** | `/do` ingest, decomposition, and agent routing |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, UR-001, UR-002, UR-003, UR-004, UR-014, FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-053 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, UR-001, UR-002, UR-003, UR-004, UR-006, UR-014, FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-053 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: assist-plugin 1.11.0 at commit 4803a0d; every behavior here is Built. Paths are relative to `plugins/assist-plugin/`.
+Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cites were refreshed against that file on 2026-10-16. Every behavior in the main body is Built. The Change Log at the end of this file records the PLANNED (1.12.0) changes and holds where it differs from the main body. Paths are relative to `plugins/assist-plugin/`.
 
 ## Description
 
@@ -67,15 +67,15 @@ flowchart TD
   DA -->|"cycle"| E
   DA -->|"ok"| AS{"AgentSelection: question intent?"}
   AS -->|"yes"| Ask["ask"]
-  AS -->|"no"| Reg{"First registry agent that matches,<br/>or a discovered agent"}
+  AS -->|"no"| Reg{"First registry agent that matches;<br/>a discovered agent only when no<br/>registry agent matches (PLANNED 1.12.0)"}
   Reg -->|"no match, rounds below limit"| C
   Reg -->|"no match at limit"| E
-  Ask --> M["Model and effort from model-routing.md;<br/>ask per Requirement 10 (OPEN-4)"]
+  Ask --> M["Model and effort from model-routing.md;<br/>ask row: Sonnet, medium, Can Override Yes<br/>(PLANNED 1.12.0)"]
   Reg -->|"matched"| M
   M --> B["Branch"]
 ```
 
-Source: [spec-orchestration-planning-flow.mmd](spec-orchestration-planning-flow.mmd). Render with `mmdc -i specs/spec-orchestration-planning-flow.mmd -o specs/spec-orchestration-planning-flow.png` once `mmdc` can start its browser.
+Source: [spec-orchestration-planning-flow.mmd](spec-orchestration-planning-flow.mmd). PNG not rendered (rendering skipped on 2026-10-16): `mmdc` 12.0.0 cannot find its headless browser, chrome-headless-shell. Render with `mmdc -i specs/spec-orchestration-planning-flow.mmd -o specs/spec-orchestration-planning-flow.png` once `mmdc` can start its browser.
 
 ### Requirement 1: Detect control words and named files
 
@@ -101,7 +101,7 @@ The `/do` skill SHALL detect the control words `resume <plan>` and `stop` in the
 
 ### Requirement 2: Check resume preconditions
 
-The `/do` skill SHALL resume a plan only when the plan file exists, its Status is `Paused` or `In Progress`, and `## User Decisions` holds a line starting "Approved:" or the line "None (single read-only step, approval skipped)". (FR-002; `skills/do/SKILL.md:80-88`)
+The `/do` skill SHALL resume a plan only when the plan file exists, its Status is `Paused` or `In Progress`, and `## User Decisions` holds a line starting "Approved:" or the line "None (single read-only step, approval skipped)". (FR-002; `skills/do/SKILL.md:86-94`)
 
 #### Scenario: Paused plan with approval
 
@@ -129,7 +129,7 @@ The `/do` skill SHALL resume a plan only when the plan file exists, its Status i
 
 ### Requirement 3: Reset interrupted steps and ask for approval again
 
-The `/do` skill SHALL, on a resume that passed its checks, set every step still `in_progress` or `waiting-user` back to `pending` and ask for approval again before dispatching any step. (FR-003; `skills/do/SKILL.md:90-94`)
+The `/do` skill SHALL, on a resume that passed its checks, set every step still `in_progress` or `waiting-user` back to `pending` and ask for approval again before dispatching any step. (FR-003; `skills/do/SKILL.md:96-100`)
 
 A resumed plan skips SpecGate: a Spec-First section in the plan file means `build`, no section means `non-build`. At PlanApproval `/do` prints the file's `Documents approved`, `Documents found`, `Conflict findings`, and `Change check` values and the approval line, and says the file is the only source for them. The Approve answer confirms them as the value `/do` last wrote. The only correction is a reset: the user picks Edit steps and asks for it, Branch writes `Documents approved: pending`, the Spec-first question returns, and DocSignOff runs before any build step. A typed edit never sets a timestamp or `waived`.
 
@@ -160,7 +160,7 @@ A resumed plan skips SpecGate: a Spec-First section in the plan file means `buil
 
 ### Requirement 4: Stop without starting new work
 
-The `/do` skill SHALL, on `stop`, let running steps finish and report, parse their blocks, start no review gate, and start no new step. (FR-004; `skills/do/SKILL.md:96-105`)
+The `/do` skill SHALL, on `stop`, let running steps finish and report, parse their blocks, start no review gate, and start no new step. (FR-004; `skills/do/SKILL.md:102-111`)
 
 | Step state when `stop` arrives | Result |
 |---|---|
@@ -189,7 +189,7 @@ The `/do` skill SHALL, on `stop`, let running steps finish and report, parse the
 
 ### Requirement 5: Decompose the prompt into steps with fixed fields
 
-The `/do` skill SHALL break each prompt into steps that record id, goal, agent (left blank for AgentSelection), depends_on, effect, build flag, writes, reads, input files, active tests, and design choices. (FR-005; `skills/do/SKILL.md:135-155`)
+The `/do` skill SHALL break each prompt into steps that record id, goal, agent (left blank for AgentSelection), depends_on, effect, build flag, writes, reads, input files, active tests, and design choices. (FR-005; `skills/do/SKILL.md:143-163`)
 
 | Field | Content |
 |---|---|
@@ -204,7 +204,7 @@ The `/do` skill SHALL break each prompt into steps that record id, goal, agent (
 | active tests | For a qa step that runs active pentest tests: exact commands and the authorized target; blank otherwise |
 | design choices | Open trade-offs the user may want to decide |
 
-#### Scenario: Two tasks in one prompt
+#### Scenario: Bug fix and README update in one prompt
 
 - **GIVEN** a prompt that asks for a bug fix and a README update
 - **WHEN** `/do` decomposes it
@@ -225,7 +225,7 @@ The `/do` skill SHALL break each prompt into steps that record id, goal, agent (
 
 ### Requirement 6: Bound Clarify for non-build requests
 
-The `/do` skill SHALL ask up to 2 Clarify rounds of at most 4 questions each for a `non-build` request and record any point still open as an assumption. (FR-006; `skills/do/SKILL.md:41`, `:57`, `:155`)
+The `/do` skill SHALL ask up to 2 Clarify rounds of at most 4 questions each for a `non-build` request and record any point still open as an assumption. (FR-006; `skills/do/SKILL.md:41`, `:57`, `:163`)
 
 Each open point gets its own question with concrete options; the option `/do` would pick is listed first with "(Recommended)". The assumptions appear under the Order line at PlanApproval.
 
@@ -243,7 +243,7 @@ Each open point gets its own question with concrete options; the option `/do` wo
 
 ### Requirement 7: Order steps by dependencies and overlaps
 
-The `/do` skill SHALL order steps topologically and add an edge from the earlier step to the later one wherever writes overlap writes or reads overlap writes, unless both steps run in worktrees. (FR-008; `skills/do/SKILL.md:194-199`)
+The `/do` skill SHALL order steps topologically and add an edge from the earlier step to the later one wherever writes overlap writes or reads overlap writes, unless both steps run in worktrees. (FR-008; `skills/do/SKILL.md:202-207`)
 
 Then it assigns waves (a step with no unfinished predecessor and no write overlap with another step in its wave joins that wave) and a Runs value per step (spec-orchestration-plan-approval.md, Output).
 
@@ -273,7 +273,7 @@ Then it assigns waves (a step with no unfinished predecessor and no write overla
 
 ### Requirement 8: Select one agent per step and dispatch it by qualified name
 
-The `/do` skill SHALL route question-answering intent to `ask`, otherwise use the first registry agent whose responsibilities match, and dispatch it as `assist-plugin:<name>`. (FR-009; `skills/do/SKILL.md:201-205`, `:224-229`; `DECISIONS.md` 2026-10-13)
+The `/do` skill SHALL route question-answering intent to `ask`, otherwise use the first registry agent whose responsibilities match, and dispatch it as `assist-plugin:<name>`. (FR-009; `skills/do/SKILL.md:209-213`, `:232-237`; `DECISIONS.md` 2026-10-13)
 
 - Question-answering, repo research, or documentation lookup (not implementation, review, or planning) goes to `ask`, checked before the registry table.
 - Debug and technical-writing steps go to `developer`; the Send prompt names the skill (`debug` or `technical-writing`), the subcommand, the target files, and the absolute skill path `<base>/../debug/SKILL.md` or `<base>/../technical-writing/SKILL.md`, computed from the `/do` skill's base directory.
@@ -300,9 +300,9 @@ The `/do` skill SHALL route question-answering intent to `ask`, otherwise use th
 
 ### Requirement 9: Send unmatched work to Clarify
 
-The `/do` skill SHALL send a step that matches no agent to Clarify and never assign it to `general-purpose` as a fallback or take it in the main agent. (FR-007; `skills/do/SKILL.md:43`, `:192`, `:203`)
+The `/do` skill SHALL send a step that matches no agent to Clarify and never assign it to `general-purpose` as a fallback or take it in the main agent. (FR-007; `skills/do/SKILL.md:43`, `:200`, `:211`)
 
-Source difference, recorded and not settled here: the body of `agents/general-purpose.md` at lines 15, 27, and 38 still describes the agent as the one to use when no other agent matches, which disagrees with FR-007, with that file's own `description`, and with `skills/do/references/agent-registry.md:23`. This Requirement follows FR-007. Whether the agent body is corrected is pending the user (OPEN-5 in spec-orchestration.md).
+Source difference: the body of `agents/general-purpose.md` at lines 15, 27, and 38 still describes the agent as the one to use when no other agent matches, which disagrees with FR-007, with that file's own `description`, and with `skills/do/references/agent-registry.md:23`. This Requirement follows FR-007. OPEN-5 is closed: the body is corrected (PLANNED 1.12.0; Change Log 2026-10-16).
 
 #### Scenario: No agent fits
 
@@ -324,14 +324,14 @@ Source difference, recorded and not settled here: the body of `agents/general-pu
 
 ### Requirement 10: Assign model and effort
 
-The `/do` skill SHALL set the model and effort of each step whose agent has a row in `model-routing.md` from that row, and keep the default model of an agent whose Can Override value is `No`. (FR-010; `skills/do/references/model-routing.md:7-25`, `:51-71`; `skills/do/SKILL.md:317`)
+The `/do` skill SHALL set the model and effort of each step whose agent has a row in `model-routing.md` from that row, and keep the default model of an agent whose Can Override value is `No`. (FR-010; `skills/do/references/model-routing.md:7-25`, `:51-71`; `skills/do/SKILL.md:325`)
 
-`ask` has no row in either table of `model-routing.md` (lines 7-25 and 53-71). For an `ask` step this Requirement states only the current sources: Sonnet per `skills/do/SKILL.md:211` and effort medium per `agents/ask.md:6`. Its Can Override value is undefined, so whether a user override of an `ask` step is applied or refused is pending the user (OPEN-4 in spec-orchestration.md).
+At 1.11.1 `ask` has no row in either table of `model-routing.md` (lines 7-25 and 53-71). For an `ask` step this Requirement states only the current sources: Sonnet per `skills/do/SKILL.md:219` and effort medium per `agents/ask.md:6`. OPEN-4 is closed: `model-routing.md` gains an `ask` row with Sonnet, medium, and Can Override `Yes` (PLANNED 1.12.0; Change Log 2026-10-16).
 
 | Agent | Default model | Effort | Can Override |
 |---|---|---|---|
 | orchestrator (`/do`) | Opus | xhigh | No |
-| ask | Sonnet (`skills/do/SKILL.md:211`) | medium (`agents/ask.md:6`) | Undefined: no row in `model-routing.md`; pending OPEN-4 |
+| ask | Sonnet (`skills/do/SKILL.md:219`) | medium (`agents/ask.md:6`) | Undefined at 1.11.1: no row in `model-routing.md`; PLANNED (1.12.0): `Yes` (Change Log 2026-10-16) |
 | developer | Sonnet | high | Yes |
 | developer-tester | Sonnet | high | Yes |
 | reviewer | Opus | xhigh | No |
@@ -342,8 +342,8 @@ The `/do` skill SHALL set the model and effort of each step whose agent has a ro
 | intake-reviewer | Sonnet | medium | No |
 | task-planner | Sonnet | high | Yes |
 | devops | Sonnet | high | Yes |
-| researcher | Opus | xhigh | No |
-| code-reviewer | Opus | xhigh | No |
+| researcher | Opus | high | No |
+| code-reviewer | Opus | high | No |
 | explore | Haiku | low | No |
 | general-purpose | Sonnet | medium | Yes |
 | worker | Sonnet | high | Yes |
@@ -370,9 +370,9 @@ Every fix-phase dispatch runs on Sonnet whatever the table says (spec-orchestrat
 
 ### Requirement 11: Route discovered agents and skills through approval
 
-The `/do` skill SHALL send any agent or skill it discovers at runtime through PlanApproval before the step runs. (FR-011; `skills/do/SKILL.md:214-222`; `skills/do/references/routing-with-discovery.md`)
+The `/do` skill SHALL send any agent or skill it discovers at runtime through PlanApproval before the step runs. (FR-011; `skills/do/SKILL.md:222-230`; `skills/do/references/routing-with-discovery.md`)
 
-Discovery reads frontmatter only, runs once per `/do` invocation, and adds `**Discovered:** [name]: [why it matches]` to the plan step. The sources describe discovery as additive to the registry (`skills/do/references/routing-with-discovery.md:12`), rank an exact registry match first (`:22-24`), and fall back to the registry when discovery finds no better match (`:99`); `skills/do/SKILL.md:43` lets AgentSelection match from the registry or the discovered list. Which agent a step gets when a registry agent and a discovered agent both match is pending the user (OPEN-7 in spec-orchestration.md); the Scenarios below do not depend on that answer.
+Discovery reads frontmatter only, runs once per `/do` invocation, and adds `**Discovered:** [name]: [why it matches]` to the plan step. The sources describe discovery as additive to the registry (`skills/do/references/routing-with-discovery.md:12`), rank an exact registry match first (`:22-24`), and fall back to the registry when discovery finds no better match (`:99`); `skills/do/SKILL.md:43` lets AgentSelection match from the registry or the discovered list. OPEN-7 is closed: when a registry agent and a discovered agent both match, the registry agent wins (FR-009, PLANNED 1.12.0; Change Log 2026-10-16, Requirement 8). The Scenarios below do not depend on that answer.
 
 #### Scenario: Discovered agent
 
@@ -388,7 +388,7 @@ Discovery reads frontmatter only, runs once per `/do` invocation, and adds `**Di
 
 ### Requirement 12: Name every active pentest command and target
 
-The `/do` skill SHALL list in the plan every command and the authorized target for a qa step that runs active pentest tests and send the agent that list with the instruction to run no other command. (FR-053; `skills/do/SKILL.md:150`, `:153`, `:283`, `:378`)
+The `/do` skill SHALL list in the plan every command and the authorized target for a qa step that runs active pentest tests and send the agent that list with the instruction to run no other command. (FR-053; `skills/do/SKILL.md:158`, `:161`, `:291`, `:393`)
 
 #### Scenario: Named commands
 
@@ -416,7 +416,7 @@ The `/do` skill SHALL list in the plan every command and the authorized target f
 | RULE-002 | `Build: yes` when writes include code, config, pipelines, infrastructure, tests, or `project`; a mixed step is `yes`; a read step, a docs-only step, and a document-chain step are `no` | FR-005, FR-019 | Requirement 5 | `src/api.ts` plus `docs/api.md` gives `yes` |
 | RULE-003 | An overlap edge joins two steps when writes overlap writes or either step's writes overlap the other's reads; `project` overlaps everything; no edge when both run in worktrees | FR-008 | Requirement 7 | Two `src/auth.ts` writers run in different waves |
 | RULE-004 | One clarify-rounds counter serves Decompose, Clarify, and AgentSelection; the limit is 5 for `build` and 2 for `non-build`; a PlanApproval edit resets it to 0 | FR-006, FR-007, FR-015, FR-025 | Requirements 6 and 9 | A third non-build round is not asked |
-| RULE-005 | Routing order: question intent to `ask`; otherwise the first registry agent that matches, or a discovered agent (with approval); no match goes to Clarify. Precedence between a matching registry agent and a matching discovered agent is open (OPEN-7 in spec-orchestration.md) | FR-007, FR-009, FR-011 | Requirements 8, 9, 11 | "where is X documented" goes to `ask` |
+| RULE-005 | Routing order: question intent to `ask`; otherwise the first registry agent that matches, or a discovered agent (with approval); no match goes to Clarify. PLANNED (1.12.0, OPEN-7 closed): a matching registry agent wins over a matching discovered agent, which takes only a step no registry agent matches (Change Log 2026-10-16) | FR-007, FR-009, FR-011 | Requirements 8, 9, 11 | "where is X documented" goes to `ask` |
 | RULE-006 | An agent with Can Override `No` keeps its default model | FR-010 | Requirement 10 | `reviewer` stays on Opus |
 | RULE-007 | At most 4 questions per AskUserQuestion call | FR-006, NFR-014 | Requirement 6 | Six open points take two calls |
 | RULE-008 | Active pentest work is approved command by command and against one named target | FR-053 | Requirement 12 | An unnamed host is out of scope |
@@ -487,3 +487,96 @@ Not applicable: no smaller unit has its own spec.
 | FR-053 | Requirement 12: Name every active pentest command and target | Plan step Active tests field; qa prompt text |
 | UR-001, UR-002, UR-003, UR-004, UR-014 | Requirements 1 to 12 | Parent traceability (spec-orchestration.md) |
 | BR-001, BR-002, BR-004, BR-005 | Description | Design review |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16): FR-005 (its two Scenarios "Two tasks in one prompt" and "Build intent", Built 1.11.1, `:104-123`), and FR-007 (agent body), FR-009 (registry first), and FR-010 (`ask` row), each PLANNED (1.12.0). The user's answers to OPEN-4, OPEN-5, and OPEN-7 and the FR-005 plain fix (`.agent/main-plan/plan-deferred-decisions-20261016-1059.md`, User Decisions).
+
+Body edits made in place in this pass, none a behavior change on its own: the Baseline line moves to 1.11.1; `skills/do/SKILL.md` line cites point at the 1.11.1 file; the Requirement 5 Scenario that used the bug-fix and README prompt is renamed "Bug fix and README update in one prompt", so its name no longer collides with FR-005's non-build Scenario; the notes under Requirements 9, 10, and 11 and RULE-005 that said "pending OPEN-n" now point here; the Algorithmic steps diagram marks the registry-first edge and the `ask` row as PLANNED (1.12.0). Diagram rendering was skipped: `mmdc` cannot start its headless browser.
+
+### MODIFIED Requirements
+
+#### Requirement 5: Decompose the prompt into steps with fixed fields
+
+**Was:** The `/do` skill SHALL break each prompt into steps that record id, goal, agent (left blank for AgentSelection), depends_on, effect, build flag, writes, reads, input files, active tests, and design choices. Scenarios: Two tasks in one prompt (a bug fix and a README update), Ambiguous scope, Mixed step.
+**Now:** The statement is unchanged. Scenarios: Bug fix and README update in one prompt (the earlier "Two tasks in one prompt", renamed), Ambiguous scope, Mixed step, plus the two below from FR-005.
+**Reason:** FR-005 v1.1 states a non-build "Two tasks in one prompt" Scenario and a "Build intent" Scenario, both Built at 1.11.1 (`docs/requirements/FR-NFR-assist-plugin.md:107`, `:110-118`; `skills/do/SKILL.md:171-181`; spec-orchestration-spec-first.md, Requirement 10).
+
+##### Scenario: Two tasks in one prompt (Built 1.11.1)
+
+- **GIVEN** a `non-build` prompt that asks for a review of `docs/auth.md` and an answer to a question about the repository layout
+- **WHEN** `/do` decomposes it
+- **THEN** `/do` SHALL produce two steps and no chain step, each with effect, build flag `no`, and writes filled in
+
+##### Scenario: Build intent (Built 1.11.1)
+
+- **GIVEN** the prompt "implement user authentication in the backend", which SpecGate classified `build`
+- **WHEN** `/do` decomposes it
+- **THEN** `/do` SHALL produce a Requirements step, a Spec step, and a Task plan step marked `chain` ahead of every step with build flag `yes`
+- **AND** the implementation step SHALL list the Task plan step in its depends_on
+
+#### Requirement 8: Select one agent per step and dispatch it by qualified name
+
+**Was:** The `/do` skill SHALL route question-answering intent to `ask`, otherwise use the first registry agent whose responsibilities match, and dispatch it as `assist-plugin:<name>`.
+**Now:** The `/do` skill SHALL route question-answering intent to `ask`, otherwise use the first registry agent whose responsibilities match, use a discovered agent only for a step that no registry agent matches, and dispatch a registry agent as `assist-plugin:<name>`.
+**Reason:** OPEN-7 closed on 2026-10-16: registry first (FR-009, PLANNED 1.12.0). `skills/do/references/routing-with-discovery.md:99` changes to match `:12` and `:22-24`. The three Scenarios in the main body stay.
+
+##### Scenario: Registry agent and discovered agent both match (PLANNED, 1.12.0)
+
+- **GIVEN** the step "review src/auth.ts for security issues", which `reviewer` matches, and an installed plugin agent `other-plugin:security-auditor` whose `description` also matches it
+- **WHEN** AgentSelection runs
+- **THEN** `/do` SHALL assign `reviewer` and dispatch `assist-plugin:reviewer`
+- **AND** the plan table SHALL NOT list `other-plugin:security-auditor` for that step
+
+##### Scenario: Only a discovered agent matches (PLANNED, 1.12.0)
+
+- **GIVEN** the step "export the Figma frames for the login screen", which no registry agent's responsibilities match, and an installed plugin agent `other-plugin:figma-exporter` whose `description` matches it
+- **WHEN** AgentSelection runs
+- **THEN** `/do` SHALL assign `other-plugin:figma-exporter`, add a `**Discovered:**` note to the step, and dispatch it only after the user approves the plan (Requirement 11)
+
+#### Requirement 9: Send unmatched work to Clarify
+
+**Was:** The `/do` skill SHALL send a step that matches no agent to Clarify and never assign it to `general-purpose` as a fallback or take it in the main agent. The body of `agents/general-purpose.md` (lines 15, 27, 38) describes a fallback; whether it is corrected was open (OPEN-5).
+**Now:** The statement is unchanged. The body of `agents/general-purpose.md` agrees with it (Scenarios below).
+**Reason:** OPEN-5 closed on 2026-10-16: correct the agent body (FR-007, PLANNED 1.12.0 for the body).
+
+##### Scenario: General-purpose body agrees (PLANNED, 1.12.0)
+
+- **GIVEN** `agents/general-purpose.md` after the change
+- **WHEN** a test reads its body
+- **THEN** the body SHALL NOT describe the agent as a fallback for work no other agent matches
+- **AND** the body SHALL describe it as the agent for ad-hoc analysis and experimentation that `/do` assigns only when the step explicitly matches it (`CLAUDE.md`, Agents)
+
+##### Scenario: Fallback wording returns (PLANNED, 1.12.0)
+
+- **GIVEN** an edit that puts back a "Fallback" line or a "Handle unmatched task types" responsibility in `agents/general-purpose.md`
+- **WHEN** the test reads the body
+- **THEN** the test SHALL fail and name `agents/general-purpose.md` with the line
+
+#### Requirement 10: Assign model and effort
+
+**Was:** The `/do` skill SHALL set the model and effort of each step whose agent has a row in `model-routing.md` from that row, and keep the default model of an agent whose Can Override value is `No`. Table row: "ask | Sonnet | medium | Undefined: no row in `model-routing.md`".
+**Now:** The `/do` skill SHALL set the model and effort of each step from its agent's row in `model-routing.md`, which holds a row for every registry agent including `ask`, and keep the default model of an agent whose Can Override value is `No`. Table row: "ask | Sonnet | medium | Yes".
+**Reason:** OPEN-4 closed on 2026-10-16: add the `ask` row with Sonnet, medium, and Can Override `Yes` to both tables of `skills/do/references/model-routing.md` (lines 7-25 and 53-71 at 1.11.1) (FR-010, PLANNED 1.12.0). The three Scenarios in the main body stay.
+
+##### Scenario: Ask row (PLANNED, 1.12.0)
+
+- **GIVEN** a step assigned to `ask`
+- **WHEN** the plan is built
+- **THEN** `model-routing.md` SHALL hold an `ask` row with model Sonnet and Can Override `Yes` in its model table and effort medium in its effort table
+- **AND** `/do` SHALL show Sonnet and medium for the step
+
+##### Scenario: Ask override accepted (PLANNED, 1.12.0)
+
+- **GIVEN** the user picks Change models and asks for the `ask` step on Opus
+- **WHEN** `/do` applies the edit
+- **THEN** the step SHALL show Opus and the table SHALL be shown again for approval
+
+### Traceability for this change
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-005, UR-006 (Built 1.11.1) | MODIFIED Requirement 5 (Two tasks in one prompt; Build intent) | Plan file steps for a `non-build` two-task prompt; chain steps and depends_on for a `build` prompt |
+| FR-009 | MODIFIED Requirement 8 | AgentSelection fixtures with a matching discovered agent, with and without a registry match |
+| FR-007 | MODIFIED Requirement 9 | Text test over `agents/general-purpose.md` |
+| FR-010 | MODIFIED Requirement 10 | `model-routing.md` rows; plan table for an `ask` step; Change models fixture |

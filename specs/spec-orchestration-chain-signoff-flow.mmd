@@ -2,7 +2,10 @@ flowchart TD
   PF["Preflight, git repo: baseline snapshot<br/>(a) status, (b) ignored status, (c) hashes"] --> W["Chain step dispatched: add hashes of<br/>existing Writes-matching files to (c)"]
   W --> L["Chain step leaves in_progress<br/>or waiting-user"]
   L --> RH{"Snapshot files re-hash to the<br/>sha256 values kept in context?"}
-  RH -->|"no, or values lost"| UH["Unexpected change for the steps since the<br/>last snapshot; hold every Build: yes step;<br/>step outcome pending OPEN-3"]
+  RH -->|"no, or values lost"| ONE{"Exactly one step ran<br/>since the last snapshot?"}
+  ONE -->|"yes (PLANNED 1.12.0)"| UF["That step fails: policy-rejection;<br/>hold every Build: yes step;<br/>new snapshot becomes the baseline"]
+  ONE -->|"no"| UH["Unexpected change row at DocSignOff;<br/>hold every Build: yes step"]
+  UF --> SK0
   RH -->|"yes"| CMP
   UH --> CMP["Take new snapshot; compare with baseline;<br/>new snapshot becomes the baseline"]
   CMP --> EX{"Every changed path matches the Writes<br/>of a step that ran since the last snapshot?"}

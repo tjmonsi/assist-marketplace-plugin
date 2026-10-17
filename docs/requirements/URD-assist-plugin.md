@@ -1,11 +1,11 @@
 # assist-plugin: User Requirements Document
 
-**Version:** 1.0
-**Date:** 2026-10-14
+**Version:** 1.2
+**Date:** 2026-10-17
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
-Baseline: assist-plugin 1.11.0 (commit 4803a0d). Every requirement is **Built** unless marked **PLANNED** (the three 1.11.1 changes, the write guard lists they read, the `docs/tts/` exemption fix, the move of requirements and task plans to `docs/requirements/` and `docs/task-plans/`, and UR-048, which waits for the specs and the task plan).
+Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless marked **PLANNED (1.12.0)**. UR-048, UR-050, UR-051, and UR-052 were PLANNED (1.11.1) and are now Built. UR-053 is new and PLANNED (1.12.0); the 1.12.0 changes to existing behavior sit in the functional requirements (`docs/requirements/FR-NFR-assist-plugin.md`) and do not change the wording of the other user requirements.
 
 ---
 
@@ -29,7 +29,7 @@ Baseline: assist-plugin 1.11.0 (commit 4803a0d). Every requirement is **Built** 
 Each requirement uses the shall-statement form:
 > The [user/role] shall be able to [accomplish goal] [qualifying condition].
 
-Status is Built unless the row says PLANNED.
+Status is Built unless the row says PLANNED (1.12.0).
 
 | ID | Requirement | Stakeholder | Traces to | Priority |
 |----|-------------|-------------|-----------|----------|
@@ -80,11 +80,12 @@ Status is Built unless the row says PLANNED.
 | UR-045 | The plugin maintainer shall be able to keep agent and skill counts and lists consistent across documents. | Plugin maintainer | BR-016 | Should |
 | UR-046 | The plugin maintainer shall be able to release a version whose manifests agree and whose changes appear in the changelog. | Plugin maintainer | BR-011 | Must |
 | UR-047 | The plugin user shall be able to install and enable the plugin with the documented marketplace commands. | Plugin user | BR-011 | Must |
-| UR-048 | PLANNED: The plugin maintainer shall be able to find this repository's own requirements in `docs/requirements/`, task plans in `docs/task-plans/`, and specs in `specs/`, where `/do` SpecGate looks once it searches those folders. | Plugin maintainer | BR-014 | Should |
+| UR-048 | The plugin maintainer shall be able to find this repository's own requirements in `docs/requirements/`, task plans in `docs/task-plans/`, and specs in `specs/`, where `/do` SpecGate looks. | Plugin maintainer | BR-014 | Should |
 | UR-049 | The plugin user shall be able to have code written, fixed, or refactored from a plan by one agent and tested by another that never reads the implementation. | Plugin user | BR-010, BR-005 | Must |
-| UR-050 | PLANNED: The plugin user shall have the requirements agent and the two document skills treat the content of requirements, specs, and user files, including text the user puts in a quote block or code fence or ties to a named file, as data, while all other text the user types stays the user's own authoritative answer. | Plugin user | BR-006 | Must |
-| UR-051 | PLANNED: The plugin maintainer shall be told when the verdict, task-plan path, protected-path, or auto-loaded-file tables in code differ from the markdown that documents them. | Plugin maintainer | BR-015 | Must |
-| UR-052 | PLANNED: The plugin maintainer shall be able to read the release history in one changelog. | Plugin maintainer | BR-017 | Should |
+| UR-050 | The plugin user shall have the requirements agent and the two document skills treat the content of requirements, specs, and user files, including text the user puts in a quote block or code fence or ties to a named file, as data, while all other text the user types stays the user's own authoritative answer. | Plugin user | BR-006 | Must |
+| UR-051 | The plugin maintainer shall be told when the verdict, task-plan path, protected-path, or auto-loaded-file tables in code differ from the markdown that documents them. | Plugin maintainer | BR-015 | Must |
+| UR-052 | The plugin maintainer shall be able to read the release history in one changelog. | Plugin maintainer | BR-017 | Should |
+| UR-053 | PLANNED (1.12.0): The plugin maintainer shall be able to rely on each skill's `metadata.json` matching the frontmatter of its `SKILL.md`, with a test that fails on a difference and lists the skills that have no `metadata.json`. | Plugin maintainer | BR-016, BR-005 | Should |
 
 ## 4. Use case summaries
 
@@ -110,7 +111,7 @@ Status is Built unless the row says PLANNED.
 - **Precondition:** `gh` or `bkt` is installed and authenticated; a git remote exists.
 - **Success guarantee:** A verdict was posted only after the user confirmed the drafted text.
 - **Main scenario:** (1) The user types `/pr-review 123`. (2) The skill detects the platform and fetches the PR. (3) It drafts a verdict. (4) The user confirms. (5) The skill posts the verdict through a message file.
-- **Key extensions:** The user answers no and edits the draft. The PR is the user's own and the skill returns an error.
+- **Key extensions:** The user answers no and edits the draft. The PR is the user's own and the skill returns an error. PLANNED (1.12.0): under `/do`, the read-only `reviewer` drafts the verdict in the prose above its block and ends `Done` with `approved` or `returned`, `/do` fetched the PR by redirect so that the PR text never enters its context and shows the draft, and after the user confirms, `/do` itself posts it with `gh` through a body file, without calling `/pr-review`; no subagent posts. The `/do` flow supports `github.com` remotes only in 1.12.0, and any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly (FR-195).
 
 #### UC-004: Recover from a hook failure
 
@@ -124,7 +125,7 @@ Status is Built unless the row says PLANNED.
 
 - **Primary actor:** Plugin maintainer
 - **Precondition:** Changes are reviewed and gates are clear.
-- **Success guarantee:** `plugin.json` and `marketplace.json` carry the same new version, the root changelog has an entry, and both maintenance scripts pass with `--check`.
+- **Success guarantee:** `plugin.json` and `marketplace.json` carry the same new version, the root changelog has an entry, and both maintenance scripts pass with `--check`. PLANNED (1.12.0): the release checklist also names `CLAUDE.md`, `README.md`, and `MARKETPLACE.md` (two places) as files that carry the version (FR-194).
 - **Main scenario:** (1) Run `/bump`. (2) Update both manifests. (3) Run `sync-writing-standard.js --check` and `check-fsa-tables.js --check`. (4) Commit without AI attribution.
 - **Key extensions:** A script exits 1; the maintainer fixes the drift before releasing.
 
@@ -133,7 +134,7 @@ Status is Built unless the row says PLANNED.
 #### In scope (user-facing capabilities)
 
 - Routing and orchestration with approval, stop, and resume.
-- Spec-first builds with conflict check, Clarify, document chain, sign-off, and waiver. PLANNED (1.11.1): the chain writes requirements to `docs/requirements/` and task plans to `docs/task-plans/`, and older root-level files stay in place, with a plain note in `DECISIONS.md` that the project keeps them there.
+- Spec-first builds with conflict check, Clarify, document chain, sign-off, and waiver. Since 1.11.1 the chain writes requirements to `docs/requirements/` and task plans to `docs/task-plans/`, and older root-level files stay in place, with a plain note in `DECISIONS.md` that the project keeps them there. PLANNED (1.12.0): the chain writes specs to `specs/` under the same git root.
 - The 18 user-invocable skills and the opt-in output style.
 - Hook protections the user sees: attribution denial, prose gate and advice, injection markers, write limits, warnings, and `/health`.
 - Maintainer scripts and the release checklist in `CLAUDE.md`.
@@ -158,7 +159,8 @@ Status is Built unless the row says PLANNED.
 ## 7. Open questions
 
 - `README.md`, `docs/SPECIFICATION.md`, and `docs/TOKEN_OPTIMIZATION.md` quote different savings figures (about 65% footprint, 83% static footprint reduction, 36.6% multi-step average, up to 82% on read-only operations). The sources name no measurement method that this document can verify. Which figure, if any, should become a measured success criterion?
-- Resolved by a user decision (`DECISIONS.md`, 2026-10-14): the planned drift check (UR-051) reads a `## Write guard lists` section in `plugins/assist-plugin/rules/assist-plugin-rule.md` and a one-row table under `## Write scope` in `agents/task-planner.md`, both created in 1.11.1.
+- Resolved by a user decision (`DECISIONS.md`, 2026-10-14): the drift check (UR-051) reads a `## Write guard lists` section in `plugins/assist-plugin/rules/assist-plugin-rule.md` and a one-row table under `## Write scope` in `agents/task-planner.md`, both created in 1.11.1.
+- Resolved by the user on 2026-10-16: the 40 deferred points about 1.11.0 behavior, recorded in `DECISIONS.md` (2026-10-16 entries) and in `docs/requirements/FR-NFR-assist-plugin.md`, section 9. Questions that came up while documenting them were closed by later 2026-10-16 answers or are listed there (section 9, open questions 3 to 9).
 
 ## 8. Glossary
 
@@ -176,3 +178,5 @@ Status is Built unless the row says PLANNED.
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-10-14 | Toni-Jan Keith Monserrat | Initial draft for assist-plugin 1.11.0 plus three PLANNED 1.11.1 changes |
+| 1.1 | 2026-10-16 | Toni-Jan Keith Monserrat | Baseline moved to 1.11.1. UR-048, UR-050 to UR-052 set to Built. UR-053 added (PLANNED, 1.12.0). UC-003 and UC-005 note the 1.12.0 changes |
+| 1.2 | 2026-10-17 | Toni-Jan Keith Monserrat | Post-sign-off change: UC-003 now says `/do` fetches the PR by redirect, posts with `gh` only, supports `github.com` remotes only in 1.12.0, and calls no `/pr-review` (`DECISIONS.md:183-216`, FR-195) |

@@ -9,15 +9,15 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-001, BR-007, UR-004, UR-022, UR-023, FR-068, FR-069, FR-070, NFR-010, NFR-021 |
 | **Feature type** | Integration |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: assist-plugin 1.11.0 at commit 4803a0d; every behavior here is Built. Paths are relative to `plugins/assist-plugin/`. The fsa-log hook and the drift check that consume these tables belong to Area B (FR-115 to FR-117, FR-121, FR-122) and are cited by ID only.
+Baseline: assist-plugin 1.11.1 at commit 41034c1; every behavior here is Built, and the 1.12.0 changes leave the block, the six tables, and the NeedsInput protocol as they are (the PR review draft and the OWASP for LLM Gate use existing states and verdicts: spec-orchestration-agents.md, Change Log 2026-10-16). Paths are relative to `plugins/assist-plugin/`. The fsa-log hook and the drift check that consume these tables belong to Area B (FR-115 to FR-117, FR-121, FR-122) and are cited by ID only.
 
 ## Description
 
-Every agent `/do` dispatches ends its final message with one fenced `fsa` block of ten fields. The block is the only channel through which `/do` learns a step's state, artifact, verdict, skips, out-of-scope work, error class, and questions, and the fsa-log hook checks the same block against the agent's `## States` table. Six agents follow a `## States` table with bounded loops; every subagent asks the user only by ending in `NeedsInput`, because Claude Code removes `AskUserQuestion` from subagents (`docs/requirements/FR-NFR-assist-plugin.md:3718`, section 7). The block format and rules T1 to T9 live in `skills/do/references/fsa-template.md`.
+Every agent `/do` dispatches ends its final message with one fenced `fsa` block of ten fields. The block is the only channel through which `/do` learns a step's state, artifact, verdict, skips, out-of-scope work, error class, and questions, and the fsa-log hook checks the same block against the agent's `## States` table. Six agents follow a `## States` table with bounded loops; every subagent asks the user only by ending in `NeedsInput`, because Claude Code removes `AskUserQuestion` from subagents (`docs/requirements/FR-NFR-assist-plugin.md:4532`, section 7). The block format and rules T1 to T9 live in `skills/do/references/fsa-template.md`.
 
 ## Triggered by
 
@@ -137,7 +137,7 @@ The agents `developer-tester`, `reviewer`, `code-reviewer`, `intake-reviewer`, `
 | developer (`developer/1`) | `agents/developer.md:45-60` | Intake: AssembleContext, Error, NeedsInput. AssembleContext: Plan, Error, NeedsInput. Plan: ProduceEdit, NeedsInput. ProduceEdit: SelfCheck. SelfCheck: Done, ProduceEdit | SelfCheck `fail`: `fixes` 2, then Done with `self-check=fail` | `no-input` (`resume_at: Intake`), `stack-unknown` (`AssembleContext`), `ambiguous` (`Plan`) | `precondition-failed`, `missing-input` |
 | task-planner (`task-planner/1`) | `skills/task-plan/SKILL.md:28-42` | Intake: ClassifyContext, NeedsInput, Error. ClassifyContext: ExtractRequirements, NeedsInput. ExtractRequirements: PlanSteps. PlanSteps: CheckPlan. CheckPlan: WritePlan, PlanSteps, Error. WritePlan: Done, Error | CheckPlan `gaps`: `rounds` 2, then Error(budget-exhausted) | `no-spec` (`resume_at: Intake`), `undetected` (`ClassifyContext`) | `precondition-failed`, `budget-exhausted`, `policy-rejection` |
 
-The other ten agents (qa, planner, ask, explore, researcher, devops, general-purpose, worker, requirements-gatherer, solutions-architect) have no `## States` table: `/do` accepts any `trace` from them, and a table for them is out of scope and not scheduled (`docs/requirements/FR-NFR-assist-plugin.md:3713`, section 6). qa is listed in `hooks/lib/fsa-tables.js` as `tableless`, so fsa-log checks its block but not its trace.
+The other ten agents (qa, planner, ask, explore, researcher, devops, general-purpose, worker, requirements-gatherer, solutions-architect) have no `## States` table: `/do` accepts any `trace` from them, and a table for them is out of scope and not scheduled (`docs/requirements/FR-NFR-assist-plugin.md:4527`, section 6). qa is listed in `hooks/lib/fsa-tables.js` as `tableless`, so fsa-log checks its block but not its trace.
 
 #### Scenario: Legal trace
 
@@ -189,9 +189,9 @@ A subagent SHALL ask the user only by ending in `NeedsInput` with numbered `ques
 
 ### Requirement: The markdown tables govern the code tables
 
-The `## States` tables in the markdown SHALL be the source of truth for `hooks/lib/fsa-tables.js`, so a drift is fixed by editing the JavaScript to match the markdown. (NFR-021; `docs/requirements/FR-NFR-assist-plugin.md:3724`, section 7, Process; `CLAUDE.md`, Keeping counts in sync)
+The `## States` tables in the markdown SHALL be the source of truth for `hooks/lib/fsa-tables.js`, so a drift is fixed by editing the JavaScript to match the markdown. (NFR-021; `docs/requirements/FR-NFR-assist-plugin.md:4538`, section 7, Process; `CLAUDE.md`, Keeping counts in sync)
 
-The check is `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` (FR-121, FR-122, Area B). The pairing check of `verdictByStep` against the intake-reviewer Outcome cells is PLANNED (1.11.1), FR-126.
+The check is `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` (FR-121, FR-122, Area B). The pairing check of `verdictByStep` against the intake-reviewer Outcome cells is Built (1.11.1), FR-126.
 
 #### Scenario: Table edited
 

@@ -9,23 +9,23 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-015, UR-044, UR-051, FR-121, FR-122, FR-126, FR-127, FR-128, FR-129, FR-180, FR-186, NFR-011, NFR-021 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-`scripts/check-fsa-tables.js` is a maintainer script. It compares the transition tables in `hooks/lib/fsa-tables.js` with the `## States` tables in the agent and skill files, the test globs in `hooks/lib/fsa-paths.js` with the `## Write scope` table in `agents/developer-tester.md`, and checks that every example `fsa` block in those files is a legal run of its table. The markdown is the source of truth: on drift, the JavaScript is edited to match (`docs/requirements/FR-NFR-assist-plugin.md` section 7). Requirements marked **Built** describe commit 4803a0d.
+`scripts/check-fsa-tables.js` is a maintainer script. It compares the transition tables in `hooks/lib/fsa-tables.js` with the `## States` tables in the agent and skill files, the test globs in `hooks/lib/fsa-paths.js` with the `## Write scope` table in `agents/developer-tester.md`, and checks that every example `fsa` block in those files is a legal run of its table. The markdown is the source of truth: on drift, the JavaScript is edited to match (`docs/requirements/FR-NFR-assist-plugin.md` section 7). Requirements marked **Built** describe assist-plugin 1.11.1 (commit 41034c1).
 
-Release 1.11.1 (**PLANNED**) adds, per `DECISIONS.md` (2026-10-14, Write guard lists live in rules/assist-plugin-rule.md): a `## Write guard lists` section in `plugins/assist-plugin/rules/assist-plugin-rule.md` and a one-row table under `## Write scope` in `agents/task-planner.md` (FR-180), and checks of `verdictByStep` (FR-126), `TASK_PLAN_GLOB` (FR-127), `PROTECTED_GLOBS` and `PROTECTED_FILES` (FR-128), and `AUTO_LOADED` (FR-129) against the markdown. The task-plan glob in both task-plan tables is `docs/task-plans/task-plan-*.md`, the scope that FR-186 gives `task-planner` in the same release (`DECISIONS.md:78-86`, 2026-10-16; spec-hooks-fsa-write-bar.md, Requirement: Task-planner write scope in docs/task-plans/).
+Release 1.11.1 added, per `DECISIONS.md` (2026-10-14, Write guard lists live in rules/assist-plugin-rule.md): a `## Write guard lists` section in `plugins/assist-plugin/rules/assist-plugin-rule.md` and a one-row table under `## Write scope` in `agents/task-planner.md` (FR-180), and checks of `verdictByStep` (FR-126), `TASK_PLAN_GLOB` (FR-127), `PROTECTED_GLOBS` and `PROTECTED_FILES` (FR-128), and `AUTO_LOADED` (FR-129) against the markdown. The task-plan glob in both task-plan tables is `docs/task-plans/task-plan-*.md`, the scope that FR-186 gave `task-planner` in the same release (`DECISIONS.md:78-86`, 2026-10-16; spec-hooks-fsa-write-bar.md, Requirement: Task-planner write scope in docs/task-plans/). The change log at the end records two parsing rules the 1.11.1 code added and the accepted limit of FR-126.
 
-Paths below are relative to `plugins/assist-plugin/`, the script's plugin root (`scripts/check-fsa-tables.js:21`).
+Paths below are relative to `plugins/assist-plugin/`, the script's plugin root (`scripts/check-fsa-tables.js:32`).
 
 ## Triggered by
 
 | Trigger type | Source | Condition |
 |---|---|---|
-| Manual process | Maintainer runs `node plugins/assist-plugin/scripts/check-fsa-tables.js [--check]` from any directory | After editing a `## States` table, a Write scope table, a terminal-block example, or (PLANNED) a write guard list (`CLAUDE.md`, Keeping counts in sync) |
+| Manual process | Maintainer runs `node plugins/assist-plugin/scripts/check-fsa-tables.js [--check]` from any directory | After editing a `## States` table, a Write scope table, a terminal-block example, or a write guard list (`CLAUDE.md`, Keeping counts in sync) |
 | Release | Release checklist (UC-005 in `docs/requirements/URD-assist-plugin.md`) | Before each release; NFR-021 requires exit 0 |
 
 ## Required data
@@ -33,23 +33,23 @@ Paths below are relative to `plugins/assist-plugin/`, the script's plugin root (
 | Data | Source | Type | Notes |
 |---|---|---|---|
 | `TABLES`, `TERMINALS`, `ERROR_CLASSES`, `INITIAL` | `hooks/lib/fsa-tables.js` | JavaScript constants | Loaded with `require` |
-| `TEST_GLOBS`, `TASK_PLAN_GLOB`, `PROTECTED_GLOBS`, `PROTECTED_FILES`, `AUTO_LOADED` | `hooks/lib/fsa-paths.js:20-43` | JavaScript constants | The last four are PLANNED inputs |
+| `TEST_GLOBS`, `TASK_PLAN_GLOB`, `PROTECTED_GLOBS`, `PROTECTED_FILES`, `AUTO_LOADED` | `hooks/lib/fsa-paths.js:20-44` | JavaScript constants | The last four are inputs since 1.11.1 |
 | `## States` tables | `skills/create-test/SKILL.md`, `agents/reviewer.md`, `agents/code-reviewer.md`, `agents/intake-reviewer.md`, `agents/developer.md`, `skills/task-plan/SKILL.md`; `agents/qa.md` (must have none) | markdown | One source per `TABLES` entry |
 | Example `fsa` blocks | The table sources plus `skills/do/references/fsa-template.md`, `agents/developer-tester.md`, `agents/task-planner.md` | markdown | |
 | `## Write scope` table | `agents/developer-tester.md` | markdown | Test globs |
-| `## Write guard lists` section | `rules/assist-plugin-rule.md` | markdown | PLANNED (FR-180) |
-| `## Write scope` one-row table | `agents/task-planner.md` | markdown | PLANNED (FR-180) |
+| `## Write guard lists` section | `rules/assist-plugin-rule.md:418-447` | markdown | Built (1.11.1, FR-180) |
+| `## Write scope` one-row table | `agents/task-planner.md:44-46` | markdown | Built (1.11.1, FR-180) |
 | `--check` | Command line | flag | Exit 1 on drift only with this flag |
 
 ## Behavior
 
 ### Requirement: Markdown parsing rules
 
-The script SHALL read a section as the lines after a heading line whose trimmed text equals the heading (a `## ` line) up to the next level-1 or level-2 heading outside a code fence, and a table as the rows of the first table in those lines, without its header and separator rows, at most 38 data rows (the 40-row cap counts the header and separator rows, `scripts/check-fsa-tables.js:30`, `:82`, `:91`), splitting cells on `|` outside backtick code spans.
+The script SHALL read a section as the lines after a heading line whose trimmed text equals the heading (a `## ` line) up to the next level-1 or level-2 heading outside a code fence, and a table as the rows of the first table in those lines, without its header and separator rows, at most 38 data rows (the 40-row cap counts the header and separator rows, `scripts/check-fsa-tables.js:41`, `:117`, `:125`), splitting cells on `|` outside backtick code spans.
 
 **Requirement refs:** FR-121, UR-044
 **Status:** Built
-**Source:** `scripts/check-fsa-tables.js:28-30`, `:36-92`
+**Source:** `scripts/check-fsa-tables.js:39-41`, `:58-131`
 
 A code fence opens on a line of up to 3 spaces and 3 to 10 backticks or tildes, and the same character closes it. Leading and trailing `|` are dropped and each cell is trimmed. `### ` lines stay inside a `## ` section.
 
@@ -71,7 +71,7 @@ The script SHALL, for each table in `hooks/lib/fsa-tables.js`, parse the first t
 
 **Requirement refs:** FR-121, UR-044, NFR-021
 **Status:** Built
-**Source:** `scripts/check-fsa-tables.js:97-148`; `hooks/lib/fsa-tables.js:17-23`, `:30-124`
+**Source:** `scripts/check-fsa-tables.js:136-187`; `hooks/lib/fsa-tables.js:17-23`, `:30-124`
 
 Row parsing: the first cell is the state; a second cell of `terminal` makes the row the terminal list (first cell split on commas); otherwise the fourth cell splits on `;`, and each segment with `->` contributes the state name that follows (`[A-Z][A-Za-z]{0,30}`) and, when present, its `(<class>)`. A tableless agent (`qa`) is drift when its source file has a line `## States`. A source file with no `## States` table is an operational error (exit 2).
 
@@ -101,7 +101,7 @@ The script SHALL check every `fsa` block, in each table source and in `skills/do
 
 **Requirement refs:** FR-121, UR-044
 **Status:** Built
-**Source:** `scripts/check-fsa-tables.js:25-27`, `:150-177`; `hooks/lib/fsa-tables.js:166-245`
+**Source:** `scripts/check-fsa-tables.js:36-38`, `:189-216`; `hooks/lib/fsa-tables.js:166-245`
 
 A block naming no table (a placeholder such as `<agent>/<version>`) is skipped. The checks and problem codes are those of `fsa-log` (spec-hooks-fsa-log.md, Requirement: Block checks and problem codes).
 
@@ -123,7 +123,7 @@ The script SHALL compare the first cells of the `## Write scope` table in `agent
 
 **Requirement refs:** FR-121, UR-044
 **Status:** Built
-**Source:** `scripts/check-fsa-tables.js:179-185`
+**Source:** `scripts/check-fsa-tables.js:218-224`
 
 This comparison stays lenient about backticks; the exact-form rule of FR-180 applies only to the new tables.
 
@@ -145,7 +145,7 @@ The script SHALL print one line per comparison, `ok    <label>` or `DRIFT <label
 
 **Requirement refs:** FR-121, FR-122, UR-044
 **Status:** Built
-**Source:** `scripts/check-fsa-tables.js:10-15`, `:187-208`
+**Source:** `scripts/check-fsa-tables.js:20-25`, `:342-372`
 
 Total line: `FSA tables match the markdown.` or `<N> difference(s) between lib and the markdown. The markdown is the source of truth.`
 
@@ -166,10 +166,10 @@ Total line: `FSA tables match the markdown.` or `<N> difference(s) between lib a
 The plugin SHALL hold the write guard lists in markdown tables whose first column gives the exact code string in backticks: four tables in `plugins/assist-plugin/rules/assist-plugin-rule.md`, each under its own subheading of `## Write guard lists` (`### Protected globs`, `### Protected files`, `### Auto-loaded names`, `### Task-plan glob`), and a one-row table for the task-plan glob under `## Write scope` in `agents/task-planner.md`. The task-plan glob in both tables is `docs/task-plans/task-plan-*.md` once FR-186 is built.
 
 **Requirement refs:** FR-180, FR-186, UR-051, BR-015
-**Status:** PLANNED (1.11.1)
-**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2401-2415` (FR-180); `DECISIONS.md:68-70` (2026-10-14, Write guard lists live in rules/assist-plugin-rule.md) and `DECISIONS.md:78-86` (2026-10-16, task plans in `docs/task-plans/`); `hooks/lib/fsa-paths.js:32-43` (values at 4803a0d)
+**Status:** Built (1.11.1)
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2702-2716` (FR-180 in v1.1); `DECISIONS.md:68-70` (2026-10-14, Write guard lists live in rules/assist-plugin-rule.md) and `DECISIONS.md:78-86` (2026-10-16, task plans in `docs/task-plans/`); built at `rules/assist-plugin-rule.md:418-447` and `agents/task-planner.md:40-46`; `hooks/lib/fsa-paths.js:32-44`; `tests/scripts/check-fsa-tables.test.js`
 
-Content to add to `rules/assist-plugin-rule.md`, as a new section after `## Hook Fail-Open Rule` and before `## Governance Enforcement`. The headings and the first-column strings are binding; the second column and the opening paragraph are the proposed wording:
+Content added to `rules/assist-plugin-rule.md` in 1.11.1, as a section after `## Hook Fail-Open Rule` and before `## Governance Enforcement` (`:418-447`, read 2026-10-16 and equal to the text below). The headings and the first-column strings are binding; the second column and the opening paragraph were the proposed wording:
 
 ```markdown
 ## Write guard lists
@@ -203,7 +203,7 @@ Content to add to `rules/assist-plugin-rule.md`, as a new section after `## Hook
 | `docs/task-plans/task-plan-*.md` | The only files `task-planner` writes: a `task-plan-*.md` file directly under `docs/task-plans/` of the git root of the session's working directory (a worktree uses its own root); root-level task plans in older projects are read, never written |
 ```
 
-Content to add under `## Write scope` in `agents/task-planner.md`, after the existing paragraph:
+Content added under `## Write scope` in `agents/task-planner.md`, after the paragraph (`:44-46`):
 
 ```markdown
 | Glob | Where |
@@ -211,7 +211,7 @@ Content to add under `## Write scope` in `agents/task-planner.md`, after the exi
 | `docs/task-plans/task-plan-*.md` | Directly under `docs/task-plans/` of the session's git root (a worktree uses its own root; outside a git repository, the working directory), no deeper; a rework of a root-level plan is written here as a new file |
 ```
 
-The paragraph above that table in `agents/task-planner.md:42` describes the root-level scope of 4803a0d and changes with FR-186. The `task-plan` skill's output folder and grant change under FR-184 and FR-185 (Area C).
+The paragraph above that table (`agents/task-planner.md:42`) states the FR-186 scope since 1.11.1. The `task-plan` skill's output folder and grant changed under FR-184 and FR-185 (Area C).
 
 Both files are on the plugin's executable surface, so the change needs `✓ LLM Security Clear` before merge (NFR-011).
 
@@ -238,11 +238,11 @@ Both files are on the plugin's executable surface, so the change needs `✓ LLM 
 The script SHALL read each write guard table as the first table in the lines of its `###` subsection, where a subsection is the lines of the `## Write guard lists` section after a line whose trimmed text equals the subheading, up to the next heading of level 1 to 3 outside a code fence, accepting a data row only when its trimmed first cell is exactly one code span: a backtick, one or more characters that are not backticks, and a backtick, with nothing else.
 
 **Requirement refs:** FR-180, UR-051
-**Status:** PLANNED (1.11.1)
-**Source:** `scripts/check-fsa-tables.js:36-92` (`sectionLines`, `splitRow`, `firstTable`, reused); `DECISIONS.md` (2026-10-14)
+**Status:** Built (1.11.1); the code adds two drift rules this statement does not name (Change Log 2026-10-16, MODIFIED)
+**Source:** `scripts/check-fsa-tables.js:58-131` (`scanSection`, `sectionLines`, `splitRow`, `tableRows`, `firstTable`), `:267-307` (`readGuardTable`, `headingRepeats`, `guardSubsection`); `DECISIONS.md` (2026-10-14)
 
 Rules:
-- The section comes from `sectionLines(text, "## Write guard lists")`. A new helper takes the subsection from those lines with the same fence tracking. The task-planner table comes from `firstTable(sectionLines(text, "## Write scope"))` on `agents/task-planner.md`.
+- The section comes from `scanSection(text, "## Write guard lists", 2)` (`scripts/check-fsa-tables.js:349`). `guardSubsection` (`:302-307`) takes each subsection from those lines with the same fence tracking. The task-planner table comes from `firstTable(sectionLines(text, "## Write scope"))` on `agents/task-planner.md`.
 - The value of a row is the text inside the code span, unchanged (no trimming inside the backticks).
 - A first cell in any other form is drift: `<file>, <heading>, row <n>: first cell <cell> is not one code span`, with the cell as written, cut to 80 characters.
 - A missing section, subsection, or table is drift: `<file>: no table under <heading>`. Exit code 2 stays reserved for unreadable files (FR-122), because a malformed table is drift the maintainer fixes in the markdown, the same way as a wrong value.
@@ -278,8 +278,8 @@ Rules:
 The script `scripts/check-fsa-tables.js --check` SHALL exit 1 when `PROTECTED_GLOBS` or `PROTECTED_FILES` in `hooks/lib/fsa-paths.js` differ from the strings in backticks in the first column of the tables under `### Protected globs` and `### Protected files` in the `## Write guard lists` section of `plugins/assist-plugin/rules/assist-plugin-rule.md`, with the markdown as the source of truth.
 
 **Requirement refs:** FR-128, UR-051, NFR-021
-**Status:** PLANNED (1.11.1)
-**Source:** `hooks/lib/fsa-paths.js:36-39`
+**Status:** Built (1.11.1)
+**Source:** `hooks/lib/fsa-paths.js:37-40`; `scripts/check-fsa-tables.js:311-324`, `:350-351`
 
 Result labels: `write guard list PROTECTED_GLOBS (rules/assist-plugin-rule.md, ### Protected globs): <n> entries` and the same for `PROTECTED_FILES` and `### Protected files`. Problems: `PROTECTED_FILES: <value> is in the markdown only` or `PROTECTED_FILES: <value> is in lib/fsa-paths.js only`.
 
@@ -316,8 +316,8 @@ Decision guard on the fix: a value that is in `lib/fsa-paths.js` only means that
 The script `scripts/check-fsa-tables.js --check` SHALL exit 1 when `AUTO_LOADED` in `hooks/lib/fsa-paths.js` differs from the strings in backticks in the first column of the table under `### Auto-loaded names` in the `## Write guard lists` section of `plugins/assist-plugin/rules/assist-plugin-rule.md`, with the markdown as the source of truth.
 
 **Requirement refs:** FR-129, UR-051, NFR-021
-**Status:** PLANNED (1.11.1)
-**Source:** `hooks/lib/fsa-paths.js:41-43`
+**Status:** Built (1.11.1)
+**Source:** `hooks/lib/fsa-paths.js:42-44`; `scripts/check-fsa-tables.js:352`
 
 Result label: `write guard list AUTO_LOADED (rules/assist-plugin-rule.md, ### Auto-loaded names): <n> entries`. The comparison is exact and case-sensitive; the hook folds case only when it matches a path. The protection guard on the fix (Requirement: Protected path drift check) applies to this list too.
 
@@ -344,12 +344,12 @@ Result label: `write guard list AUTO_LOADED (rules/assist-plugin-rule.md, ### Au
 The script `scripts/check-fsa-tables.js --check` SHALL exit 1 when `TASK_PLAN_GLOB` in `hooks/lib/fsa-paths.js` differs from the glob in either of two tables: the table under `### Task-plan glob` in the `## Write guard lists` section of `plugins/assist-plugin/rules/assist-plugin-rule.md`, or the one-row table under `## Write scope` in `agents/task-planner.md`, with the markdown as the source of truth.
 
 **Requirement refs:** FR-127, FR-186, UR-051, NFR-021
-**Status:** PLANNED (1.11.1)
-**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2348-2367` (FR-127); `hooks/lib/fsa-paths.js:32-34` (`task-plan-*.md` at 4803a0d; `docs/task-plans/task-plan-*.md` after FR-186); `agents/task-planner.md:40-42` (Write scope, prose only at commit 4803a0d)
+**Status:** Built (1.11.1)
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2649-2668` (FR-127 in v1.1); `hooks/lib/fsa-paths.js:32-35` (`docs/task-plans/task-plan-*.md` since 1.11.1; `task-plan-*.md` at 4803a0d); `agents/task-planner.md:40-46` (Write scope with its one-row table since 1.11.1; prose only at 4803a0d); `scripts/check-fsa-tables.js:326-340`, `:353-355`
 
 Each table is a separate comparison with its own result line: `TASK_PLAN_GLOB (rules/assist-plugin-rule.md, ### Task-plan glob)` and `TASK_PLAN_GLOB (agents/task-planner.md, ## Write scope)`. Each table holds exactly one data row; another count is drift: `<file>, <heading>: <n> rows; expected 1`. Problems: `TASK_PLAN_GLOB: <value> is in the markdown only` or `TASK_PLAN_GLOB: <value> is in lib/fsa-paths.js only`.
 
-Decision guard on the fix: any value difference in a task-plan comparison means that following the markdown would change the code value, and with it what `task-planner` may write. A wider glob such as `**/*.md` would let `task-planner` overwrite any markdown file outside hidden folders, including documents later agents read and act on (OWASP LLM04, data and model poisoning). So whenever a task-plan comparison reports a value in the markdown only or in `lib/fsa-paths.js` only, the script prints the `DECISIONS.md` line of Requirement: Protected path drift check after that comparison's problems. A row-count problem alone, with the one code value present, prints no line. The planned move to `docs/task-plans/task-plan-*.md` already has its decision (`DECISIONS.md:83-86`, 2026-10-16, Legacy root documents and the requirements JSON), so the maintainer updates `TASK_PLAN_GLOB`, and `--check` then passes.
+Decision guard on the fix: any value difference in a task-plan comparison means that following the markdown would change the code value, and with it what `task-planner` may write. A wider glob such as `**/*.md` would let `task-planner` overwrite any markdown file outside hidden folders, including documents later agents read and act on (OWASP LLM04, data and model poisoning). So whenever a task-plan comparison reports a value in the markdown only or in `lib/fsa-paths.js` only, the script prints the `DECISIONS.md` line of Requirement: Protected path drift check after that comparison's problems. A row-count problem alone, with the one code value present, prints no line. The move to `docs/task-plans/task-plan-*.md` had its decision (`DECISIONS.md:83-86`, 2026-10-16, Legacy root documents and the requirements JSON), and 1.11.1 updated `TASK_PLAN_GLOB` to match, so `--check` passes for both task-plan tables.
 
 #### Scenario: Glob matches
 
@@ -393,9 +393,9 @@ Decision guard on the fix: any value difference in a task-plan comparison means 
 The script `scripts/check-fsa-tables.js --check` SHALL exit 1 when `verdictByStep` in `hooks/lib/fsa-tables.js` differs from the verdict named in the Outcome cells of the `Decide` and `Verify` rows of the `## States` table in `agents/intake-reviewer.md`, with the markdown as the source of truth.
 
 **Requirement refs:** FR-126, UR-051, NFR-021
-**Status:** PLANNED (1.11.1)
-**Open point:** comparing other tables' verdicts is pending OP-B12 (spec-hooks-platform.md, Open points)
-**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2332-2346` (FR-126); `hooks/lib/fsa-tables.js:77-94` (`verdictByStep`); `agents/intake-reviewer.md:63-77` (`## States` table and its note on the pairing)
+**Status:** Built (1.11.1)
+**Accepted limit:** OP-B12 closed 2026-10-16: only `verdictByStep` is compared, as FR-126 states (Change Log 2026-10-16, MODIFIED)
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md:2628-2647` (FR-126 in v1.1); `hooks/lib/fsa-tables.js:77-94` (`verdictByStep`); `agents/intake-reviewer.md:63-77` (`## States` table and its note on the pairing); `scripts/check-fsa-tables.js:226-265`
 
 Markdown side: the script reads the `## States` table of `agents/intake-reviewer.md` with the existing parser and, for each row, splits the fourth (Outcome) cell on `;`. A segment whose text after `->` starts with `Done with verdict` followed by one code span names a verdict for that row's state. The markdown pairing maps each state with at least one such segment to its set of verdicts. At commit 4803a0d this gives `Decide`: `accepted`, `needs-changes`; `Verify`: `clear`, `needs-clarification`.
 
@@ -405,7 +405,7 @@ Comparison: the state sets, then each state's verdict sets. Problems: `verdict s
 
 Reading the pattern's alternation gives exact set equality, which also catches an extra alternative that no markdown verdict would exercise; testing the pattern against the markdown verdicts alone would miss it.
 
-Limit, pending OP-B12 (spec-hooks-platform.md, Open points): only `verdictByStep` is compared, and only `intake-reviewer` has one. Not compared: the `Done with verdict` pairs in the other tables, such as `agents/reviewer.md:51` and `agents/code-reviewer.md:52` (`approved`, `returned`), and each table's own `verdict` pattern (`hooks/lib/fsa-tables.js:35`, `:50`, `:57`, `:69`, `:81`, `:99`, `:114`). A change to either side of those passes `--check`.
+Accepted limit (OP-B12 closed 2026-10-16; FR-126 Source line and scenario, `docs/requirements/FR-NFR-assist-plugin.md:2632`, `:2644-2647`): only `verdictByStep` is compared, and only `intake-reviewer` has one. Not compared: the `Done with verdict` pairs in the other tables, such as `agents/reviewer.md:51` and `agents/code-reviewer.md:52` (`approved`, `returned`), and each table's own `verdict` pattern (`hooks/lib/fsa-tables.js:35`, `:50`, `:57`, `:69`, `:81`, `:99`, `:114`). A change to either side of those passes `--check`.
 
 #### Scenario: Pairing matches
 
@@ -434,10 +434,10 @@ flowchart TD
   S(["node scripts/check-fsa-tables.js, with or without --check"]) --> A["Per table in lib/fsa-tables.js: parse ## States in its source file and compare"]
   A --> B["Check every fsa example block against its table"]
   B --> C["Compare TEST_GLOBS with the ## Write scope table in agents/developer-tester.md"]
-  C --> P1["PLANNED FR-126: compare verdictByStep with the intake-reviewer Outcome cells"]
-  P1 --> P2["PLANNED FR-128, FR-129, FR-180: compare PROTECTED_GLOBS, PROTECTED_FILES, AUTO_LOADED with the ## Write guard lists tables"]
-  P2 --> P3["PLANNED FR-127: compare TASK_PLAN_GLOB with two one-row tables"]
-  P3 --> D["Print ok or DRIFT per result, then the total line"]
+  C --> P1["FR-126: compare verdictByStep with the intake-reviewer Outcome cells"]
+  P1 --> P2["FR-128, FR-129, FR-180: compare PROTECTED_GLOBS, PROTECTED_FILES, AUTO_LOADED with the ## Write guard lists tables"]
+  P2 --> P3["FR-127: compare TASK_PLAN_GLOB with two one-row tables"]
+  P3 --> D["Print ok or DRIFT per result, notes after a result, then the total line"]
   D --> E{"Drift found and --check given?"}
   E -->|yes| X1(["exit 1"])
   E -->|no| X0(["exit 0"])
@@ -447,8 +447,8 @@ flowchart TD
 **Note:** PNG rendering requires mermaid-cli with its headless browser, which is missing on this machine (see spec-hooks-platform.md). Render with `mmdc -i specs/spec-hooks-fsa-table-check-flow.mmd -o specs/spec-hooks-fsa-table-check-flow.png` once it is installed.
 
 1. Load `hooks/lib/fsa-tables.js` and `hooks/lib/fsa-paths.js`.
-2. Run the state table comparison for every table, then the example block check for every source file, then the test glob comparison (Built).
-3. PLANNED: run the verdict pairing, the three write-guard-list comparisons, and the two task-plan comparisons, in that order.
+2. Run the state table comparison for every table, then the example block check for every source file, then the test glob comparison.
+3. Run the verdict pairing, the three write-guard-list comparisons, and the two task-plan comparisons, in that order (built in 1.11.1, `scripts/check-fsa-tables.js:348-355`).
 4. Print each result and the total line; choose the exit code.
 
 ## Output / Outcome
@@ -466,8 +466,9 @@ flowchart TD
 |---|---|---|
 | A file cannot be read | Throw, caught at the top level | stderr message, exit 2 |
 | A `## States` table is missing in a table's source | Throw | stderr message, exit 2 |
-| PLANNED: write guard section, subsection, or table missing | Drift problem | `DRIFT` line; exit 1 with `--check` |
-| PLANNED: first cell not one code span | Drift problem naming the cell | `DRIFT` line; exit 1 with `--check` |
+| Write guard section, subsection, or table missing | Drift problem | `DRIFT` line; exit 1 with `--check` |
+| First cell not one code span | Drift problem naming the cell | `DRIFT` line; exit 1 with `--check` |
+| A write guard heading repeated, or a write guard table over 38 data rows | Drift problem (Change Log 2026-10-16) | `DRIFT` line; exit 1 with `--check` |
 
 ## Events emitted (if applicable)
 
@@ -480,7 +481,7 @@ Not applicable: the script prints and exits.
 | Node.js | Runtime | yes | ES2015 syntax, no packages |
 | `hooks/lib/fsa-tables.js`, `hooks/lib/fsa-paths.js` | Runtime | yes | The code side of every comparison |
 | Agent, skill, and rule markdown | Runtime | yes | The source of truth |
-| `CLAUDE.md` (Keeping counts in sync), `README.md` (FSA hooks), the script's header comment | Documentation | no | PLANNED: name the write guard lists among the tables to check after editing |
+| `CLAUDE.md` (Keeping counts in sync), `README.md` (FSA hooks), the script's header comment | Documentation | no | Name the write guard lists among the tables to check after editing: `CLAUDE.md` and the header (`scripts/check-fsa-tables.js:8-18`) do since 1.11.1 (read 2026-10-16); `README.md` was not re-checked here |
 | `✓ LLM Security Clear` | Process | yes | Changes to `rules/*.md`, `agents/*.md`, and `hooks/**` (NFR-011) |
 
 ## Sub-feature breakdown (if applicable)
@@ -497,7 +498,7 @@ Not applicable.
 |---|---|---|
 | BR-015 | Requirement: State table comparison; Requirement: Write guard lists in the markdown | SC-008: `--check` exits 0 at release |
 | UR-044 | Requirement: State table comparison; Requirement: Test glob comparison | In-sync and drift scenarios |
-| UR-051 | Requirement: Protected path drift check; Requirement: Auto-loaded file drift check; Requirement: Task-plan glob drift check; Requirement: Verdict pairing drift check | PLANNED drift scenarios |
+| UR-051 | Requirement: Protected path drift check; Requirement: Auto-loaded file drift check; Requirement: Task-plan glob drift check; Requirement: Verdict pairing drift check | Drift scenarios; `tests/scripts/check-fsa-tables.test.js` |
 | FR-121 | Requirement: Markdown parsing rules; Requirement: State table comparison; Requirement: Example block check; Requirement: Test glob comparison; Requirement: Output and exit codes | Drift, error class, example block, and glob scenarios |
 | FR-122 | Requirement: Output and exit codes | No-flag and missing-file scenarios |
 | FR-126 | Requirement: Verdict pairing drift check | Pairing matches and drifts scenarios |
@@ -508,3 +509,78 @@ Not applicable.
 | FR-186 | Requirement: Write guard lists in the markdown; Requirement: Task-plan glob drift check | The `docs/task-plans/task-plan-*.md` value in both tables; tables-added-before-the-code-moves scenario |
 | NFR-011 | Requirement: Write guard lists in the markdown; Dependencies | Merge policy review |
 | NFR-021 | Requirement: State table comparison | `--check` exit 0 at every release |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16, final and approved; baseline assist-plugin 1.11.1, commit 41034c1): FR-126 to FR-129 and FR-180 Built (1.11.1) (`:2626-2716`), FR-126 accepted limit with its scenario (`:2632`, `:2644-2647`); the answer to OP-B12 in `.agent/main-plan/plan-deferred-decisions-20261016-1059.md` (User Decisions); `scripts/check-fsa-tables.js` at 1.11.1, whose write guard checks came with commit 776355c ("compare write guard lists and verdicts in check-fsa-tables").
+
+### Body edits without a behavior change
+
+- Status: Draft -> Review.
+- Description, Triggered by, Required data, Algorithmic steps, Error handling, Dependencies, and Traceability: the FR-126 to FR-129 and FR-180 items are Built (1.11.1); the PLANNED labels are gone.
+- Requirement: Write guard lists in the markdown: Status Built (1.11.1); "Content to add" became "Content added", checked equal to `rules/assist-plugin-rule.md:418-447` and `agents/task-planner.md:44-46`.
+- Requirements: Protected path drift check, Auto-loaded file drift check, and Task-plan glob drift check: Status Built (1.11.1), with the script lines that build them.
+- Line cites of `scripts/check-fsa-tables.js` refreshed against 1.11.1: the plugin root (`:32`), the row cap (`:41`, `:117`, `:125`), the parsers (`:39-41`, `:58-131`), the state table comparison (`:136-187`), the example block check (`:36-38`, `:189-216`), the test glob comparison (`:218-224`), and the output (`:20-25`, `:342-372`).
+- Flow diagram (`spec-hooks-fsa-table-check-flow.mmd` and the copy in this file): the PLANNED labels removed. Rendering skipped (spec-hooks-platform.md, note under Data flow).
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Write guard list parsing
+
+**Was:** The statement, with these drift cases in its rules: a first cell that is not one code span, a missing section, subsection, or table, and a value listed twice in one table.
+
+**Now:** The statement is unchanged, and the rules add three cases the 1.11.1 code reports:
+- A repeated heading is drift: `## Write guard lists` or one of its `###` subheadings appearing more than once in the rule file, or `## Write scope` appearing more than once in `agents/task-planner.md`, gives `<file>: <heading> appears <n> times`, because the parser merges the repeated sections and compares only the first table (`scripts/check-fsa-tables.js:58-82`, `:297-307`, `:354-355`).
+- A write guard table past the 40-row cap (more than 38 data rows) is drift: `<file>, <heading>: more than 38 data rows; the rest are not read`, and that table's values are not compared (`:110-126`, `:279-282`).
+- A table with a header and no data rows is not missing; it has 0 rows (`:267-275`). For a task-plan table that gives `<file>, <heading>: 0 rows; expected 1` and, because the code value is then in `lib/fsa-paths.js` only, the value problem and the `DECISIONS.md` line.
+
+**Reason:** FR-180 was built in 1.11.1 with these rules; this spec did not state them.
+
+**Status:** Built (1.11.1)
+
+##### Scenario: Repeated subheading
+
+- **GIVEN** `rules/assist-plugin-rule.md` holds `### Protected files` twice under `## Write guard lists`
+- **WHEN** the script runs with `--check`
+- **THEN** it SHALL report `rules/assist-plugin-rule.md: ### Protected files appears 2 times` and exit 1
+
+##### Scenario: Table past the row cap
+
+- **GIVEN** the `### Protected files` table holds 39 data rows
+- **WHEN** the script runs with `--check`
+- **THEN** it SHALL report `rules/assist-plugin-rule.md, ### Protected files: more than 38 data rows; the rest are not read`, compare no value of that table, and exit 1
+
+##### Scenario: Header-only task-plan table
+
+- **GIVEN** the table under `## Write scope` in `agents/task-planner.md` holds its header and separator rows and no data row, and `TASK_PLAN_GLOB` is `docs/task-plans/task-plan-*.md`
+- **WHEN** the script runs with `--check`
+- **THEN** it SHALL report `agents/task-planner.md, ## Write scope: 0 rows; expected 1` and `TASK_PLAN_GLOB: docs/task-plans/task-plan-*.md is in lib/fsa-paths.js only`, print the `DECISIONS.md` line, and exit 1
+
+The scenarios Not in exact code form, Code span with extra text, Section missing, and Rule file unreadable are unchanged.
+
+#### Requirement: Verdict pairing drift check
+
+**Was:** Status PLANNED (1.11.1), with comparing other tables' verdicts pending OP-B12.
+
+**Now:** Status Built (1.11.1). The limit is accepted: the check compares only `verdictByStep` with the `intake-reviewer` Outcome cells, and a difference between another table's `verdict` pattern and its `Done with verdict` cell does not make `--check` exit 1. The statement is unchanged.
+
+**Reason:** OP-B12 closed with option (a); FR-126 (`:2632`, scenario `:2644-2647`).
+
+**Status:** Built (1.11.1)
+
+##### Scenario: Accepted limit, other verdict patterns
+
+- **GIVEN** the verdict pattern of the `reviewer` table in `hooks/lib/fsa-tables.js` differs from the `Done with verdict` cells in `agents/reviewer.md`, and no other comparison drifts
+- **WHEN** the script runs with `--check`
+- **THEN** the script SHALL exit 0, because the check covers `verdictByStep` and the `intake-reviewer` cells only
+- **AND** an example `fsa` block whose verdict the changed pattern rejects SHALL still be reported by Requirement: Example block check, which is other drift
+
+The scenarios Pairing matches, Pairing drifts, and Pattern not a plain list are unchanged.
+
+### REMOVED Requirements
+
+None.

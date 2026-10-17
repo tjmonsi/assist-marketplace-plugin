@@ -1,0 +1,15 @@
+flowchart TD
+  S(["CHANGELOG.md in the project root or the --path dir"]) --> H{"Holds an x.y.z release heading?"}
+  H -->|"yes"| W1(["Write the entry in place; follow no link"])
+  H -->|"no"| L{"Holds a relative link to a local file?"}
+  L -->|"no: no links, or external links only"| W2(["Write the entry in place"])
+  L -->|"yes"| P{"Exactly one such link, to a file named CHANGELOG.md, inside the git root, not hidden, not an auto-loaded file?"}
+  P -->|"no"| A["Write nothing; stop and ask: write in place, name another target, or skip the changelog"]
+  P -->|"yes"| T{"Target is itself a pointer?"}
+  T -->|"yes"| A
+  T -->|"no"| W3(["Write the entry into the target"])
+  A -->|"in place"| W4(["Write the entry in the stopped file; the run continues"])
+  A -->|"another target"| NT{"Named target: a file named CHANGELOG.md, inside the git root, not hidden, not auto-loaded, not itself a pointer?"}
+  NT -->|"yes"| W5(["Write the entry into the named target, creating it when missing; the run continues"])
+  NT -->|"no"| A
+  A -->|"skip"| W6(["Write no entry; the run continues with the version files"])

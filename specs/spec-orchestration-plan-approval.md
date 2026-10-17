@@ -7,13 +7,13 @@
 | **Feature** | `/do` plan file, plan approval, preflight, and decision records |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-006, BR-012, UR-001, UR-002, UR-003, UR-010, UR-011, FR-012, FR-013, FR-014, FR-015, FR-016, FR-017, FR-018, FR-042, FR-043, FR-044 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-006, BR-012, UR-001, UR-002, UR-003, UR-006, UR-010, UR-011, UR-019, FR-012, FR-013, FR-014, FR-015, FR-016, FR-017, FR-018, FR-032, FR-042, FR-043, FR-044 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: assist-plugin 1.11.0 at commit 4803a0d; every behavior here is Built, except the root-note paragraph under Requirement 9 and the location-entry note under the entry layout, which are PLANNED (1.11.1) as `docs/requirements/FR-NFR-assist-plugin.md:855-904` marks FR-188. The entry layout itself is Built. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root.
+Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cites were refreshed against that file on 2026-10-16. Every behavior in the main body is Built, the root-note paragraph under Requirement 9 and the root-note entry note included (FR-188, Built 1.11.1, `docs/requirements/FR-NFR-assist-plugin.md:900-949`). The Change Log at the end of this file records the PLANNED (1.12.0) changes and holds where it differs from the main body. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root.
 
 ## Description
 
@@ -76,7 +76,7 @@ Source: [spec-orchestration-plan-approval-flow.mmd](spec-orchestration-plan-appr
 
 ### Requirement 1: Write the plan file
 
-The `/do` skill SHALL write the plan to `.agent/main-plan/plan-[slug]-[timestamp].md` with Status `PENDING_APPROVAL` and, per step, goal, agent, Model, Effort, Runs, effect, Build, writes, reads, and Status. (FR-012; `skills/do/SKILL.md:231-233`; `skills/do/references/plan-format.md`)
+The `/do` skill SHALL write the plan to `.agent/main-plan/plan-[slug]-[timestamp].md` with Status `PENDING_APPROVAL` and, per step, goal, agent, Model, Effort, Runs, effect, Build, writes, reads, and Status. (FR-012; `skills/do/SKILL.md:239-241`; `skills/do/references/plan-format.md`)
 
 Step Status starts `pending`, or `in_progress` when the step's Runs value is `Running now`. A build plan also gets the Spec-First section (Output / Outcome). `/do` keeps the `Documents approved` value it writes in its own context. On a resumed plan an edit rewrites only the steps still `pending`, and the plan keeps its Status until Preflight.
 
@@ -100,7 +100,7 @@ Step Status starts `pending`, or `in_progress` when the step's Runs value is `Ru
 
 ### Requirement 2: Insert intake reviews for user-provided files
 
-The `/do` skill SHALL insert one `intake-reviewer` step of effect `read` per user-provided spec, requirements, or instructions file before any write step, and run it before PlanApproval. (FR-043; `skills/do/SKILL.md:235-249`, decision D4)
+The `/do` skill SHALL insert one `intake-reviewer` step of effect `read` per user-provided spec, requirements, or instructions file before any write step, and run it before PlanApproval. (FR-043; `skills/do/SKILL.md:243-257`, decision D4)
 
 The step runs on Sonnet in the first wave; every write step gets it in depends_on and the table is renumbered. The prompt is:
 
@@ -131,7 +131,7 @@ Branch's outcome is `intake`: Dispatch (intake mode) runs only these steps, then
 
 ### Requirement 3: Skip approval only for one read-only ask or explore step
 
-The `/do` skill SHALL skip PlanApproval only when the plan is exactly one step, that step's effect is `read`, and its agent is `ask` or `explore`. (FR-013; `skills/do/SKILL.md:251-253`, decision D1)
+The `/do` skill SHALL skip PlanApproval only when the plan is exactly one step, that step's effect is `read`, and its agent is `ask` or `explore`. (FR-013; `skills/do/SKILL.md:259-261`, decision D1)
 
 For that plan `/do` shows the table and Order line in chat, sets Status `Approved`, writes `## User Decisions` as "None (single read-only step, approval skipped)", and goes to Preflight.
 
@@ -155,7 +155,7 @@ For that plan `/do` shows the table and Order line in chat, sets Status `Approve
 
 ### Requirement 4: Show the plan and ask in one call
 
-The `/do` skill SHALL print the step table and Order line in chat and then ask Approve, Edit steps, Change models, or Cancel in one AskUserQuestion call. (FR-014; `skills/do/SKILL.md:255-325`)
+The `/do` skill SHALL print the step table and Order line in chat and then ask Approve, Edit steps, Change models, or Cancel in one AskUserQuestion call. (FR-014; `skills/do/SKILL.md:263-333`)
 
 The table has columns `#`, Step, Agent, Model, Effort, Runs, Build, Files, with no preamble. Under the Order line `/do` lists, when they apply: intake findings or an intake failure with its `error_class`; recorded assumptions (`non-build` only); for a build plan, the conflict-check findings with the user's answers, any list cut with its `not read (cap)` paths, the chain steps, the `Build: yes` steps with a note that the run pauses for sign-off, and the non-git change-check marker; each active pentest command list and target; and a "Decisions you'll be asked" list when the call carries plan-specific questions or a step will pause for input. The call holds at most 4 questions, the Spec-first question included.
 
@@ -186,7 +186,7 @@ The table has columns `#`, Step, Agent, Model, Effort, Runs, Build, Files, with 
 
 ### Requirement 5: Offer four unranked options after a failed intake review
 
-The `/do` skill SHALL ask "The intake review of FILE failed (ERROR_CLASS)" with options Proceed without the review, Rerun the review, Edit steps, and Cancel, none marked Recommended. (FR-044; `skills/do/SKILL.md:297-304`)
+The `/do` skill SHALL ask "The intake review of FILE failed (ERROR_CLASS)" with options Proceed without the review, Rerun the review, Edit steps, and Cancel, none marked Recommended. (FR-044; `skills/do/SKILL.md:305-312`)
 
 | Option | Effect |
 |---|---|
@@ -215,7 +215,7 @@ The `/do` skill SHALL ask "The intake review of FILE failed (ERROR_CLASS)" with 
 
 ### Requirement 6: Repeat Decompose through Branch after every edit
 
-The `/do` skill SHALL rerun Decompose through Branch after an edit, show the full table again, and ask again until the user picks Approve or Cancel. (FR-015; `skills/do/SKILL.md:317`)
+The `/do` skill SHALL rerun Decompose through Branch after an edit, show the full table again, and ask again until the user picks Approve or Cancel. (FR-015; `skills/do/SKILL.md:325`)
 
 An edit is Edit steps, Change models, or an Other answer that describes a change. Clarify rounds reset to 0. A requested override of an agent whose Can Override is `No` keeps the default model, and `/do` tells the user.
 
@@ -233,7 +233,7 @@ An edit is Edit steps, Change models, or an Other answer that describes a change
 
 ### Requirement 7: Record Approve
 
-The `/do` skill SHALL, on Approve, set the plan Status to `Approved`, record "Approved: YYYY-MM-DD HH:mm" as the first `## User Decisions` bullet, and go to Preflight. (FR-016; `skills/do/SKILL.md:323-325`)
+The `/do` skill SHALL, on Approve, set the plan Status to `Approved`, record "Approved: YYYY-MM-DD HH:mm" as the first `## User Decisions` bullet, and go to Preflight. (FR-016; `skills/do/SKILL.md:331-333`)
 
 `/do` uses the Edit tool, records every user answer (clarifications, step edits, model overrides, plan-specific choices) under the approval bullet, and then appends the architectural decisions made so far to `DECISIONS.md` (Requirement 9). A resumed plan keeps its Status until Preflight sets `In Progress`. The `waive` outcome applies the same steps after the waiver changes of spec-orchestration-spec-first.md.
 
@@ -257,7 +257,7 @@ The `/do` skill SHALL, on Approve, set the plan Status to `Approved`, record "Ap
 
 ### Requirement 8: Record Cancel
 
-The `/do` skill SHALL, on Cancel at PlanApproval, set the plan Status to `Cancelled`, dispatch no agent, and change no other file. (FR-017; `skills/do/SKILL.md:321`)
+The `/do` skill SHALL, on Cancel at PlanApproval, set the plan Status to `Cancelled`, dispatch no agent, and change no other file. (FR-017; `skills/do/SKILL.md:329`)
 
 #### Scenario: Cancel
 
@@ -273,9 +273,9 @@ The `/do` skill SHALL, on Cancel at PlanApproval, set the plan Status to `Cancel
 
 ### Requirement 9: Append architectural decisions at approval only
 
-The `/do` skill SHALL keep an architectural decision in the plan file before approval, append it to `DECISIONS.md` at Approve with date, decision text, and plan path, and never edit or remove an earlier entry. (FR-042; `skills/do/SKILL.md:327-344`, decision D5)
+The `/do` skill SHALL keep an architectural decision in the plan file before approval, append it to `DECISIONS.md` at Approve with date, decision text, and plan path, and never edit or remove an earlier entry. (FR-042; `skills/do/SKILL.md:335-352`, decision D5)
 
-An architectural decision binds later work: technology, structure, interface, data model, or policy. Step edits, model overrides, and scheduling answers are not architectural. Decisions arise at Clarify, PlanApproval, DocSignOff, a NeedsInput relay, or the Skip spec-first waiver. A decision that arrives after Approve (a NeedsInput answer) is appended when it arrives. `/do` appends with the Edit tool at the end of `DECISIONS.md` at the root of the project the plan changes, and uses Write only when the file does not exist. The decision text follows the never-quote rule: `/do`'s wording of the chosen option plus `file:line` citations (spec-orchestration-spec-first.md). Before each write, `/do` compares the file's hash with the change-check baseline (spec-orchestration-chain-signoff.md).
+An architectural decision binds later work: technology, structure, interface, data model, or policy. Step edits, model overrides, and scheduling answers are not architectural. Decisions arise at Clarify, PlanApproval, DocSignOff, a NeedsInput relay, or the Skip spec-first waiver. A decision that arrives after Approve (a NeedsInput answer) is appended when it arrives. `/do` appends with the Edit tool at the end of `DECISIONS.md` at the root of the project the plan changes, and uses Write only when the file does not exist. The decision text follows the never-quote rule: `/do`'s wording of the chosen option plus `file:line` citations (spec-orchestration-spec-first.md). Before each write, `/do` compares the file's hash with the change-check baseline (spec-orchestration-chain-signoff.md); PLANNED (1.12.0): only during Dispatch, so the append at Approve, before Preflight takes the baseline, is not compared (FR-032; Change Log 2026-10-16).
 
 #### Scenario: Approved decision
 
@@ -283,7 +283,7 @@ An architectural decision binds later work: technology, structure, interface, da
 - **WHEN** `/do` records approval
 - **THEN** `/do` SHALL append an entry with `## YYYY-MM-DD: <title>`, `Decision:`, and `Plan:` lines at the end of `DECISIONS.md`
 
-Planned (1.11.1): the same Approve timing also appends a plain note entry to the `DECISIONS.md` at the session's git root for each document type (requirements, task plans) that SpecGate found at an old root pattern (FR-188). For the root note, `/do` reads the headings of `DECISIONS.md` only just before that append and skips the note when a heading shows an earlier note of that type; heading text is untrusted data and only compared with the two note headings. The note's heading is "Requirements kept at the repository root" or "Task plans kept at the repository root", and the note carries no path or pattern that any tool reads (FR-191). The behavior is specified in spec-orchestration-spec-first.md, Requirements 15 and 16 (`DECISIONS.md` 2026-10-16, Legacy location records are notes, not search input; 1.11.1 design points for root notes, change check, and grants).
+Built (1.11.1): the same Approve timing also appends a plain note entry to the `DECISIONS.md` at the session's git root for each document type (requirements, task plans) that SpecGate found at an old root pattern (FR-188). For the root note, `/do` reads the headings of `DECISIONS.md` only just before that append and skips the note when a heading shows an earlier note of that type; heading text is untrusted data and only compared with the two note headings. The note's heading is "Requirements kept at the repository root" or "Task plans kept at the repository root", and the note carries no path or pattern that any tool reads (FR-191). The behavior is specified in spec-orchestration-spec-first.md, Requirements 15 and 16 (`DECISIONS.md` 2026-10-16, Legacy location records are notes, not search input; 1.11.1 design points for root notes, change check, and grants).
 
 #### Scenario: Missing file
 
@@ -305,7 +305,7 @@ Planned (1.11.1): the same Approve timing also appends a plain note entry to the
 
 ### Requirement 10: Check disk space before dispatch
 
-The `/do` skill SHALL check free disk space with `df -h .` before dispatch and ask the user whether to continue when under 2G is free. (FR-018; `skills/do/SKILL.md:346-356`)
+The `/do` skill SHALL check free disk space with `df -h .` before dispatch and ask the user whether to continue when under 2G is free. (FR-018; `skills/do/SKILL.md:361-371`)
 
 `/do` runs the check from the main worktree, names safe ways to free space (`go clean -cache`, `/branch cleanup --dry-run`), and deletes nothing. Then, in a git repository, it takes the change-check baseline; in a non-git project it records `skipped: change-check not-run (no git)` for a build plan (spec-orchestration-chain-signoff.md). Then it sets Status `In Progress`.
 
@@ -383,12 +383,12 @@ Plan file layout (`skills/do/references/plan-format.md:7-94`):
 | `Paused` (resumed plan) | `Cancelled` | Cancel at PlanApproval, or the user stops at the Preflight disk question |
 | `In Progress` (resumed plan) | `Cancelled` | Cancel at PlanApproval, or the user stops at the Preflight disk question |
 | `Approved`, or `Paused` or `In Progress` on resume | `In Progress` | Preflight `ok` |
-| `In Progress` | `Complete`, `Partial`, `Paused` | Terminal choice at the end of the run; whether Display or Cleanup makes it is pending OPEN-2 (spec-orchestration.md) |
+| `In Progress` | `Complete`, `Partial`, `Paused` | Terminal choice at the end of the run; PLANNED (1.12.0, OPEN-2 closed): Cleanup makes it, not Display (FR-064; spec-orchestration-dispatch.md, Change Log 2026-10-16) |
 | `PENDING_APPROVAL` (a new plan on an edit pass, so Branch already wrote the file) | `Error` | An Error terminal, for example a cycle after an Edit steps answer; a resumed plan's Status stays unchanged (`skills/do/SKILL.md:51`) |
 
-A first pass that ends in Error (refused resume aside) stops before Branch, so no plan file exists yet. Whether `/do` writes a plan file to record that Error is pending the user (OPEN-6 in spec-orchestration.md).
+A first pass that ends in Error (refused resume aside) stops before Branch, so no plan file exists yet. OPEN-6 is closed: `/do` writes no plan file for that Error (FR-012, PLANNED 1.12.0; Change Log 2026-10-16).
 
-`DECISIONS.md` entry layout (`skills/do/SKILL.md:337-342`):
+`DECISIONS.md` entry layout (`skills/do/SKILL.md:345-350`):
 
 ````text
 ## YYYY-MM-DD: <short title>
@@ -397,7 +397,7 @@ Decision: <the chosen option in /do's words, with file:line citations>
 Plan: .agent/main-plan/plan-<slug>-<timestamp>.md
 ````
 
-Planned (1.11.1): a root note (FR-188) is an entry headed "Requirements kept at the repository root" or "Task plans kept at the repository root" whose Decision line says the project keeps those documents at the repository root and does not move them unless the user asks (`docs/requirements/FR-NFR-assist-plugin.md:859`, `:864`). It holds no `Location:` line and no path or pattern that any tool reads (FR-191).
+Built (1.11.1): a root note (FR-188) is an entry headed "Requirements kept at the repository root" or "Task plans kept at the repository root" whose Decision line says the project keeps those documents at the repository root and does not move them unless the user asks (`docs/requirements/FR-NFR-assist-plugin.md:902`, `:909`; `skills/do/SKILL.md:354-359`). It holds no `Location:` line and no path or pattern that any tool reads (FR-191).
 
 ## Error handling
 
@@ -450,3 +450,49 @@ Not applicable: no smaller unit has its own spec.
 | FR-042 | Requirement 9: Append architectural decisions at approval only | `DECISIONS.md` diff; earlier entries unchanged |
 | FR-018 | Requirement 10: Check disk space before dispatch | `df -h .` fixture at 10G and 1G |
 | UR-001, UR-002, UR-003, UR-010, UR-011, BR-001, BR-002, BR-004, BR-006, BR-012 | Description and Requirements 1 to 10 | Parent traceability (spec-orchestration.md) |
+
+## Change Log: 2026-10-16
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16): FR-012 (first-pass Error Scenario) and FR-032 (the Dispatch-only compare-before-write rule, `:617-620`), both PLANNED (1.12.0); FR-188 set to Built (1.11.1). The user's answer to OPEN-6 and the compare-before-write plain fix (`.agent/main-plan/plan-deferred-decisions-20261016-1059.md`, User Decisions).
+
+Body edits made in place in this pass, none a behavior change on its own: the Baseline line moves to 1.11.1; `skills/do/SKILL.md` line cites point at the 1.11.1 file; the root-note paragraph and note read Built (1.11.1); the Status transitions table and the notes that said "pending OPEN-2" or "pending OPEN-6" now point here or to spec-orchestration-dispatch.md; the compare sentence under Requirement 9 marks the PLANNED (1.12.0) limit.
+
+### MODIFIED Requirements
+
+#### Requirement 1: Write the plan file
+
+**Was:** The `/do` skill SHALL write the plan to `.agent/main-plan/plan-[slug]-[timestamp].md` with Status `PENDING_APPROVAL` and, per step, goal, agent, Model, Effort, Runs, effect, Build, writes, reads, and Status.
+**Now:** The `/do` skill SHALL write the plan to `.agent/main-plan/plan-[slug]-[timestamp].md` with Status `PENDING_APPROVAL` and, per step, goal, agent, Model, Effort, Runs, effect, Build, writes, reads, and Status, and write no plan file for a run that ends in `Error` before Branch.
+**Reason:** OPEN-6 closed on 2026-10-16: no plan file on a first-pass Error (FR-012, PLANNED 1.12.0). `skills/do/SKILL.md:51` changes from "Error sets a new plan's Status to Error" to setting `Error` only on a file Branch already wrote in the same run. The three Scenarios in the main body stay.
+
+##### Scenario: First-pass Error writes no plan file (PLANNED, 1.12.0)
+
+- **GIVEN** a `build` request whose conflict check returns `Done` with verdict `accepted`, so SpecGate's conflict mode ends `conflict-failed` before Branch
+- **WHEN** `/do` reaches the `Error` terminal
+- **THEN** `/do` SHALL end in `Error` with class `plan-invalid` and SHALL write no file under `.agent/main-plan/`
+
+##### Scenario: Edit-pass Error sets the Status
+
+- **GIVEN** a new plan whose file Branch wrote with Status `PENDING_APPROVAL`, and an Edit steps answer that makes steps 2 and 3 depend on each other
+- **WHEN** DependencyAnalysis ends in `Error`
+- **THEN** the plan file's Status SHALL read `Error`
+
+#### Requirement 9: Append architectural decisions at approval only
+
+**Was:** The `/do` skill SHALL keep an architectural decision in the plan file before approval, append it to `DECISIONS.md` at Approve with date, decision text, and plan path, and never edit or remove an earlier entry. Before each write, `/do` compares the file's hash with the change-check baseline.
+**Now:** The statement is unchanged. During Dispatch, before each write, `/do` compares the file's hash with the change-check baseline; the append at Approve and the root note, which come before Preflight takes the baseline, are not compared.
+**Reason:** FR-032 gains the Dispatch-only compare-before-write rule as a plain fix, PLANNED (1.12.0): at Approve no baseline exists yet. `skills/do/SKILL.md:422` changes to match. The four Scenarios in the main body stay; the compare during Dispatch is spec-orchestration-chain-signoff.md, Change Log 2026-10-16, Requirement 6.
+
+##### Scenario: Append at Approve before any baseline (PLANNED, 1.12.0)
+
+- **GIVEN** a git repository, a plan with one architectural decision, and no change-check baseline because Preflight has not run
+- **WHEN** the user picks Approve and `/do` appends the decision to `DECISIONS.md`
+- **THEN** `/do` SHALL append the entry without comparing the file's hash with a baseline and SHALL report no unexpected change for it
+- **AND** the baseline Preflight then takes SHALL hold the hash of `DECISIONS.md` with the new entry (`skills/do/SKILL.md:359`)
+
+### Traceability for this change
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-012 | MODIFIED Requirement 1 | `.agent/main-plan/` listing after a `conflict-failed` run; plan Status after an edit-pass cycle |
+| FR-032, UR-006, UR-019 | MODIFIED Requirement 9 | Bash and Read log at Approve shows no hash compare; Preflight baseline holds the new `DECISIONS.md` hash |
