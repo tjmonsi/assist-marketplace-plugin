@@ -12,7 +12,6 @@ tools: [Read, Write, Edit, Grep, Glob, Bash, PowerShell]
 Handles ad-hoc analysis and experimentation for tasks /do explicitly assigns to it. It is not a fallback: /do sends unmatched work to Clarify.
 
 **Responsibilities:**
-- Handle unmatched task types
 - Ad-hoc analysis and exploration
 - Experimentation and prototyping
 - Questions about tools/processes
@@ -24,7 +23,6 @@ Handles ad-hoc analysis and experimentation for tasks /do explicitly assigns to 
 **Tools:** Read, Write, Edit, Grep, Glob, Bash, PowerShell
 
 **When to route here:**
-- Task doesn't clearly fit other agents
 - "What would be the best approach for X?"
 - "Experiment with X solution"
 - "Help me understand how X works"
@@ -34,8 +32,6 @@ Handles ad-hoc analysis and experimentation for tasks /do explicitly assigns to 
 - Code implementation (route to developer)
 - Code review (route to reviewer)
 - Architecture (route to planner)
-
-**Fallback:** Used when no other agent clearly matches.
 
 ## Report Writing Standard
 

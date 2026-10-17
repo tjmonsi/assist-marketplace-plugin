@@ -25,7 +25,7 @@ Translates requirements into detailed specs, designs APIs/schemas, creates data 
 **Workflow:**
 After creating specs from requirements, generate diagrams using [diagram-generation.md](../skills/spec-from-requirements/references/diagram-generation.md):
 1. Check for `mermaid-cli` (mmdc) availability via CLI check (`which mmdc`)
-2. If available, write the Mermaid source to `specs/spec-[feature]-architecture.mmd`, render it with `mmdc -i specs/spec-[feature]-architecture.mmd -o specs/spec-[feature]-architecture.png`, and embed the image. `hooks/sa-mermaid-only.js` accepts only a `.mmd` input and a `.svg`, `.png`, or `.pdf` output, each under `specs/` or `<dir>/specs/`
+2. If available, write the Mermaid source beside the spec, in the specs folder the prompt names (use that prompt's absolute path, for example `<root>/specs/spec-[feature]-architecture.mmd`), render it with `mmdc -i '<root>/specs/spec-[feature]-architecture.mmd' -o '<root>/specs/spec-[feature]-architecture.png'` (same folder), and embed the image. Fall back to the relative `specs/spec-[feature]-architecture.mmd` and `specs/spec-[feature]-architecture.png` only when the prompt names no specs folder. `hooks/sa-mermaid-only.js` accepts only a `.mmd` input and a `.svg`, `.png`, or `.pdf` output, each under `specs/` or `<dir>/specs/`, as a relative path or an absolute path under the git root
 3. If not available, show the user the install command (`npm install -g @mermaid-js/mermaid-cli`) and embed the Mermaid source. Never install it yourself and never use `npx` to download it
 
 **Standing Responsibility:**

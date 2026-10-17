@@ -7,6 +7,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | Agent | Default Model | Can Override | Conditions |
 |-------|---------------|--------------|-----------|
 | **orchestrator** (`do` skill) | Opus | No | Always use Opus for orchestration |
+| **ask** | Sonnet | Yes | Read-only question answering and repo research; can upgrade to Opus for hard research questions |
 | **developer** | Sonnet | Yes | Can downgrade to Haiku for trivial changes |
 | **developer-tester** | Sonnet | Yes | Creates black-box tests from acceptance criteria only |
 | **reviewer** | Opus | No | Always Opus (security/quality gate) |
@@ -36,7 +37,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 ### Medium Cost (Sonnet): Core Development
 - Implementation, testing, requirements, DevOps, planning
 - Good reasoning + cost efficiency balance
-- **Agents:** developer, developer-tester, qa, requirements-gatherer, intake-reviewer, task-planner, devops, general-purpose, worker, planner
+- **Agents:** ask, developer, developer-tester, qa, requirements-gatherer, intake-reviewer, task-planner, devops, general-purpose, worker, planner
 - **Strategy:** Iterate + refine if first pass incomplete
 
 ### High Cost (Opus): Decisions & Architecture
@@ -53,6 +54,7 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | Agent | Effort | Reason |
 |-------|--------|--------|
 | orchestrator (`do`) | xhigh | Plan creation, routing, synthesis |
+| ask | medium | Question answering, repo search, documentation lookup |
 | developer | high | Implementation, testing, debugging |
 | developer-tester | high | Test design (black-box), acceptance criteria coverage |
 | reviewer | xhigh | Security + code quality (critical) |
@@ -64,8 +66,8 @@ Decision table for assigning Claude models to agents in the `do` orchestrator.
 | intake-reviewer | medium | Read-only `review` of a user file against the gather-requirements checklist, and read-only `conflict-check` of a build request against existing documents |
 | task-planner | high | Spec-to-task-plan conversion with traceable, ordered steps |
 | devops | high | Infrastructure, deployment, monitoring |
-| researcher | xhigh | Research, documentation, best practices (Opus tier) |
-| code-reviewer | xhigh | Formal review, sign-off authority |
+| researcher | high | Research, documentation, best practices (Opus tier) |
+| code-reviewer | high | Formal review, sign-off authority |
 | explore | low | Pure search, no complex reasoning |
 | general-purpose | medium | Ad-hoc, experimentation |
 | worker | high | Multi-discipline, end-to-end delivery |

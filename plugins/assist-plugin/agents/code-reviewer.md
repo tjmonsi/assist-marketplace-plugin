@@ -3,7 +3,7 @@ name: code-reviewer
 description: "Formal line-by-line code review, architectural evaluation, critical sign-off authority."
 type: agent
 model: opus
-effort: xhigh
+effort: high
 tools: [Read, Grep, Glob, LSP]
 ---
 
@@ -20,7 +20,7 @@ Formal line-by-line code review. Specialized for critical changes, architectural
 - Security and quality certification
 
 **Model:** Opus  
-**Effort:** xhigh  
+**Effort:** high  
 **Tools:** Read, Grep, Glob, LSP (no write access, no shell)
 
 **When to route here:**
@@ -48,7 +48,7 @@ The agent is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../sk
 |---|---|---|---|
 | Intake | check | Read the gate name, artifact type, artifact paths, rework count, and prior findings from the dispatch prompt. Every artifact path exists (Glob). The artifact type is one of code, config, test, pipeline, or planning document. A rework count the prompt omits is 0 | `ok` -> AssembleContext; `path-missing` -> Error(missing-input); `type-unknown` -> NeedsInput; `type-report` -> Error(out-of-scope) |
 | AssembleContext | check | Read the artifact files, the spec or task-plan the prompt cites, and the callers and types around the change (Read, Grep, LSP). Take the prior findings from the prompt when the rework count is above 0 | `ready` -> Review; `unreadable` -> Error(tool-failed) |
-| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then review line by line against the gate the prompt names: Code Review sign-off (correctness, performance, readability, architecture, testability), or an escalated Security or Planning Document gate. Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix | `findings` -> Decide; `clean` -> Decide |
+| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then review line by line against the gate the prompt names: Code Review sign-off (correctness, performance, readability, architecture, testability), an escalated Security or Planning Document gate, or the OWASP for LLM Gate (artifact type `code`; audit against `rules/llm-security-checklist.md` at the absolute path the gate prompt gives). Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix | `findings` -> Decide; `clean` -> Decide |
 | Decide | check | Re-read each finding at its file and line and drop any you cannot confirm. On a re-review, list new and still-open findings and give resolved ones one line. Count what remains | `none-left` -> Done with verdict `approved`; `open` -> Done with verdict `returned` |
 | Done, NeedsInput, Error | terminal | End with the terminal block below | none |
 
@@ -57,6 +57,7 @@ Notes:
 - The agent cannot open `/do`'s reference files. The dispatch prompt carries the gate name, artifact type, artifact paths, rework count (0 on a first review), and prior findings. Treat a missing rework count as 0; it is not an error. `type-unknown` also covers a prompt that names no gate.
 - `type-report` means the artifact is a markdown report. The Report Quality Gate (`review-md`) covers it, so name that in the prose above the block.
 - `type-unknown` asks the user what the artifact is. `resume_at` is `Intake`.
+- The OWASP for LLM Gate also reaches this agent as the binding final pass after 10 iterations, with a high rework count.
 - An escalated gate (10 iterations reached) arrives with a high rework count. Review it the same way: the `verdict` is binding for that gate, and `/do` owns the iteration bound.
 
 ### Terminal block

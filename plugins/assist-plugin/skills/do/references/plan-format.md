@@ -107,7 +107,7 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
   - `Complete`: Every step completed
   - `Partial`: The run ended with at least one `failed` or `skipped` step and no step left to run
   - `Paused`: The user stopped the run; undispatched steps stay `pending`. `resume <plan>` accepts a plan in `Paused` or `In Progress` whose User Decisions record an approval, shows the remaining steps, asks for approval again, and then runs Preflight
-  - `Error`: The plan could not run, for example a dependency cycle, an unmatched agent after the clarify limit, a build request with open points after five clarify rounds, or a failed conflict check
+  - `Error`: The plan could not run, for example a dependency cycle, an unmatched agent after the clarify limit, a build request with open points after five clarify rounds, or a failed conflict check. A run that ends in `Error` before Branch writes no plan file, so no Status is set; `Error` is set only on a plan file that Branch already wrote in the same run, and a resumed plan keeps its Status
 - **User:** GitHub username or email of requester
 
 ### Step Table and Order Line
@@ -159,9 +159,9 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
 - **Status:** Current execution state. A step whose Runs value is `Running now` starts as `in_progress`.
   - `pending`: not started
   - `in_progress`: dispatched and running
-  - `waiting-user`: the agent ended in `NeedsInput`; the orchestrator is asking the user. A stop returns it to `pending`
-  - `completed`: the agent ended in `Done` and passed its review gate
-  - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass
+  - `waiting-user`: the agent ended in `NeedsInput`; the orchestrator is asking the user. It also covers the open draft confirmation of a PR review step. A stop returns it to `pending`
+  - `completed`: the agent ended in `Done` and passed its review gate. A PR review step runs no gate: it is `completed` after a successful post or a "do not post" answer
+  - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass. A PR review step is also `failed` on a fetch or post error
   - `skipped`: a step it depends on failed, or the user cancelled at DocSignOff ("Skipped: documents not approved"). An intake review step that fails skips nothing
 - **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)

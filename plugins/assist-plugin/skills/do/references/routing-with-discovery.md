@@ -96,5 +96,5 @@ For mixed tasks (research feeding into implementation), split into separate plan
 
 - Discovery is read-only: it inspects frontmatter, it does not execute any skill/agent as part of the scan.
 - Never route to a discovered skill/agent without listing it in the plan for user approval (PlanApproval in [SKILL.md](../SKILL.md#planapproval)).
-- If discovery finds no better match than the static registry, use the static registry; don't introduce ambiguity for its own sake.
+- Registry first: use a registry agent when one matches the step, and a discovered agent only for a step that no registry agent matches. A discovered agent never displaces a registry match, and the plan table does not list it for that step.
 - ask agent routing still creates a plan. A plan of exactly one step routed to ask or explore (both read-only, no write tools) skips PlanApproval and goes to Preflight. An ask step inside a larger plan goes through PlanApproval like any other step.

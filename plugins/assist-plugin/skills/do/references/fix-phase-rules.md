@@ -1,6 +1,6 @@
 # Fix Phase Constraints
 
-Rules governing the fix phase that follows a reviewer's request for changes. Applies to every review gate (Pre-Test, OWASP, Testing, Code Review, Planning Document).
+Rules governing the fix phase that follows a reviewer's request for changes. Applies to every review gate (Pre-Test, OWASP, OWASP for LLM, Testing, Code Review, Planning Document).
 
 ---
 

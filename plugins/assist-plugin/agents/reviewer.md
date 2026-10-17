@@ -47,7 +47,7 @@ The agent is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../sk
 |---|---|---|---|
 | Intake | check | Read the gate name, artifact type, artifact paths, rework count, and prior findings from the dispatch prompt. Every artifact path exists (Glob). The artifact type is one of code, config, test, pipeline, or planning document. A rework count the prompt omits is 0 | `ok` -> AssembleContext; `path-missing` -> Error(missing-input); `type-unknown` -> NeedsInput; `type-report` -> Error(out-of-scope) |
 | AssembleContext | check | Read the artifact files, the spec or task-plan the prompt cites, and the callers and types around the change (Read, Grep, LSP). Take the prior findings from the prompt when the rework count is above 0 | `ready` -> Review; `unreadable` -> Error(tool-failed) |
-| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then audit against the gate the prompt names: Pre-Test Code Review (syntax and semantic consistency), Security (OWASP Top 10), or Planning Document Review. Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix | `findings` -> Decide; `clean` -> Decide |
+| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then audit against the gate the prompt names: Pre-Test Code Review (syntax and semantic consistency), Security (OWASP Top 10), Planning Document Review, or OWASP for LLM Gate (artifact type `code`; audit against `rules/llm-security-checklist.md` at the absolute path the gate prompt gives). Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix | `findings` -> Decide; `clean` -> Decide |
 | Decide | check | Re-read each finding at its file and line and drop any you cannot confirm. On a re-review, list new and still-open findings and give resolved ones one line. Count what remains | `none-left` -> Done with verdict `approved`; `open` -> Done with verdict `returned` |
 | Done, NeedsInput, Error | terminal | End with the terminal block below | none |
 
@@ -56,7 +56,7 @@ Notes:
 - The agent cannot open `/do`'s reference files. The dispatch prompt carries the gate name, artifact type, artifact paths, rework count (0 on a first review), and prior findings. Treat a missing rework count as 0; it is not an error. `type-unknown` also covers a prompt that names no gate.
 - `type-report` means the artifact is a markdown report. The Report Quality Gate (`review-md`) covers it, so name that in the prose above the block.
 - `type-unknown` asks the user what the artifact is. `resume_at` is `Intake`.
-- `reviewer` covers the Pre-Test, Security, and Planning Document gates. `code-reviewer` covers the Code Review sign-off.
+- `reviewer` covers the Pre-Test, Security, Planning Document, and OWASP for LLM gates. `code-reviewer` covers the Code Review sign-off.
 
 ### Terminal block
 

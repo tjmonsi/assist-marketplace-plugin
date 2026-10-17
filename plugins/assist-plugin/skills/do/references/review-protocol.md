@@ -55,7 +55,8 @@ A step REQUIRES review if:
 |---|---|---|---|
 | Code (source, config, tests, pipelines) | Pre-Test Code Review Gate, then Security Gate (when code or devops changed), Testing Gate, and Code Review Gate | reviewer or code-reviewer; qa for the Testing Gate | 2 consecutive LGTMs or 10 iterations per gate |
 | Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans; task-planner output counts) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs or 10 iterations |
-| Markdown reports (RCA, PR review verdict, answer, findings doc, generated documentation) | Report Quality Gate | `review-md` | 3 rounds |
+| Markdown reports (RCA, PR review verdict, answer, findings doc, generated documentation); the draft of a `/do` PR review is not one | Report Quality Gate | `review-md` | 3 rounds |
+| Any LLM-surface file, in addition to the gate for the artifact's type | OWASP for LLM Gate | reviewer or code-reviewer, against `rules/llm-security-checklist.md` | 2 consecutive `approved` or 10 iterations per gate |
 
 A planning document written as markdown goes through the planning gate. It does not also go through the Report Quality Gate, so one artifact never runs two document gates. The execution plan file `/do` writes under `.agent/main-plan/` is not an artifact of any step and runs no gate.
 
@@ -63,8 +64,9 @@ A planning document written as markdown goes through the planning gate. It does 
 
 The reviewer's Intake checks the inputs below, and the reviewer cannot learn them any other way. The `/do` gate prompt states all of them:
 
-- The gate name (Pre-Test Code Review, Security, Testing, Code Review, or Planning Document Review).
-- The artifact type: code, config, test, pipeline, or planning document.
+- The gate name (Pre-Test Code Review, Security, Testing, Code Review, Planning Document Review, or OWASP for LLM Gate).
+- The artifact type: code, config, test, pipeline, or planning document. The OWASP for LLM Gate prompt names artifact type `code` for every LLM-surface file, a `CLAUDE.md` or agent wording change included, so the reviewer's Intake accepts it.
+- For the OWASP for LLM Gate: the absolute path of the checklist, `<base>/../../rules/llm-security-checklist.md`, computed from the `do` skill base directory the way [SKILL.md](../SKILL.md) computes `<base>/../debug/SKILL.md` for a debug step. The reviewers cannot learn that path any other way.
 - The artifact paths.
 - The rework count: 0 the first time, then the number of fix passes so far. An agent that finds no count reads it as 0.
 - The prior findings, when the count is above 0, inside a labelled `<review-findings>` data wrapper with every `<` escaped as `&lt;`.
@@ -172,6 +174,19 @@ Before formal audit, reviewer deliberately:
 
 ---
 
+### OWASP for LLM Gate
+
+**Triggered by:** Any non-reviewer step whose artifacts change the LLM surface, run in addition to the gate that matches the artifact's type. The LLM surface is `agents/`, `skills/` at any depth (`metadata.json` included), `rules/`, and `hooks/`, each at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json` at the repository root. An application folder such as `src/hooks/` is not on the surface.  
+**Reviewed by:** reviewer or code-reviewer, auditing against `rules/llm-security-checklist.md`  
+**Prompt:** gate name "OWASP for LLM Gate", artifact type `code` for every LLM-surface file, and the checklist path (see "What the gate prompt carries").  
+**Position:** after the Security Gate and before the Testing Gate for a code artifact; after the type's gate clears for any other artifact type. A Report Quality Gate that ends "completed with findings attached" counts as cleared, so this gate still runs after it; a step whose type gate fails does not reach it.
+
+**Iteration Process:** the Security Gate's bound applies. Exit on 2 consecutive `approved` verdicts, or after 10 iterations run one binding `code-reviewer` pass: `approved` sets the step `completed`, `returned` sets it `failed`. The main agent never rewrites the artifact. The fix phase is the usual one (Sonnet, findings routed by path inside the gated step's Writes).
+
+**Approval:** `✓ LLM Security Clear` (after iteration complete). `✓ OWASP Clear` never stands in for it.
+
+---
+
 ### Testing Gate (>=70% Coverage)
 
 **Triggered by:** Code changes  
@@ -194,7 +209,7 @@ Before formal audit, reviewer deliberately:
 
 ### Report Quality Gate
 
-**Triggered by:** Any step whose output is a markdown report (RCA, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it.
+**Triggered by:** Any step whose output is a markdown report (RCA, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it. The draft of a `/do` PR review is not a report file: it is inline prose above a terminal block, so no Report Quality Gate or other gate runs on it (see [pr-review-flow.md](pr-review-flow.md)).
 
 **Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
 
@@ -334,7 +349,7 @@ Merge approved ✓
 
 ## Fix Phase Rules
 
-Applies whenever a reviewer requests changes at any gate (Pre-Test, OWASP, Testing, Code Review, Planning Document).
+Applies whenever a reviewer requests changes at any gate (Pre-Test, OWASP, OWASP for LLM, Testing, Code Review, Planning Document).
 
 Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
 
@@ -429,7 +444,7 @@ In plan file, mark review outcomes:
 
 For low-risk changes (docs, tests, non-critical fixes):
 
-**Excluded:** a change to `agents/`, `skills/`, `rules/`, `hooks/`, `CLAUDE.md`, or `.claude/settings*.json` is never fast-tracked. It always gets the full gates and the LLM security gate in [../../../rules/llm-security-checklist.md](../../../rules/llm-security-checklist.md), whatever its size.
+**Excluded:** a change to the LLM surface is never fast-tracked: `agents/`, `skills/` at any depth (`metadata.json` included), `rules/`, and `hooks/`, each at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`. An application folder such as `src/hooks/` is not on the surface. The change always gets the full gates and the OWASP for LLM Gate against [../../../rules/llm-security-checklist.md](../../../rules/llm-security-checklist.md), whatever its size.
 
 1. **Flag as low-risk:** Add to plan: `**Review:** Low-risk (no security gates)`
 2. **Skip OWASP gate:** If change doesn't touch production code
