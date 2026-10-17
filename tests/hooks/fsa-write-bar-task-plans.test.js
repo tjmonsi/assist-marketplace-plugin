@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box contract tests for the task-planner write scope of fsa-write-bar,
-// release 1.11.1 (plugins/assist-plugin/hooks/impl/fsa-write-bar.js, `evaluate(input, options)`).
+// release 1.11.1 (plugins/assist-plugin/hooks/impl/fsa-write-bar.js, `evaluate(input, options)`),
+// with the four Built scenarios backfilled in 1.12.0 (main session with a custom agent, main
+// session as an assist-plugin agent, and the two task-planner deny reasons).
 //
 // Sources: specs/spec-hooks-fsa-write-bar.md (Requirement: Task-planner write scope in
 // docs/task-plans/; Requirement: Deny reasons; Requirement: Protected paths for every subagent;
 // Requirement: Calls the bar judges; Requirement: Path limits) and
-// docs/requirements/FR-NFR-assist-plugin.md (FR-186, FR-110, FR-074).
+// docs/requirements/FR-NFR-assist-plugin.md (FR-186, FR-110, FR-074, FR-112).
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited. "Table case N" is the row
@@ -22,7 +24,8 @@
 //     CLAUDE_PROJECT_DIR plays no part. Without a usable `cwd` (missing, empty, or not absolute by
 //     the string rule: starts with "/" or with a drive letter, ":" and a slash) there is no R.
 //   - Deny reasons are matched loosely: C-plan-outside holds "path is outside"; C-plan-scope does
-//     not and names task-plan-*.md. The exact wording is proposed text in the spec.
+//     not and names task-plan-*.md. The exact wording is proposed text in the spec. The two
+//     backfilled Scenarios of 1.12.0 pin the Built wording of the two task-planner reasons.
 //
 // All paths are made-up paths that do not exist, except in the temp-tree tests at the end.
 //
@@ -576,4 +579,81 @@ test("real walk, a nonexistent cwd does not throw and falls back to a determinis
   // Null/missing input. The walk never throws. [Requirement: Task-planner write scope, step 1 | FR-186 | FR-181]
   const cwd = path.join(TMP, "does", "not", "exist");
   assert.doesNotThrow(() => walk(path.join(cwd, "docs", "task-plans", "task-plan-x.md"), cwd));
+});
+
+// ---------------------------------------------------------------------------
+// Built scenarios backfilled in 1.12.0 (task plan step 38, A39). The spec records them as Built
+// (1.11.1) with no code change; the tests pin the behavior the hook already has.
+// ---------------------------------------------------------------------------
+
+// A call from a main session started with --agent: an agent_type and no agent_id unless `extra` adds one.
+// `agentType` undefined builds a plain main-session call.
+function mainCall(agentType, target, extra) {
+  const input = {
+    hook_event_name: "PreToolUse",
+    tool_name: "Write",
+    cwd: R,
+    tool_input: { file_path: target, content: "x" },
+  };
+  if (agentType !== undefined) input.agent_type = agentType;
+  return Object.assign(input, extra || {});
+}
+
+function evalCall(input) {
+  return bar.evaluate(input, { findGitRoot: stub(R) });
+}
+
+const DECISIONS_FILE = R + "/DECISIONS.md";
+const MAIN_PLAN_FILE = R + "/.agent/main-plan/x.md";
+
+test("main session started with a custom agent: a write to DECISIONS.md and an Edit of a /do plan file are allowed", () => {
+  // [Scenario: Main session started with a custom agent | spec-hooks-fsa-write-bar.md "Protected paths for every subagent" | FR-112]
+  const write = evalCall(mainCall("my-main-agent", DECISIONS_FILE));
+  const edit = evalCall(mainCall("my-main-agent", MAIN_PLAN_FILE, { tool_name: "Edit" }));
+  assert.ok(!denied(write), "a custom --agent main session may write DECISIONS.md: " + text(write));
+  assert.ok(!denied(edit), "a custom --agent main session may edit a /do plan file: " + text(edit));
+});
+
+test("main session started with a custom agent: the same writes are denied when the call carries an agent_id", () => {
+  // [Scenario: Main session started with a custom agent (subagent half) | spec-hooks-fsa-write-bar.md "Protected paths for every subagent" | FR-112]
+  const write = evalCall(mainCall("my-main-agent", DECISIONS_FILE, { agent_id: "agent-1" }));
+  const edit = evalCall(mainCall("my-main-agent", MAIN_PLAN_FILE, { tool_name: "Edit", agent_id: "agent-1" }));
+  assert.ok(denied(write), "a subagent of any type is denied DECISIONS.md");
+  assert.ok(denied(edit), "a subagent of any type is denied a /do plan file");
+  assert.ok(/DECISIONS\.md/.test(text(write)), "the reason names the matched rule: " + text(write));
+  assert.ok(text(edit).indexOf("no subagent writes **/.agent/main-plan/**") !== -1, "the reason names the matched rule: " + text(edit));
+});
+
+test("main session started as an assist-plugin agent: DECISIONS.md and a /do plan file are denied with the matched rule in the reason", () => {
+  // [Scenario: Main session started as an assist-plugin agent | spec-hooks-fsa-write-bar.md "Protected paths for every subagent" | FR-112]
+  const decisions = evalCall(mainCall("assist-plugin:developer", DECISIONS_FILE));
+  const plan = evalCall(mainCall("assist-plugin:developer", R + "/.agent/main-plan/plan-x.md"));
+  assert.ok(denied(decisions), "assist-plugin:developer main session writes DECISIONS.md: " + text(decisions));
+  assert.ok(denied(plan), "assist-plugin:developer main session writes a /do plan file: " + text(plan));
+  assert.ok(/DECISIONS\.md/.test(text(decisions)), "the reason names the matched rule: " + text(decisions));
+  assert.ok(text(plan).indexOf("no subagent writes **/.agent/main-plan/**") !== -1, "the reason names the matched rule: " + text(plan));
+});
+
+test("plain main session (no agent_type, no agent_id) still writes DECISIONS.md and a /do plan file", () => {
+  // Boundary beside the two scenarios above. [Scenario: Main session | spec-hooks-fsa-write-bar.md "Calls the bar judges" | FR-112 | FR-113]
+  assert.ok(!denied(evalCall(mainCall(undefined, DECISIONS_FILE))));
+  assert.ok(!denied(evalCall(mainCall(undefined, MAIN_PLAN_FILE))));
+});
+
+test("task-planner reason names the scope: a root-level plan gets the docs/task-plans reason, not the outside reason", () => {
+  // [Scenario: Task-planner reason names the scope | spec-hooks-fsa-write-bar.md "Deny reasons" | FR-186]
+  const o = run(R + "/task-plan-x.md", R, R);
+  expectDeny(o);
+  const t = text(o.result);
+  assert.ok(t.indexOf("directly under docs/task-plans/ of the session's git root") !== -1, t);
+  assert.ok(t.indexOf("the path is outside") === -1, t);
+});
+
+test("task-planner reason for a path outside the root names the root and then the scope", () => {
+  // [Scenario: Task-planner reason for a path outside the root | spec-hooks-fsa-write-bar.md "Deny reasons" | FR-186]
+  const o = run("/elsewhere/docs/task-plans/task-plan-x.md", R, R);
+  expectDeny(o);
+  const t = text(o.result);
+  assert.ok(t.indexOf("the path is outside the session's git root, and task-planner writes only") !== -1, t);
+  assert.ok(t.indexOf("directly under docs/task-plans/ of the session's git root") !== -1, t);
 });

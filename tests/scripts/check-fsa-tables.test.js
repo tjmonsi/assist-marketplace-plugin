@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box tests for plugins/assist-plugin/scripts/check-fsa-tables.js
-// (drift checks added in 1.11.1).
+// (drift checks added in 1.11.1; four Built scenarios backfilled in 1.12.0).
 //
 // Sources: specs/spec-hooks-fsa-table-check.md (Requirements: Write guard lists in the
 // markdown, Write guard list parsing, Protected path drift check, Auto-loaded file drift
 // check, Task-plan glob drift check, Verdict pairing drift check) and
 // docs/requirements/FR-NFR-assist-plugin.md (FR-126, FR-127, FR-128, FR-129, FR-180,
-// NFR-021).
+// NFR-021). The backfill covers the Scenarios Repeated subheading, Table past the row cap,
+// Header-only task-plan table, and Accepted limit, other verdict patterns.
 //
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -722,4 +723,123 @@ test("rule file unreadable: stderr message 'check-fsa-tables:' and exit 2", () =
   const r = run();
   assert.strictEqual(r.status, 2, r.stdout + r.stderr);
   assert.ok(r.stderr.indexOf("check-fsa-tables:") !== -1, r.stderr);
+});
+
+// ---------------------------------------------------------------------------
+// Built scenarios backfilled in 1.12.0 (task plan step 38, A38). The spec records them as Built
+// (1.11.1) with no code change; the tests pin the behavior the script already has.
+// ---------------------------------------------------------------------------
+
+test("repeated subheading: '### Protected files' twice under '## Write guard lists' is drift naming the count, exit 1", () => {
+  // [Scenario: Repeated subheading | spec-hooks-fsa-table-check.md "Write guard list parsing" | FR-126 | FR-180 | NFR-021]
+  fixture();
+  // The generated '## Write guard lists' section is the last section of the file, so the append stays inside it.
+  fs.appendFileSync(
+    path.join(copy, RULE_FILE),
+    "\n### Protected files\n\n| File name | Meaning |\n|---|---|\n| " + code("DECISIONS.md") + " | Fixture meaning |\n"
+  );
+  const r = run();
+  assertDriftExit(r);
+  assert.ok(r.stdout.indexOf("rules/assist-plugin-rule.md: ### Protected files appears 2 times") !== -1, r.stdout);
+});
+
+test("repeated subheading: '## Write scope' twice in the task-planner file is drift naming the count", () => {
+  // [Scenario: Repeated subheading (task-planner side) | spec-hooks-fsa-table-check.md "Write guard list parsing" | FR-180 | NFR-021]
+  fixture();
+  fs.appendFileSync(
+    path.join(copy, PLANNER_FILE),
+    "\n## Write scope\n\nA second section.\n\n| Glob | Where |\n|---|---|\n| " + code(NEW_GLOB) + " | Fixture |\n"
+  );
+  const r = run();
+  assertDriftExit(r);
+  assert.ok(r.stdout.indexOf("agents/task-planner.md: ## Write scope appears 2 times") !== -1, r.stdout);
+});
+
+test("table past the row cap: 39 data rows in '### Protected files' is drift, no value of that table is compared, exit 1", () => {
+  // [Scenario: Table past the row cap | spec-hooks-fsa-table-check.md "Write guard list parsing" | FR-180 | NFR-021]
+  const cells = [];
+  for (let i = 1; i <= 39; i++) cells.push(code("file-" + i + ".md"));
+  fixture({ protectedFiles: cells });
+  const r = run();
+  assertDriftExit(r);
+  assert.ok(
+    r.stdout.indexOf("rules/assist-plugin-rule.md, ### Protected files: more than 38 data rows; the rest are not read") !== -1,
+    r.stdout
+  );
+  // No value of the capped table is compared, so no per-value line names PROTECTED_FILES.
+  assert.ok(!/PROTECTED_FILES: .* is in /.test(r.stdout), "a value of the capped table was compared\n" + r.stdout);
+});
+
+test("table at the row cap: 38 data rows in '### Protected files' is not reported as past the cap and its values are compared", () => {
+  // Boundary: the cap message needs more than 38 data rows. [Scenario: Table past the row cap (boundary) | spec-hooks-fsa-table-check.md | FR-180]
+  const cells = [];
+  for (let i = 1; i <= 38; i++) cells.push(code("file-" + i + ".md"));
+  fixture({ protectedFiles: cells });
+  const r = run();
+  assert.ok(r.stdout.indexOf("more than 38 data rows") === -1, r.stdout);
+  assert.ok(/PROTECTED_FILES: .* is in /.test(r.stdout), "the 38 rows are compared\n" + r.stdout);
+});
+
+test("header-only task-plan table: 0 rows is drift with the glob in lib/fsa-paths.js only and the decision line, exit 1", () => {
+  // [Scenario: Header-only task-plan table | spec-hooks-fsa-table-check.md "Write guard list parsing" | FR-127 | FR-180 | NFR-021]
+  fixture({ taskPlanner: [] });
+  const r = run();
+  assertDriftExit(r);
+  assert.ok(r.stdout.indexOf("agents/task-planner.md, ## Write scope: 0 rows; expected 1") !== -1, r.stdout);
+  assert.ok(r.stdout.indexOf("TASK_PLAN_GLOB: " + NEW_GLOB + " is in lib/fsa-paths.js only") !== -1, r.stdout);
+  assert.ok(r.stdout.indexOf(DECISION) !== -1, "the DECISIONS.md line must print\n" + r.stdout);
+  // The table is present with 0 rows, so it is not reported as missing.
+  assert.ok(r.stdout.indexOf("agents/task-planner.md: no table under ## Write scope") === -1, r.stdout);
+});
+
+// Code appended to the copied fsa-tables.js: set the verdict pattern of the reviewer table in
+// place. The checker validates against the TABLES object its own module closed over, so a
+// copied TABLES object would never reach it; the assignment mutates that object.
+function reviewerPatternOverride(source) {
+  return (
+    "\n;(function () {\n" +
+    "  var t = module.exports.TABLES;\n" +
+    "  if (!t || !t.reviewer || !(t.reviewer.verdict instanceof RegExp)) throw new Error('fixture: TABLES.reviewer.verdict is not a RegExp');\n" +
+    "  module.exports.TABLES.reviewer.verdict = new RegExp(" +
+    JSON.stringify(source) +
+    ");\n" +
+    "})();\n"
+  );
+}
+
+// The source of the reviewer verdict pattern as a fresh process loads the copied fsa-tables.js.
+function loadedReviewerPattern() {
+  const r = childProcess.spawnSync(
+    process.execPath,
+    ["-e", "process.stdout.write(require(process.argv[1]).TABLES.reviewer.verdict.source)", path.join(copy, TABLES_FILE)],
+    { encoding: "utf8", timeout: 30000 }
+  );
+  assert.strictEqual(r.error, undefined, "spawn failed: " + (r.error && r.error.message));
+  assert.strictEqual(r.status, 0, "loading the copied fsa-tables.js failed\n" + r.stderr);
+  return r.stdout;
+}
+
+test("accepted limit: a reviewer verdict pattern that differs from the 'Done with verdict' cells does not make --check exit 1", () => {
+  // [Scenario: Accepted limit, other verdict patterns | spec-hooks-fsa-table-check.md "Verdict pairing drift check" | FR-126 | NFR-021]
+  const widened = "^(approved|returned|approved-with-notes)$";
+  fixture();
+  const original = loadedReviewerPattern();
+  assert.notStrictEqual(original, widened, "the fixture pattern must differ from the built one");
+  fs.appendFileSync(path.join(copy, TABLES_FILE), reviewerPatternOverride(widened));
+  // Prove the override took effect before the script runs: a fresh load sees the widened pattern.
+  assert.strictEqual(loadedReviewerPattern(), widened, "the override did not change the reviewer verdict pattern");
+  const r = run();
+  assertInSync(r);
+});
+
+test("accepted limit: an example block whose verdict the changed reviewer pattern rejects is still reported as an example block problem", () => {
+  // [Scenario: Accepted limit, other verdict patterns (second clause) | spec-hooks-fsa-table-check.md "Example block check" | FR-126 | FR-121 | NFR-021]
+  fixture();
+  fs.appendFileSync(path.join(copy, TABLES_FILE), reviewerPatternOverride("^(approved)$"));
+  assert.strictEqual(loadedReviewerPattern(), "^(approved)$", "the override did not change the reviewer verdict pattern");
+  const r = run();
+  assertDriftExit(r);
+  assert.ok(r.stdout.indexOf("example block reviewer:") !== -1, r.stdout);
+  // The verdict pairing itself (intake-reviewer cells) still matches.
+  assert.strictEqual(block(r, LABEL_VERDICT).status, "ok");
 });

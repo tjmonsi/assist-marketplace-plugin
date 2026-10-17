@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Text contract tests for the skills, agents, rules, and /do references changed in release
-// 1.11.1. Each test reads a documented file and asserts the promise the spec makes about its
-// text (headings, grants, tables, output folders, locations). No test asserts wording the specs
-// mark as proposed; they assert the binding strings (paths, globs, headings, field names) and
-// the stated behavior.
+// 1.11.1, updated for 1.12.0 where a later release replaces a 1.11.1 rule (FR-177 and the
+// numbering of "answer N, block M"). Each test reads a documented file and asserts the promise
+// the spec makes about its text (headings, grants, tables, output folders, locations). No test
+// asserts wording the specs mark as proposed; they assert the binding strings (paths, globs,
+// headings, field names) and the stated behavior.
 //
 // Sources: specs/spec-skills-untrusted-input.md (FR-175, FR-176, FR-177),
 // specs/spec-skills-requirements-specs.md (FR-182, FR-183), specs/spec-skills-plan-test.md
@@ -163,6 +164,15 @@ function assertUntrustedRule(rule, who) {
   assert.ok(/out_of_scope/.test(rule), who + ": reports under /do in out_of_scope");
   assert.ok(/direct run/i.test(rule), who + ": reports in the reply in a direct run");
   assert.ok(/never follow[^.]*\bquote\b[^.]*\brestate/i.test(rule), who + ": never follow, quote, or restate");
+  // 1.12.0 (FR-175, FR-176, FR-177): the rule states the numbering base of N and M.
+  // [Scenario: Rule text states the numbering; Numbering across relays; Numbering not reset by a phase; Two questions answered in one call
+  //  | spec-skills-untrusted-input.md | FR-175 | FR-176 | FR-177]
+  assert.ok(/N and M count from 1/.test(rule), who + ": states that N and M count from 1");
+  assert.ok(/N counts the user['’]s answers across the whole (?:agent )?run/.test(rule), who + ": N counts the user's answers across the whole run");
+  assert.ok(/relay/i.test(rule), who + ": answers that arrive in relays are counted");
+  assert.ok(/each answered question is its own answer/.test(rule), who + ": each answered question is its own answer");
+  assert.ok(/M counts the quote blocks and code fences within answer N/.test(rule), who + ": M counts within answer N");
+  assert.ok(!/\breset/i.test(rule), who + ": the numbering defines no per-phase or per-relay reset");
 }
 
 test("requirements-gatherer holds exactly one '## Untrusted input' heading, outside the Report Writing Standard block", () => {
@@ -175,8 +185,8 @@ test("requirements-gatherer holds exactly one '## Untrusted input' heading, outs
   assert.ok(r > h, "the section must sit before ## Report Writing Standard, because the sync script overwrites that block");
 });
 
-test("requirements-gatherer rule: data, user's own answer authoritative, citation forms, never follow/quote/restate", () => {
-  // [Scenario: Section present; Planted instruction; Direct run; Quote block from a document; User's own answer
+test("requirements-gatherer rule: data, user's own answer authoritative, citation forms, never follow/quote/restate, numbering", () => {
+  // [Scenario: Section present; Planted instruction; Direct run; Quote block from a document; User's own answer; Rule text states the numbering
   //  | spec-skills-untrusted-input.md "Untrusted-input section in the requirements agent" | FR-175]
   const rule = joined(section(read("agents/requirements-gatherer.md"), "## Untrusted input"));
   assertUntrustedRule(rule, "requirements-gatherer");
@@ -198,8 +208,8 @@ function findRule(text) {
   return { start: i, text: joined(out) };
 }
 
-test("gather-requirements rule covers elicit, document, and review", () => {
-  // [Scenario: Rule covers elicit and document | spec-skills-untrusted-input.md "Untrusted-input rule in gather-requirements" | FR-176]
+test("gather-requirements rule covers elicit, document, and review, and states the numbering", () => {
+  // [Scenario: Rule covers elicit and document; Rule text states the numbering | spec-skills-untrusted-input.md "Untrusted-input rule in gather-requirements" | FR-176]
   const text = read("skills/gather-requirements/SKILL.md");
   const rule = findRule(text);
   ["`elicit`", "`document`", "`review`"].forEach((m) => assert.ok(rule.text.indexOf(m) !== -1, "rule must name " + m));
@@ -222,8 +232,8 @@ test("gather-requirements rule: pasted document text and the user's own answer",
   assert.ok(/outside a quote block or code fence/.test(rule), "other typed text is defined by what it is outside of");
 });
 
-test("spec-from-requirements rule covers create, delta, and review", () => {
-  // [Scenario: Rule present | spec-skills-untrusted-input.md "Untrusted-input rule in spec-from-requirements" | FR-177]
+test("spec-from-requirements rule covers create, delta, and review, and states the numbering", () => {
+  // [Scenario: Rule present; Rule text states the numbering | spec-skills-untrusted-input.md "Untrusted-input rule in spec-from-requirements" | FR-177]
   const text = read("skills/spec-from-requirements/SKILL.md");
   const rule = findRule(text);
   ["`create`", "`delta`", "`review`"].forEach((m) => assert.ok(rule.text.indexOf(m) !== -1, "rule must name " + m));
@@ -231,13 +241,20 @@ test("spec-from-requirements rule covers create, delta, and review", () => {
   assert.ok(/existing specs/.test(rule.text), "existing specs are in the data list");
 });
 
-test("spec-from-requirements rule: planted instruction leaves Status as it is and cites the spec path and line", () => {
-  // [Scenario: Planted instruction in a spec; Quote block from a document; User's own answer
-  //  | spec-skills-untrusted-input.md "Untrusted-input rule in spec-from-requirements" | FR-177]
+test("spec-from-requirements rule: a planted instruction changes nothing, the delta rule sets the Status, and a spec is cited by its path and line", () => {
+  // FR-177 replaced the 1.11.1 sentence "leaves Status as it is" with the delta rule of FR-154 (a delta the user has not
+  // approved in the same turn sets Review; review changes nothing).
+  // [Scenario: Planted instruction in a spec during a delta; Planted instruction in a spec, no delta; Quote block during review; Quote block during a delta
+  //  | spec-skills-untrusted-input.md "Untrusted-input rule in spec-from-requirements" | FR-177 | FR-154]
   const text = read("skills/spec-from-requirements/SKILL.md");
   const rule = findRule(text).text;
   assert.ok(/Status/.test(rule), "the rule addresses Status");
-  assert.ok(/leaves Status as it is/i.test(rule));
+  assert.ok(!/leaves Status as it is/i.test(text), "the superseded 1.11.1 sentence is still in the skill");
+  assert.ok(/planted[^.]*changes nothing/i.test(rule), "a planted instruction must change nothing");
+  assert.ok(/delta rule/.test(rule), "the Status follows the delta rule");
+  assert.ok(/`delta`[^;]*sets `Review`/.test(rule), "a delta the user has not approved in the same turn sets Review");
+  assert.ok(/not approved in the same turn|has not approved in the same turn/.test(rule));
+  assert.ok(/`review` changes nothing/.test(rule), "review changes nothing");
   assert.ok(/spec path|by its path|spec is cited/i.test(rule), "a spec is cited by its path and line");
   const lines = linesOf(text);
   const r = lines.findIndex((l) => /^## Report Writing Standard\s*$/.test(l));
