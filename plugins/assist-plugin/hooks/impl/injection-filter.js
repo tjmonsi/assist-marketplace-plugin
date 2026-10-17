@@ -4,14 +4,35 @@
 //
 // Events handled (the event name comes from hook_event_name in the hook input):
 //   PostToolUse       WebFetch, WebSearch, mcp__* tools, Agent results, and Bash commands that run
-//                     firecrawl, curl, wget, or ctx7. Sentences that match an injection rule are replaced
+//                     firecrawl, curl, wget, or ctx7, and PowerShell commands that run those four, Invoke-WebRequest
+//                     (iwr), or Invoke-RestMethod (irm). Sentences that match an injection rule are replaced
 //                     by a visible marker and the result is returned through updatedToolOutput in the
-//                     exact shape it arrived in. Read, Grep, and every other Bash command are never touched.
+//                     exact shape it arrived in. Read, Grep, and every other Bash or PowerShell command are
+//                     never touched.
 //   PreToolUse        Agent: the subagent prompt is cleaned the same way. The rewrite is returned with
 //                     permissionDecision "ask" so the user sees it before the subagent starts.
 //   UserPromptSubmit  The typed prompt cannot be rewritten. If it looks injected, Claude gets a factual
 //                     note and the user gets a warning. The prompt is not changed or blocked.
 // Content that comes from the plugin's own files, or from a source in injection-allowlist.json, is skipped.
+//
+// [FR-099|FR-198] Which command runs a program: the command is split on && || ; | and line breaks, and each part
+// is read with looseWords after a leading PowerShell assignment is removed. findProgram (../lib/shell-program.js)
+// skips VAR=value words, shell keywords, wrappers, package runners, and in PowerShell a call operator and an
+// opening ( or $(; programName reduces the program word (no directory, @version, or .exe). Bash names are
+// compared with case, PowerShell names without regard to case.
+// Known limits (no requirement names them): this split ignores quotes, heredoc bodies, and braces, and it reads
+// only the words as written. So a PowerShell download inside a script block (try { irm https://x } catch { },
+// if ($a) { iwr https://x }) is not scanned, a name hidden by quotes or escapes (c"url" https://x) does not
+// count, and doc-cli-guard, which splits with the lexer and also braces, can read a different program for the
+// same command. Other PowerShell download APIs (Start-BitsTransfer, [Net.WebClient]) and a command string run
+// through Invoke-Expression or pwsh -Command are not covered either. The wrappers sudo, exec, and eval are
+// skipped as in doc-cli-guard. Bypass forms found later (PowerShell typographic quotes, block comments, the
+// dot-source operator, typed, scoped, and compound assignments, leading redirections, sudo --user) are known
+// gaps by decision (DECISIONS.md, 2026-10-17, "/do PR flow hardening after the security gate"), as are the
+// known gaps of doc-cli-guard (spec-hooks-bash-guards.md, Requirement: Documentation CLI program detection,
+// rule 9).
+// The PowerShell tool result shape is an assumption, unverified against a captured hook input: a string, or an
+// object with a string stdout (handled like a Bash result); any other shape takes the generic walk.
 //
 // Fail-open: the module only decides what to emit. A thrown error, malformed input, an unknown tool-result
 // shape, or a disabled hook produces no rewrite (see ../lib/health.js). It never blocks and never exits 2.
@@ -19,10 +40,14 @@
 "use strict";
 
 const rules = require("../lib/injection-rules.js");
-const { findProgram, looseWords } = require("./doc-cli-guard.js");
+const { EXTRA_WRAPPERS, KEYWORDS, findProgram, programName, stripAssignment } = require("../lib/shell-program.js");
+const { looseWords } = require("./doc-cli-guard.js");
 
 const NAME = "injection-filter";
 const EXTERNAL_PROGRAMS = new Set(["firecrawl", "curl", "wget", "ctx7"]);
+// PowerShell names are lower-cased by programName before the test.
+const POWERSHELL_PROGRAMS = new Set(["firecrawl", "curl", "wget", "ctx7", "invoke-webrequest", "iwr", "invoke-restmethod", "irm"]);
+const COMMAND_TOOLS = new Set(["Bash", "PowerShell"]);
 const EXTERNAL_TOOLS = new Set(["WebFetch", "WebSearch"]);
 const AGENT_TOOLS = new Set(["Agent", "Task"]);
 const MAX_DEPTH = 6;
@@ -41,15 +66,20 @@ function safeName(value) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Which Bash commands carry external content
+// Which Bash and PowerShell commands carry external content
 
-// Pipelines and lists are split so "cd site && curl https://x | jq ." is recognized.
-function runsExternalProgram(command) {
+// Pipelines and lists are split so "cd site && curl https://x | jq ." is recognized. powershell is true for a
+// PowerShell command.
+function runsExternalProgram(command, powershell) {
   if (typeof command !== "string") return false;
+  const isPowershell = powershell === true;
+  const names = isPowershell ? POWERSHELL_PROGRAMS : EXTERNAL_PROGRAMS;
+  const options = { runners: true, powershell: isPowershell, keywords: KEYWORDS, wrappers: EXTRA_WRAPPERS };
   return command.split(/&&|\|\||[;|\n]/).some((part) => {
-    const words = looseWords(part.trim());
-    const { index } = findProgram(words);
-    return index !== -1 && EXTERNAL_PROGRAMS.has(words[index].split("/").pop());
+    const text = isPowershell ? stripAssignment(part.trim()) : part.trim();
+    const words = looseWords(text);
+    const { index } = findProgram(words, options);
+    return index !== -1 && names.has(programName(words[index], { powershell: isPowershell }));
   });
 }
 
@@ -57,7 +87,7 @@ function carriesExternalContent(input) {
   const tool = input.tool_name;
   if (typeof tool !== "string") return false;
   if (EXTERNAL_TOOLS.has(tool) || tool.indexOf("mcp__") === 0 || AGENT_TOOLS.has(tool)) return true;
-  return tool === "Bash" && runsExternalProgram(input.tool_input && input.tool_input.command);
+  return COMMAND_TOOLS.has(tool) && runsExternalProgram(input.tool_input && input.tool_input.command, tool === "PowerShell");
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -76,7 +106,7 @@ function collectSources(input) {
     else if (PATH_PATTERN.test(value)) paths.push(value);
   };
   const toolInput = isObject(input.tool_input) ? input.tool_input : {};
-  if (input.tool_name === "Bash") {
+  if (COMMAND_TOOLS.has(input.tool_name)) {
     looseWords(String(toolInput.command || "")).forEach(take);
   } else {
     Object.keys(toolInput).forEach((key) => {
@@ -165,12 +195,16 @@ function describeChanges(stats, where) {
 function filterToolResponse(input, stats) {
   const response = input.tool_response;
   if (typeof response === "string") return scanString(response, stats);
-  if (input.tool_name === "Bash") {
+  if (COMMAND_TOOLS.has(input.tool_name)) {
     // Keep {stdout, stderr, interrupted, isImage} as is; only stdout is text from the network.
-    if (!isObject(response) || typeof response.stdout !== "string" || response.isImage === true) return null;
-    const out = Object.assign({}, response);
-    out.stdout = scanString(response.stdout, stats);
-    return out;
+    if (isObject(response) && typeof response.stdout === "string") {
+      if (response.isImage === true) return null;
+      const out = Object.assign({}, response);
+      out.stdout = scanString(response.stdout, stats);
+      return out;
+    }
+    // Any other Bash shape is left alone; any other PowerShell shape takes the walk below.
+    if (input.tool_name === "Bash") return null;
   }
   if (!isObject(response) && !Array.isArray(response)) return null;
   const rebuilt = filterValue(response, stats, 0);
@@ -228,7 +262,8 @@ function userPromptSubmit(input) {
   };
 }
 
-// Pure decision function. Returns null (emit nothing) or {stdout}. options: {pluginRoots, allowlist} for tests.
+// Decision function whose only I/O is file reads that a test can replace (the allowlist). Returns null (emit
+// nothing) or {stdout}. options: {pluginRoots, allowlist} for tests.
 function evaluate(input, options) {
   if (!isObject(input)) return null;
   switch (input.hook_event_name) {
