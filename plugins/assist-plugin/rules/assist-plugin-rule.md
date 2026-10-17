@@ -100,7 +100,7 @@ Code MUST pass ALL checks before approval:
 
 ## LLM Security Review Gate
 
-**When triggered:** Changes to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`, `rules/*.md`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`  
+**When triggered:** Changes to the LLM surface: `agents/`, `skills/` (every file at any depth, `metadata.json` included), `rules/`, or `hooks/`, each at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`. An application folder such as `src/hooks/` is not on the surface  
 **Who reviews:** `reviewer` or `code-reviewer` agent  
 **Authority:** Blocks merge
 
@@ -122,8 +122,8 @@ LLM07 System Prompt Leakage, LLM09 Misinformation/Overreliance, LLM10 Unbounded 
 (LLM08 Vector/Embedding Weaknesses is out of scope: no vector store or RAG layer in this plugin.)
 
 **Not fast-trackable:** This gate cannot be skipped under the Fast-Track Review rules below, even
-for changes that look like "docs-only." Files under `agents/`, `skills/`, `rules/`, and `hooks/` are this
-plugin's executable surface.
+for changes that look like "docs-only." The files named under **When triggered** (the `agents/`, `skills/`, `rules/`, and `hooks/`
+folders, the instruction files, and `.claude/settings*.json`) are this plugin's executable surface.
 
 **Approval:** Must sign: `✓ LLM Security Clear`
 
@@ -332,7 +332,7 @@ Escalate to code-reviewer if:
 **Before merge, ALL gates must be passed:**
 
 - [ ] Security review: ✓ OWASP Clear
-- [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/**`, `skills/**`, `rules/**`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`)
+- [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate): `agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/` at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`)
 - [ ] Testing: ✓ >=70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
 - [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
@@ -345,7 +345,7 @@ Escalate to code-reviewer if:
 - Conflicts with main
 - Author has < 2 hours since last commit (prevents race conditions)
 
-Changes to agents, skills, or rules are only mergeable once **both** the OWASP (application) gate
+Changes to `agents/`, `skills/`, or `rules/` on the LLM surface are only mergeable once **both** the OWASP (application) gate
 and the OWASP for LLM gate are signed off: `✓ OWASP Clear` and `✓ LLM Security Clear` must both
 appear in the commit message or plan file for traceability.
 
@@ -356,8 +356,10 @@ appear in the commit message or plan file for traceability.
 For low-risk changes (docs, tests, refactoring):
 
 1. **Security gate:** Can skip if no production code changes
-2. **LLM security gate:** Cannot be skipped for changes to `agents/*.md`, `skills/**/SKILL.md`,
-   `skills/**/references/*.md`, `rules/*.md`, `hooks/**`, `CLAUDE.md`, or `.claude/settings*.json`. These are
+2. **LLM security gate:** Cannot be skipped for changes to `agents/`, `skills/` (every file at any depth,
+   `metadata.json` included), `rules/`, or `hooks/`, each at the repository root, under any `plugins/<name>/`, or
+   under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; or `.claude/settings*.json`
+   (not an application folder such as `src/hooks/`). These are
    the plugin's executable surface, not documentation, regardless of how the change looks
 3. **Testing gate:** Always required if logic changes
 4. **Code review:** Optional if change is obvious/non-critical
@@ -404,11 +406,11 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 **Rule:** Plugin hooks (`hooks/`) block a tool call only when the guard logic positively matches a prohibited command. Every other outcome lets the command proceed: a thrown error, uncaught exception, unhandled rejection, stdin or input error, timeout, unsupported Node version, health-log write failure, or a guard disabled by `hooks-disabled.json`.
 
 **Requirements for hook code:**
-- Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the pure `evaluate(input)` of a guard; never exit 2 and never exit non-zero to block
+- Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the decision function `evaluate(input)` of a guard, whose only I/O is file reads that a test can replace; never exit 2 and never exit non-zero to block
 - On any failure print only `{"systemMessage": "..."}` to stdout and exit 0; if that write fails, exit 0 silently
 - Every hook command goes through an ES5 entry file (`hooks/*.js`) that gates the Node version before loading the real module; set `timeout` in `hooks.json`
 - Record failures in `${CLAUDE_PLUGIN_DATA}/hook-health.jsonl` without command text, arguments, environment values, or stdin
-- A guard whose self-test denies a known-safe command is auto-disabled (with a warning) until a later self-test passes; `/assist-plugin:health` shows the state
+- A guard whose self-test denies a known-safe command, and a filter (`injection-filter`, `prose-advisor`, `fsa-log`) whose self-test fails in any way, is auto-disabled (with a warning) and stays listed until a later self-test passes every case; a guard that only misses a known-prohibited command keeps its state; a failed `writing-context` self-test is reported only. `/assist-plugin:health` shows the state
 - The `prose-gate` denies a write to a prose file only when the text the write adds holds a block-tier tell (em dash, chatbot residue, curly quote, summary label); text already in the file is never judged. The `prose-advisor` and `writing-context` never block. Like every guard, all three fail open
 - The `commit-attribution-guard` denies a git or gh command only when the message or body it can read holds an AI attribution line; a message it cannot see passes ([No AI Attribution Rule](#no-ai-attribution-rule))
 - The `injection-filter` is defensive and fail-open: it rewrites a tool result or subagent prompt only on a positive rule match (and asks the user to confirm a rewritten subagent prompt), never blocks, only warns about the user's own typed prompt, and is auto-disabled if its benign/injection self-test corpus fails
@@ -451,7 +453,7 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 
 - **Automated:** CI/CD pipeline enforces coverage gates
 - **Manual:** Agents enforce OWASP checks
-- **Manual:** Agents enforce OWASP for LLM checks ([llm-security-checklist.md](llm-security-checklist.md)) on every change to `agents/`, `skills/`, `rules/`, `hooks/`, `CLAUDE.md`, or `.claude/settings*.json`
+- **Manual:** Agents enforce OWASP for LLM checks ([llm-security-checklist.md](llm-security-checklist.md)) on every change to the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate)
 - **Manual:** code-reviewer gives formal sign-off
 - **Automated:** the SessionStart health check self-tests the hook guards and warns only when something is wrong ([Hook Fail-Open Rule](#hook-fail-open-rule))
 - **Escalation:** code-reviewer makes final call on disputes
