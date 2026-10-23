@@ -4,9 +4,8 @@
 // advisory-tier tells from lib/prose-rules.js (hedges, intensifiers, AI vocabulary, throat-clearing, binary
 // contrast, en dashes, prose arrows, spaced double hyphens) in the text the call added, and returns them to
 // Claude as additionalContext: each family once, with one example and its fix, at most 10 lines. Silent when
-// the added text is clean. Text already in the file is not judged (see lib/prose-diff.js). Voice scripts under
-// docs/tts/ of the project root (CLAUDE_PROJECT_DIR, else the git root of the input cwd, else that cwd) or of
-// the input cwd when it sits inside the project get no advice.
+// the added text is clean. Text already in the file is not judged (see lib/prose-diff.js). A voice script
+// under docs/tts/ is judged like any prose file, with fenced blocks exempt (FR-105, FR-213).
 // Fail-open: it never blocks or changes the write; any failure emits nothing but a systemMessage (see
 // ../lib/health.js). Never exits 2.
 "use strict";
@@ -37,11 +36,9 @@ function describe(file, findings) {
 }
 
 // Pure decision apart from reading the written file. Returns null (emit nothing) or {stdout}.
-// options: {readFile, allowlist, tmpdir, projectDir, findGitRoot} replace the disk read, the exemptions, and the
-// project-root lookup (tests and the health check); projectDir null = unset, and a missing or undefined key
-// falls back to the environment and the file system.
-// Temp-directory, docs/tts/ (project root or session directory), and allowlisted paths (the prose-gate
-// allowlist) get no advice.
+// options: {readFile, allowlist, tmpdir} replace the disk read and the exemptions (tests and the health
+// check); a missing or undefined key falls back to the environment and the file system.
+// Temp-directory and allowlisted paths (the prose-gate allowlist) get no advice.
 function evaluate(input, options) {
   if (!input || input.hook_event_name !== "PostToolUse") return null;
   const opts = options || {};
@@ -50,8 +47,6 @@ function evaluate(input, options) {
     readFile: opts.readFile,
     allowlist: opts.allowlist,
     tmpdir: opts.tmpdir,
-    projectDir: opts.projectDir,
-    findGitRoot: opts.findGitRoot,
   });
   if (!change) return null;
   const findings = diff.addedFindings(change, "advise");

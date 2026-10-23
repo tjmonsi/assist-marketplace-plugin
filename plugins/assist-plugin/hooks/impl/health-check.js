@@ -38,11 +38,10 @@
 // The pr-post-ask is a guard: its corpus holds `gh` and `bkt` posting commands (must ask) and read commands, quoted
 // mentions, and `bkt api` reads (must not ask); a false ask disables it like a false deny, and a missed ask reports
 // weak protection.
-// Both prose hooks skip temp-directory paths, voice scripts under docs/tts/ of the project root or of the
-// session directory, and paths in prose-gate-allowlist.json. The self-tests pass an explicit allowlist per case,
-// and projectDir and findGitRoot per case (diskReader throws for a case without them), so neither a user's real
-// allowlist, the real CLAUDE_PROJECT_DIR, nor the real file system masks or changes a result. The allowlist file is
-// separate from hooks-disabled.json, so a passing self-test never changes it.
+// Both prose hooks skip temp-directory paths and paths in prose-gate-allowlist.json. A voice script under docs/tts/
+// is judged like any prose file, with fenced blocks exempt. The self-tests pass an explicit allowlist per case, so
+// a user's real allowlist never masks or changes a result. The allowlist file is separate from hooks-disabled.json,
+// so a passing self-test never changes it.
 //
 // The report also lists Claude Code's attribution settings (attribution.commit and attribution.pr in the user,
 // project, and local settings files). Each key works on its own: an unset or non-empty attribution.commit adds
@@ -168,38 +167,21 @@ const EN = "\u2013";
 const ARROW = "\u2192";
 const PROSE_FILE = "/assist-selftest/notes.md";
 
-// [FR-181] Every prose case carries the two project-root keys: projectDir (a string, or null for unset) and
-// findGitRoot (a function from a directory to a git root or null). By default there is no project directory and no
-// git root, so the project root falls back to the case's cwd and the real environment never matters.
-const NO_GIT_ROOT = () => null;
-
-// Adds the two keys to a case written as an object literal, keeping values the case already sets.
-function withRoot(input) {
-  return Object.assign({ projectDir: null, findGitRoot: NO_GIT_ROOT }, input);
-}
-
 function proseWrite(label, content, disk) {
-  return withRoot({ label, disk, tool_name: "Write", tool_input: { file_path: PROSE_FILE, content } });
+  return { label, disk, tool_name: "Write", tool_input: { file_path: PROSE_FILE, content } };
 }
 
 function proseEdit(label, oldText, newText, disk) {
-  return withRoot({ label, disk, tool_name: "Edit", tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false } });
+  return { label, disk, tool_name: "Edit", tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false } };
 }
 
-// Options for the prose hooks: the file contents stand-in, the case's own allowlist (empty by default), the
-// case's temp-directory override (the real temp directory when unset), and its project directory and git-root
-// finder. A case without projectDir or findGitRoot throws, so it is listed under "case threw" instead of reading
-// the real CLAUDE_PROJECT_DIR or file system.
+// Options for the prose hooks: the file contents stand-in, the case's own allowlist (empty by default), and the
+// case's temp-directory override (the real temp directory when unset).
 function diskReader(input) {
-  if (!Object.prototype.hasOwnProperty.call(input, "projectDir") || typeof input.findGitRoot !== "function") {
-    throw new Error(`prose case "${input.label}" lacks the projectDir key or a findGitRoot function`);
-  }
   return {
     readFile: () => (typeof input.disk === "string" ? input.disk : null),
     allowlist: input.allowlist || [],
     tmpdir: input.tmpdir,
-    projectDir: input.projectDir,
-    findGitRoot: input.findGitRoot,
   };
 }
 
@@ -207,29 +189,21 @@ const ALLOWED_FILE = "/assist-selftest-allowed/notes.md";
 const TMP_FILE = path.join(os.tmpdir(), "assist-selftest", "notes.md");
 
 function proseAt(label, file, content, allowlist) {
-  return withRoot({ label, allowlist, tool_name: "Write", tool_input: { file_path: file, content } });
+  return { label, allowlist, tool_name: "Write", tool_input: { file_path: file, content } };
 }
 
-// Calls with the hook input's cwd set, for the docs/tts/ exemption (voice scripts may hold em dashes).
+// Calls with the hook input's cwd set, for the docs/tts/ cases (a voice script is judged like any prose file).
 const TTS_ROOT = "/assist-selftest/project";
 // A fixed temp directory keeps the relative-path cases independent of where the check runs: otherwise a
 // relative path resolves against the check's own working directory, which may sit under the real temp directory.
 const TTS_TMP = "/assist-selftest-tmp";
 
-// `roots` optionally sets projectDir and findGitRoot for the case.
-function proseIn(label, file, cwd, content, roots) {
-  const input = withRoot(Object.assign({ label, tmpdir: TTS_TMP, tool_name: "Write", tool_input: { file_path: file, content } }, roots));
+function proseIn(label, file, cwd, content) {
+  const input = { label, tmpdir: TTS_TMP, tool_name: "Write", tool_input: { file_path: file, content } };
   if (cwd !== undefined) input.cwd = cwd;
   return input;
 }
 
-// Project-root keys for the cases of the voice-script exemption under the project root and the session directory.
-function gitRootAt(root) {
-  return { projectDir: null, findGitRoot: () => root };
-}
-function projectAt(dir) {
-  return { projectDir: dir, findGitRoot: NO_GIT_ROOT };
-}
 const GATE_TEXT = `A ${EM} B.\n`;
 
 const PROSE_GATE_DENY = [
@@ -243,7 +217,17 @@ const PROSE_GATE_DENY = [
   proseIn("tts: empty cwd, relative path", "docs/tts/a.md", "", `A ${EM} B.\n`),
   proseIn("tts: relative cwd, relative path", "docs/tts/a.md", "assist-selftest/project", `A ${EM} B.\n`),
   proseIn("tts: no cwd, absolute path", `${TTS_ROOT}/docs/tts/a.md`, undefined, `A ${EM} B.\n`),
-  withRoot({ label: "tts: notebook outside docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/ttsx/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `A ${EM} B.` } }),
+  { label: "tts: notebook outside docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/ttsx/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `A ${EM} B.` } },
+  // A voice script is judged like any prose file: an em dash in docs/tts/ is denied under every session directory.
+  proseIn("tts: em dash in docs/tts (relative path)", "docs/tts/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: em dash in docs/tts (absolute path)", `${TTS_ROOT}/docs/tts/a.md`, TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: em dash in a docs/tts subdirectory", "docs/tts/ep1/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  proseIn("tts: dot segments that stay inside docs/tts", "docs/tts/ep1/../a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
+  { label: "tts: notebook markdown cell in docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/tts/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Pause ${EM} here.` } },
+  proseIn("tts: session in a subdirectory, docs/tts at the root", `${TTS_ROOT}/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT),
+  proseIn("tts: session in a subdirectory, relative path above the cwd", "../docs/tts/a.md", `${TTS_ROOT}/src`, GATE_TEXT),
+  proseIn("tts: session in a subdirectory, docs/tts in the session directory", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT),
+  proseIn("tts: worktree session, docs/tts in the worktree", `${TTS_ROOT}/.claude/worktrees/w/docs/tts/a.md`, `${TTS_ROOT}/.claude/worktrees/w`, GATE_TEXT),
   proseWrite("write: em dash", `The cache is stale ${EM} restart it.\n`),
   proseWrite("write: horizontal bar", "The cache is stale \u2015 restart it.\n"),
   proseWrite("write: sign-off", "Run the tests first.\n\nI hope this helps!\n"),
@@ -257,28 +241,16 @@ const PROSE_GATE_DENY = [
   proseEdit("edit: adds an em dash", "The flag is set.", `The flag is set ${EM} always.`),
   proseAt("write: allowlist entry that does not match", "/assist-selftest/notes.md", `The cache is stale ${EM} restart it.\n`, ["assist-selftest-allowed"]),
   proseEdit("edit: adds a second em dash", `A ${EM} B.`, `A ${EM} B ${EM} C.`),
-  withRoot({ label: "multiedit: second edit adds a tell", tool_name: "MultiEdit", tool_input: { file_path: PROSE_FILE, edits: [{ old_string: "one", new_string: "two" }, { old_string: "three", new_string: `three ${EM} four` }] } }),
-  withRoot({ label: "notebook: markdown cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Results ${EM} final.` } }),
-  // [FR-181] Voice scripts under the project root and the session directory.
-  proseIn("tts: project variable, session in a subdirectory, session directory has no docs/tts", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, session in another project", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, other docs path", `${TTS_ROOT}/docs/guide.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, no cwd, relative path", "docs/tts/a.md", undefined, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: relative project variable, no cwd, relative path", "docs/tts/a.md", undefined, GATE_TEXT, projectAt("app")),
+  { label: "multiedit: second edit adds a tell", tool_name: "MultiEdit", tool_input: { file_path: PROSE_FILE, edits: [{ old_string: "one", new_string: "two" }, { old_string: "three", new_string: `three ${EM} four` }] } },
+  { label: "notebook: markdown cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Results ${EM} final.` } },
+  proseIn("tts: session at the root, docs/tts below a subdirectory", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, GATE_TEXT),
+  proseIn("tts: session in another directory, its docs/tts", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", GATE_TEXT),
+  proseIn("tts: session in a subdirectory, other docs path", `${TTS_ROOT}/docs/guide.md`, `${TTS_ROOT}/src`, GATE_TEXT),
 ];
 
 const PROSE_GATE_ALLOW = [
-  proseIn("tts: em dash in docs/tts (relative path)", "docs/tts/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
-  proseIn("tts: em dash in docs/tts (absolute path)", `${TTS_ROOT}/docs/tts/a.md`, TTS_ROOT, `Pause here ${EM} then go on.\n`),
-  proseIn("tts: em dash in a docs/tts subdirectory", "docs/tts/ep1/a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
-  proseIn("tts: dot segments that stay inside docs/tts", "docs/tts/ep1/../a.md", TTS_ROOT, `Pause here ${EM} then go on.\n`),
-  withRoot({ label: "tts: notebook markdown cell in docs/tts", cwd: TTS_ROOT, tmpdir: TTS_TMP, tool_name: "NotebookEdit", tool_input: { notebook_path: "docs/tts/a.ipynb", cell_id: "c1", cell_type: "markdown", new_source: `Pause ${EM} here.` } }),
-  // [FR-181] Voice scripts under the project root and the session directory.
-  proseIn("tts: project variable, session in a subdirectory (project root)", `${TTS_ROOT}/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, session in a subdirectory (relative path above the cwd)", "../docs/tts/a.md", `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, session in a subdirectory (session directory)", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: project variable, worktree session (session directory)", `${TTS_ROOT}/.claude/worktrees/w/docs/tts/a.md`, `${TTS_ROOT}/.claude/worktrees/w`, GATE_TEXT, projectAt(TTS_ROOT)),
-  proseIn("tts: no project variable, git root above the session directory", `${TTS_ROOT}/docs/tts/a.md`, `${TTS_ROOT}/src`, GATE_TEXT, gitRootAt(TTS_ROOT)),
+  proseIn("tts: docs/tts without a tell", "docs/tts/a.md", TTS_ROOT, "Pause here, then go on.\n"),
+  proseIn("tts: em dash only inside a fenced script block", "docs/tts/a.md", TTS_ROOT, `## Script\n\n\`\`\`text\nPause here ${EM} then go on.\n\`\`\`\n`),
   proseWrite("write: clean prose", "The cache expires after 10 minutes. Restart the worker to clear it.\n"),
   proseAt("write: temp-directory path", TMP_FILE, `The cache is stale ${EM} restart it.\n`),
   proseAt("write: allowlisted path", ALLOWED_FILE, `The cache is stale ${EM} restart it.\n`, ["assist-selftest-allowed"]),
@@ -297,35 +269,34 @@ const PROSE_GATE_ALLOW = [
   proseWrite("write: overwrite rewords a line with a tell", `Old ${EM} kept, now reworded.\n`, `Old ${EM} kept.\n`),
   proseEdit("edit: old_string and new_string keep the em dash", `A ${EM} B.`, `A ${EM} B, and C.`),
   proseEdit("edit: removes an em dash", `A ${EM} B.`, "A. B."),
-  withRoot({ label: "write: non-prose file", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: `// a ${EM} b\n` } }),
-  withRoot({ label: "write: CHANGELOG", tool_name: "Write", tool_input: { file_path: "/assist-selftest/CHANGELOG.md", content: `- Fixed ${EM} done.\n` } }),
-  withRoot({ label: "notebook: code cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "code", new_source: `x = "${EM}"` } }),
-  withRoot({ label: "read tool", tool_name: "Read", tool_input: { file_path: PROSE_FILE } }),
+  { label: "write: non-prose file", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: `// a ${EM} b\n` } },
+  { label: "write: CHANGELOG", tool_name: "Write", tool_input: { file_path: "/assist-selftest/CHANGELOG.md", content: `- Fixed ${EM} done.\n` } },
+  { label: "notebook: code cell", tool_name: "NotebookEdit", tool_input: { notebook_path: "/assist-selftest/a.ipynb", cell_id: "c1", cell_type: "code", new_source: `x = "${EM}"` } },
+  { label: "read tool", tool_name: "Read", tool_input: { file_path: PROSE_FILE } },
 ];
 
 function postWrite(label, content, originalFile) {
-  return withRoot({
+  return {
     label,
     hook_event_name: "PostToolUse",
     tool_name: "Write",
     tool_input: { file_path: PROSE_FILE, content },
     tool_response: { type: originalFile === null ? "create" : "update", originalFile },
-  });
+  };
 }
 
 function postEdit(label, originalFile, oldText, newText) {
-  return withRoot({
+  return {
     label,
     hook_event_name: "PostToolUse",
     tool_name: "Edit",
     tool_input: { file_path: PROSE_FILE, old_string: oldText, new_string: newText, replace_all: false },
     tool_response: { originalFile },
-  });
+  };
 }
 
-// `roots` optionally sets projectDir and findGitRoot for the case.
-function postIn(label, file, cwd, content, roots) {
-  return Object.assign(postWrite(label, content, null), { cwd, tmpdir: TTS_TMP, tool_input: { file_path: file, content } }, roots);
+function postIn(label, file, cwd, content) {
+  return Object.assign(postWrite(label, content, null), { cwd, tmpdir: TTS_TMP, tool_input: { file_path: file, content } });
 }
 
 const ADVISOR_TEXT = "This is very robust.\n";
@@ -339,14 +310,15 @@ const PROSE_ADVISOR_FLAGGED = [
   postWrite("write: en dash in prose", `The build passed ${EN} mostly.\n`, null),
   postWrite("write: prose arrow", `Config ${ARROW} runtime.\n`, null),
   postEdit("edit: adds throat-clearing", "Run it.\n", "Run it.", "In order to finish, run it."),
-  // [FR-181] Advisory tells outside the exempt docs/tts/ directories.
-  postIn("tts: project variable, session at the root, docs/tts below a subdirectory", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, ADVISOR_TEXT, projectAt(TTS_ROOT)),
-  postIn("tts: project variable, session in another project", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", ADVISOR_TEXT, projectAt(TTS_ROOT)),
+  // A voice script is judged like any prose file: advisory tells in docs/tts/ are reported.
+  postIn("tts: advisory tells in docs/tts", "docs/tts/a.md", TTS_ROOT, `This is very robust ${EN} arguably.\n`),
+  postIn("tts: session in a subdirectory, docs/tts in the session directory", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, ADVISOR_TEXT),
+  postIn("tts: session at the root, docs/tts below a subdirectory", `${TTS_ROOT}/src/docs/tts/a.md`, TTS_ROOT, ADVISOR_TEXT),
+  postIn("tts: session in another directory, its docs/tts", "/assist-selftest/other/docs/tts/a.md", "/assist-selftest/other", ADVISOR_TEXT),
 ];
 
 const PROSE_ADVISOR_CLEAN = [
-  postIn("tts: advisory tells in docs/tts", "docs/tts/a.md", TTS_ROOT, `This is very robust ${EN} arguably.\n`),
-  postIn("tts: project variable, session in a subdirectory (session directory)", `${TTS_ROOT}/src/docs/tts/a.md`, `${TTS_ROOT}/src`, ADVISOR_TEXT, projectAt(TTS_ROOT)),
+  postIn("tts: docs/tts without a tell", "docs/tts/a.md", TTS_ROOT, "Pause here, then go on.\n"),
   postWrite("write: clean prose", "The cache expires after 10 minutes.\n", null),
   postWrite("write: block tier only", "I hope this helps!\n", null),
   postWrite("write: fenced code", "```\nvery robust\n```\n", null),
@@ -355,7 +327,7 @@ const PROSE_ADVISOR_CLEAN = [
   postWrite("write: arrow flow and table", `A ${ARROW} B ${ARROW} C\n\n| from | to |\n|---|---|\n| a | ${ARROW} b |\n`, null),
   postWrite("write: tell kept on an unchanged line", "This is very old.\nNew clean line.\n", "This is very old.\n"),
   postEdit("edit: keeps the advisory word", "It is very old.\n", "It is very old.", "It is very old, still."),
-  withRoot({ label: "write: non-prose file", hook_event_name: "PostToolUse", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: "very\n" }, tool_response: { type: "create", originalFile: null } }),
+  { label: "write: non-prose file", hook_event_name: "PostToolUse", tool_name: "Write", tool_input: { file_path: "/assist-selftest/a.js", content: "very\n" }, tool_response: { type: "create", originalFile: null } },
 ];
 
 // End-to-end cases for the hook logic itself: the tool result must keep its shape.

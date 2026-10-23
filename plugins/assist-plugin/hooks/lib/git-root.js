@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Toni-Jan Keith Monserrat
-// [FR-181] Finds the git root of a directory without starting a git process. Shared by the prose hooks
-// (voice-script exemption, lib/prose-diff.js) and fsa-write-bar (task-plan scope, FR-186), so both find a
-// git root the same way.
+// Finds the git root of a directory without starting a git process. Shared by fsa-write-bar (task-plan
+// scope, FR-186) and sa-mermaid-only (mmdc path scope, FR-093), so both find a git root the same way.
 //
 // findGitRoot(dir): from dir, check each directory up to the file-system root for an entry named .git (a
 // directory, or a file as in a linked worktree or a submodule). Returns the first directory that holds one,
