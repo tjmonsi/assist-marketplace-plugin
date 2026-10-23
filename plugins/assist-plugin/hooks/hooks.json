@@ -23,6 +23,11 @@
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/doc-cli-guard.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-post-ask.js\"",
+            "timeout": 5
           }
         ]
       },

@@ -35,6 +35,9 @@
 // AI co-author trailer or another AI attribution line (must be denied) and commands that only mention the
 // trailer, human co-authors, git tag, and unreadable message files (must pass). The cases use a fixed cwd and a
 // stub file reader, so the result does not depend on where the check runs.
+// The pr-post-ask is a guard: its corpus holds `gh` and `bkt` posting commands (must ask) and read commands, quoted
+// mentions, and `bkt api` reads (must not ask); a false ask disables it like a false deny, and a missed ask reports
+// weak protection.
 // Both prose hooks skip temp-directory paths, voice scripts under docs/tts/ of the project root or of the
 // session directory, and paths in prose-gate-allowlist.json. The self-tests pass an explicit allowlist per case,
 // and projectDir and findGitRoot per case (diskReader throws for a case without them), so neither a user's real
@@ -72,6 +75,7 @@ const launch = require("../lib/launch.js");
 const docCliGuard = require("./doc-cli-guard.js");
 const commitAttributionGuard = require("./commit-attribution-guard.js");
 const saMermaidOnly = require("./sa-mermaid-only.js");
+const prPostAsk = require("./pr-post-ask.js");
 const injectionFilter = require("./injection-filter.js");
 const injectionRules = require("../lib/injection-rules.js");
 const proseGate = require("./prose-gate.js");
@@ -1032,6 +1036,46 @@ const GUARDS = [
       mermaid(`mmdc -i ${MERMAID_ROOT}/specs/a.mmd -o ${MERMAID_ROOT}/specs/`, MERMAID_ROOT, MERMAID_ROOT),
       mermaid(`mmdc -i ${MERMAID_ROOT}/a/b/specs/a.mmd -o ${MERMAID_ROOT}/specs/a.png`, MERMAID_ROOT, MERMAID_ROOT),
       mermaid(`mmdc -i ${MERMAID_ROOT}/backend/.cache/specs/a.mmd -o ${MERMAID_ROOT}/backend/specs/a.png`, MERMAID_ROOT, MERMAID_ROOT),
+    ],
+  },
+  {
+    // [FR-206|FR-118] A guard whose "deny" is an ask: the wrapper maps ask === true to deny === true, so a false ask
+    // disables the hook and a missed ask reports weak protection. The numbers are the case numbers of
+    // spec-hooks-pr-post-ask.md, Requirement 8, so the table can be diffed: the ask cases are 1 to 12, 25, and 26,
+    // and the no-ask cases are 13 to 24 and 27. The cases carry no cwd and need no stub: the hook reads no file.
+    name: prPostAsk.NAME,
+    nouns: { allow: "no-ask cases", deny: "ask cases", falseDeny: "known-safe command", falseAllow: "known posting command", altered: "ASKED", missed: "NOT ASKED" },
+    evaluate: (input) => ({ deny: prPostAsk.evaluate(input).ask === true }),
+    allow: [
+      bash("gh pr view 1"), // 13
+      bash("bkt api /x --method GET"), // 14
+      bash("git commit -m \"docs: explain gh pr review\""), // 15
+      bash("bkt pr comments 1 --workspace acme --repo repo --json"), // 16
+      bash("bkt pr view 123 --workspace acme --repo repo"), // 17
+      bash("bkt api /repositories/acme/repo/pullrequests/123"), // 18
+      bash("gh pr diff 1 --repo 'github.com/acme/shop'"), // 19
+      bash("git status"), // 20
+      bash("echo \"gh pr merge 1\""), // 21
+      powershell("gh pr view 1"), // 22
+      bash("bkt auth status --json"), // 23
+      bash("bkt api /x --method HEAD"), // 24
+      bash("bkt --context cloud-prod pr view 1 --workspace acme --repo repo"), // 27
+    ],
+    deny: [
+      bash("gh pr review 1 --approve"), // 1
+      bash("bkt pr comment 1 --text x"), // 2
+      bash("bkt api /x --method POST"), // 3
+      bash("gh pr merge 123"), // 4
+      bash("echo done && gh pr close 123"), // 5
+      bash("bkt --context cloud-prod pr approve 123 --workspace acme --repo repo"), // 6
+      bash("bkt api /repositories/acme/repo/pullrequests/123/comments --field content.raw=hello"), // 7
+      bash("bkt api /x --method=delete"), // 8
+      powershell("GH.EXE pr comment 1 --body-file b.txt"), // 9
+      bash("bkt pr decline 1 --project PROJ --repo repo"), // 10
+      bash("printf '%s  %s\\n' 'h' 'f' | sha256sum -c --strict - && bkt pr comment '1' --context 'c' --workspace 'acme' --repo 'shop' --text=\"$(cat -- 'f')\""), // 11
+      bash("bkt api /x -X POST"), // 12
+      bash("bkt --method=POST api /x"), // 25
+      bash("bkt --method POST api /x"), // 26
     ],
   },
   {

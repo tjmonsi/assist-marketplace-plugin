@@ -392,8 +392,20 @@ function denyOutput(reason) {
   };
 }
 
-// Runs a PreToolUse guard. evaluate(input) returns {deny: boolean, reason: string}.
-// The command is blocked only when evaluate positively returns deny === true.
+function askOutput(reason) {
+  return {
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "ask",
+      permissionDecisionReason: reason
+    }
+  };
+}
+
+// Runs a PreToolUse guard. evaluate(input) returns {deny, ask, reason}: deny and ask are booleans, reason a string.
+// The command is blocked only when evaluate positively returns deny === true; deny wins over ask. The user is asked
+// only when evaluate positively returns ask === true (and deny is not true). Only pr-post-ask returns ask: true;
+// every other guard is unchanged. The ask path writes no hook-health record: it is a decision, not a failure.
 function guard(name, evaluate) {
   installHandlers(name);
   startWatchdog(name, WATCHDOG_MS);
@@ -437,6 +449,10 @@ function guard(name, evaluate) {
       finished = true;
       var reason = typeof decision.reason === "string" && decision.reason ? decision.reason : "blocked by assist-plugin guard " + name;
       writeStdout(JSON.stringify(denyOutput(reason)));
+    } else if (decision && decision.ask === true) {
+      finished = true;
+      var askReason = typeof decision.reason === "string" && decision.reason ? decision.reason : "assist-plugin guard " + name + " asks before this command";
+      writeStdout(JSON.stringify(askOutput(askReason)));
     }
     exitZero();
   });
