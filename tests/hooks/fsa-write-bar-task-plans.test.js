@@ -576,7 +576,7 @@ test("real walk, unreadable parent: a permission error on the cwd does not stop 
 });
 
 test("real walk, a nonexistent cwd does not throw and falls back to a deterministic verdict", () => {
-  // Null/missing input. The walk never throws. [Requirement: Task-planner write scope, step 1 | FR-186 | FR-181]
+  // Null/missing input. The walk never throws. [Requirement: Task-planner write scope, step 1 | FR-186]
   const cwd = path.join(TMP, "does", "not", "exist");
   assert.doesNotThrow(() => walk(path.join(cwd, "docs", "task-plans", "task-plan-x.md"), cwd));
 });

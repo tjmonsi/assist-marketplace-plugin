@@ -1,24 +1,33 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Black-box tests for the self-hosted repository layout and the documentation wording of 1.11.1
-// (task plan step 29).
+// Black-box tests for the self-hosted repository layout and the documentation wording of 1.13.1
+// (task plan steps 29 of 1.11.1 and 13 of 1.13.1).
 //
 //   FR-174  requirements in docs/requirements/, task plans in docs/task-plans/, specs under specs/
 //   FR-178  version agreement between the manifests and the newest root CHANGELOG heading
-//   FR-181  the docs/tts/ exemption wording in the hook descriptions (and OP-2 for three Area C files)
+//   FR-104  the prose hooks exempt only the system temp directory and allowlisted paths
+//   FR-213  files under docs/tts/ are judged like other prose, with fenced blocks exempt
+//   FR-211  a saved voice script holds no em dash (the skill side of the same rule)
+//   FR-166  the /health overview names the temp-directory and allowlist exemptions
 //   NFR-020 agent and skill counts agree between the documents and the directories
+//
+// FR-181 (the docs/tts/ project-root and session-directory exemption, built in 1.11.1) is retired
+// in 1.13.1, and no assertion here depends on it.
 //
 // Sources: specs/spec-skills-manifests-docs.md (Requirement: Self-hosted requirements, specs, and
 // plans; Requirement: Manifest versions agree at release; Requirement: Agent and skill counts agree
-// in eight files), specs/spec-hooks-prose-hooks.md (Requirement: Voice-script exemption under the
-// project root and the session directory, "Documents that describe the built rule"),
-// specs/spec-skills.md (OP-2), and docs/requirements/FR-NFR-assist-plugin.md.
+// in eight files), specs/spec-skills.md (Change Log 2026-10-23: Requirement: Documents describe
+// voice scripts as gated prose, rules 1 to 5 and F1 to F5, with its six scenarios),
+// specs/spec-skills-health.md (Change Log 2026-10-23: Requirement: Short summary with a fix per
+// finding, Scenario: Overview names no docs/tts skip), and docs/requirements/FR-NFR-assist-plugin.md.
+// Upstream ids: UR-058 (voice scripts without em dashes), UR-016, BR-008.
 //
 // Traceability format: [Scenario | spec section | requirement ids | upstream ids]. The specs use
 // named requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
 // The tests assert the specified end state. The version is read from plugin.json and never pinned.
-// The counts are read from the agents/ and skills/ directories and never pinned.
+// The counts are read from the agents/ and skills/ directories and never pinned. This file holds
+// none of the banned characters; the one regex that needs a curly apostrophe spells it as an escape.
 //
 // Run: node --test tests/docs/self-hosted-layout.test.js
 
@@ -140,28 +149,86 @@ test("docs/requirements/ holds no task-plan-*.md and docs/task-plans/ holds no r
 });
 
 // ---------------------------------------------------------------------------
-// FR-181 and OP-2: the docs/tts/ exemption wording
+// FR-104, FR-213, FR-211: documents describe voice scripts as gated prose
+// (spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose)
 // ---------------------------------------------------------------------------
 
-// Sentences (and line pieces) that mention docs/tts/ and say the hooks skip or exempt it.
-// A sentence ends at . ! or ? followed by white space and a capital letter, a backtick, a star,
-// an opening parenthesis, or an opening bracket; a line break ends it too.
-function exemptionSentences(text) {
+// Rule 1. A sentence ends at a line break, and at . ! or ? followed by white space and a capital
+// letter, a backtick, a star, an opening parenthesis, or an opening bracket.
+function sentencesOf(text) {
   const units = [];
   text.replace(/\r\n/g, "\n").split("\n").forEach(function (line) {
     line.split(/(?<=[.!?])\s+(?=[A-Z`*(\[])/).forEach(function (s) {
       units.push(s);
     });
   });
-  return units.filter(function (s) {
-    return s.indexOf("docs/tts/") !== -1 && /skip|exempt/i.test(s);
+  return units;
+}
+
+// Every match below is without regard to case.
+const PROJECT_ROOT_RE = /project root/i;
+// "the session's working directory" (straight or curly apostrophe), "session working directory",
+// or "session directory". The curly apostrophe is the regex escape of U+2019 (a double backslash
+// in the string, so the source holds no curly quote).
+const SESSION_DIR_RE = new RegExp("session(?:'|\\u2019)s working directory|session working directory|session directory", "i");
+
+function namesTts(s) {
+  return s.toLowerCase().indexOf("docs/tts/") !== -1;
+}
+
+// The forbidden-sentence rules. F4 applies to the five hook-description files only; F5 is the
+// voice-script skill's rule, and the plan's STALE-WORDING check applies it to all six files.
+const RULES = {
+  F1: function (s) {
+    return namesTts(s) && /skip/i.test(s);
+  },
+  F2: function (s) {
+    return namesTts(s) && /exempt/i.test(s) && !/fenced/i.test(s);
+  },
+  F3: function (s) {
+    return /may use em dashes|may hold em dashes/i.test(s);
+  },
+  F4: function (s) {
+    return namesTts(s) && (PROJECT_ROOT_RE.test(s) || SESSION_DIR_RE.test(s));
+  },
+  F5: function (s) {
+    return /prose-hook exemption/i.test(s);
+  },
+};
+
+const HOOK_RULES = ["F1", "F2", "F3", "F4", "F5"];
+const VOICE_RULES = ["F1", "F2", "F3", "F5"]; // F4 does not apply to skills/voice-script/SKILL.md
+
+function metRules(s, ruleNames) {
+  return ruleNames.filter(function (name) {
+    return RULES[name](s);
   });
 }
 
-const PROJECT_ROOT_RE = /project root/i;
-// "the session's working directory" (straight or curly apostrophe), "session working directory",
-// or "session directory".
-const SESSION_DIR_RE = /session(?:'|’)s working directory|session working directory|session directory/i;
+// Rule 2. A required sentence holds docs/tts/, "like other prose", and "fenced", and is no forbidden sentence.
+function isRequired(s, ruleNames) {
+  return namesTts(s) && /like other prose/i.test(s) && /fenced/i.test(s) && metRules(s, ruleNames).length === 0;
+}
+
+// The result of the rules over one document text.
+function judge(text, ruleNames) {
+  const forbidden = [];
+  let required = 0;
+  sentencesOf(text).forEach(function (s) {
+    const met = metRules(s, ruleNames);
+    if (met.length > 0) forbidden.push({ rules: met, sentence: s });
+    else if (isRequired(s, ruleNames)) required += 1;
+  });
+  return { forbidden: forbidden, required: required };
+}
+
+function describeForbidden(list) {
+  return JSON.stringify(
+    list.map(function (f) {
+      return f.rules.join("+") + ": " + f.sentence.slice(0, 200);
+    })
+  );
+}
 
 const HOOK_DESCRIPTION_FILES = [
   "CLAUDE.md",
@@ -171,77 +238,166 @@ const HOOK_DESCRIPTION_FILES = [
   "plugins/assist-plugin/docs/SPECIFICATION.md",
 ];
 
+const VOICE_SKILL = "plugins/assist-plugin/skills/voice-script/SKILL.md";
+const REQUIRED_SENTENCE = "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt.";
+
 HOOK_DESCRIPTION_FILES.forEach(function (rel) {
   test(rel + ": the phrase 'not the git root' is gone", () => {
-    // [Scenario: Subdirectory session, voice script at the project root | spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session directory" (Documents that describe the built rule) | FR-181 | FR-104 | UR-016 | BR-008]
-    // Invalid (stale wording): the built rule said the hooks use the hook's working directory, not the git root.
+    // [Scenario: Hook descriptions name no docs/tts skip (rule 5) | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+    // Invalid (stale wording): the 1.13.0 text said the hooks use the hook's working directory, not the git root.
     assert.doesNotMatch(read(repoPath(rel)), /not the git root/i);
   });
 
-  test(rel + ": the docs/tts/ exemption sentence is present", () => {
-    // [Scenario: Subdirectory session, voice script at the project root | spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session directory" | FR-181 | FR-104 | UR-016 | BR-008]
-    // Null case: a deleted description would pass the 'phrase is gone' test, so require the sentence.
-    const sentences = exemptionSentences(read(repoPath(rel)));
-    assert.ok(sentences.length >= 1, rel + " has no sentence that says the hooks skip or exempt docs/tts/");
+  test(rel + ": no sentence meets F1, F2, F3, F4, or F5", () => {
+    // [Scenario: Hook descriptions name no docs/tts skip | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+    // Invalid (stale wording): a sentence that names docs/tts/ with "skip", an "exempt" without "fenced",
+    // the 1.13.0 em-dash phrases, or a project-root or session-directory phrase.
+    const result = judge(read(repoPath(rel)), HOOK_RULES);
+    assert.deepStrictEqual(result.forbidden, [], rel + " holds a forbidden sentence: " + describeForbidden(result.forbidden));
   });
 
-  test(rel + ": the exemption sentence names the project root and the session's working directory", () => {
-    // [Scenario: Subdirectory session, voice script in the session directory | spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session directory" | FR-181 | FR-104 | UR-016 | BR-008]
-    // Valid (end state): the description names both exempt roots in one sentence.
-    const sentences = exemptionSentences(read(repoPath(rel)));
-    const both = sentences.filter(function (s) {
-      return PROJECT_ROOT_RE.test(s) && SESSION_DIR_RE.test(s);
-    });
+  test(rel + ": at least one required sentence (docs/tts/, 'like other prose', 'fenced') stands as its own sentence", () => {
+    // [Scenario: Hook descriptions name no docs/tts skip (required sentence) | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+    // Null case: deleting the description would pass the "no forbidden sentence" test, so require the sentence.
+    const result = judge(read(repoPath(rel)), HOOK_RULES);
     assert.ok(
-      both.length >= 1,
-      rel + ": no docs/tts/ exemption sentence names both the project root and the session's working directory; sentences found: " +
-        JSON.stringify(sentences.map(function (s) { return s.slice(0, 160); }))
+      result.required >= 1,
+      rel + ": no required sentence; sentences that name docs/tts/: " +
+        JSON.stringify(
+          sentencesOf(read(repoPath(rel)))
+            .filter(namesTts)
+            .map(function (s) { return s.slice(0, 160); })
+        )
     );
   });
 });
 
-test("skills/voice-script/SKILL.md: the prose-hook exemption sentence names the session directory and the project root", () => {
-  // [Scenario: Subdirectory session, voice script in the session directory | spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session directory" ("/voice-script is unchanged"; OP-2 in spec-skills.md) | FR-181 | FR-163 | UR-016 | BR-008]
-  // Valid (end state): only the exemption sentence is checked. The save-path wording ("not the git root"
-  // describes where the script is saved) stays as it is and is not asserted here.
-  const text = read(path.join(PLUGIN, "skills", "voice-script", "SKILL.md"));
-  const sentences = [];
-  text.replace(/\r\n/g, "\n").split("\n").forEach(function (line) {
-    line.split(/(?<=[.!?])\s+(?=[A-Z`*(\[])/).forEach(function (s) {
-      if (/prose-hook exemption/i.test(s)) sentences.push(s);
-    });
+test("skills/health/SKILL.md: the overview names the temp-directory and allowlist exemptions in a sentence without docs/tts/", () => {
+  // [Scenario: Overview names no docs/tts skip (first half) | spec-skills-health.md Change Log 2026-10-23, Requirement: Short summary with a fix per finding | FR-166 | FR-104 | FR-213 | UR-018]
+  // Valid (end state): one sentence holds "system temp directory" and "prose-gate-allowlist.json" and no docs/tts/.
+  const text = read(repoPath("plugins/assist-plugin/skills/health/SKILL.md"));
+  const hits = sentencesOf(text).filter(function (s) {
+    return /system temp directory/i.test(s) && /prose-gate-allowlist\.json/i.test(s) && !namesTts(s);
   });
-  assert.ok(sentences.length >= 1, "no sentence about the prose-hook exemption in skills/voice-script/SKILL.md");
-  const ok = sentences.filter(function (s) {
-    return (
-      s.indexOf("docs/tts/") !== -1 &&
-      PROJECT_ROOT_RE.test(s) &&
-      /that directory|session(?:'|’)s working directory|session working directory|session directory|working directory/i.test(s)
-    );
-  });
-  assert.ok(
-    ok.length >= 1,
-    "the prose-hook exemption sentence must name docs/tts/, the session directory, and the project root; found: " +
-      JSON.stringify(sentences.map(function (s) { return s.slice(0, 200); }))
-  );
+  assert.ok(hits.length >= 1, "no sentence names the system temp directory and prose-gate-allowlist.json without docs/tts/");
 });
 
-test("the five hook descriptions agree: none lists the project root without the session directory", () => {
-  // [Scenario: Other docs path stays gated | spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session directory" | FR-181 | UR-016 | BR-008]
-  // Boundary: a description that names only one root contradicts the two-root rule. Every exemption
-  // sentence that names one root must be matched by a sentence in the same file that names both.
-  HOOK_DESCRIPTION_FILES.forEach(function (rel) {
-    const sentences = exemptionSentences(read(repoPath(rel)));
-    const onlyOne = sentences.filter(function (s) {
-      return PROJECT_ROOT_RE.test(s) !== SESSION_DIR_RE.test(s);
-    });
-    const both = sentences.filter(function (s) {
-      return PROJECT_ROOT_RE.test(s) && SESSION_DIR_RE.test(s);
-    });
-    if (onlyOne.length > 0) {
-      assert.ok(both.length >= 1, rel + ": a docs/tts/ sentence names only one root and no sentence names both: " + JSON.stringify(onlyOne));
-    }
+test("skills/health/SKILL.md: the required docs/tts/ sentence is its own sentence, apart from the temp-directory sentence", () => {
+  // [Scenario: Overview names no docs/tts skip (second half) | spec-skills-health.md Change Log 2026-10-23, Requirement: Short summary with a fix per finding | FR-166 | FR-104 | FR-213 | UR-018]
+  const text = read(repoPath("plugins/assist-plugin/skills/health/SKILL.md"));
+  const required = sentencesOf(text).filter(function (s) {
+    return isRequired(s, HOOK_RULES);
   });
+  assert.ok(required.length >= 1, "no required sentence in skills/health/SKILL.md");
+  required.forEach(function (s) {
+    assert.ok(!/system temp directory/i.test(s) && !/allowlist/i.test(s), "the required sentence is joined to the temp-directory or allowlist clause: " + s.slice(0, 200));
+  });
+});
+
+test("skills/voice-script/SKILL.md: no sentence meets F1, F2, F3, or F5", () => {
+  // [Scenario: Voice-script save sentence stays | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | FR-211 | UR-058 | BR-008]
+  // Invalid (stale wording): the 1.13.0 Pauses rule, the writing-standard sentence, and the prose-hook exemption sentence.
+  const result = judge(read(path.join(REPO, VOICE_SKILL)), VOICE_RULES);
+  assert.deepStrictEqual(result.forbidden, [], VOICE_SKILL + " holds a forbidden sentence: " + describeForbidden(result.forbidden));
+});
+
+test("skills/voice-script/SKILL.md: the save-path sentence is present and passes, because F4 does not apply", () => {
+  // [Scenario: Voice-script save sentence stays | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-163 | FR-213 | UR-058 | BR-008]
+  // Valid (end state): the sentence W7 names. It holds docs/tts/ and the session's working directory.
+  const w7 = "Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory";
+  const hits = sentencesOf(read(path.join(REPO, VOICE_SKILL))).filter(function (s) {
+    return s.toLowerCase().indexOf(w7.toLowerCase()) !== -1;
+  });
+  assert.ok(hits.length >= 1, "the save-path sentence is missing from " + VOICE_SKILL);
+  hits.forEach(function (s) {
+    assert.deepStrictEqual(metRules(s, VOICE_RULES), [], "the save-path sentence meets a forbidden rule: " + s.slice(0, 200));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The scenarios of the requirement, as pure string fixtures of the sentence rules
+// ---------------------------------------------------------------------------
+
+test("fixture, Fenced exemption sentence passes: the required sentence counts and does not meet F2", () => {
+  // [Scenario: Fenced exemption sentence passes | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+  const result = judge(REQUIRED_SENTENCE, HOOK_RULES);
+  assert.strictEqual(result.required, 1);
+  assert.deepStrictEqual(result.forbidden, []);
+  assert.ok(!RULES.F2(REQUIRED_SENTENCE), "the sentence holds 'fenced', so F2 does not apply");
+});
+
+test("fixture, Required wording joined to the skip clause: the sentence meets F1 and no required sentence is left", () => {
+  // [Scenario: Required wording joined to the skip clause | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+  const joined =
+    "Both per-write hooks skip files under the system temp directory, and files under `docs/tts/` are judged like other prose, with fenced blocks exempt.";
+  const result = judge(joined, HOOK_RULES);
+  assert.ok(RULES.F1(joined), "the joined sentence meets F1");
+  assert.strictEqual(result.forbidden.length, 1);
+  assert.strictEqual(result.required, 0, "a forbidden sentence never counts as required");
+});
+
+test("fixture, Stale two-root sentence: the sentence meets F1, F3, and F4, with a straight or a curly apostrophe", () => {
+  // [Scenario: Stale two-root sentence | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058 | BR-008]
+  // Boundary: both apostrophe forms of "session's working directory" are caught by F4.
+  [String.fromCharCode(39), String.fromCharCode(0x2019)].forEach(function (apostrophe) {
+    const stale =
+      "Both per-write hooks skip files under the system temp directory, files under `docs/tts/` in the project root and in the session" +
+      apostrophe +
+      "s working directory when that directory is inside the project (voice scripts may use em dashes as pause marks), and paths listed in `prose-gate-allowlist.json`.";
+    const met = metRules(stale, HOOK_RULES);
+    ["F1", "F3", "F4"].forEach(function (name) {
+      assert.ok(met.indexOf(name) !== -1, "the stale sentence should meet " + name + " (apostrophe code " + apostrophe.charCodeAt(0) + ")");
+    });
+    assert.strictEqual(judge(stale, HOOK_RULES).required, 0);
+  });
+});
+
+test("fixture, the session-directory phrase alone meets F4 with either apostrophe", () => {
+  // [Scenario: Stale two-root sentence (F4 phrases) | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058]
+  [String.fromCharCode(39), String.fromCharCode(0x2019)].forEach(function (apostrophe) {
+    const s = "Files under `docs/tts/` in the session" + apostrophe + "s working directory are judged like other prose, with fenced blocks exempt.";
+    assert.ok(RULES.F4(s), "F4 should match the session phrase with apostrophe code " + apostrophe.charCodeAt(0));
+  });
+  assert.ok(RULES.F4("Files under `docs/tts/` in the session working directory."));
+  assert.ok(RULES.F4("Files under `docs/tts/` in the Session Directory."));
+  assert.ok(!RULES.F4("Files in the session directory."), "F4 needs docs/tts/ in the sentence");
+});
+
+test("fixture, Stale Pauses rule: the 1.13.0 sentence meets F3, with and without docs/tts/", () => {
+  // [Scenario: Stale Pauses rule | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-211 | FR-213 | UR-058 | BR-008]
+  const stalePauses = "The script text may use em dashes, ellipses, and line breaks as pause marks.";
+  const staleNotes = "The script text may hold em dashes, ellipses, and line breaks as pause marks.";
+  assert.deepStrictEqual(metRules(stalePauses, VOICE_RULES), ["F3"]);
+  assert.deepStrictEqual(metRules(staleNotes, VOICE_RULES), ["F3"]);
+  // Case-insensitive: the match ignores case.
+  assert.ok(RULES.F3("It MAY USE EM DASHES here."));
+});
+
+test("fixture, Voice-script save sentence stays: it names docs/tts/ and the session's working directory and passes F1, F2, F3, and F5", () => {
+  // [Scenario: Voice-script save sentence stays | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-163 | FR-213 | UR-058 | BR-008]
+  const save =
+    "Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory (the primary working directory, not the git root).";
+  assert.deepStrictEqual(metRules(save, VOICE_RULES), []);
+  // F4 would catch the same sentence in a hook-description file, which is why it does not apply to this one.
+  assert.deepStrictEqual(metRules(save, HOOK_RULES), ["F4"]);
+});
+
+test("fixture, the prose-hook exemption sentence meets F5 and the new fenced wording passes F2", () => {
+  // [Scenario: Voice-script save sentence stays (F5 and F2) | spec-skills.md Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose | FR-104 | FR-213 | UR-058]
+  assert.deepStrictEqual(metRules("The prose-hook exemption covers this folder.", VOICE_RULES), ["F5"]);
+  const hooks = "The prose hooks judge this file like other prose, with the fenced script blocks exempt.";
+  assert.deepStrictEqual(metRules(hooks, VOICE_RULES), []);
+  // F2 without "fenced" is forbidden when the sentence names docs/tts/.
+  assert.deepStrictEqual(metRules("Files under `docs/tts/` are exempt.", VOICE_RULES), ["F2"]);
+});
+
+test("fixture, rule 1 sentence splitting: a line break ends a sentence, and so does a period before a capital letter", () => {
+  // [Requirement: Documents describe voice scripts as gated prose, rule 1 | spec-skills.md Change Log 2026-10-23 | FR-104 | FR-213]
+  assert.strictEqual(sentencesOf("One sentence.\nTwo sentence.").length, 2);
+  assert.strictEqual(sentencesOf("First. Second.").length, 2);
+  assert.strictEqual(sentencesOf("First. `Code` second.").length, 2);
+  assert.strictEqual(sentencesOf("See `docs/tts/voice-x.md` here.").length, 1, "a period inside a file name does not end a sentence");
+  assert.strictEqual(sentencesOf("a few words. lowercase continues.").length, 1, "a lowercase letter after the period does not end a sentence");
 });
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,10 @@
 // Follow-up to 1.12.0 (task plan step 22): the GUARDS list test names ten hooks, with pr-post-ask
 // added (specs/spec-hooks-health-check.md, Change Log 2026-10-22, Requirement: Self-tests). The
 // pr-post-ask self-test itself is covered in tests/hooks/health-check-pr-post-ask.test.js.
+// Release 1.13.1 (specs/spec-hooks-health-check.md, Change Log 2026-10-23, Requirement:
+// Self-tests, FR-118): the prose corpora hold prose-gate 24 allow and 38 deny cases and
+// prose-advisor 10 clean and 12 flagged cases, because the docs/tts/ skip is gone. The other
+// corpus sizes are unchanged.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -233,14 +237,15 @@ function slashes(p) {
 // Corpus sizes
 // ---------------------------------------------------------------------------
 
+// prose-gate and prose-advisor take the 1.13.1 sizes (Change Log 2026-10-23); the rest are unchanged.
 const SIZES = [
   ["doc-cli-guard", 16, 23],
   ["sa-mermaid-only", 16, 28],
   ["injection-filter", 23, 36],
   ["writing-context", 3, 3],
   ["commit-attribution-guard", 17, 22],
-  ["prose-gate", 32, 31],
-  ["prose-advisor", 11, 10],
+  ["prose-gate", 24, 38],
+  ["prose-advisor", 10, 12],
   ["fsa-write-bar", 51, 106],
 ];
 
@@ -262,7 +267,7 @@ test("[Scenario: All pass (ten self-tested hooks) | " + SPEC + " Self-tests (Cha
 
 SIZES.forEach((row) => {
   const name = row[0], allowCount = row[1], denyCount = row[2];
-  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-16 and 2026-10-17) | FR-118 FR-093 FR-094 FR-099] " + name + " has " + allowCount + " allow and " + denyCount + " deny cases", () => {
+  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-16, 2026-10-17, and 2026-10-23) | FR-118 FR-093 FR-094 FR-099 FR-104 FR-213] " + name + " has " + allowCount + " allow and " + denyCount + " deny cases", () => {
     const g = guard(name);
     assert.strictEqual(g.allow.length, allowCount, name + " allow corpus");
     assert.strictEqual(g.deny.length, denyCount, name + " deny corpus");
@@ -485,7 +490,7 @@ test("[Scenario: Writing-context case throws | " + SPEC + " Self-tests (Change L
 // writing-context: the report line and the installed standard (real tree)
 // ---------------------------------------------------------------------------
 
-test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Change Log 2026-10-16) | FR-118] the report line reads writing-context: PASS (3 silent cases, 3 context cases) and every hook passes with its corpus sizes", () => {
+test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Change Log 2026-10-16 and 2026-10-23) | FR-118 FR-104 FR-213] the report line reads writing-context: PASS (3 silent cases, 3 context cases) and every hook passes with its corpus sizes", () => {
   const dataDir = tempDir("hc-1-12-0-data-");
   const res = runHealth(PLUGIN, [], { CLAUDE_PLUGIN_DATA: dataDir });
   assert.strictEqual(res.status, 0, res.stderr);
@@ -493,6 +498,9 @@ test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Cha
   assert.ok(!/case threw/.test(out), "no 'case threw' entry:\n" + out);
   assert.ok(!/: FAIL\b/.test(out), "no failing hook:\n" + out);
   assert.ok(out.indexOf("  writing-context: PASS (3 silent cases, 3 context cases)") !== -1, "writing-context line:\n" + out);
+  // The 1.13.1 prose lines (Change Log 2026-10-23, Requirement: Self-tests).
+  assert.ok(out.indexOf("  prose-gate: PASS (24 allow cases, 38 deny cases)") !== -1, "prose-gate line:\n" + out);
+  assert.ok(out.indexOf("  prose-advisor: PASS (10 clean samples, 12 advisory samples)") !== -1, "prose-advisor line:\n" + out);
   SIZES.forEach((row) => {
     const re = new RegExp("^\\s+" + row[0] + ": PASS \\(" + row[1] + " [^,]+, " + row[2] + " [^)]+\\)", "m");
     assert.ok(re.test(out), row[0] + " line with " + row[1] + " and " + row[2] + " cases:\n" + out);

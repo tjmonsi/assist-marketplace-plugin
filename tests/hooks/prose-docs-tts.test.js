@@ -1,29 +1,37 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
-// Black-box tests for the docs/tts voice-script exemption of the prose hooks
-// (plugins/assist-plugin/hooks/impl/prose-gate.js and prose-advisor.js, `evaluate(input,
-// options)`), release 1.11.1.
+// Black-box tests for voice scripts under docs/tts/ as the prose hooks judge them, release 1.13.1
+// (plugins/assist-plugin/hooks/impl/prose-gate.js and prose-advisor.js, `evaluate(input, options)`).
 //
-// Sources: specs/spec-hooks-prose-hooks.md (Requirement: Voice-script exemption under the
-// project root and the session directory; Requirement: Path exemptions as built) and
-// docs/requirements/FR-NFR-assist-plugin.md (FR-181, FR-104).
+// Sources: specs/spec-hooks-prose-hooks.md (Change Log 2026-10-23: Requirement: Voice scripts
+// judged like other prose files; Requirement: Path exemptions as built; Requirement: Self-test
+// isolation for the project root; REMOVED Requirement: Voice-script exemption under the project
+// root and the session directory), specs/spec-hooks-platform.md (Change Log 2026-10-23:
+// Requirement: Guard decision and deny output, Scenario: Prose-gate reads only the target file and
+// the allowlist), and docs/requirements/FR-NFR-assist-plugin.md (FR-213, FR-104, FR-105, FR-088,
+// NFR-019; FR-181 appears only as retired history: built in 1.11.1, retired in 1.13.1).
+// Upstream ids: UR-058 (voice scripts without em dashes), UR-016 (prose hooks), BR-008.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
-// Contract used (specs/spec-hooks-platform.md and spec-hooks-prose-hooks.md):
-//   - prose-gate evaluate(input, options) returns an object whose `deny` field is the
-//     boolean true to deny; anything else allows.
-//   - prose-advisor evaluate(input, options) returns null when it has nothing to say and an
-//     object (the advisory note) when the added text holds an advisory tell.
-//   - options keys `projectDir` (a string, or null for "unset"; absent or undefined means
-//     read CLAUDE_PROJECT_DIR) and `findGitRoot` (a function from an absolute directory to
-//     the directory that holds .git, or null; a non-function counts as absent).
-// "Exempt" below means: prose-gate does not deny and prose-advisor returns nothing, for the
-// same input. "Gated" means: prose-gate denies and prose-advisor returns a note.
+// End state asserted here: neither hook exempts any docs/tts/ path. A voice script is judged like
+// any prose file: the header and the notes are judged, and fenced blocks stay exempt (FR-105).
+// Only the system temp directory and a prose-gate-allowlist.json entry exempt a path. The test
+// option keys projectDir and findGitRoot have no effect, and CLAUDE_PROJECT_DIR gives no exemption.
 //
-// All paths below are made-up POSIX paths that do not exist, except in the real-walk cases
-// at the end, which build a temp tree.
+// Contract used (specs/spec-hooks-platform.md and spec-hooks-prose-hooks.md):
+//   - prose-gate evaluate(input, options) returns an object whose `deny` field is the boolean
+//     true to deny, with a string `reason`; anything else allows.
+//   - prose-advisor evaluate(input, options) returns null when it has nothing to say and an
+//     object (the advisory note) when the added text holds an advisory-tier tell.
+//   - options keys: `readFile` (a function from a path to the file text, or null), `allowlist`
+//     (an array of path substrings), `tmpdir` (the directory that counts as the system temp dir).
+// "Judged" below means: prose-gate denies the em dash and prose-advisor returns a note for the
+// advisory tell, for the same target. "Exempt" means neither hook says anything.
+//
+// The banned characters are built from code-point escapes, so this file holds none of them.
+// All paths below are made-up POSIX paths that do not exist.
 //
 // Run: node --test tests/hooks/prose-docs-tts.test.js
 
@@ -32,7 +40,6 @@
 const { test, before, after } = require("node:test");
 const assert = require("node:assert");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
 
 const REPO = path.resolve(__dirname, "..", "..");
@@ -40,11 +47,16 @@ const HOOKS = path.join(REPO, "plugins", "assist-plugin", "hooks", "impl");
 const gate = require(path.join(HOOKS, "prose-gate.js"));
 const advisor = require(path.join(HOOKS, "prose-advisor.js"));
 
-const EM = String.fromCharCode(0x2014); // em dash, a block-tier tell
-const GATE_TEXT = "A " + EM + " B.\n";
-const ADVISOR_TEXT = "This is very robust.\n"; // an intensifier and an AI-vocabulary word
+const EM = String.fromCharCode(0x2014); // U+2014 em dash, a block-tier tell
+const BAR = String.fromCharCode(0x2015); // U+2015 horizontal bar, a block-tier tell
+const CURLY = [0x2018, 0x2019, 0x201c, 0x201d].map((c) => String.fromCharCode(c)); // block-tier tells
+
+const GATE_TEXT = "A " + EM + " B.\n"; // plain prose with one em dash
+const ADVISOR_TEXT = "This is very robust.\n"; // an intensifier and an AI-vocabulary word (advisory tier)
+const DENY_PREFIX = "assist-plugin prose-gate denied this write";
 
 const P = "/assist-test/project";
+const TMP = "/assist-test/tmp";
 const VOICE = "voice-intro-20261012-0900.md";
 
 // ---------------------------------------------------------------------------
@@ -71,21 +83,25 @@ after(() => {
 // Builders and verdict helpers
 // ---------------------------------------------------------------------------
 
-function gateInput(cwd, target) {
+function options(extra) {
+  return Object.assign({ readFile: () => null, allowlist: [], tmpdir: TMP }, extra);
+}
+
+function gateInput(cwd, target, content) {
   const input = {
     hook_event_name: "PreToolUse",
     tool_name: "Write",
-    tool_input: { file_path: target, content: GATE_TEXT },
+    tool_input: { file_path: target, content: content === undefined ? GATE_TEXT : content },
   };
   if (cwd !== undefined) input.cwd = cwd;
   return input;
 }
 
-function advisorInput(cwd, target) {
+function advisorInput(cwd, target, content) {
   const input = {
     hook_event_name: "PostToolUse",
     tool_name: "Write",
-    tool_input: { file_path: target, content: ADVISOR_TEXT },
+    tool_input: { file_path: target, content: content === undefined ? ADVISOR_TEXT : content },
     tool_response: { type: "create" },
   };
   if (cwd !== undefined) input.cwd = cwd;
@@ -100,351 +116,384 @@ function noted(result) {
   return result !== null && result !== undefined && typeof result === "object";
 }
 
-function recorder(answer) {
-  const calls = [];
-  const f = function (dir) {
-    calls.push(dir);
-    return answer ? answer(dir) : null;
-  };
-  f.calls = calls;
-  return f;
+// A saved voice script in the shape of the output template: a header, a Notes list, and one fenced
+// text block. `header` is the prose between the title and the Notes list; `notes` is a list of items;
+// `fence` is the text inside the block.
+function voiceScript(parts) {
+  const p = Object.assign(
+    {
+      title: "# Voice script: Intro",
+      header: "Pause here, then go on.",
+      notes: ["Em dashes replaced: 0 (U+2014 and U+2015, draft, header, and composed text)."],
+      fence: "Hello there, and welcome.",
+    },
+    parts
+  );
+  return (
+    p.title + "\n\n" + p.header + "\n\n## Notes\n\n" + p.notes.map((n) => "- " + n).join("\n") + "\n\n## Script\n\n```text\n" + p.fence + "\n```\n"
+  );
 }
 
-const NO_ROOT = function () {
-  return null;
-};
-
-// Runs both hooks on the same scenario and checks they agree with `exempt`.
+// Runs both hooks on one scenario with the same options. Gate content holds an em dash and advisor
+// content holds an advisory tell, so a judged target is denied and noted; an exempt target is not.
 function check(s) {
-  const options = function () {
-    return { projectDir: s.projectDir === undefined ? null : s.projectDir, findGitRoot: s.findGitRoot || NO_ROOT };
-  };
-  const g = gate.evaluate(gateInput(s.cwd, s.target), options());
-  const a = advisor.evaluate(advisorInput(s.cwd, s.target), options());
+  const opts = options(s.options);
+  const g = gate.evaluate(gateInput(s.cwd, s.target), opts);
+  const a = advisor.evaluate(advisorInput(s.cwd, s.target), opts);
+  const where = s.target + " (cwd " + s.cwd + ")";
   if (s.exempt) {
-    assert.ok(!denied(g), "prose-gate denied an exempt target: " + s.target + " (cwd " + s.cwd + ")");
-    assert.ok(!noted(a), "prose-advisor flagged an exempt target: " + s.target + " (cwd " + s.cwd + ")");
+    assert.ok(!denied(g), "prose-gate denied an exempt target: " + where);
+    assert.ok(!noted(a), "prose-advisor flagged an exempt target: " + where);
   } else {
-    assert.ok(denied(g), "prose-gate allowed a gated target: " + s.target + " (cwd " + s.cwd + ")");
-    assert.ok(noted(a), "prose-advisor stayed silent on a gated target: " + s.target + " (cwd " + s.cwd + ")");
+    assert.ok(denied(g), "prose-gate allowed a judged target: " + where);
+    assert.ok(noted(a), "prose-advisor stayed silent on a judged target: " + where);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Project variable set (step 1(a)) and the session root (step 2)
+// Requirement: Voice scripts judged like other prose files
 // ---------------------------------------------------------------------------
 
-test("subdirectory session: voice script at the project root is exempt", () => {
-  // [Scenario: Subdirectory session, voice script at the project root | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181 | FR-104]
-  check({ projectDir: P, cwd: P + "/src", target: P + "/docs/tts/" + VOICE, exempt: true });
+test("voice script header with an em dash is denied with rule em-dash/char and the standard deny reason", () => {
+  // [Scenario: Voice script header with an em dash | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Voice scripts judged like other prose files | FR-213 | FR-104 | UR-058]
+  // Valid input: cwd is the project root, relative target, em dash in the header outside the fence.
+  const content = voiceScript({ header: "Calm " + EM + " warm delivery." });
+  const result = gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options());
+  assert.ok(denied(result), "prose-gate must deny an em dash in a voice-script header");
+  assert.strictEqual(typeof result.reason, "string");
+  assert.ok(result.reason.indexOf(DENY_PREFIX) === 0, "deny reason starts with the standard text: " + result.reason);
+  assert.ok(result.reason.indexOf("em-dash/char") !== -1, "deny reason lists rule id em-dash/char: " + result.reason);
 });
 
-test("subdirectory session: voice script in the session directory is exempt", () => {
-  // [Scenario: Subdirectory session, voice script in the session directory | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({ projectDir: P, cwd: P + "/src", target: P + "/src/docs/tts/voice-intro-20261016-0900.md", exempt: true });
+test("voice script header with an em dash is denied from an absolute target too", () => {
+  // [Scenario: Voice script header with an em dash (absolute target) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  const content = voiceScript({ title: "# Intro " + EM + " part one" });
+  assert.ok(denied(gate.evaluate(gateInput(P, P + "/docs/tts/" + VOICE, content), options())));
 });
 
-test("subdirectory session: a relative docs/tts target resolves against the session directory and is exempt", () => {
-  // [Scenario: Subdirectory session, voice script in the session directory | spec-hooks-prose-hooks.md target resolution | FR-181]
-  check({ projectDir: P, cwd: P + "/src", target: "docs/tts/" + VOICE, exempt: true });
+test("voice script without a tell, session in a subdirectory, is allowed with no output", () => {
+  // [Scenario: Voice script without a tell | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  const content = voiceScript({});
+  const g = gate.evaluate(gateInput(P + "/src", P + "/docs/tts/" + VOICE, content), options());
+  assert.ok(!denied(g), "a clean voice script passes prose-gate");
+  const a = advisor.evaluate(advisorInput(P + "/src", P + "/docs/tts/" + VOICE, content), options());
+  assert.ok(!noted(a), "a clean voice script draws no advisory note");
 });
 
-test("worktree session: docs/tts inside the worktree directory is exempt", () => {
-  // [Scenario: Worktree session | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  const wt = P + "/.claude/worktrees/w";
-  check({ projectDir: P, cwd: wt, target: wt + "/docs/tts/a-selftest.md", exempt: true });
+test("fenced script block stays exempt: the only em dash sits inside the fenced text block", () => {
+  // [Scenario: Fenced script block stays exempt | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-105 | NFR-019]
+  const content = voiceScript({ fence: "Pause here " + EM + " then go on." });
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())));
 });
 
-test("a file nested deeper under docs/tts is exempt", () => {
-  // [Scenario: Voice script from the project root | spec-hooks-prose-hooks.md "Path exemptions as built" | FR-104 | FR-181]
-  check({ projectDir: P, cwd: P, target: P + "/docs/tts/sub/dir/a-selftest.md", exempt: true });
-});
-
-test("session directory outside the project: its docs/tts is gated", () => {
-  // [Scenario: Session directory outside the project | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({
-    projectDir: P,
-    cwd: "/assist-test/other",
-    target: "/assist-test/other/docs/tts/a-selftest.md",
-    exempt: false,
+test("fenced script block stays exempt for U+2015 and for every curly quote inside the fence", () => {
+  // [Scenario: Fenced script block stays exempt (all block-tier characters) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-105]
+  // Boundary: each banned character, alone in the fence, passes; the skill, not the gate, controls the fence.
+  [BAR].concat(CURLY).forEach((ch) => {
+    const content = voiceScript({ fence: "It" + ch + "s a test." });
+    assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())), "U+" + ch.charCodeAt(0).toString(16));
   });
 });
 
-test("session directory outside the project: the project's docs/tts is still exempt", () => {
-  // [Scenario: Session directory outside the project | spec-hooks-prose-hooks.md "Voice-script exemption..." step 3 | FR-181]
-  check({ projectDir: P, cwd: "/assist-test/other", target: P + "/docs/tts/a-selftest.md", exempt: true });
+test("header outside the fence: U+2015 and each curly quote are denied", () => {
+  // [Scenario: Voice script header with an em dash (other block-tier characters) | spec-hooks-prose-hooks.md Requirement: Block-tier judgment and deny reason | FR-213 | NFR-019]
+  // Boundary: the block-tier characters other than U+2014, one per header.
+  [BAR].concat(CURLY).forEach((ch) => {
+    const content = voiceScript({ header: "It" + ch + "s calm." });
+    const result = gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options());
+    assert.ok(denied(result), "U+" + ch.charCodeAt(0).toString(16) + " in a header must be denied");
+    const rule = ch === BAR ? "em-dash/char" : "curly-quote/char";
+    assert.ok(result.reason.indexOf(rule) !== -1, "reason lists " + rule + ": " + result.reason);
+  });
 });
 
-test("other docs path stays gated in a subdirectory session", () => {
-  // [Scenario: Other docs path stays gated | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181 | FR-104]
-  check({ projectDir: P, cwd: P + "/src", target: P + "/docs/guide.md", exempt: false });
+test("inline code in the header is exempt in the same way as a fence", () => {
+  // [Scenario: Voice script without a tell (model id in backticks) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-105]
+  // The model id sits in backticks in the header table; an inline code span is an exempt region.
+  const content = voiceScript({ header: "Model: `vendor/model" + EM + "x`." });
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())));
 });
 
-test("other docs path stays gated in a session at the project root", () => {
-  // [Scenario: Other docs path | spec-hooks-prose-hooks.md "Path exemptions as built" | FR-104]
-  check({ projectDir: P, cwd: P, target: "docs/guide.md", exempt: false });
+test("empty content for a voice script path is allowed", () => {
+  // [Scenario: Voice script without a tell (empty content) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213]
+  // Null/empty category.
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, ""), options())));
+  assert.ok(!noted(advisor.evaluate(advisorInput(P, "docs/tts/" + VOICE, ""), options())));
 });
 
-test("docs/tts under neither root is gated", () => {
-  // [Scenario: docs/tts under neither root | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({ projectDir: P, cwd: P, target: P + "/src/docs/tts/a-selftest.md", exempt: false });
+test("no built-in exemption from a subdirectory session: docs/tts below the session directory is denied", () => {
+  // [Scenario: No built-in exemption from a subdirectory session | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  const content = voiceScript({ header: "Calm " + EM + " warm." });
+  const target = P + "/src/docs/tts/" + VOICE;
+  assert.ok(denied(gate.evaluate(gateInput(P + "/src", target, content), options())));
+  assert.ok(denied(gate.evaluate(gateInput(P + "/src", "docs/tts/" + VOICE, content), options())), "relative target against the session directory");
 });
 
-test("a path that climbs out of docs/tts is gated", () => {
-  // [Scenario: Path that climbs out | spec-hooks-prose-hooks.md "Path exemptions as built" | FR-104]
+test("worktree session: docs/tts in the worktree directory is denied", () => {
+  // [Scenario: Worktree session | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  const wt = P + "/.claude/worktrees/feature-a";
+  const content = voiceScript({ header: "Calm " + EM + " warm." });
+  assert.ok(denied(gate.evaluate(gateInput(wt, wt + "/docs/tts/voice-x.md", content), options())));
+  assert.ok(denied(gate.evaluate(gateInput(wt, "docs/tts/voice-x.md", content), options())));
+});
+
+test("advisor on a voice script header: an advisory tell outside the fence draws a note", () => {
+  // [Scenario: Advisor on a voice script header | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  const content = voiceScript({ header: ADVISOR_TEXT.trim() });
+  assert.ok(noted(advisor.evaluate(advisorInput(P, "docs/tts/" + VOICE, content), options())));
+});
+
+test("advisory tell only inside the fence: the advisor emits nothing", () => {
+  // [Scenario: Advisory tell only inside the fence | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-105]
+  const content = voiceScript({ fence: ADVISOR_TEXT.trim() });
+  assert.ok(!noted(advisor.evaluate(advisorInput(P, "docs/tts/" + VOICE, content), options())));
+});
+
+test("a voice script saved before 1.13.1 stays editable: an Edit that adds no new tell passes", () => {
+  // [Scenario: Voice script without a tell (existing file, only added text is judged) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files, context paragraph | FR-213 | FR-104]
+  // The stored file holds an em dash in its header (saved by 1.11.1 to 1.13.0). The edit adds a clean line.
+  const target = P + "/docs/tts/" + VOICE;
+  const existing = voiceScript({ header: "Calm " + EM + " warm." });
+  const input = {
+    hook_event_name: "PreToolUse",
+    tool_name: "Edit",
+    cwd: P,
+    tool_input: { file_path: target, old_string: "Hello there, and welcome.", new_string: "Hello there, and welcome.\nOne more line." },
+  };
+  const result = gate.evaluate(input, options({ readFile: (p) => (p === target ? existing : null) }));
+  assert.ok(!denied(result), "an Edit that adds no tell must pass");
+  // Control: an Edit that adds an em dash to the header is denied.
+  const bad = {
+    hook_event_name: "PreToolUse",
+    tool_name: "Edit",
+    cwd: P,
+    tool_input: { file_path: target, old_string: "Pause here", new_string: "Pause here " + EM },
+  };
+  const clean = voiceScript({});
+  const control = gate.evaluate(bad, options({ readFile: (p) => (p === target ? clean : null) }));
+  assert.ok(denied(control), "control: an Edit that adds an em dash is denied");
+});
+
+// ---------------------------------------------------------------------------
+// Requirement: Path exemptions as built (MODIFIED)
+// ---------------------------------------------------------------------------
+
+test("voice script from the project root is denied (no root exemption)", () => {
+  // [Scenario: Voice script from the project root | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Path exemptions as built | FR-104 | UR-016]
+  check({ cwd: P, target: "docs/tts/" + VOICE, exempt: false });
+  check({ cwd: P, target: P + "/docs/tts/" + VOICE, exempt: false });
+});
+
+test("voice script from a session started in a subdirectory with CLAUDE_PROJECT_DIR set is denied", () => {
+  // [Scenario: Voice script from a session started in a subdirectory | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Path exemptions as built | FR-104 | FR-213 | UR-016]
+  // The environment variable gives no exemption: the project root no longer matters.
+  process.env.CLAUDE_PROJECT_DIR = P;
+  try {
+    check({ cwd: P + "/src", target: P + "/docs/tts/" + VOICE, exempt: false });
+    check({ cwd: P + "/src", target: "../docs/tts/" + VOICE, exempt: false });
+  } finally {
+    delete process.env.CLAUDE_PROJECT_DIR;
+  }
+});
+
+test("hook called with no options and CLAUDE_PROJECT_DIR set: the docs/tts target is judged", () => {
+  // [Scenario: Voice script from a session started in a subdirectory (no options) | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Path exemptions as built | FR-104 | FR-213 | UR-016]
+  // Shape boundary: evaluate is called with the input alone, as the live hook does; the environment is the only context.
+  process.env.CLAUDE_PROJECT_DIR = "/assist-test/solo";
+  try {
+    assert.ok(denied(gate.evaluate(gateInput("/assist-test/solo/src", "/assist-test/solo/docs/tts/a.md"))), "prose-gate judges the target");
+    assert.ok(noted(advisor.evaluate(advisorInput("/assist-test/solo/src", "/assist-test/solo/docs/tts/a.md"))), "prose-advisor judges the target");
+  } finally {
+    delete process.env.CLAUDE_PROJECT_DIR;
+  }
+});
+
+test("session directory outside the project: its docs/tts and the project's docs/tts are both judged", () => {
+  // [Scenario: No built-in exemption from a subdirectory session (other directory) | spec-hooks-prose-hooks.md Requirement: Voice scripts judged like other prose files | FR-213 | FR-104]
+  check({ cwd: "/assist-test/other", target: "/assist-test/other/docs/tts/a.md", exempt: false });
+  check({ cwd: "/assist-test/other", target: P + "/docs/tts/a.md", exempt: false });
+});
+
+test("listed path stays exempt: an allowlist entry for docs/tts/ silences both hooks", () => {
+  // [Scenario: Listed path stays exempt | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Path exemptions as built | FR-104 | UR-016]
+  const opts = { allowlist: ["docs/tts/"] };
+  check({ cwd: P, target: P + "/docs/tts/a.md", exempt: true, options: opts });
+  check({ cwd: P + "/src", target: P + "/docs/tts/a.md", exempt: true, options: opts });
+  // Control: the entry does not reach another docs path.
+  check({ cwd: P, target: P + "/docs/guide.md", exempt: false, options: opts });
+});
+
+test("allowlist entry star exempts every path, docs/tts included", () => {
+  // [Scenario: Allowlist entry star (unchanged) | spec-hooks-prose-hooks.md Requirement: Path exemptions as built | FR-104 | UR-016]
+  const opts = { allowlist: ["*"] };
+  check({ cwd: P, target: P + "/docs/tts/a.md", exempt: true, options: opts });
+  check({ cwd: P, target: P + "/docs/guide.md", exempt: true, options: opts });
+});
+
+test("the system temp directory stays unjudged, and the same relative path outside it is judged", () => {
+  // [Scenario: Path exemptions as built (system temp directory) | spec-hooks-prose-hooks.md Requirement: Path exemptions as built | FR-104 | UR-016]
+  check({ cwd: TMP + "/work", target: TMP + "/work/docs/tts/a.md", exempt: true });
+  check({ cwd: P, target: TMP + "/docs/tts/a.md", exempt: true });
+  // Control: the same relative path outside the temp directory is judged.
+  check({ cwd: P, target: P + "/docs/tts/a.md", exempt: false });
+});
+
+test("other docs path stays gated in a subdirectory session and at the project root", () => {
+  // [Scenario: Other docs path (unchanged) | spec-hooks-prose-hooks.md Requirement: Path exemptions as built | FR-104 | UR-016]
+  check({ cwd: P + "/src", target: P + "/docs/guide.md", exempt: false });
+  check({ cwd: P, target: "docs/guide.md", exempt: false });
+});
+
+test("a path that climbs out of docs/tts stays gated", () => {
+  // [Scenario: Path that climbs out (unchanged) | spec-hooks-prose-hooks.md Requirement: Path exemptions as built | FR-104 | UR-016]
   // Boundary: dot segments are normalized before the comparison.
-  check({ projectDir: P, cwd: P, target: "docs/tts/../README.md", exempt: false });
-  check({ projectDir: P, cwd: P + "/src", target: P + "/docs/tts/../README.md", exempt: false });
+  check({ cwd: P, target: "docs/tts/../README.md", exempt: false });
+  check({ cwd: P + "/src", target: P + "/docs/tts/../README.md", exempt: false });
 });
 
-test("a sibling directory that only starts with 'tts' is gated", () => {
-  // [Scenario: Path exemptions as built (separator boundary) | spec-hooks-prose-hooks.md | FR-104 | FR-181]
-  // Boundary: compared at a path-separator boundary.
-  check({ projectDir: P, cwd: P, target: P + "/docs/tts-notes/a-selftest.md", exempt: false });
-  check({ projectDir: P, cwd: P, target: P + "/docs/ttsfile.md", exempt: false });
+test("a sibling directory that only starts with 'tts' is judged like any prose path", () => {
+  // [Scenario: Path exemptions as built (nothing special about docs/tts) | spec-hooks-prose-hooks.md | FR-104 | FR-213]
+  check({ cwd: P, target: P + "/docs/tts-notes/a.md", exempt: false });
+  check({ cwd: P, target: P + "/docs/ttsfile.md", exempt: false });
 });
 
-test("CLAUDE_PROJECT_DIR takes priority over the git root", () => {
-  // [Scenario: Subdirectory session / Session directory outside the project | spec-hooks-prose-hooks.md step 1(a) | FR-181]
-  // The finder would answer "/assist-test/other-root", but the variable names the project.
-  const finder = recorder(() => "/assist-test/other-root");
-  check({
-    projectDir: P,
-    findGitRoot: finder,
-    cwd: "/assist-test/other-root/src",
-    target: "/assist-test/other-root/docs/tts/a-selftest.md",
-    exempt: false,
+test("a relative target with a missing, empty, or relative cwd is still judged", () => {
+  // [Scenario: Path exemptions as built (relative target without a usable cwd) | spec-hooks-prose-hooks.md | FR-104 | FR-213]
+  // Null/empty and boundary: no cwd value gives an exemption.
+  [undefined, "", "src", "."].forEach((cwd) => {
+    check({ cwd: cwd, target: "docs/tts/a.md", exempt: false });
   });
 });
 
 // ---------------------------------------------------------------------------
-// No project variable: the git root of the cwd (step 1(b)), then the cwd (step 1(c))
+// Requirement: Self-test isolation for the project root (the options have no effect)
 // ---------------------------------------------------------------------------
 
-test("no project variable, git root above the cwd: the git root is the project root", () => {
-  // [Scenario: No project directory variable | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  const repo = "/assist-test/repo";
-  const finder = recorder((dir) => (dir.indexOf(repo) === 0 ? repo : null));
-  check({ projectDir: null, findGitRoot: finder, cwd: repo + "/src", target: repo + "/docs/tts/a-selftest.md", exempt: true });
-  assert.ok(finder.calls.length >= 1, "the git-root finder was never asked");
-  finder.calls.forEach((dir) => assert.ok(path.isAbsolute(dir), "finder called with a non-absolute directory: " + dir));
-  assert.strictEqual(finder.calls[0], repo + "/src", "the walk starts at the hook input cwd");
-});
-
-test("no project variable, git root above the cwd: other docs paths stay gated", () => {
-  // [Scenario: Other docs path stays gated | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  const repo = "/assist-test/repo";
-  const finder = recorder((dir) => (dir.indexOf(repo) === 0 ? repo : null));
-  check({ projectDir: null, findGitRoot: finder, cwd: repo + "/src", target: repo + "/docs/guide.md", exempt: false });
-});
-
-test("linked worktree without the variable: the directory with the .git file is the project root", () => {
-  // [Scenario: Linked worktree without the variable | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  const wt = "/assist-test/wt";
-  const finder = recorder((dir) => (dir.indexOf(wt) === 0 ? wt : null));
-  check({ projectDir: null, findGitRoot: finder, cwd: wt + "/lib", target: wt + "/docs/tts/a-selftest.md", exempt: true });
-});
-
-test("neither variable nor git root: the cwd is the project root", () => {
-  // [Scenario: Neither available | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({ projectDir: null, findGitRoot: NO_ROOT, cwd: "/assist-test/nogit", target: "docs/tts/voice-x.md", exempt: true });
-});
-
-test("session at the project root with no variable: relative docs/tts target is exempt", () => {
-  // [Scenario: Voice script from the project root | spec-hooks-prose-hooks.md "Path exemptions as built" | FR-104 | FR-181]
-  check({ projectDir: null, findGitRoot: NO_ROOT, cwd: P, target: "docs/tts/" + VOICE, exempt: true });
-});
-
-test("neither available: docs/tts in a subdirectory of the cwd is gated", () => {
-  // [Scenario: docs/tts under neither root | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({ projectDir: null, findGitRoot: NO_ROOT, cwd: "/assist-test/nogit", target: "src/docs/tts/a-selftest.md", exempt: false });
-});
-
-// ---------------------------------------------------------------------------
-// Unusable cwd and unusable project variable
-// ---------------------------------------------------------------------------
-
-test("relative target without a cwd is gated even when the project variable is set", () => {
-  // [Scenario: Relative target without a usable cwd | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  check({ projectDir: P, cwd: undefined, target: "docs/tts/a-selftest.md", exempt: false });
-});
-
-test("relative target with an empty or relative cwd is gated even when the project variable is set", () => {
-  // [Scenario: Relative target without a usable cwd | spec-hooks-prose-hooks.md "Voice-script exemption..." further rules | FR-181]
-  // Null/empty and boundary: '' and 'src' are not usable roots.
-  check({ projectDir: P, cwd: "", target: "docs/tts/a-selftest.md", exempt: false });
-  check({ projectDir: P, cwd: "src", target: "docs/tts/a-selftest.md", exempt: false });
-  check({ projectDir: P, cwd: ".", target: "docs/tts/a-selftest.md", exempt: false });
-});
-
-test("the git-root finder is never called when the input cwd is missing, empty, or relative", () => {
-  // [Scenario: Relative target without a usable cwd | spec-hooks-prose-hooks.md "Voice-script exemption..." step 1(b) and further rules | FR-181]
-  const finder = recorder(() => P);
-  [undefined, "", "src", "./src", ".."].forEach((cwd) => {
-    check({ projectDir: null, findGitRoot: finder, cwd: cwd, target: "docs/tts/a-selftest.md", exempt: false });
-    check({ projectDir: null, findGitRoot: finder, cwd: cwd, target: P + "/docs/tts/a-selftest.md", exempt: false });
-  });
-  assert.deepStrictEqual(finder.calls, [], "the finder was called with: " + JSON.stringify(finder.calls));
-});
-
-test("project variable alone, with no cwd, exempts an absolute docs/tts target under it", () => {
-  // [Scenario: Subdirectory session, voice script at the project root | spec-hooks-prose-hooks.md step 1(a) and step 3 | FR-181]
-  check({ projectDir: P, cwd: undefined, target: P + "/docs/tts/a-selftest.md", exempt: true });
-});
-
-test("relative project variable is ignored and the absolute cwd becomes the project root", () => {
-  // [Scenario: Relative project variable | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  const cwd = "/assist-test/solo/dir";
-  check({ projectDir: "app", findGitRoot: NO_ROOT, cwd: cwd, target: cwd + "/docs/tts/a-selftest.md", exempt: true });
-});
-
-test("relative project variable with no cwd leaves a relative target gated", () => {
-  // [Scenario: Relative project variable (self-test case 10) | spec-hooks-prose-hooks.md "Self-test isolation..." table | FR-181]
-  check({ projectDir: "app", findGitRoot: NO_ROOT, cwd: undefined, target: "docs/tts/a-selftest.md", exempt: false });
-});
-
-test("empty project variable is ignored", () => {
-  // [Scenario: Relative project variable (empty string, null/empty category) | spec-hooks-prose-hooks.md step 1(a) | FR-181]
-  const cwd = "/assist-test/solo/dir";
-  check({ projectDir: "", findGitRoot: NO_ROOT, cwd: cwd, target: cwd + "/docs/tts/a-selftest.md", exempt: true });
-});
-
-// ---------------------------------------------------------------------------
-// Options: no options, null, undefined, non-function
-// ---------------------------------------------------------------------------
-
-test("hook called with no options honours CLAUDE_PROJECT_DIR, gate and advisor", () => {
-  // [Scenario: Hook called with no options honours CLAUDE_PROJECT_DIR | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  process.env.CLAUDE_PROJECT_DIR = "/p";
-  try {
-    const exemptTarget = "/p/docs/tts/a-selftest.md";
-    const gatedTarget = "/p/docs/guide.md";
-
-    assert.ok(!denied(gate.evaluate(gateInput("/p/src", exemptTarget))), "prose-gate denied an exempt target");
-    assert.ok(!noted(advisor.evaluate(advisorInput("/p/src", exemptTarget))), "prose-advisor flagged an exempt target");
-
-    // Controls: the same call shape still judges a non-exempt target.
-    assert.ok(denied(gate.evaluate(gateInput("/p/src", gatedTarget))), "control: prose-gate did not deny docs/guide.md");
-    assert.ok(noted(advisor.evaluate(advisorInput("/p/src", gatedTarget))), "control: prose-advisor did not flag docs/guide.md");
-  } finally {
-    delete process.env.CLAUDE_PROJECT_DIR;
-  }
-});
-
-test("projectDir null overrides the environment: the target is gated", () => {
-  // [Scenario: Null project directory overrides the environment | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-  process.env.CLAUDE_PROJECT_DIR = "/p";
-  try {
-    const options = { projectDir: null, findGitRoot: () => null };
-    assert.ok(denied(gate.evaluate(gateInput("/p/src", "/p/docs/tts/a-selftest.md"), options)));
-    assert.ok(noted(advisor.evaluate(advisorInput("/p/src", "/p/docs/tts/a-selftest.md"), options)));
-    // The cwd itself becomes the project root, so its own docs/tts stays exempt.
-    assert.ok(!denied(gate.evaluate(gateInput("/p/src", "/p/src/docs/tts/a-selftest.md"), options)));
-  } finally {
-    delete process.env.CLAUDE_PROJECT_DIR;
-  }
-});
-
-test("projectDir undefined counts as absent and reads the environment", () => {
-  // [Scenario: Hook called with no options honours CLAUDE_PROJECT_DIR (undefined keys) | spec-hooks-prose-hooks.md "Test option keys" | FR-181]
-  process.env.CLAUDE_PROJECT_DIR = "/p";
-  try {
-    const options = { projectDir: undefined, findGitRoot: () => null };
-    assert.ok(!denied(gate.evaluate(gateInput("/p/src", "/p/docs/tts/a-selftest.md"), options)));
-    assert.ok(!noted(advisor.evaluate(advisorInput("/p/src", "/p/docs/tts/a-selftest.md"), options)));
-  } finally {
-    delete process.env.CLAUDE_PROJECT_DIR;
-  }
-});
-
-test("a projectDir option wins over the environment", () => {
-  // [Scenario: Subdirectory session | spec-hooks-prose-hooks.md "Test option keys" | FR-181]
-  process.env.CLAUDE_PROJECT_DIR = "/other-project";
-  try {
-    const options = { projectDir: P, findGitRoot: () => null };
-    assert.ok(!denied(gate.evaluate(gateInput(P + "/src", P + "/docs/tts/a-selftest.md"), options)));
-    assert.ok(denied(gate.evaluate(gateInput(P + "/src", "/other-project/docs/tts/a-selftest.md"), options)));
-  } finally {
-    delete process.env.CLAUDE_PROJECT_DIR;
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Real file-system walk (no findGitRoot option), on a temp tree
-// ---------------------------------------------------------------------------
-
-function makeTree(kind) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "prose-tts-")));
-  fs.mkdirSync(path.join(root, "src", "deep"), { recursive: true });
-  if (kind === "dir") fs.mkdirSync(path.join(root, ".git"));
-  else fs.writeFileSync(path.join(root, ".git"), "gitdir: /elsewhere/.git/worktrees/w\n");
-  return root;
-}
-
-// The temp tree sits under the system temp directory, which both hooks never judge. The
-// `tmpdir` option points the hooks at an unrelated directory; a control case checks that
-// the option took effect before the walk assertions run.
-function realWalkOptions(extra) {
-  return Object.assign({ tmpdir: "/assist-test-tmp" }, extra);
-}
-
-function tmpOptionWorks(root) {
-  try {
-    const g = gate.evaluate(
-      gateInput(root, root + "/docs/guide.md"),
-      realWalkOptions({ projectDir: null, findGitRoot: NO_ROOT })
-    );
-    return denied(g);
-  } catch (e) {
-    return false;
-  }
-}
-
-["dir", "file"].forEach((kind) => {
-  test("real walk, .git as a " + kind + ": docs/tts under the git root is exempt from a subdirectory session", (t) => {
-    // [Scenario: No project directory variable / Linked worktree without the variable | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
-    const root = makeTree(kind);
-    try {
-      if (!tmpOptionWorks(root)) {
-        t.skip("the tmpdir option does not move the temp-directory exemption on this build");
-        return;
-      }
-      const cwd = root + "/src/deep";
-      // findGitRoot absent from the options: the hook walks the file system itself.
-      const options = realWalkOptions({ projectDir: null });
-      assert.ok(!denied(gate.evaluate(gateInput(cwd, root + "/docs/tts/a-selftest.md"), options)));
-      assert.ok(!noted(advisor.evaluate(advisorInput(cwd, root + "/docs/tts/a-selftest.md"), options)));
-      assert.ok(!denied(gate.evaluate(gateInput(cwd, "docs/tts/a-selftest.md"), options)), "session directory docs/tts");
-      // Control: other docs paths in the same tree stay gated.
-      assert.ok(denied(gate.evaluate(gateInput(cwd, root + "/docs/guide.md"), options)));
-      assert.ok(noted(advisor.evaluate(advisorInput(cwd, root + "/docs/guide.md"), options)));
-    } finally {
-      fs.rmSync(root, { recursive: true, force: true });
-    }
-  });
-});
-
-test("a findGitRoot option that is not a function counts as absent", (t) => {
-  // [Scenario: Hook called with no options honours CLAUDE_PROJECT_DIR (non-function key) | spec-hooks-prose-hooks.md "Test option keys" | FR-181]
-  const root = makeTree("dir");
-  try {
-    if (!tmpOptionWorks(root)) {
-      t.skip("the tmpdir option does not move the temp-directory exemption on this build");
-      return;
-    }
-    const cwd = root + "/src";
-    [42, "not a function", {}, true].forEach((bad) => {
-      const options = realWalkOptions({ projectDir: null, findGitRoot: bad });
-      let g;
-      let a;
-      assert.doesNotThrow(() => {
-        g = gate.evaluate(gateInput(cwd, root + "/docs/tts/a-selftest.md"), options);
-        a = advisor.evaluate(advisorInput(cwd, root + "/docs/tts/a-selftest.md"), options);
-      }, "findGitRoot " + JSON.stringify(bad));
-      assert.ok(!denied(g), "findGitRoot " + JSON.stringify(bad));
-      assert.ok(!noted(a), "findGitRoot " + JSON.stringify(bad));
+test("a caller that still passes projectDir and findGitRoot gets the same result as one that does not", () => {
+  // [Scenario: Case without the project-root keys | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Self-test isolation for the project root, and REMOVED Migration (Callers) | FR-118 | FR-091 | FR-104]
+  // The keys have nothing left to replace: changes() copies its options and reads only the keys it uses.
+  const targets = [
+    { cwd: P + "/src", target: P + "/docs/tts/" + VOICE },
+    { cwd: P, target: "docs/tts/" + VOICE },
+    { cwd: "/assist-test/other", target: "/assist-test/other/docs/tts/a.md" },
+    { cwd: P + "/src", target: P + "/docs/guide.md" },
+  ];
+  const extras = [
+    { projectDir: P, findGitRoot: () => P },
+    { projectDir: null, findGitRoot: () => null },
+    { projectDir: undefined, findGitRoot: "not a function" },
+  ];
+  targets.forEach((t) => {
+    const plainGate = gate.evaluate(gateInput(t.cwd, t.target), options());
+    const plainAdvisor = advisor.evaluate(advisorInput(t.cwd, t.target), options());
+    extras.forEach((extra) => {
+      const g = gate.evaluate(gateInput(t.cwd, t.target), options(extra));
+      const a = advisor.evaluate(advisorInput(t.cwd, t.target), options(extra));
+      assert.deepStrictEqual(g, plainGate, "prose-gate result changed with " + JSON.stringify(Object.keys(extra)) + " for " + t.target);
+      assert.deepStrictEqual(a, plainAdvisor, "prose-advisor result changed with " + JSON.stringify(Object.keys(extra)) + " for " + t.target);
     });
+  });
+});
+
+test("a real CLAUDE_PROJECT_DIR does not change either hook's result", () => {
+  // [Scenario: Real project variable during SessionStart | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Self-test isolation for the project root | FR-118 | FR-091 | FR-104]
+  const baseline = {
+    gate: gate.evaluate(gateInput(P + "/src", P + "/docs/tts/" + VOICE), options()),
+    advisor: advisor.evaluate(advisorInput(P + "/src", P + "/docs/tts/" + VOICE), options()),
+  };
+  process.env.CLAUDE_PROJECT_DIR = "/home/u/app";
+  try {
+    assert.deepStrictEqual(gate.evaluate(gateInput(P + "/src", P + "/docs/tts/" + VOICE), options()), baseline.gate);
+    assert.deepStrictEqual(advisor.evaluate(advisorInput(P + "/src", P + "/docs/tts/" + VOICE), options()), baseline.advisor);
   } finally {
-    fs.rmSync(root, { recursive: true, force: true });
+    delete process.env.CLAUDE_PROJECT_DIR;
   }
+});
+
+// ---------------------------------------------------------------------------
+// Requirement: Guard decision and deny output (platform spec)
+// ---------------------------------------------------------------------------
+
+test("prose-gate reads only the target file and the allowlist: no .git path is checked and the reader is the only read", (t) => {
+  // [Scenario: Prose-gate reads only the target file and the allowlist | spec-hooks-platform.md Change Log 2026-10-23, Requirement: Guard decision and deny output | FR-088 | FR-104 | FR-213]
+  process.env.CLAUDE_PROJECT_DIR = "/p";
+  const readerCalls = [];
+  const reader = (p) => {
+    readerCalls.push(p);
+    return null;
+  };
+  const probes = ["statSync", "lstatSync", "existsSync", "accessSync"].map((name) => t.mock.method(fs, name));
+  let result;
+  let advisorResult;
+  try {
+    result = gate.evaluate(gateInput("/p/src", "/p/docs/tts/a.md"), { readFile: reader, allowlist: [], tmpdir: "/t" });
+    advisorResult = advisor.evaluate(advisorInput("/p/src", "/p/docs/tts/a.md"), { readFile: reader, allowlist: [], tmpdir: "/t" });
+  } finally {
+    delete process.env.CLAUDE_PROJECT_DIR;
+  }
+  const gitChecks = [];
+  probes.forEach((probe) => {
+    probe.mock.calls.forEach((call) => {
+      const first = call.arguments[0];
+      if (typeof first === "string" && /(^|[\\/])\.git([\\/]|$)/.test(first)) gitChecks.push(first);
+    });
+    probe.mock.restore();
+  });
+  assert.ok(result && result.deny === true, "evaluate must return deny: true");
+  assert.ok(noted(advisorResult), "prose-advisor must flag the docs/tts advisory tell");
+  assert.deepStrictEqual(gitChecks, [], "no directory is checked for .git: " + JSON.stringify(gitChecks));
+  readerCalls.forEach((p) => assert.strictEqual(p, "/p/docs/tts/a.md", "the reader reads only the target file"));
+});
+
+// ---------------------------------------------------------------------------
+// Saved-file fixtures: a full voice script built from the output template
+// ---------------------------------------------------------------------------
+
+const FIXED_NOTES = [
+  "Em dashes replaced: 3 (U+2014 and U+2015, draft, header, and composed text).",
+  "Curly quotes straightened to ASCII quotes.",
+  "Kept tell: chatbot-residue, draft line 4.",
+  "Kept tell: summary-label, draft line 9.",
+];
+
+test("a saved voice script with the fixed notes of the header-notes rule passes prose-gate", () => {
+  // [Scenario: Header under the standard | spec-skills-deslop-voice-clarify.md Change Log 2026-10-23, Requirement: Writing standard scope in the voice-script skill, and Requirement: Header notes for swaps and kept tells | FR-213 | FR-212 | NFR-019 | UR-058]
+  // The count note, the curly-quote note, and two kept-tell flags name the tell by family and line, never its text.
+  const content = voiceScript({ notes: FIXED_NOTES, fence: "Plain words, one pause, and an end." });
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())));
+});
+
+test("each fixed note passes prose-gate on its own", () => {
+  // [Scenario: Header passes the prose gate | spec-skills-deslop-voice-clarify.md Requirement: One same-path retry after a header deny | FR-213 | FR-212 | FR-163]
+  FIXED_NOTES.forEach((note) => {
+    const content = voiceScript({ notes: [note] });
+    assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())), note);
+  });
+});
+
+test("a saved voice script is denied when its header adds an em dash or a curly quote", () => {
+  // [Scenario: Header denied by the prose gate | spec-skills-deslop-voice-clarify.md Requirement: One same-path retry after a header deny | FR-213 | FR-163 | UR-058]
+  [EM, BAR].concat(CURLY).forEach((ch) => {
+    const content = voiceScript({ notes: FIXED_NOTES, title: "# Voice script: it" + ch + "s here" });
+    const result = gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options());
+    assert.ok(denied(result), "U+" + ch.charCodeAt(0).toString(16) + " in the title must be denied");
+    assert.ok(result.reason.indexOf(DENY_PREFIX) === 0, result.reason);
+  });
+});
+
+test("a header deny names the flagged text so the skill can fix it, and the fixed header passes", () => {
+  // [Scenario: Header denied by the prose gate (fix and retry) | spec-skills-deslop-voice-clarify.md Requirement: One same-path retry after a header deny | FR-163 | FR-213]
+  const bad = voiceScript({ header: "Calm " + EM + " warm." });
+  const first = gate.evaluate(gateInput(P, "docs/tts/" + VOICE, bad), options());
+  assert.ok(denied(first));
+  // The retry rewrites only the flagged text (a comma for the dash) on the same path.
+  const fixed = voiceScript({ header: "Calm, warm." });
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, fixed), options())));
+});
+
+test("a PostToolUse advisor note on a saved header is not a deny", () => {
+  // [Scenario: Advisor note after a saved file | spec-skills-deslop-voice-clarify.md Requirement: One same-path retry after a header deny | FR-163 | FR-213]
+  const content = voiceScript({ header: ADVISOR_TEXT.trim() });
+  assert.ok(!denied(gate.evaluate(gateInput(P, "docs/tts/" + VOICE, content), options())), "an advisory tell is not a block-tier tell");
+  assert.ok(noted(advisor.evaluate(advisorInput(P, "docs/tts/" + VOICE, content), options())));
 });

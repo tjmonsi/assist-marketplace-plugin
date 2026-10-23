@@ -2,10 +2,10 @@
 //
 // Black-box tests for plugins/assist-plugin/hooks/lib/git-root.js, export findGitRoot(dir).
 //
-// Contract (task plan step 7 notes, restated in the step 10 test notes; specs
-// spec-hooks-prose-hooks.md "Voice-script exemption under the project root and the session
-// directory" step 1(b) and its further rules, and spec-hooks-fsa-write-bar.md for the
-// shared walk):
+// Contract (spec-hooks-fsa-write-bar.md, Requirement: Task-planner write scope in docs/task-plans/,
+// step 1 and Scenario: Unreadable parent during the walk; spec-hooks-bash-guards.md, Requirement:
+// Mermaid guard paths, rule 3). The two consumers that keep the walk are fsa-write-bar and
+// sa-mermaid-only; the prose hooks stopped using it in 1.13.1:
 //   - from `dir`, check each directory up to the file-system root for an entry named `.git`
 //     (a directory, or a file as in a linked worktree or a submodule); return the first
 //     directory that holds one, else null;
@@ -15,7 +15,7 @@
 //   - return null for a non-string, empty, or non-absolute `dir`, so a relative path never
 //     walks from the process directory.
 //
-// Requirement ids: FR-181 (docs/requirements/FR-NFR-assist-plugin.md), FR-104, NFR-008.
+// Requirement ids: FR-186, FR-093, NFR-008 (docs/requirements/FR-NFR-assist-plugin.md).
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -92,47 +92,47 @@ after(() => {
 // ---------------------------------------------------------------------------
 
 test("findGitRoot is an exported function", () => {
-  // [Scenario: No project directory variable | spec-hooks-prose-hooks.md "Voice-script exemption..." step 1(b) | FR-181]
+  // [Scenario: New location | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   assert.strictEqual(typeof findGitRoot, "function");
 });
 
 test("the directory that holds a .git directory is its own root", () => {
-  // [Scenario: No project directory variable | spec-hooks-prose-hooks.md "Voice-script exemption..." step 1(b) | FR-181]
+  // [Scenario: New location | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   same(findGitRoot(path.join(base, "repo")), path.join(base, "repo"));
 });
 
 test("a nested directory walks up to the root that holds a .git directory", () => {
-  // [Scenario: No project directory variable (cwd is <repo>/src) | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: Subdirectory session (cwd is <repo>/src) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   same(findGitRoot(path.join(base, "repo", "src")), path.join(base, "repo"));
   same(findGitRoot(path.join(base, "repo", "src", "deep")), path.join(base, "repo"));
 });
 
 test("a .git file marks a linked worktree root", () => {
-  // [Scenario: Linked worktree without the variable | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: Worktree session | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   same(findGitRoot(path.join(base, "wt")), path.join(base, "wt"));
   same(findGitRoot(path.join(base, "wt", "lib")), path.join(base, "wt"));
 });
 
 test("the nearest .git wins when a submodule .git file sits inside a repository", () => {
-  // [Scenario: Linked worktree without the variable (.git file, nearest first) | spec-hooks-prose-hooks.md step 1(b) | FR-181]
+  // [Scenario: Worktree session (.git file, nearest first) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1; spec-hooks-bash-guards.md "Mermaid guard paths" rule 3 | FR-186 | FR-093]
   same(findGitRoot(path.join(base, "repo", "sub", "lib")), path.join(base, "repo", "sub"));
   same(findGitRoot(path.join(base, "repo", "sub")), path.join(base, "repo", "sub"));
 });
 
 test("a trailing separator does not change the answer", () => {
-  // [Scenario: No project directory variable | spec-hooks-prose-hooks.md step 1(b) | FR-181]
+  // [Scenario: Subdirectory session (trailing separator) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   // Boundary: the same directory written with a trailing separator.
   same(findGitRoot(path.join(base, "repo", "src") + path.sep), path.join(base, "repo"));
 });
 
 test("a directory below the root that does not exist still walks up to the root", () => {
-  // [Scenario: Unreadable parent directory (a failed check counts as no .git here) | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: Unreadable parent during the walk (a failed check counts as no .git here) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   // Error case: a stat error on a missing directory is "no .git here"; the walk continues.
   same(findGitRoot(path.join(base, "repo", "missing", "deeper")), path.join(base, "repo"));
 });
 
 test("a dangling .git symlink counts as no .git here and the walk continues upward", () => {
-  // [Scenario: Unreadable parent directory (a failed check counts as no .git here) | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: Unreadable parent during the walk (a failed check counts as no .git here) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   const dangling = mkdirs("repo", "dangling");
   try {
     fs.symlinkSync(path.join(base, "does-not-exist"), path.join(dangling, ".git"));
@@ -143,7 +143,7 @@ test("a dangling .git symlink counts as no .git here and the walk continues upwa
 });
 
 test("a tree with no .git returns null", { skip: false }, (t) => {
-  // [Scenario: Neither available | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
+  // [Scenario: Outside a git repository | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   if (skipNoGitCases) {
     t.skip("an ancestor of the temp directory holds a .git entry");
     return;
@@ -153,7 +153,7 @@ test("a tree with no .git returns null", { skip: false }, (t) => {
 });
 
 test("an unreadable directory in the chain is skipped and the walk continues", (t) => {
-  // [Scenario: Unreadable parent directory | spec-hooks-prose-hooks.md "Voice-script exemption..." | FR-181]
+  // [Scenario: Unreadable parent during the walk | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   if (process.platform === "win32" || (typeof process.getuid === "function" && process.getuid() === 0)) {
     t.skip("permission bits do not restrict this user");
     return;
@@ -188,14 +188,14 @@ test("an unreadable directory in the chain is skipped and the walk continues", (
 // ---------------------------------------------------------------------------
 
 test("a path with a NUL character does not throw", () => {
-  // [Scenario: Unreadable parent directory (never throws) | spec-hooks-prose-hooks.md further rules | FR-181 | NFR-008]
+  // [Scenario: Unreadable parent during the walk (never throws) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1 | FR-186 | FR-093]
   // Security-adjacent: control character in a path.
   assert.doesNotThrow(() => findGitRoot(path.join(base, "repo", "src\u0000x")));
   assert.doesNotThrow(() => findGitRoot(path.sep + "\u0000"));
 });
 
 test("the walk works with no git executable on PATH", () => {
-  // [Scenario: No project directory variable (no git process) | spec-hooks-prose-hooks.md RULE-006 | FR-181 | NFR-008]
+  // [Scenario: Unreadable parent during the walk (no git process) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 1; spec-hooks-bash-guards.md "Mermaid guard paths" rule 3 | FR-186 | FR-093 | NFR-008]
   const saved = process.env.PATH;
   process.env.PATH = "";
   try {
@@ -210,19 +210,19 @@ test("the walk works with no git executable on PATH", () => {
 // ---------------------------------------------------------------------------
 
 test("a non-string argument returns null", () => {
-  // [Scenario: Relative target without a usable cwd (type mismatch) | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: No usable cwd, target outside (type mismatch) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 4; spec-hooks-bash-guards.md "Mermaid guard paths" rule 3 (no usable cwd gives no git root) | FR-186 | FR-093]
   [undefined, null, 0, 42, true, {}, [], [path.join(base, "repo")], () => base].forEach((bad) => {
     assert.strictEqual(findGitRoot(bad), null, "input " + String(typeof bad) + " should give null");
   });
 });
 
 test("an empty string returns null", () => {
-  // [Scenario: Relative target without a usable cwd (empty cwd) | spec-hooks-prose-hooks.md | FR-181]
+  // [Scenario: No usable cwd, plain relative target (empty cwd) | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 4; spec-hooks-bash-guards.md "Mermaid guard paths" rule 3 | FR-186 | FR-093]
   assert.strictEqual(findGitRoot(""), null);
 });
 
 test("a relative path returns null even when the process directory is inside a repository", () => {
-  // [Scenario: Relative target without a usable cwd | spec-hooks-prose-hooks.md further rules | FR-181]
+  // [Scenario: No usable cwd, plain relative target | spec-hooks-fsa-write-bar.md "Task-planner write scope in docs/task-plans/" step 4; spec-hooks-bash-guards.md "Mermaid guard paths" rule 3 | FR-186 | FR-093]
   // Boundary: a relative dir must never walk from the process directory.
   const saved = process.cwd();
   process.chdir(path.join(base, "repo", "src"));

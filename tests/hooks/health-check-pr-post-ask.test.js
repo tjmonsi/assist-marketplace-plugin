@@ -10,6 +10,9 @@
 // specs/spec-hooks-pr-post-ask.md (Requirement 8: the 27-case table, the Scenarios "Self-test
 // cases", "False ask disables the hook", and "Missed ask is weak protection"),
 // docs/requirements/FR-NFR-assist-plugin.md (FR-206, FR-091, FR-118), DECISIONS.md lines 238-241.
+// Release 1.13.1 (specs/spec-hooks-health-check.md, Change Log 2026-10-23, Requirement:
+// Self-tests, FR-118): the prose corpora of the other hooks hold prose-gate 24 allow and 38 deny
+// cases and prose-advisor 10 clean and 12 flagged cases; the pr-post-ask corpus is unchanged.
 //
 // Traceability format: [Scenario title | spec section | requirement ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -362,7 +365,7 @@ test("[Requirement: Self-tests, header comment | " + SPEC + " (Change Log 2026-1
 });
 
 // ---------------------------------------------------------------------------
-// The other hooks keep their corpus sizes
+// The other hooks keep their corpus sizes (the prose rows take the 1.13.1 sizes)
 // ---------------------------------------------------------------------------
 
 [
@@ -371,11 +374,11 @@ test("[Requirement: Self-tests, header comment | " + SPEC + " (Change Log 2026-1
   ["injection-filter", 23, 36],
   ["writing-context", 3, 3],
   ["commit-attribution-guard", 17, 22],
-  ["prose-gate", 32, 31],
-  ["prose-advisor", 11, 10],
+  ["prose-gate", 24, 38],
+  ["prose-advisor", 10, 12],
   ["fsa-write-bar", 51, 106],
 ].forEach((row) => {
-  test("[Requirement: Self-tests, corpus sizes unchanged | " + SPEC + " (Change Log 2026-10-22) | FR-118] " + row[0] + " still has " + row[1] + " allow and " + row[2] + " deny cases", () => {
+  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-22 and 2026-10-23) | FR-118 FR-104 FR-213] " + row[0] + " has " + row[1] + " allow and " + row[2] + " deny cases", () => {
     const g = guard(row[0]);
     assert.strictEqual(g.allow.length, row[1]);
     assert.strictEqual(g.deny.length, row[2]);
