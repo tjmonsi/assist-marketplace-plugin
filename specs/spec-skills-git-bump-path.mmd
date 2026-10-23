@@ -1,0 +1,20 @@
+flowchart TD
+  S(["/bump with --path value, after the git repository check"]) --> R["Git root R from git rev-parse --show-toplevel, used as text only"]
+  R --> N1["Step 1, read every backslash as slash"]
+  N1 --> ABS{"Absolute: starts with / or a drive letter, colon, slash?<br/>Decided before anything is removed, so a lone / is absolute"}
+  ABS -->|"yes"| AS["Remove one trailing / only when more than the root part remains,<br/>so / and C:/ keep their slash"]
+  ABS -->|"no"| RS["Relative: remove one leading ./ and one trailing /"]
+  AS --> AR{"Compare with R"}
+  AR -->|"equals R"| ROOT(["No --path: default names and root tags; skip steps 2 and 3"])
+  AR -->|"R followed by / is a prefix"| STRIP["Strip R and the slash: root-relative value"]
+  AR -->|"anything else, a lone / included"| E1(["Stop R1: absolute path outside the git root; nothing changed"])
+  RS --> EMPTY{"Empty or . after the edits?"}
+  STRIP --> EMPTY
+  EMPTY -->|"yes"| ROOT
+  EMPTY -->|"no"| V1{"Step 2, on the text only: matches the dir pattern (R2),<br/>no .. segment (R3), no dots-only segment (R4),<br/>no segment starting with - (R5),<br/>no segment starting with . or containing .. (R8)?"}
+  V1 -->|"no"| E2(["Stop with the message of the first rule broken; nothing changed"])
+  V1 -->|"yes"| V2{"R6: test -d on R/dir, with no --,<br/>R read inside the command through<br/>$(git rev-parse --show-toplevel) in double quotes?"}
+  V2 -->|"no"| E3(["Stop R6: name the missing directory; nothing changed"])
+  V2 -->|"yes"| V3{"R7: realpath of R/dir starts with realpath of R and a slash?<br/>R read the same way, never pasted"}
+  V3 -->|"no"| E4(["Stop R7: the path resolves outside the git root; nothing changed"])
+  V3 -->|"yes"| NAME(["Step 3: dir and tagdir named; the bump continues"])

@@ -1,0 +1,36 @@
+flowchart TD
+  START(["PR review step ready: in_progress"]) --> URL["Read origin with credentials stripped; parse host, names"]
+  URL -->|"unparsed form, no origin, bad name, N unset"| PF["failed: precondition-failed"]
+  URL -->|"github.com"| GH["gh flow of 1.12.0: guard, fetch with --repo github.com/owner/repo"]
+  URL -->|"any other host"| VER{"bkt --version is bitbucket-cli?"}
+  VER -->|"no"| REC1{"Recognized as Bitbucket by name or /scm/?"}
+  REC1 -->|"yes"| TM["failed: tool-missing"]
+  REC1 -->|"no"| PF2["failed: precondition-failed, both options named"]
+  VER -->|"yes"| ENV{"BKT_TOKEN, BKT_HOST, BKT_CONFIG_DIR all unset?"}
+  ENV -->|"no"| PF3["failed: precondition-failed, variables named, no values"]
+  ENV -->|"yes"| CTX{"bkt auth status --json: contexts matching the origin host"}
+  CTX -->|"several"| PF4["failed: precondition-failed, leave one context"]
+  CTX -->|"none, recognized as Bitbucket"| PF5["failed: precondition-failed, setup message"]
+  CTX -->|"none, not recognized"| PF2
+  CTX -->|"exactly one"| CLOUD{"Cloud?"}
+  CLOUD -->|"yes"| LINK{"Link check, exit status only;<br/>workspace and slug compared in lowercase on both sides"}
+  LINK -->|"3 or other: view failed"| TF["failed: tool-failed"]
+  LINK -->|"4: mismatch"| PR["failed: policy-rejection"]
+  LINK -->|"0"| FETCH
+  CLOUD -->|"no, Data Center"| FETCH["guard; rm -f; bkt pr diff, view --json, comments --json with --context and repository flags, each into its own temp file"]
+  FETCH -->|"any exit non-zero, empty diff"| TF
+  FETCH -->|"ok"| SCR["guard; scratch file: diff, then view, then comments, 204,800 bytes; hash"]
+  GH --> SCR
+  SCR --> REV["reviewer step; block; body file; read-back"]
+  REV --> ASK{"Confirm: post the verdict, post as a comment, or do not post"}
+  ASK -->|"do not post"| DONE["completed: not posted"]
+  ASK -->|"post"| POST["Each post its own Bash command; ask hook prompt per command"]
+  POST -->|"all allowed and posted"| DONE2["completed: posted"]
+  POST -->|"a prompt rejected"| DECL["completed: declined parts recorded; no next command"]
+  POST -->|"hash mismatch or forgotten hash"| PR
+  POST -->|"a command failed"| TF
+  DONE --> RM["guard on folders; remove pr-N.* and pr-N-*; refresh baseline"]
+  DONE2 --> RM
+  DECL --> RM
+  TF --> SWEEP["Left for the Cleanup sweep"]
+  PR --> SWEEP

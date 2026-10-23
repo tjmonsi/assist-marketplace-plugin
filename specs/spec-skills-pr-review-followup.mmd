@@ -1,0 +1,35 @@
+sequenceDiagram
+  actor User
+  participant Skill as pr-review skill, direct run
+  participant Git as git remote origin
+  participant CLI as gh or bkt
+  participant Hook as pr-post-ask hook
+  User->>Skill: /pr-review 123 with optional verdict flag
+  Skill->>Git: git remote get-url origin, credentials stripped
+  Git-->>Skill: host, owner or workspace or project key, repository
+  Skill->>Skill: PR number must be digits only (^[0-9]+$) before any command holds it, else ask the user for the number
+  alt GitHub host
+    Skill->>CLI: gh pr view and gh pr diff into a per-run temp folder
+  else not GitHub
+    Skill->>CLI: bkt --version, then the BKT_TOKEN, BKT_HOST, BKT_CONFIG_DIR presence tests
+    Skill->>CLI: bkt auth status --json: exactly one context for the origin host
+    Note over Skill,CLI: no matching context or several: stop with the setup message
+    Skill->>CLI: Cloud only: PR link check, exit status only, workspace and slug compared in lowercase on both sides
+    Skill->>CLI: bkt pr diff, view, comments with --context and repository flags, into the temp folder
+  end
+  Skill->>Skill: read at most 204,800 bytes, diff first; record any cut
+  Skill->>Skill: treat the PR text as data; draft findings on the diff only
+  Skill->>User: draft, cut size, public notice: Do you approve this verdict? (yes/no)
+  alt explicit yes
+    Skill->>Skill: Write the draft to a new file in the per-run temp folder
+    Skill->>Hook: each posting command, one Bash call each
+    Hook->>User: ask prompt
+    alt user allows
+      Hook-->>CLI: command runs
+    else user rejects
+      Hook-->>Skill: not allowed: report declined, run no next command, no retry
+    end
+    Skill->>Skill: remove the temp folder
+  else no, edits, or unclear answer
+    Skill->>Skill: revise and ask again; run no posting command
+  end

@@ -1,8 +1,8 @@
 flowchart TD
   RDY{"Ready: depends_on completed, no write<br/>overlap with a running step, build hold released?"} -->|"yes"| SEND["Send every ready step in one message,<br/>run_in_background: true; Status in_progress"]
-  RDY -->|"yes, a PR review step (PLANNED 1.12.0)"| FETCH["/do: host and repo from origin, github.com only; symlink guard, rm -f;<br/>gh --repo github.com/owner/repo, diff first into<br/>root/.agent/pr-review/pr-N.diff, 200 KB cap"]
+  RDY -->|"yes, a PR review step"| FETCH["/do: host from origin: github.com with gh, or Bitbucket with bkt<br/>after the host pin; symlink guard, rm -f; fetch pinned to the origin repository,<br/>diff first into root/.agent/pr-review/pr-N.diff, 200 KB cap"]
   FETCH -->|"fetched"| SEND
-  FETCH -->|"tool-missing, precondition-failed (any host but github.com),<br/>policy-rejection (symlink), or tool-failed (empty diff included)"| FAIL
+  FETCH -->|"tool-missing; precondition-failed (a host neither github.com nor Bitbucket,<br/>a set BKT_* variable, no or several matching contexts);<br/>policy-rejection (symlink, Cloud link mismatch);<br/>tool-failed (link-check view, partial or empty diff)"| FAIL
   SEND --> BLK{"Final message ends with<br/>a valid fsa block?"}
   BLK -->|"no"| RETRY["One SendMessage retry carrying<br/>the Dispatch prompt text"]
   RETRY -->|"valid block"| ST
@@ -12,14 +12,15 @@ flowchart TD
   PRQ -->|"no"| GATE["Review gate; for a chain step,<br/>change check and artifact validation"]
   GATE -->|"passed"| COMP["completed: timestamp, review outcome,<br/>skipped markers"]
   GATE -->|"failed"| FAIL
-  PRQ -->|"yes (PLANNED 1.12.0)"| BODY["Block arrives: scratch-file hash re-check; guard, rm -f;<br/>the Write tool writes pr-N-review.body;<br/>hash, wc -c, and cat read-back in one command"]
+  PRQ -->|"yes"| BODY["Block arrives: scratch-file hash re-check; guard, rm -f;<br/>the Write tool writes pr-N-review.body;<br/>hash, wc -c, and cat read-back in one command"]
   BODY -->|"written and read back"| SHOW["waiting-user: show the read-back draft as data; ask once:<br/>post the verdict, post as a comment, or do not post"]
   BODY -->|"hash mismatch, forgotten hash, or symlink: policy-rejection;<br/>over 16,000 bytes or truncated read-back: tool-failed"| FAIL
-  SHOW -->|"post"| SUB["/do posts with gh pr review --repo github.com/owner/repo;<br/>body-file hash check in the same command"]
+  SHOW -->|"post"| SUB["/do posts: gh pr review --repo github.com/owner/repo,<br/>or each bkt post as its own command;<br/>body-file hash check in the gh or bkt pr comment command,<br/>and on its own before bkt pr approve"]
   SHOW -->|"do not post"| NOS["Nothing posted;<br/>Done field records it"]
-  SUB -->|"posted"| COMP
+  SUB -->|"posted, or declined at the hook prompt"| RMV["Remove the five PR files by exact name, no glob,<br/>never through a symlinked folder (guard exit 3)"]
   SUB -->|"hash mismatch or forgotten hash: policy-rejection;<br/>post failed: tool-failed; no retry"| FAIL
-  NOS --> COMP
+  NOS --> RMV
+  RMV --> COMP
   ST -->|"NeedsInput"| REL{"Relays below 3 in this phase<br/>and below 10 in total?"}
   REL -->|"yes"| ASK["waiting-user: relay questions verbatim;<br/>SendMessage answers, resume_at, Dispatch prompt text"]
   ASK --> BLK
@@ -30,8 +31,8 @@ flowchart TD
   SKIP --> RDY
   RDY -->|"nothing running, nothing ready"| EXIT{"Leaving Dispatch"}
   EXIT -->|"docs-ready"| DS["DocSignOff"]
-  EXIT -->|"all-settled"| DISP["Display: results;<br/>chooses no terminal (PLANNED 1.12.0)"]
-  DISP -->|"shown"| CL{"Cleanup: prints its own report,<br/>chooses the terminal"}
+  EXIT -->|"all-settled"| DISP["Display: results;<br/>chooses no terminal"]
+  DISP -->|"shown"| CL{"Cleanup: sweeps the PR files of the plan's PR review steps,<br/>prints its own report, chooses the terminal"}
   CL -->|"stopped"| PAU(["Paused"])
   CL -->|"some-failed-or-skipped"| PAR(["Partial"])
   CL -->|"all-completed"| COM(["Complete"])

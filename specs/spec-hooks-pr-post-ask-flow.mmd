@@ -1,0 +1,31 @@
+flowchart TD
+  S(["PreToolUse call"]) --> T{"tool_name Bash or PowerShell?"}
+  T -->|"no"| OK
+  T -->|"yes"| SPLIT["Split the command into parts with lex, quote-aware:<br/>quoted text and heredoc bodies make no part"]
+  SPLIT --> P["Per part: find the program on the resolved words and on the raw words,<br/>skipping VAR=value, keywords, wrappers, runners, and in PowerShell<br/>the call operator and a leading assignment.<br/>Every later test runs on each list that found gh or bkt;<br/>the part asks when the judgment on either list asks"]
+  P --> PROG{"Program name gh or bkt on either list?<br/>PowerShell: any case, .exe removed"}
+  PROG -->|"neither list"| SUBST
+  PROG -->|"gh"| GH{"Skipping options and redirections:<br/>first word pr, then review, merge, comment, or close?"}
+  PROG -->|"bkt"| BOPT{"Unlisted option before the subcommand (not -c, --context,<br/>--json, --yaml, --format, --jq, or --template), followed by<br/>a word that is not an option or a redirection,<br/>or by any word that holds $ or a backtick?"}
+  BOPT -->|"yes"| ASK
+  BOPT -->|"no"| BK{"First word after options and redirections"}
+  BK -->|"pr"| BPR{"Next word after options and redirections:<br/>approve, comment, decline, close, or merge?"}
+  BK -->|"api"| API{"No body flag, no unknown option, no extra word,<br/>no word with $ or a backtick,<br/>and method absent, GET, or HEAD?"}
+  BK -->|"other"| EXP
+  GH -->|"yes"| ASK["Ask decision: reason names the command family"]
+  GH -->|"no"| EXP{"An option or value the walk passed before the verb,<br/>or the pr, verb, or subcommand word, holds $ or a backtick<br/>(PowerShell: the verb hidden by an opening parenthesis)?"}
+  BPR -->|"yes"| ASK
+  BPR -->|"no"| EXP
+  API -->|"yes: a read"| EXP
+  API -->|"no: may write"| ASK
+  EXP -->|"yes"| ASK
+  EXP -->|"no"| SUBST{"A $(...) or backtick span in the program word<br/>or in a word before it (resolved words)?"}
+  SUBST -->|"no"| NONE["This part asks nothing"]
+  SUBST -->|"yes, nested deeper than 3 levels"| ASK
+  SUBST -->|"yes"| INNER["Judge the text inside each span<br/>as a command of its own, from SPLIT"]
+  INNER -->|"a span asks"| ASK
+  INNER -->|"no span asks"| NONE
+  NONE --> MORE{"Another part?"}
+  MORE -->|"yes"| P
+  MORE -->|"no"| OK(["Print nothing, exit 0; normal permission flow"])
+  ASK --> OUT(["Print permissionDecision ask JSON, exit 0;<br/>Claude Code prompts the user"])

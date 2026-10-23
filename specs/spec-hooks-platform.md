@@ -6,16 +6,16 @@
 |---|---|
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
-| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md |
-| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017 |
+| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md |
+| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-206, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025 |
 | **Feature type** | Architecture |
-| **Status** | Approved |
+| **Status** | Draft |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-The hook platform is the shared structure that every assist-plugin hook runs on: one registration file, ten ES5 entry files, a Node version gate, and a fail-open runtime that turns any hook defect into a one-line warning and exit status 0. It exists so a hook bug never blocks the user's session (BR-007) while guards still deny prohibited calls on a positive match. This spec describes the platform as built at assist-plugin 1.11.1 (commit 41034c1), which added `hooks/lib/git-root.js` for FR-181 and FR-186; the change log at the end records the 1.12.0 (PLANNED) changes; the child specs describe each hook's own logic. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root.
+The hook platform is the shared structure that every assist-plugin hook runs on: one registration file, eleven ES5 entry files, a Node version gate, and a fail-open runtime that turns any hook defect into a one-line warning and exit status 0. It exists so a hook bug never blocks the user's session (BR-007) while guards still deny prohibited calls on a positive match, and the one ask guard (`pr-post-ask`, FR-206) asks the user before a pull request post. This spec describes the platform as built at assist-plugin 1.11.1 (commit 41034c1), which added `hooks/lib/git-root.js` for FR-181 and FR-186, except Requirement: Hook registration and Requirement: Guard decision and deny output, which describe the build of 2026-10-22 (follow-up to 1.12.0), folded from the Change Logs 2026-10-16 and 2026-10-22 (Change Log: 2026-10-22 (fold)); the child specs describe each hook's own logic. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root.
 
 Area A (orchestration, `specs/spec-orchestration*`) and Area C (skills, `specs/spec-skills*`) own the agents and skills that hooks act on. This spec cross-references them by requirement ID only.
 
@@ -41,11 +41,11 @@ Each point was a difference between a requirement or a recorded decision and the
 
 | Component | Responsibility | Owns data | Technology |
 |---|---|---|---|
-| `hooks/hooks.json` | Registers 10 scripts as 15 command entries with event, matcher, and timeout | none | Claude Code hook configuration |
-| `hooks/<name>.js` (10 entry files) | Call `lib/launch.js` with the hook name and module path; if that call throws, print a fixed `systemMessage` and exit 0 | none | Node, ES5 syntax |
+| `hooks/hooks.json` | Registers 11 scripts as 16 command entries with event, matcher, and timeout | none | Claude Code hook configuration |
+| `hooks/<name>.js` (11 entry files) | Call `lib/launch.js` with the hook name and module path; if that call throws, print a fixed `systemMessage` and exit 0 | none | Node, ES5 syntax |
 | `hooks/lib/launch.js` | Gate on Node 6 or newer, load `impl/<name>.js`, call its `main()`; route every failure to the runtime's fail-open path | none | ES5 syntax |
-| `hooks/lib/health.js` | Fail-open runtime: `guard()` for PreToolUse deny hooks, `transform()` for output hooks, `failOpen()`, 3 s watchdog, stdin reader, disable-flag reader, health log | `hook-health.jsonl`, `health-state.json` (notice state) | ES5 syntax |
-| `hooks/impl/*.js` (9 hook modules) | Each hook's decision logic, exported as `evaluate(input)` plus `main()` | per child spec | ES2015 syntax |
+| `hooks/lib/health.js` | Fail-open runtime: `guard()` for PreToolUse guards (a deny decision, or an ask decision for `pr-post-ask`), `transform()` for output hooks, `failOpen()`, 3 s watchdog, stdin reader, disable-flag reader, health log | `hook-health.jsonl`, `health-state.json` (notice state) | ES5 syntax |
+| `hooks/impl/*.js` (10 hook modules besides `health-check`) | Each hook's decision logic, exported as `evaluate(input)` plus `main()` | per child spec | ES2015 syntax |
 | `hooks/impl/health-check.js` | Self-tests, disable-flag writes, session notice, `/assist-plugin:health` report | `hooks-disabled.json`, `health-state.json` (notice timestamps) | ES2015 syntax |
 | `hooks/lib/` shared logic (`attribution-rules.js`, `injection-rules.js`, `prose-rules.js`, `prose-diff.js`, `shell-program.js`, `fsa-tables.js`, `fsa-paths.js`, `git-root.js`) | Rule catalogs, parsers, and tables used by the hook modules and the scripts; `git-root.js` (built in 1.11.1) finds the git root of a directory by looking for a `.git` entry, without starting a `git` process | none | ES2015 syntax |
 | `scripts/check-fsa-tables.js`, `scripts/sync-writing-standard.js` | Maintainer drift check and writing-standard sync, run by hand | none | Node, ES2015 syntax |
@@ -67,13 +67,13 @@ Files in the plugin data directory (`${CLAUDE_PLUGIN_DATA}`):
 | Boundary | What crosses it | Protocol | Auth |
 |---|---|---|---|
 | Claude Code -> entry file | Hook input JSON (`hook_event_name`, `tool_name`, `tool_input`, `tool_response`, `agent_type`, `agent_id`, `cwd`, `session_id`, `prompt`, `last_assistant_message`) | stdin, one JSON document | none; the command line is fixed in `hooks.json` |
-| Entry file -> Claude Code | Deny JSON, filter JSON, or `{"systemMessage": ...}`; exit status 0 on every path | stdout | none |
+| Entry file -> Claude Code | Deny JSON, ask JSON (`pr-post-ask`), filter JSON, or `{"systemMessage": ...}`; exit status 0 on every path | stdout | none |
 | Process environment -> hooks | `CLAUDE_PLUGIN_ROOT`, `CLAUDE_PLUGIN_DATA`, `CLAUDE_PROJECT_DIR` | environment variables | none |
 | Hook runtime -> data directory | Health log records, notice state | JSON lines and JSON files, atomic rename for rewrites | file permissions of the data directory |
 | `health-check` -> hook modules | Fixed self-test inputs to the same `evaluate()` the hooks run | in-process function call | none |
 | Scripts -> markdown and `lib/` tables | Table rows parsed from agent, skill, and rule files; constants from `lib/fsa-tables.js` and `lib/fsa-paths.js` | file read, `require` | none |
 
-Each command runs `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true;` before `node` (`hooks/hooks.json:9`), so the hook process's working directory is the plugin root. A hook command that needs the project location reads the hook input's `cwd` field or `CLAUDE_PROJECT_DIR`, never `process.cwd()`. One code path does read `process.cwd()`: the health check's attribution report falls back to it when `CLAUDE_PROJECT_DIR` is unset (`impl/health-check.js:1080`). That path runs only in report mode, started by the `/assist-plugin:health` skill through the Bash tool, where the working directory is the session's; the SessionStart command (`--session-start`) never reads the settings files (`impl/health-check.js:1201-1208`). The `.git` walk in `lib/git-root.js` starts only from a non-empty absolute directory taken from the hook input and returns null for any other value, so it never reads the process directory either (`lib/git-root.js:27-36`).
+Each command runs `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true;` before `node` (`hooks/hooks.json:9`), so the hook process's working directory is the plugin root. A hook command that needs the project location reads the hook input's `cwd` field or `CLAUDE_PROJECT_DIR`, never `process.cwd()`. One code path does read `process.cwd()`: the health check's attribution report falls back to it when `CLAUDE_PROJECT_DIR` is unset (`impl/health-check.js:1307`). That path runs only in report mode, started by the `/assist-plugin:health` skill through the Bash tool, where the working directory is the session's; the SessionStart command (`--session-start`) never reads the settings files (`impl/health-check.js:1428-1435`). The `.git` walk in `lib/git-root.js` starts only from a non-empty absolute directory taken from the hook input and returns null for any other value, so it never reads the process directory either (`lib/git-root.js:27-36`).
 
 ## Data flow
 
@@ -100,6 +100,7 @@ flowchart TD
   K -->|yes| Z6["failOpen: exception"]
   K -->|no| L{"Result"}
   L -->|"guard: deny is true"| M["Print permissionDecision deny JSON"]
+  L -->|"guard: ask is true, deny not true"| MA["Print permissionDecision ask JSON"]
   L -->|"filter: stdout object"| N["Print the filter JSON"]
   L -->|"no match"| O["Print nothing"]
   Z2 --> LOG["Append record to hook-health.jsonl"]
@@ -112,12 +113,13 @@ flowchart TD
   W --> X
   Z4 --> X
   M --> X
+  MA --> X
   N --> X
   O --> X
-  X --> END(["Call proceeds unless deny JSON was printed"])
+  X --> END(["Call proceeds unless deny JSON was printed;<br/>after ask JSON, Claude Code prompts the user"])
 ```
 
-**Note:** PNG rendering requires mermaid-cli with its headless browser. `mmdc` is installed on this machine, but its runs on 2026-10-14 and 2026-10-16 failed: "Could not find chrome-headless-shell (ver. 154.0.8037.57)". Rendering is skipped for every hooks diagram until the user installs the browser (`npx puppeteer browsers install chrome-headless-shell`); the agents never install it. Then render with:
+**Note:** PNG rendering requires mermaid-cli with its headless browser. `mmdc` is installed on this machine, but its runs on 2026-10-14, 2026-10-16, and 2026-10-22 failed: "Could not find chrome-headless-shell (ver. 154.0.8037.57)". Rendering is skipped for every hooks diagram until the user installs the browser (`npx puppeteer browsers install chrome-headless-shell`); the agents never install it. Then render with:
 
 ```bash
 mmdc -i specs/spec-hooks-platform-dataflow.mmd -o specs/spec-hooks-platform-dataflow.png
@@ -126,16 +128,18 @@ mmdc -i specs/spec-hooks-platform-topology.mmd -o specs/spec-hooks-platform-topo
 
 ### Requirement: Hook registration
 
-The plugin SHALL register exactly the 15 command entries below in `hooks/hooks.json`, built from 10 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and the listed timeout.
+The plugin SHALL register exactly 16 command entries in `hooks/hooks.json`, built from 11 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and the listed timeout: the 16 rows of the table below, row 16 (`pr-post-ask`) placed in the `Bash|PowerShell` group after `doc-cli-guard`.
 
-**Requirement refs:** FR-086, FR-094, NFR-007, UR-017
-**Status:** Built; PLANNED (1.12.0): row 2 moves to the matcher `Bash|PowerShell` (Change Log 2026-10-16, MODIFIED)
-**Source:** `hooks/hooks.json:3-158`
+**Requirement refs:** FR-086, FR-094, FR-206, NFR-007, UR-017, UR-055
+**Status:** Built: rows 1 to 15 in 1.12.0 (commit `bb09e29`), row 2 on the `Bash|PowerShell` matcher included; row 16 in the follow-up to 1.12.0 (build of 2026-10-22). Folded from the Change Logs 2026-10-16 and 2026-10-22
+**Source:** `hooks/hooks.json:3-164`, read on 2026-10-22: the `Bash` group at `:4-13`, the `Bash|PowerShell` group at `:14-33` (`commit-attribution-guard`, `doc-cli-guard`, `pr-post-ask`)
+
+`sa-mermaid-only` keeps its own `Bash` group, because `solutions-architect` declares no PowerShell tool (`agents/solutions-architect.md:7`). The injection filter needs no PowerShell registration: its PostToolUse matcher `.*` already receives PowerShell results. The counts are stated in FR-086 and in the in-scope list of `docs/requirements/BRD-assist-plugin.md` (section 4); `CLAUDE.md` and `README.md` state no hook count. A new hook is on the LLM surface (`hooks/`), so its change carries `✓ LLM Security Clear` (NFR-011).
 
 | # | Event | Matcher | Script | Extra argument | Timeout (s) |
 |---|---|---|---|---|---|
 | 1 | PreToolUse | `Bash` | `sa-mermaid-only` | none | 5 |
-| 2 | PreToolUse | `Bash` | `doc-cli-guard` | none | 5 |
+| 2 | PreToolUse | `Bash\|PowerShell` | `doc-cli-guard` | none | 5 |
 | 3 | PreToolUse | `Bash\|PowerShell` | `commit-attribution-guard` | none | 5 |
 | 4 | PreToolUse | `Agent` | `injection-filter` | none | 5 |
 | 5 | PreToolUse | `Write\|Edit\|MultiEdit\|NotebookEdit` | `prose-gate` | none | 5 |
@@ -149,19 +153,34 @@ The plugin SHALL register exactly the 15 command entries below in `hooks/hooks.j
 | 13 | SessionStart | `startup\|resume\|clear\|compact` | `writing-context` | none | 5 |
 | 14 | SubagentStart | `.*` | `writing-context` | none | 5 |
 | 15 | SubagentStop | `.*` | `fsa-log` | none | 5 |
+| 16 | PreToolUse | `Bash\|PowerShell` | `pr-post-ask` | none | 5 |
 
-#### Scenario: Registration count
+#### Scenario: Registration count after the ask hook
 
-- **GIVEN** `hooks/hooks.json` at commit 4803a0d
+- **GIVEN** `hooks/hooks.json` at the build of 2026-10-22
 - **WHEN** a test counts the entries whose `type` is `command`
-- **THEN** the count SHALL be 15
-- **AND** the set of script names SHALL be `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `health-check`, and `writing-context`
+- **THEN** the count SHALL be 16 across 11 scripts
+- **AND** the set of script names SHALL be `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `pr-post-ask`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `health-check`, and `writing-context`
+- **AND** the PreToolUse entry whose command runs `pr-post-ask.js` SHALL sit in a group whose matcher is `Bash|PowerShell`
 
-#### Scenario: Timeouts
+#### Scenario: Timeouts with the ask hook
 
 - **GIVEN** the same file
 - **WHEN** a test reads each entry's `timeout`
-- **THEN** every entry SHALL read 5 except `health-check.js --session-start`, which SHALL read 10
+- **THEN** every entry SHALL read 5, `pr-post-ask` included, except `health-check.js --session-start`, which SHALL read 10
+
+#### Scenario: Documentation guard matcher
+
+- **GIVEN** the same file
+- **WHEN** a test finds the PreToolUse entry whose command runs `doc-cli-guard.js`
+- **THEN** the matcher of its group SHALL be `Bash|PowerShell`
+- **AND** the entry that runs `sa-mermaid-only.js` SHALL sit in a group whose matcher is `Bash`
+
+#### Scenario: Count in the BRD scope list
+
+- **GIVEN** `docs/requirements/BRD-assist-plugin.md` and `hooks/hooks.json` at the build of 2026-10-22
+- **WHEN** a reviewer compares the counts
+- **THEN** both SHALL state 11 scripts and 16 commands
 
 #### Scenario: Registration drift
 
@@ -175,7 +194,7 @@ Each hook command SHALL start in an ES5 entry file `hooks/<script>.js` that call
 
 **Requirement refs:** FR-087, NFR-017, NFR-009, UR-017
 **Status:** Built
-**Source:** `hooks/sa-mermaid-only.js:7-19` (same shape in all 10 entry files); `hooks/lib/launch.js:16`, `:27-30`, `:66-92`
+**Source:** `hooks/sa-mermaid-only.js:7-19` (same shape in all 11 entry files); `hooks/lib/launch.js:16`, `:27-30`, `:66-92`
 
 Version handling: the major version comes from `process.version` (`v<major>[.<minor>[.<patch>]]`); anything else is "unknown" and unsupported (`lib/launch.js:19-30`).
 
@@ -206,17 +225,32 @@ Version handling: the major version comes from `process.version` (`v<major>[.<mi
 
 ### Requirement: Guard decision and deny output
 
-A guard (a PreToolUse hook run through `guard()` in `lib/health.js`) SHALL block a call only when its `evaluate(input)` returns an object whose `deny` field is the boolean `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<reason>}}` and exiting 0.
+A guard (a PreToolUse hook run through `guard()` in `lib/health.js`) SHALL block a call only when its decision function `evaluate(input)`, whose only I/O is file reads that a test can replace through an `options` argument, returns an object whose `deny` field is the boolean `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<reason>}}` and exiting 0; and SHALL ask the user only when `evaluate` returns an object whose `ask` field is the boolean `true` and whose `deny` field is not `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":<reason>}}` and exiting 0.
 
-**Requirement refs:** FR-088, NFR-009, UR-017
-**Status:** Built (1.11.1); OP-B1 closed 2026-10-16: the statement gains the FR-088 wording (Change Log 2026-10-16, MODIFIED)
-**Source:** `hooks/lib/health.js:385-443`; `rules/assist-plugin-rule.md:407` (Hook Fail-Open Rule)
+**Requirement refs:** FR-088, FR-206, NFR-009, UR-017
+**Status:** Built: the deny output and the FR-088 wording in 1.12.0 (commit `bb09e29`); the ask output in the follow-up to 1.12.0 (build of 2026-10-22). Folded from the Change Logs 2026-10-16 and 2026-10-22
+**Source:** `hooks/lib/health.js:385-459` (`denyOutput` `:385-393`, `askOutput` `:395-403`, the comment `:405-408`, `guard()` `:409-459`), read on 2026-10-22; `rules/assist-plugin-rule.md:409` (Hook Fail-Open Rule)
 
 Rules:
-- The guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, and `fsa-write-bar`.
-- `evaluate(input)` does not touch stdout or the process. Three guards read the file system inside it: `commit-attribution-guard` reads a message file (`impl/commit-attribution-guard.js:434-466`), `prose-gate` reads the target file and its allowlist (`lib/prose-diff.js:47-72`) and, since 1.11.1, walks for `.git` (`lib/prose-diff.js:108-120`), and `fsa-write-bar` walks for `.git` on a `task-planner` call since 1.11.1 (`impl/fsa-write-bar.js:125-131`). Each is replaceable through an `options` argument for tests.
-- An empty or non-string reason becomes `blocked by assist-plugin guard <name>` (`lib/health.js:438`).
+- The guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, and `pr-post-ask`.
+- `evaluate(input)` writes nothing, starts no process, and does not touch stdout. Its reads of `CLAUDE_PROJECT_DIR` are replaceable too (`projectDir`, `roots`). A hook called with no `options` reads the real files and walks the real file system; the health-check self-test passes the options for every case that would otherwise read test data from disk (FR-118). The reads inside each guard's `evaluate`:
+
+| Guard | Reads inside `evaluate` | Test options that replace them | Status |
+|---|---|---|---|
+| `commit-attribution-guard` | The message file named by `-F`, `--file`, or `--body-file` (`hooks/impl/commit-attribution-guard.js:434-466` at 1.11.1) | `readFile` | Built |
+| `prose-gate` | The target file, `prose-gate-allowlist.json` (`hooks/lib/prose-diff.js:47-72` at 1.11.1), and the `.git` walk (`:108-120`) | `readFile`, `allowlist`, `tmpdir`, `projectDir`, `findGitRoot` | Built (1.11.1) |
+| `fsa-write-bar` | The `.git` walk, on a `task-planner` call only (`hooks/impl/fsa-write-bar.js:125-131` at 1.11.1) | `findGitRoot`, `roots` | Built (1.11.1) |
+| `sa-mermaid-only` | The `.git` walk, only for an absolute `-i` or `-o` value (FR-093) | `findGitRoot` | Built (1.12.0); the self-test passes the stub (`hooks/impl/health-check.js:982-991`) |
+| `doc-cli-guard` | none | none | Built |
+| `pr-post-ask` | none | none | Built (follow-up to 1.12.0); spec-hooks-pr-post-ask.md, Requirement 7 |
+
+- An empty or non-string reason on the deny path becomes `blocked by assist-plugin guard <name>` (`lib/health.js:450`); on the ask path, `assist-plugin guard <name> asks before this command` (`:454`).
+- Deny wins: a result with `deny: true` prints the deny JSON whatever its `ask` field holds (`lib/health.js:448-456`).
+- A truthy `ask` value that is not the boolean `true` prints nothing, as for `deny`.
+- Only `pr-post-ask` returns `ask: true`; the other guards are unchanged. The ask path writes no `hook-health.jsonl` record, because it is a decision and not a failure.
+- The disabled path is unchanged: a listed guard, `pr-post-ask` included, passes every call with the guard warning (Requirement: Disabled hooks pass through).
 - No code path exits with a status other than 0.
+- The Hook Fail-Open Rule (`rules/assist-plugin-rule.md:409`) reads: "Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the decision function `evaluate(input)` of a guard, whose only I/O is file reads that a test can replace; a guard asks only through the `permissionDecision: "ask"` JSON with exit 0 when `evaluate` returns `ask: true` (the PR posting ask hook); never exit 2 and never exit non-zero to block". The rule file is on the LLM surface (NFR-011).
 
 #### Scenario: Positive match
 
@@ -236,18 +270,55 @@ Rules:
 - **WHEN** the runtime reads the decision
 - **THEN** the runtime SHALL print nothing and exit 0
 
+#### Scenario: Reads a test can replace
+
+- **GIVEN** the Bash command `git commit -F msg.txt`, an absolute input `cwd`, and a test reader that returns, for `<cwd>/msg.txt`, a message ending with `Co-Authored-By: Claude <noreply@anthropic.com>`
+- **WHEN** a test calls `commit-attribution-guard`'s `evaluate(input, {readFile: <test reader>})`
+- **THEN** `evaluate` SHALL return `deny: true` from the reader's text
+- **AND** it SHALL write no file and start no process
+
+#### Scenario: Git walk replaced in a test
+
+- **GIVEN** `assist-plugin:task-planner` writes `<repo>/docs/task-plans/task-plan-x.md` with the input `cwd` `<repo>/src`, where neither directory exists on disk
+- **WHEN** a test calls `fsa-write-bar`'s `evaluate(input, {roots: ["<repo>/src"], findGitRoot: () => "<repo>"})`
+- **THEN** `evaluate` SHALL allow the write without checking the real file system for `.git`
+
+#### Scenario: Wording in the rule file
+
+- **GIVEN** `rules/assist-plugin-rule.md` at the build of 2026-10-22
+- **WHEN** a reviewer reads the first requirement line of the Hook Fail-Open Rule (`:409`)
+- **THEN** the line SHALL name the decision function `evaluate(input)` whose only I/O is file reads that a test can replace, SHALL NOT call it pure, and SHALL name the ask JSON of the PR posting ask hook
+
+#### Scenario: Ask output
+
+- **GIVEN** a guard whose `evaluate` returns `{"deny": false, "ask": true, "reason": "r"}`
+- **WHEN** the runtime finishes
+- **THEN** stdout SHALL hold exactly `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"r"}}` and the exit status SHALL be 0
+
+#### Scenario: Deny wins over ask
+
+- **GIVEN** a guard whose `evaluate` returns `{"deny": true, "ask": true, "reason": "r"}`
+- **WHEN** the runtime finishes
+- **THEN** stdout SHALL hold the deny JSON and no ask JSON
+
+#### Scenario: Truthy ask that is not true
+
+- **GIVEN** a guard whose `evaluate` returns `{"ask": "yes"}`
+- **WHEN** the runtime reads the decision
+- **THEN** the runtime SHALL print nothing and exit 0
+
 ### Requirement: Filter output
 
 A filter (a hook run through `transform()` in `lib/health.js`) SHALL print output only when its function returns an object holding a `stdout` object, printing that object as one JSON document, flushed before exit 0.
 
 **Requirement refs:** FR-088, FR-089, NFR-009, UR-017
 **Status:** Built
-**Source:** `hooks/lib/health.js:460-527`, `:273-302`
+**Source:** `hooks/lib/health.js:476-543`, `:273-302` (read on 2026-10-22)
 
 Rules:
 - The filters are `injection-filter`, `prose-advisor`, `fsa-log`, and `writing-context`.
-- A result with a `logKind` matching `^[a-z-]{1,40}$` adds one health-log record of that kind with the result's `message` (`lib/health.js:508-510`).
-- A `stdout` object that cannot be serialized goes to the failure path with kind `exception` (`lib/health.js:512-518`).
+- A result with a `logKind` matching `^[a-z-]{1,40}$` adds one health-log record of that kind with the result's `message` (`lib/health.js:524-526`).
+- A `stdout` object that cannot be serialized goes to the failure path with kind `exception` (`lib/health.js:528-534`).
 - A filter never returns a deny decision. `injection-filter` may return `permissionDecision: "ask"` (see spec-hooks-injection-filter.md).
 
 #### Scenario: Positive result
@@ -274,7 +345,7 @@ Every hook SHALL, on a thrown error, uncaught exception, unhandled rejection, st
 
 **Requirement refs:** FR-089, NFR-009, UR-017, BR-007
 **Status:** Built
-**Source:** `hooks/lib/health.js:6-16`, `:316-347`, `:400-435`; `hooks/lib/launch.js:32-41`
+**Source:** `hooks/lib/health.js:6-16`, `:316-347`, `:412-447` (read on 2026-10-22); `hooks/lib/launch.js:32-41`
 
 Failure kinds and where they arise:
 
@@ -284,9 +355,9 @@ Failure kinds and where they arise:
 | `launch-error` | `lib/launch.js:85-90`, entry files | `could not start` plus the error description |
 | `uncaught-exception`, `unhandled-rejection` | `lib/health.js:340-347` | error description |
 | `timeout` | `lib/health.js:350-356` | `no result within 3000 ms` (8000 ms for `health-check`) |
-| `stdin-error` | `lib/health.js:402-404` | `could not read hook input` |
-| `malformed-input` | `lib/health.js:423-427` | `hook input is not valid JSON` |
-| `exception` | `lib/health.js:430-434`, `:504-506`, `:512-518`; `impl/health-check.js:1228-1233` | `guard logic failed`, `filter logic failed`, `filter output could not be serialized` (`lib/health.js:516`), or `health check failed` (`impl/health-check.js:1231`), each followed by the error description |
+| `stdin-error` | `lib/health.js:414-417`, `:488-491` | `could not read hook input` |
+| `malformed-input` | `lib/health.js:435-440`, `:511-516` | `hook input is not valid JSON` |
+| `exception` | `lib/health.js:442-447`, `:518-523`, `:528-534`; `impl/health-check.js:1455-1460` | `guard logic failed`, `filter logic failed`, `filter output could not be serialized` (`lib/health.js:532`), or `health check failed` (`impl/health-check.js:1458`), each followed by the error description |
 
 The suffix depends on where the failure arises:
 
@@ -294,8 +365,8 @@ The suffix depends on where the failure arises:
 |---|---|
 | `lib/launch.js` (`unsupported-node`, `launch-error`), by hook (`lib/launch.js:32-41`) | `health-check`: the health check did not run; `injection-filter`: this content was not filtered; `prose-gate`, `fsa-write-bar`: this write was not checked; `prose-advisor`: this write was not reviewed; `writing-context`: the writing standard was not loaded; `fsa-log`: this subagent report was not checked; other guards: this command was not checked |
 | `guard()` in `lib/health.js` (every guard) | this command was not checked (`lib/health.js:27`; `guard()` passes no suffix) |
-| `transform()` in `lib/health.js` | the hook's own: `injection-filter` this content was not filtered (default, `lib/health.js:467`); `prose-advisor` this write was not reviewed; `writing-context` the writing standard was not loaded; `fsa-log` this subagent report was not checked |
-| `impl/health-check.js` | the health check did not complete (`impl/health-check.js:1225`) |
+| `transform()` in `lib/health.js` | the hook's own: `injection-filter` this content was not filtered (default, `lib/health.js:483`); `prose-advisor` this write was not reviewed; `writing-context` the writing standard was not loaded; `fsa-log` this subagent report was not checked |
+| `impl/health-check.js` | the health check did not complete (`impl/health-check.js:1452`) |
 
 Only the first failure of a process prints; later failures in the same process are ignored (`finished` flag, `lib/health.js:320-321`).
 
@@ -325,7 +396,7 @@ Each guard and filter SHALL give up after 3000 ms without a result, before Claud
 
 **Requirement refs:** NFR-007, NFR-009
 **Status:** Built
-**Source:** `hooks/lib/health.js:26`, `:350-356`, `:399`, `:469`; `hooks/impl/health-check.js:57`, `:1227`
+**Source:** `hooks/lib/health.js:26`, `:350-356`, `:411`, `:485`; `hooks/impl/health-check.js:66`, `:1454` (read on 2026-10-22)
 
 The watchdog timer is `unref`'d, so a hook that finishes early exits without waiting for it. `health-check` uses an 8000 ms watchdog against its 10 s registration.
 
@@ -348,7 +419,7 @@ The runtime SHALL let a call proceed without running a hook's logic when `${CLAU
 
 **Requirement refs:** FR-091, NFR-009, UR-017
 **Status:** Built
-**Source:** `hooks/lib/health.js:106-133`, `:406-421`, `:445-458`, `:476-493`
+**Source:** `hooks/lib/health.js:106-133`, `:418-433`, `:461-474`, `:492-509` (read on 2026-10-22)
 
 Rules:
 - Only keys matching `^[a-z-]{1,40}$` count; `reason` and `ts` are sanitized or replaced by `<invalid>` (`lib/health.js:107-118`). A missing, unreadable, or non-object file means no hook is disabled.
@@ -451,6 +522,7 @@ Not applicable: every component runs as a local Node process on the user's machi
 | `CLAUDE_PLUGIN_DATA` unset | No log, no auto-disable | Report line `Data directory: NOT SET` | Run through Claude Code with the plugin installed |
 | Data directory unwritable | No log | Health log stays empty; `fsa-log` reports `log-write-error` when its own write fails | Fix permissions |
 | A subagent writes through Bash | `fsa-write-bar` does not see it | none | Out of scope (`docs/requirements/FR-NFR-assist-plugin.md` section 6); hooks are guardrails |
+| `pr-post-ask` disabled, failing, or bypassed by a listed gap | A PR post runs after only the written confirmation of the calling flow | Guard warning or `hook-health.jsonl` record; a listed gap is not detected | The calling flow's own confirmation still applies; the hook is a best-effort guardrail (FR-206, FR-NFR section 6; `DECISIONS.md:258-261`) |
 
 ## Non-functional requirements addressed
 
@@ -462,6 +534,7 @@ Not applicable: every component runs as a local Node process on the user's machi
 | NFR-014 | 200 health-log lines, 500 `fsa-log` lines, 64 KB per message file | `MAX_LOG_LINES` in `lib/health.js:25` and `impl/fsa-log.js:30`; `MAX_FILE_BYTES` in `impl/commit-attribution-guard.js:31` |
 | NFR-016 | 0 command, argument, environment, stdin, prompt, or report fields in the two logs | Fixed detail strings, error description without message, validated fields (`lib/health.js:94-104`; spec-hooks-fsa-log.md) |
 | NFR-017 | Parse and run on Node 6 or newer | ES5 entry files, `lib/launch.js`, and `lib/health.js`; ES2015 elsewhere; matrix 6.17.1, 8, 10, 12, 14, 18, 26 (`lib/launch.js:12-16`) |
+| NFR-025 | `pr-post-ask` adds at most 110 ms per Bash or PowerShell call (median of 20 runs on a `git status` input; method confirmed at `DECISIONS.md:243-246`) | No I/O in `evaluate`; one `lex` pass per command, plus one per PowerShell part and per command substitution it judges (spec-hooks-pr-post-ask.md, Performance considerations). qa measured a median of 57.6 ms on 2026-10-22 (`.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`) |
 
 ## Design decisions
 
@@ -490,6 +563,7 @@ Not applicable: every component runs as a local Node process on the user's machi
 | Health check | spec-hooks-health-check.md | Self-tests, auto-disable, session notice, report (FR-091, FR-118 to FR-120); PLANNED (1.12.0): the `writing-context` self-test and the `; protection is weak` notice ending |
 | FSA table check | spec-hooks-fsa-table-check.md | Drift check, with the write guard lists built in 1.11.1 (FR-121, FR-122, FR-126 to FR-129, FR-180) |
 | Writing standard sync | spec-hooks-writing-standard-sync.md | Report Writing Standard block sync (FR-123, FR-124) |
+| PR posting ask hook | spec-hooks-pr-post-ask.md | Asks before `gh` and `bkt` commands that post to, merge, or close a pull request (FR-206); built in the follow-up to 1.12.0 (2026-10-22) |
 
 ## Submodule scope
 
@@ -523,9 +597,11 @@ Not applicable: the plugin has no submodules.
 | BR-007 | Requirement: Failure path; Non-functional requirements addressed | Fail-open scenarios; SC-004 run with malformed input and Node older than 6 |
 | UR-017 | Requirement: Failure path; Requirement: Disabled hooks pass through | Malformed input and disabled-guard scenarios |
 | UR-018 | Requirement: Health log content, privacy, and cap | Line cap scenario; `/assist-plugin:health` report |
-| FR-086 | Requirement: Hook registration | Registration count and timeout tests on `hooks/hooks.json` |
+| FR-086 | Requirement: Hook registration | Registration count (16 across 11 scripts), timeout, and matcher tests on `hooks/hooks.json` (`tests/hooks/hooks-registration.test.js`); BRD count comparison |
 | FR-087 | Requirement: Entry file and Node version gate | Node 4 and Node 18 runs of an entry file |
-| FR-088 | Requirement: Guard decision and deny output; Requirement: Filter output | `ctx7 login` deny test; truthy-value test |
+| FR-088 | Requirement: Guard decision and deny output; Requirement: Filter output | `ctx7 login` deny test; truthy-value test; reads-a-test-can-replace tests |
+| FR-206 | Requirement: Guard decision and deny output (ask output); Requirement: Hook registration (row 16) | Ask-output, deny-wins, and truthy-ask tests of `guard()` (`tests/hooks/pr-post-ask-runtime.test.js`); child traceability in spec-hooks-pr-post-ask.md |
+| NFR-025 | Non-functional requirements addressed | Median of 20 timed runs of `node hooks/pr-post-ask.js` on the `git status` input |
 | FR-089 | Requirement: Failure path | Malformed input, throw, and closed-stdout tests |
 | FR-090 | Requirement: Health log content, privacy, and cap | Secret-in-command and line-cap tests |
 | FR-091 | Requirement: Disabled hooks pass through (consumer side) | Disabled guard and filter tests; producer side in spec-hooks-health-check.md |
@@ -537,6 +613,8 @@ Not applicable: the plugin has no submodules.
 | NFR-017 | Requirement: Entry file and Node version gate | Node 6.17.1 parse of every file under `hooks/` |
 
 ## Change Log: 2026-10-16
+
+Folded into the main body on 2026-10-22, through the Change Log 2026-10-22, whose two MODIFIED Requirements quote this entry's Now text as their Was.
 
 **Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16, final and approved; baseline assist-plugin 1.11.1, commit 41034c1): FR-088 reworded (`:1828-1847`), FR-091 reworded (`:1881-1915`), FR-094 PowerShell coverage and per-part judging (`:1996-2055`); FR-086 unchanged (`:1796-1810`); `DECISIONS.md:138-141` (2026-10-16, Documentation CLI guard and injection filter cover PowerShell and launchers) and `:168-171` (PowerShell aliases and case, writing-context self-test); the answers to OP-B1 to OP-B5 and OP-B7 to OP-B12 in `.agent/main-plan/plan-deferred-decisions-20261016-1059.md` (User Decisions).
 
@@ -631,3 +709,142 @@ The `doc-cli-guard` command moves out of the `Bash` group at `hooks/hooks.json:4
 ### REMOVED Requirements
 
 None.
+
+## Change Log: 2026-10-22
+
+Folded into the main body on 2026-10-22.
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.3 (2026-10-17, DRAFT): FR-086 (`:1800-1819`; 11 scripts and 16 commands once the posting ask hook is built, the 15-command scenario holding until then), FR-206 (`:4655-4734`; a PreToolUse ask hook on Bash and PowerShell that is a guard under FR-091 and FR-118, with a decision function `evaluate(input)` that returns the ask decision), the ask-hook clauses of FR-091 (`:1892`) and FR-118 (`:2489`), and NFR-025 (`:4940`); `DECISIONS.md:223-226`, `:228-231`, and `:233-236` (2026-10-22). Every change in this entry is PLANNED (follow-up to 1.12.0). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-22: `hooks/hooks.json:14-28` already holds the `Bash|PowerShell` group with `commit-attribution-guard` and `doc-cli-guard`, so the row 2 change of the Change Log 2026-10-16 is built in 1.12.0 (commit `bb09e29`), and the file holds 15 command entries from 10 scripts. `guard()` in `hooks/lib/health.js:397-443` prints output only for `deny === true`.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review. Requirement refs: UR-055, FR-206, and NFR-025 added. Sub-features: spec-hooks-pr-post-ask.md added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: "ten ES5 entry files" reads eleven.
+- Components: the `hooks/hooks.json` row registers 11 scripts as 16 command entries; the entry-file row reads 11 entry files; the `hooks/impl/*.js` row reads 10 hook modules besides `health-check`.
+- Requirement: Guard decision and deny output, Rules: the guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, and `pr-post-ask`.
+- Sub-feature breakdown: a row "PR posting ask hook | spec-hooks-pr-post-ask.md | Asks before `gh` and `bkt` commands that post to, merge, or close a pull request (FR-206); PLANNED (follow-up to 1.12.0)".
+- Failure modes: a row "`pr-post-ask` disabled, failing, or bypassed by a listed gap | A PR post runs after only the written confirmation of the calling flow | Guard warning or `hook-health.jsonl` record | The calling flow's own confirmation still applies; the hook is a guardrail (FR-206, FR-NFR section 6)".
+- Non-functional requirements addressed: a row "NFR-025 | `pr-post-ask` adds at most 110 ms (median of 20 runs on `git status`) | No I/O in `evaluate`; one `lex` pass (spec-hooks-pr-post-ask.md, Performance considerations)".
+
+### ADDED Requirements
+
+None. The hook's own requirements are in spec-hooks-pr-post-ask.md.
+
+### MODIFIED Requirements
+
+#### Requirement: Hook registration
+
+**Was:** (Change Log 2026-10-16) Row 2: PreToolUse, matcher `Bash|PowerShell`, script `doc-cli-guard`, no extra argument, timeout 5. The table keeps 15 command entries from 10 scripts, and every other row is unchanged.
+
+**Now:** The plugin SHALL register exactly 16 command entries in `hooks/hooks.json`, built from 11 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and the listed timeout: the 15 rows of the registration table with row 2 as in the Change Log 2026-10-16, plus row 16: PreToolUse, matcher `Bash|PowerShell`, script `pr-post-ask`, no extra argument, timeout 5, placed in the `Bash|PowerShell` group (`hooks/hooks.json:14-28`) after `doc-cli-guard`.
+
+**Reason:** FR-206 adds the posting ask hook, and FR-086 sets the counts at 11 scripts and 16 commands with the same timeout rule.
+
+**Requirement refs:** FR-086, FR-206, NFR-007, UR-017, UR-055 | **Status:** PLANNED (follow-up to 1.12.0) for row 16; Built (1.12.0) for the other 15 rows (read on 2026-10-22)
+
+`sa-mermaid-only` keeps its own `Bash` group (`hooks/hooks.json:4-13`). The counts are stated in FR-086 and in the in-scope list of `docs/requirements/BRD-assist-plugin.md` (section 4); `CLAUDE.md` and `README.md` state no hook count (FR-086, `:1802`). The new hook is on the LLM surface (`hooks/`), so the change carries `✓ LLM Security Clear` (NFR-011).
+
+##### Scenario: Registration count after the ask hook
+
+- **GIVEN** `hooks/hooks.json` after FR-206 is built
+- **WHEN** a test counts the entries whose `type` is `command`
+- **THEN** the count SHALL be 16 across 11 scripts, the added script being `pr-post-ask`
+- **AND** the PreToolUse entry whose command runs `pr-post-ask.js` SHALL sit in a group whose matcher is `Bash|PowerShell`
+
+##### Scenario: Timeouts with the ask hook
+
+- **GIVEN** the same file
+- **WHEN** a test reads each entry's `timeout`
+- **THEN** every entry SHALL read 5, `pr-post-ask` included, except `health-check.js --session-start`, which SHALL read 10
+
+##### Scenario: Count holds until the hook is built
+
+- **GIVEN** `hooks/hooks.json` at 1.12.0 (commit `bb09e29`)
+- **WHEN** the registration test runs before FR-206 is built
+- **THEN** the count SHALL be 15 across 10 scripts, as FR-086's first scenario states (`:1806-1809`)
+
+##### Scenario: Count in the BRD scope list
+
+- **GIVEN** `docs/requirements/BRD-assist-plugin.md` and `hooks/hooks.json` after FR-206 is built
+- **WHEN** a reviewer compares the counts
+- **THEN** both SHALL state 11 scripts and 16 commands
+
+The scenarios Registration drift and Documentation guard matcher are unchanged.
+
+#### Requirement: Guard decision and deny output
+
+**Was:** (Change Log 2026-10-16) A guard (a PreToolUse hook run through `guard()` in `lib/health.js`) SHALL block a call only when its decision function `evaluate(input)`, whose only I/O is file reads that a test can replace through an `options` argument, returns an object whose `deny` field is the boolean `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<reason>}}` and exiting 0.
+
+**Now:** A guard (a PreToolUse hook run through `guard()` in `lib/health.js`) SHALL block a call only when its decision function `evaluate(input)`, whose only I/O is file reads that a test can replace through an `options` argument, returns an object whose `deny` field is the boolean `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":<reason>}}` and exiting 0; and SHALL ask the user only when `evaluate` returns an object whose `ask` field is the boolean `true` and whose `deny` field is not `true`, by printing one JSON document `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":<reason>}}` and exiting 0.
+
+**Reason:** FR-206: the posting ask hook is a guard (FR-091, FR-118) whose `evaluate(input)` returns an ask decision; at 1.12.0 `guard()` prints output only for `deny === true` (`hooks/lib/health.js:436-440`).
+
+**Requirement refs:** FR-088, FR-206, NFR-009, UR-017 | **Status:** PLANNED (follow-up to 1.12.0) for the ask output; Built (1.12.0) for the deny output
+
+Rules:
+- Deny wins: a result with `deny: true` prints the deny JSON whatever its `ask` field holds.
+- A truthy `ask` value that is not the boolean `true` prints nothing, as for `deny` (`Truthy value that is not true`).
+- An empty or non-string reason on the ask path becomes `assist-plugin guard <name> asks before this command`.
+- Only `pr-post-ask` returns `ask: true`; the other guards are unchanged. The ask path writes no `hook-health.jsonl` record, because it is a decision and not a failure.
+- The disabled path is unchanged: a listed guard, `pr-post-ask` included, passes every call with the guard warning (Requirement: Disabled hooks pass through).
+- Planned conformance: `hooks/lib/health.js:385-443` (an `askOutput` beside `denyOutput`, and the ask branch in `guard()`); the comment at `:395-396`; the Hook Fail-Open Rule in `rules/assist-plugin-rule.md:409`, proposed wording: "Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the decision function `evaluate(input)` of a guard, whose only I/O is file reads that a test can replace; a guard asks only through the `permissionDecision: "ask"` JSON with exit 0 when `evaluate` returns `ask: true` (the PR posting ask hook); never exit 2 and never exit non-zero to block". The rule file is on the LLM surface (NFR-011).
+
+##### Scenario: Ask output
+
+- **GIVEN** a guard whose `evaluate` returns `{"deny": false, "ask": true, "reason": "r"}`
+- **WHEN** the runtime finishes
+- **THEN** stdout SHALL hold exactly `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"r"}}` and the exit status SHALL be 0
+
+##### Scenario: Deny wins over ask
+
+- **GIVEN** a guard whose `evaluate` returns `{"deny": true, "ask": true, "reason": "r"}`
+- **WHEN** the runtime finishes
+- **THEN** stdout SHALL hold the deny JSON and no ask JSON
+
+##### Scenario: Truthy ask that is not true
+
+- **GIVEN** a guard whose `evaluate` returns `{"ask": "yes"}`
+- **WHEN** the runtime reads the decision
+- **THEN** the runtime SHALL print nothing and exit 0
+
+The scenarios Positive match, No match, Truthy value that is not true, Reads a test can replace, Git walk replaced in a test, and Wording in the rule file are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-086 | Change Log 2026-10-22: Requirement: Hook registration | Registration count (16 across 11 scripts), timeout, and matcher tests on `hooks/hooks.json`; BRD count comparison |
+| FR-088, FR-206 | Change Log 2026-10-22: Requirement: Guard decision and deny output | Ask-output, deny-wins, and truthy-ask tests of `guard()` |
+| FR-206, FR-091, FR-118, NFR-025 | spec-hooks-pr-post-ask.md; spec-hooks-health-check.md, Change Log 2026-10-22 | Child-spec traceability tables |
+
+### Design choices for sign-off
+
+1. Deny wins over ask inside one guard's result, and the ask path logs nothing (Requirement: Guard decision and deny output, rules 1 and 4).
+2. The proposed wording of `rules/assist-plugin-rule.md:409`.
+
+## Change Log: 2026-10-22 (fold)
+
+**Source:** `DECISIONS.md:243-246` (the spec bodies are folded after qa in the same run) and `:248-251` (the 2026-10-22 deltas signed off); the build of `docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md`, qa passed on 2026-10-22 (1427 of 1427 tests; `.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`). The built files were read on 2026-10-22: `hooks/hooks.json` (16 command entries from 11 scripts), `hooks/lib/health.js:385-459`, and `rules/assist-plugin-rule.md:409`.
+
+Folded into the main body:
+
+- Change Log 2026-10-22, the list "Body text this entry supersedes": Description (eleven entry files), Components (11 scripts and 16 commands, 11 entry files, 10 hook modules besides `health-check`), the guard list of Requirement: Guard decision and deny output (`pr-post-ask` added), the Sub-feature breakdown row, the Failure modes row, and the NFR-025 row, each worded as built.
+- Change Log 2026-10-22, MODIFIED Requirement: Hook registration, with row 2 of the Change Log 2026-10-16: the statement, the table (row 2 on `Bash|PowerShell`, row 16 added), and the Scenarios Registration count after the ask hook, Timeouts with the ask hook, Documentation guard matcher, and Count in the BRD scope list. The Scenario "Count holds until the hook is built" is retired: its condition (the hook not yet built) no longer holds.
+- Change Log 2026-10-22, MODIFIED Requirement: Guard decision and deny output, with the FR-088 wording and the file-read table of the Change Log 2026-10-16: the statement, the rules (the ask rules and the Hook Fail-Open Rule line as built), and the Scenarios Reads a test can replace, Git walk replaced in a test, Wording in the rule file, Ask output, Deny wins over ask, and Truthy ask that is not true.
+- The Data flow diagram (inline and `spec-hooks-platform-dataflow.mmd`) gains the ask edge of the folded guard requirement. Rendering failed again on 2026-10-22 (chrome-headless-shell missing); the `.mmd` source is the record.
+- Traceability: the FR-086 and FR-088 rows name the built tests; FR-206 and NFR-025 rows added.
+
+Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`references/delta-format.md`, Folding a delta into the main body, step 5); a `review` pass follows. Every pending change log entry of this spec is now folded.
+
+### Rework 2: line cites refreshed (no behavior change)
+
+The build added the ask branch to `guard()` (`hooks/lib/health.js:452-456`), which moved the later lines of that file, and it moved lines of `hooks/impl/health-check.js`. Re-read on 2026-10-22 and refreshed: Component boundaries (`impl/health-check.js:1307`, `:1428-1435`; the entry-file output row names the ask JSON), Requirement: Filter output (`lib/health.js:476-543`, `:524-526`, `:528-534`), Requirement: Failure path (`:412-447`; the kind table `:414-417`, `:488-491`, `:435-440`, `:511-516`, `:442-447`, `:518-523`, `:528-534`, `:532`, and `impl/health-check.js:1455-1460`, `:1458`; the suffix table `lib/health.js:483` and `impl/health-check.js:1452`), Requirement: Watchdog (`lib/health.js:411`, `:485`; `impl/health-check.js:66`, `:1454`), and Requirement: Disabled hooks pass through (`lib/health.js:418-433`, `:461-474`, `:492-509`).

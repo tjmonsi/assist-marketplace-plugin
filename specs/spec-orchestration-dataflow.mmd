@@ -17,7 +17,7 @@ flowchart TD
   DA -->|"ok"| AS["AgentSelection"]
   AS -->|"unmatched, rounds below limit"| Cl
   AS -->|"unmatched at limit"| Err
-  AS -->|"all-matched"| Br["Branch: write plan file"]
+  AS -->|"all-matched"| Br["Branch: plan-file guard, then write the plan file<br/>at root/.agent/main-plan/"]
   Br -->|"direct"| PF["Preflight"]
   Br -->|"intake"| DInt["Dispatch, intake mode"]
   Br -->|"approve"| PA
@@ -30,10 +30,19 @@ flowchart TD
   PF -->|"ok"| DFull["Dispatch, full mode"]
   DFull -->|"docs-ready"| DS["DocSignOff"]
   DS -->|"approve or edit"| DFull
-  DS -->|"cancel"| Disp["Display: results;<br/>chooses no terminal (PLANNED 1.12.0)"]
+  DS -->|"cancel"| Disp["Display: results;<br/>chooses no terminal"]
   DFull -->|"all-settled"| Disp
   DStop -->|"all-settled"| Disp
-  Disp -->|"shown"| Clean{"Cleanup: prints its own report,<br/>chooses the terminal"}
+  Disp -->|"shown"| Clean{"Cleanup: sweeps the PR files, prints its own report,<br/>chooses the terminal"}
   Clean -->|"stopped"| Pau(["Paused"])
   Clean -->|"some-failed-or-skipped"| Par(["Partial"])
   Clean -->|"all-completed"| Com(["Complete"])
+  Ingest -->|"unsafe-path, on resume"| ErrP(["Error: policy-rejection;<br/>no Status written, shown in the reply only"])
+  Br -->|"unsafe-path"| ErrP
+  PA -->|"unsafe-path"| ErrP
+  PF -->|"unsafe-path"| ErrP
+  DInt -->|"unsafe-path"| ErrP
+  DFull -->|"unsafe-path"| ErrP
+  DStop -->|"unsafe-path"| ErrP
+  DS -->|"unsafe-path"| ErrP
+  Clean -->|"unsafe-path, tested first"| ErrP

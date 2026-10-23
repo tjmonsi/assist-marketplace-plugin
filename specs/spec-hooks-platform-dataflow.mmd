@@ -18,6 +18,7 @@ flowchart TD
   K -->|yes| Z6["failOpen: exception"]
   K -->|no| L{"Result"}
   L -->|"guard: deny is true"| M["Print permissionDecision deny JSON"]
+  L -->|"guard: ask is true, deny not true"| MA["Print permissionDecision ask JSON"]
   L -->|"filter: stdout object"| N["Print the filter JSON"]
   L -->|"no match"| O["Print nothing"]
   Z2 --> LOG["Append record to hook-health.jsonl"]
@@ -30,6 +31,7 @@ flowchart TD
   W --> X
   Z4 --> X
   M --> X
+  MA --> X
   N --> X
   O --> X
-  X --> END(["Call proceeds unless deny JSON was printed"])
+  X --> END(["Call proceeds unless deny JSON was printed;<br/>after ask JSON, Claude Code prompts the user"])

@@ -1,11 +1,19 @@
 # assist-plugin: Functional and Non-Functional Requirements
 
-**Version:** 1.2
-**Date:** 2026-10-17
+**Version:** 1.4
+**Date:** 2026-10-22
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
 Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless its Status says **PLANNED (1.12.0)**. The 1.12.0 items are the 40 deferred points that the user answered on 2026-10-16 (`DECISIONS.md`, entries dated 2026-10-16 from "OWASP for LLM gate is a named /do gate covering skills/**" on; the FR-177 versus FR-154 Status rule is one of the 40), and the plain fixes named in the brief. A requirement marked "Built (1.11.1); PLANNED (1.12.0): ..." keeps its built behavior and gains the named planned change. Where a requirement text still says 4803a0d, that is the behavior of the 1.11.0 baseline that 1.11.1 replaced; the 22 requirements that were PLANNED (1.11.1) are now Built (checked by reading the 1.11.1 sources, not by running them).
+
+Version 1.4 (2026-10-22) records the build of the follow-up after 1.12.0 for release 1.13.0 (`DECISIONS.md:243-271`). Every part that the build delivered now reads **Built (1.13.0)**; each was confirmed by reading the built files on 2026-10-22 (`hooks/hooks.json`, `hooks/impl/pr-post-ask.js`, `hooks/impl/health-check.js`, `skills/pr-review/SKILL.md`, `skills/do/SKILL.md`, `skills/do/references/pr-review-flow.md`, `skills/bump/SKILL.md`, `rules/llm-security-checklist.md`), not by running them. No part of the follow-up was found unbuilt, so none stays PLANNED. The same version adds the settled build facts to FR-202, FR-203, FR-206, FR-209, and FR-139, and closes the section 9 points that the build settled. The qa timing figures in NFR-008 and NFR-025 come from the qa run reported to this step; this document did not repeat them.
+
+Version 1.3 added four follow-up groups left after release 1.12.0, all then marked **PLANNED (follow-up to 1.12.0)**: Bitbucket support in `/pr-review` and in the `/do` PR review flow (FR-202, FR-203, changes to FR-142 to FR-144 and FR-195), `/pr-review` direct-run hardening (FR-204, FR-205), `/do` PR flow hardening (FR-206 to FR-208), and `/bump --path` validation plus two wording fixes (FR-209, FR-210, the FR-143 citations). The bkt facts come from `.agent/research/bkt-cli-forms-20261017.md`, which read bkt v0.34.0 and did not run it; a form it marks "constructed" is not verified by execution. The user signed off version 1.3 and the build scope (`DECISIONS.md:248-251`); step 1 of the build then read the bkt source and settled the forms the report marked "constructed" (FR-202, FR-203). Version 1.4 stays DRAFT until the user signs it off.
+
+Baseline note (version 1.4): the follow-up build sits in the working tree for release 1.13.0. `plugins/assist-plugin/.claude-plugin/plugin.json` still reads 1.12.0 on 2026-10-22, because the 1.13.0 hand release comes after the build (`DECISIONS.md:243-246`), so "Built (1.13.0)" means built for that release and not yet tagged. A source line number added in version 1.4 is a working-tree line, read on 2026-10-22.
+
+Baseline note (version 1.3): assist-plugin 1.12.0 is released (commit `bb09e29`). Status labels and line numbers follow one rule. A requirement whose Status still reads PLANNED (1.12.0) was decided for that release; its text was not re-read against the 1.12.0 sources in this update, except FR-143 and FR-195, whose built parts were re-read in `skills/pr-review/SKILL.md` and `skills/do/references/pr-review-flow.md` on 2026-10-17 and are marked Built (1.12.0). The spec step re-checks the other marks. A source line number written before version 1.3 is a 1.11.1 line unless the text says otherwise, and a line number added in version 1.3 is a 1.12.0 line, read on 2026-10-17. Where both exist for one line, the text gives both (for example `skills/do/SKILL.md:527`, was `:518` at 1.11.1).
 
 ---
 
@@ -25,11 +33,11 @@ Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is 
 |------|---------|--------|----------|
 | A | 2 | `/do` orchestration, routing, review gates, spec-first flow, agents, terminal blocks | FR-001 to FR-085, FR-187 to FR-192, and FR-199 |
 | B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181, FR-186, and FR-198 |
-| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, and FR-201 |
+| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, and FR-202 to FR-210 (FR-206 is a hook requirement placed with its group) |
 
 Section 5 holds the non-functional requirements. Each FR heading is followed by its scenarios. Each scenario is a `#### Scenario:` block in GIVEN/WHEN/THEN form. Source references (`path (section)`) point at the file that documents or implements the behavior, so a reader can verify the requirement.
 
-**Evidence rule:** Thresholds in NFRs are copied from the cited source. This document does not claim that any threshold was measured.
+**Evidence rule:** Thresholds in NFRs are copied from the cited source. This document does not claim that any threshold was measured, except the four hook latencies of NFR-008 and NFR-025, whose medians come from the qa run reported to version 1.4 of this document.
 
 ## 2. Area A: `/do` orchestration, agents, and review gates
 
@@ -1795,14 +1803,19 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-086: Hook registration
 
-**Statement:** The plugin SHALL register 10 hook scripts as 15 commands in `hooks/hooks.json`, each with a `timeout` of 5 seconds, except the SessionStart health check at 10 seconds.
-**Traces to:** UR-017 | **Priority:** Must | **Status:** Built
-**Source:** `hooks/hooks.json`; `docs/TOKEN_OPTIMIZATION.md`
+**Statement:** The plugin SHALL register 11 hook scripts as 16 commands in `hooks/hooks.json`, each with a `timeout` of 5 seconds, except the SessionStart health check at 10 seconds. The 1.12.0 baseline was 10 scripts and 15 commands; the posting ask hook of FR-206 (`hooks/pr-post-ask.js`, built for 1.13.0) added one script and one command. The counts live in this requirement and in the in-scope list of the BRD (section 4); `CLAUDE.md` and `README.md` state no hook count.
+**Traces to:** UR-017, UR-055 | **Priority:** Must | **Status:** Built; Built (1.13.0): the added script and command (read in `hooks/hooks.json` on 2026-10-22: 16 `command` entries across 11 distinct scripts, the `pr-post-ask.js` entry at `:29` with `timeout` 5)
+**Source:** `hooks/hooks.json`; `docs/TOKEN_OPTIMIZATION.md`; `DECISIONS.md:243-246`
 
-#### Scenario: Registration count
-- **GIVEN** `hooks/hooks.json`
+#### Scenario: Registration count at 1.12.0 (superseded by the next scenario)
+- **GIVEN** `hooks/hooks.json` at release 1.12.0
 - **WHEN** a test counts the command entries
-- **THEN** the count SHALL be 15 across the scripts `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `health-check`, and `writing-context`
+- **THEN** the count was 15 across the scripts `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `health-check`, and `writing-context`
+
+#### Scenario: Registration count after the ask hook (Built, 1.13.0)
+- **GIVEN** `hooks/hooks.json` with FR-206 built
+- **WHEN** a test counts the command entries
+- **THEN** the count SHALL be 16 across 11 scripts, the added script being the posting ask hook, and the BRD scope list SHALL state 11 scripts and 16 commands
 
 #### Scenario: Timeouts
 - **GIVEN** the same file
@@ -1880,8 +1893,8 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-091: Auto-disable and re-enable
 
-**Statement:** The health check SHALL maintain `hooks-disabled.json` so that it adds a guard on a false deny (its self-test denies a known-safe case), adds a filter (`injection-filter`, `prose-advisor`, `fsa-log`) on any self-test failure, and removes an entry only after the hook passes every case of a full self-test.
-**Traces to:** UR-017, UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the wording of `rules/assist-plugin-rule.md` (Hook Fail-Open Rule) and of the `hooks/impl/health-check.js:10-16` header, which say the disabled set follows the latest self-test denies and misses (the code already behaves as this statement says)
+**Statement:** The health check SHALL maintain `hooks-disabled.json` so that it adds a guard on a false deny (its self-test denies a known-safe case), adds a filter (`injection-filter`, `prose-advisor`, `fsa-log`) on any self-test failure, and removes an entry only after the hook passes every case of a full self-test. Built (1.13.0): the posting ask hook of FR-206 counts as a guard, a false ask (an ask on a known-safe self-test case) is treated like a false deny, and a missed ask is treated like a missed deny.
+**Traces to:** UR-017, UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the wording of `rules/assist-plugin-rule.md` (Hook Fail-Open Rule) and of the `hooks/impl/health-check.js:10-16` header, which say the disabled set follows the latest self-test denies and misses (the code already behaves as this statement says); Built (1.13.0): the ask-hook clause (`hooks/impl/health-check.js:1041-1080` lists `pr-post-ask` as a guard whose "deny" is an ask: the wrapper maps `ask === true` to `deny === true`, so a false ask disables the hook and a missed ask reports weak protection; `hooks/lib/health.js:407`; `skills/health/SKILL.md:54-55`)
 **Source:** `hooks/impl/health-check.js:10-16`, `:24-26`, `:964-989` (an entry is removed only when the latest self-test passes every case; a listed guard whose latest run fails only by a missed deny or a thrown case stays listed); `rules/assist-plugin-rule.md`; the answer to OP-B2 in `plan-deferred-decisions-20261016-1059.md`
 
 #### Scenario: Buggy guard
@@ -2477,8 +2490,8 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-118: Session-start self-test
 
-**Statement:** The health check SHALL, at SessionStart `startup` and `resume`, self-test each guard and filter, `writing-context` included, against fixed allow and deny cases and print a notice only when something is wrong.
-**Traces to:** UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the `writing-context` self-test and the notice ending
+**Statement:** The health check SHALL, at SessionStart `startup` and `resume`, self-test each guard and filter, `writing-context` included, against fixed allow and deny cases and print a notice only when something is wrong. Built (1.13.0): the fixed cases of the posting ask hook of FR-206 are ask and no-ask cases (14 ask cases and 13 no-ask cases at `hooks/impl/health-check.js:1049-1079`).
+**Traces to:** UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the `writing-context` self-test and the notice ending; Built (1.13.0): the ask-hook clause
 **Source:** `hooks/impl/health-check.js:802-922` (the self-test list has no `writing-context` entry at 1.11.1), `:1004` (the notice reads `<name> self-test failed (<N> known-prohibited command(s) allowed)`); `hooks/impl/writing-context.js:64-66`; `skills/health/SKILL.md:17` (says `writing-context` has no self-test); the answers to OP-B5a and OP-B5b in `plan-deferred-decisions-20261016-1059.md`
 
 #### Scenario: Writing-context self-test (PLANNED, 1.12.0)
@@ -3091,8 +3104,8 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-139: Bump commit and tag
 
-**Statement:** The `/bump` skill SHOULD commit with the message `chore: bump version to X.Y.Z` and tag `vX.Y.Z` (or `release-X.Y.Z` when the repository uses that form) unless `--no-commit` or `--no-tag` is passed, with `--path` committing `chore: bump <dir> to X.Y.Z` and tagging `<tagdir>-vX.Y.Z`, and with `--no-commit` creating no tag. `<dir>` is the path relative to the repository root with a leading `./` and a trailing `/` removed and `\` read as `/`, and `<tagdir>` is `<dir>` with every `/` replaced by `-`.
-**Traces to:** UR-029 | **Priority:** Should | **Status:** Built (1.11.1) for the default commit and tag; PLANNED (1.12.0): the `--path` naming and the no-tag rule for `--no-commit`
+**Statement:** The `/bump` skill SHOULD commit with the message `chore: bump version to X.Y.Z` and tag `vX.Y.Z` (or `release-X.Y.Z` when the repository uses that form) unless `--no-commit` or `--no-tag` is passed, with `--path` committing `chore: bump <dir> to X.Y.Z` and tagging `<tagdir>-vX.Y.Z`, and with `--no-commit` creating no tag. `<dir>` is the path relative to the repository root with a leading `./` and a trailing `/` removed and `\` read as `/`, taken only after it passes the validation of FR-209 (the three ordered steps: normalize, validate, then name; the validation also refuses a segment that starts with `.` or contains `..`, because such a segment gives an invalid git tag name, `DECISIONS.md:253-256`), and `<tagdir>` is `<dir>` with every `/` replaced by `-`.
+**Traces to:** UR-029 | **Priority:** Should | **Status:** Built (1.11.1) for the default commit and tag; PLANNED (1.12.0): the `--path` naming and the no-tag rule for `--no-commit`; Built (1.13.0): the `--path` value passes the validation of FR-209 before `<dir>` and `<tagdir>` are built (`skills/bump/SKILL.md:82`, `:117-149`), including the R8 refusal of a dot-leading or `..`-holding segment
 **Source:** `skills/bump/SKILL.md` (Commit and Tag, `:119`, `:123-127`); `skills/bump/references/bump-strategy.md:263` (`subproject-v1.1.0` or `v1.1.0-subproject`), `:275-276` (`chore: bump services/auth to 1.1.0`, `services-auth-v1.1.0`); `DECISIONS.md` (2026-10-16, /bump --path naming and pointer changelogs); the answers to OP-7b and OP-7e in `plan-deferred-decisions-20261016-1059.md`
 
 #### Scenario: Default
@@ -3124,6 +3137,21 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **GIVEN** `/bump minor` at the repository root and a new version 1.3.0
 - **WHEN** the bump finishes
 - **THEN** the skill SHALL commit `chore: bump version to 1.3.0` and tag `v1.3.0`
+
+#### Scenario: Invalid path builds no name (Built, 1.13.0)
+- **GIVEN** `/bump patch --path "svc; touch x"`
+- **WHEN** the skill reads the value
+- **THEN** the skill SHALL build no `<dir>`, make no commit, and create no tag, and FR-209 SHALL decide the stop
+
+#### Scenario: Absolute path outside the git root (Built, 1.13.0)
+- **GIVEN** `/bump patch --path /etc/other` and a git root of `/home/user/repo`
+- **WHEN** the skill reads the value
+- **THEN** the skill SHALL stop at the validation step of FR-209, name the rule broken, and build no `<dir>` or `<tagdir>`
+
+#### Scenario: Dot-leading segment builds no tag name (Built, 1.13.0)
+- **GIVEN** `/bump patch --path .github/workflows` or `--path a..b`
+- **WHEN** the skill reads the value
+- **THEN** the skill SHALL stop with the R8 message before any file, commit, or tag changes, and build no `<dir>` or `<tagdir>`, because the segment would give an invalid git tag name (`DECISIONS.md:253-256`)
 
 ### FR-140: Branch create, switch, and list
 
@@ -3166,9 +3194,9 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-142: PR platform detection and fetch
 
-**Statement:** The `/pr-review` skill SHALL detect GitHub, Bitbucket Cloud, or Bitbucket Server from `git remote -v`, identify the PR by number, current branch, or branch name, and fetch title, description, author, state, changed files, comments, reviewers, and conflicts.
-**Traces to:** UR-031 | **Priority:** Must | **Status:** Built
-**Source:** `skills/pr-review/SKILL.md`; `skills/pr-review/references/pr-detection.md`
+**Statement:** The `/pr-review` skill SHALL detect GitHub, Bitbucket Cloud, or Bitbucket Server from `git remote -v`, identify the PR by number, current branch, or branch name, and fetch title, description, author, state, changed files, comments, reviewers, and conflicts; on a Bitbucket remote (Cloud or Data Center) it SHALL do so with the bkt command forms of FR-202 and the host pin of FR-203; the conflicts item applies to GitHub only, because the research found no bkt form for conflicts, and on Bitbucket the skill SHALL say so and point to the Merge check section of the PR (section 9, open point 8).
+**Traces to:** UR-031, UR-054 | **Priority:** Must | **Status:** Built; Built (1.13.0): the Bitbucket forms (FR-202, FR-203; `skills/pr-review/SKILL.md:45-69`, `:165-227`, with the conflicts item for GitHub only at `:91`); Built (1.12.0): the GitHub detection and fetch
+**Source:** `skills/pr-review/SKILL.md`; `skills/pr-review/references/pr-detection.md`; `.agent/research/bkt-cli-forms-20261017.md` (plugin forms mapped to v0.34.0)
 
 #### Scenario: GitHub
 - **GIVEN** the remote is `https://github.com/user/repo.git`
@@ -3180,11 +3208,26 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** the user runs `/pr-review`
 - **THEN** the skill SHALL return an error
 
+#### Scenario: Bitbucket Cloud remote (Built, 1.13.0)
+- **GIVEN** the remote is `https://bitbucket.org/acme/repo.git` and the user runs `/pr-review 123`
+- **WHEN** the skill detects the platform
+- **THEN** the skill SHALL use `bkt` with the Cloud forms of FR-202 and SHALL run the host pin of FR-203 before the first `bkt pr` call
+
+#### Scenario: Bitbucket Data Center remote (Built, 1.13.0)
+- **GIVEN** a remote on a Bitbucket Data Center host and a `bkt` context for that host
+- **WHEN** the user runs `/pr-review 123`
+- **THEN** the skill SHALL use `bkt` with the Data Center forms of FR-202, and SHALL NOT describe the platform as one that needs custom SSH or HTTPS scripts
+
+#### Scenario: PR found by branch on Bitbucket (Built, 1.13.0)
+- **GIVEN** the user runs `/pr-review feature/auth` on a Bitbucket remote
+- **WHEN** the skill looks for the PR
+- **THEN** the skill SHALL use `bkt pr list` with `--state OPEN --limit 0 --json` and a `--jq` filter and SHALL NOT use a `--query` flag, because bkt has none (FR-202)
+
 ### FR-143: PR verdict confirmation
 
-**Statement:** The `/pr-review` skill SHALL run `--approve`, `--changes-requested`, `--comment`, `bkt pr approve`, or the Bitbucket comment submission (`bkt pr comment`) only after the user answers yes to "Do you approve this verdict? (yes/no)" for the drafted verdict, even when the flag was passed or the `reviewer` agent chose the verdict; declining a PR is a manual choice outside the skill's verdict mapping.
-**Traces to:** UR-031 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the no-override-flag scenario, and `skills/pr-review/SKILL.md:87` and `:138` stop mapping `--changes-requested` to `bkt pr decline` (a returned verdict posts a comment on Bitbucket and leaves the PR open; `DECISIONS.md:163-166`, FR-195). The planned conformance also covers the other places that name `bkt pr decline` at 1.11.1: `skills/pr-review/SKILL.md:209` and `skills/pr-review/references/review-workflow.md:25`, `:37`, `:340`. The bounded `/do` exception of `DECISIONS.md:178-181` is withdrawn by `DECISIONS.md:183-186`: `/pr-review` always confirms on its own, and `/do` posts a `/do` PR review itself without calling `/pr-review` (FR-195). `skills/pr-review/SKILL.md:41` and `:209` and `skills/pr-review/references/review-workflow.md:25` keep saying that the confirmation holds even when the `reviewer` agent drafted the verdict. A search for the literal `bkt pr decline` did not match `review-workflow.md:130` or `:339`, which the spec step re-reads
-**Source:** `skills/pr-review/SKILL.md` (Review Submission, Constraints; line 141 shows `bkt pr comment`; the `bkt` command forms in `/pr-review`'s references do not match the bkt CLI v0.34.0 (numeric id with `--project` and `--repo` flags, `bkt pr view`, `bkt pr comments`, and `bkt pr comment --text`), and correcting them is a known follow-up, `DECISIONS.md:208-211`; lines 207-208 mention an unnamed optional override flag for an already approved or declined PR at 1.11.1); the answer to OP-8 in `plan-deferred-decisions-20261016-1059.md`
+**Statement:** The `/pr-review` skill SHALL run `--approve`, `--changes-requested`, `--comment`, `bkt pr approve`, the Bitbucket comment submission (`bkt pr comment`), or the Bitbucket Cloud request-changes call (`bkt api`, FR-202) only after the user answers yes to "Do you approve this verdict? (yes/no)" for the drafted verdict, even when the flag was passed or the `reviewer` agent chose the verdict; declining a PR is a manual choice outside the skill's verdict mapping.
+**Traces to:** UR-031 | **Priority:** Must | **Status:** Built (1.11.1); Built (1.12.0): the no-override-flag rule, and `skills/pr-review/SKILL.md:87` stops mapping `--changes-requested` to `bkt pr decline` (a returned verdict posts a comment on Bitbucket and leaves the PR open; `DECISIONS.md:163-166`, FR-195). The 1.12.0 conformance covered the other places that named `bkt pr decline` at 1.11.1: `skills/pr-review/SKILL.md:209` and `skills/pr-review/references/review-workflow.md:25`, `:37`, `:340`. The bounded `/do` exception of `DECISIONS.md:178-181` is withdrawn by `DECISIONS.md:183-186`: `/pr-review` always confirms on its own, and `/do` posts a `/do` PR review itself without calling `/pr-review` (FR-195). `skills/pr-review/SKILL.md:41` says that a pre-supplied flag does not skip the confirmation, `:82` and `:203` say that the confirmation holds even when the `reviewer` agent drafted the verdict, and `skills/pr-review/references/review-workflow.md:25` to `:29` say that it holds when the flag was pre-supplied or the `reviewer` is confident. `skills/pr-review/SKILL.md:208` is the Review Output Rules paragraph (heading at `:206`; `:209` is blank) and says nothing about the confirmation (version 1.2 of this document cited `:41` and `:209` for the reviewer-drafted case; version 1.3 corrects the citations, read on 2026-10-17). The Bitbucket comment for a returned verdict, with `bkt pr decline` no longer mapped, is in the 1.12.0 `skills/pr-review/SKILL.md:87` and `:93`. The no-override-flag rule is an absence, not a stated line: no override flag appears in `skills/pr-review/` (read on 2026-10-17). Both are Built (1.12.0). Built (1.13.0): the Bitbucket forms follow FR-202 (`skills/pr-review/SKILL.md:104-126`, `:229-242`); on Bitbucket Cloud a confirmed `--changes-requested` posts the findings as a comment and then makes the request-changes call, and on Data Center it posts the comment and leaves the PR open (the user's answer to the request-changes point in the version 1.3 elicitation, recorded at `DECISIONS.md:223-226`, which replaces the comment-only rule of `DECISIONS.md:163-166` for Cloud and leaves it in force for Data Center). On Cloud the order is: post the findings as a comment, then make the request-changes call; no request-changes call runs when the comment fails; that order is recorded at `DECISIONS.md:228-231` (section 9, open point 3, closed). On Bitbucket the body-hash check runs as its own command before `bkt pr approve`, so a body file changed after the confirmation stops the post before any approval; the comment command repeats the check, and a change caught there is reported as a failed comment while the approval stands (`DECISIONS.md:263-266`; `skills/pr-review/SKILL.md:231-242`). Each bkt post runs as its own Bash command with its own hook prompt, and a rejected first prompt of a pair runs no second command and records both as declined (`DECISIONS.md:233-236`). A search for the literal `bkt pr decline` did not match `review-workflow.md:130` or `:339`, which the spec step re-reads
+**Source:** `skills/pr-review/SKILL.md` (Review Submission, Constraints; line 139 shows `bkt pr comment --message-file`; the `bkt` command forms in `/pr-review`'s references do not match the bkt CLI v0.34.0 (numeric id with `--project` and `--repo` flags, `bkt pr view`, `bkt pr comments`, and `bkt pr comment --text`), and correcting them was the follow-up of `DECISIONS.md:208-211`, now FR-202; lines 207-208 mention an unnamed optional override flag for an already approved or declined PR at 1.11.1); the answer to OP-8 in `plan-deferred-decisions-20261016-1059.md`
 
 #### Scenario: Flag supplied
 - **GIVEN** the user runs `/pr-review 123 --approve`
@@ -3196,7 +3239,7 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** the skill drafts its verdict
 - **THEN** the skill SHALL ask "Do you approve this verdict? (yes/no)" before any state-changing command, with no exception for a `/do` PR review (`DECISIONS.md:183-186`)
 
-#### Scenario: No override flag (PLANNED, 1.12.0)
+#### Scenario: No override flag (Built, 1.12.0)
 - **GIVEN** a PR that is already approved or declined
 - **WHEN** the user runs `/pr-review` on it
 - **THEN** the skill SHALL accept no flag that overrides the state, and `skills/pr-review/SKILL.md` SHALL NOT mention such a flag
@@ -3206,21 +3249,76 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** the skill continues
 - **THEN** the skill SHALL revise the draft and re-confirm and SHALL NOT run the command
 
-#### Scenario: Changes requested on Bitbucket (PLANNED, 1.12.0)
-- **GIVEN** a Bitbucket remote and the user runs `/pr-review 123 --changes-requested` and answers yes to the confirmation
+#### Scenario: Changes requested on Bitbucket Data Center (Built, 1.12.0)
+- **GIVEN** a Bitbucket Data Center remote and the user runs `/pr-review 123 --changes-requested` and answers yes to the confirmation
 - **WHEN** the skill submits
 - **THEN** the skill SHALL post a comment with the findings, leave the PR open, and run no `bkt pr decline` (`DECISIONS.md:163-166`)
 
+#### Scenario: Changes requested on Bitbucket Cloud (Built, 1.13.0)
+- **GIVEN** a `bitbucket.org` remote and the user runs `/pr-review 123 --changes-requested` and answers yes to the confirmation
+- **WHEN** the skill submits
+- **THEN** the skill SHALL post the findings as a comment, then make the Cloud request-changes call through `bkt api` with a relative path (FR-202), and SHALL run no `bkt pr decline`
+
+#### Scenario: Citations of the confirmation rule
+- **GIVEN** this requirement after the version 1.3 correction
+- **WHEN** a reviewer compares it with `skills/pr-review/SKILL.md`
+- **THEN** the reviewer SHALL find the reviewer-drafted case at `:82` and `:203`, the pre-supplied flag at `:41`, and no confirmation text at `:208`, the Review Output Rules paragraph
+
+#### Scenario: Cloud comment fails (Built, 1.13.0)
+- **GIVEN** a `bitbucket.org` remote, a confirmed `--changes-requested` verdict, and a `bkt pr comment` call that exits with an error
+- **WHEN** the skill submits
+- **THEN** the skill SHALL make no request-changes call, SHALL show the draft and the error, and SHALL NOT retry
+
+#### Scenario: Request-changes call fails after the comment (Built, 1.13.0)
+- **GIVEN** the comment posted and the `bkt api` request-changes call exits with an error
+- **WHEN** the skill reports
+- **THEN** the skill SHALL say that the comment is posted and the request-changes call failed, and SHALL NOT retry or delete the comment
+
+#### Scenario: User rejects the hook prompt in a direct run (Built, 1.13.0)
+- **GIVEN** a direct `/pr-review` run, a confirmed verdict, and the ask-hook prompt of FR-206 rejected for the posting command
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** the skill SHALL report that the post was declined, SHALL NOT retry, and SHALL NOT report it as a failed post (`DECISIONS.md:233-236`)
+
+#### Scenario: First prompt of a pair rejected in a direct run (Built, 1.13.0)
+- **GIVEN** a direct run on Bitbucket, each bkt post running as its own Bash command with its own hook prompt (`DECISIONS.md:233-236`), and the prompt for the first command (`bkt pr approve` for an approved verdict, `bkt pr comment` for a Cloud returned verdict) rejected
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** the skill SHALL run no second command and SHALL report both as declined
+
+#### Scenario: Cloud request-changes prompt rejected after the comment (Built, 1.13.0)
+- **GIVEN** a Cloud returned verdict, an allowed `bkt pr comment`, and a rejected prompt for the request-changes call
+- **WHEN** the skill reports
+- **THEN** the skill SHALL report the comment as posted and the request as declined (`DECISIONS.md:233-236`)
+
+#### Scenario: Approve succeeds, comment fails on Bitbucket (Built, 1.13.0)
+- **GIVEN** a confirmed `--approve` verdict, `bkt pr approve` succeeded, and `bkt pr comment` exits with an error
+- **WHEN** the skill reports
+- **THEN** the skill SHALL report the failed comment, state that the approval stands, and SHALL NOT retry (`DECISIONS.md:193-196`)
+
 ### FR-144: PR text posted through a file
 
-**Statement:** The `/pr-review` skill SHALL pass drafted review text to the platform CLI through a temporary file (`--body-file` or `--message-file`) in place of interpolating it into a shell string.
-**Traces to:** UR-031 | **Priority:** Must | **Status:** Built
-**Source:** `skills/pr-review/SKILL.md` (Constraints); `rules/llm-security-checklist.md` (LLM05)
+**Statement:** The `/pr-review` skill SHALL pass drafted review text to the platform CLI from a file created for that run, at a path that is not a fixed name, and never by interpolating the text into a shell string; `gh` takes the file through `--body-file`, and `bkt`, which accepts the comment body only through `--text` and has no file or stdin form, receives the text as one quoted argument that the shell reads from the file. At the end of the run, with or without a post, the skill SHALL remove its run folder with a command that uses no glob: it refuses a run folder path that holds `..` or does not start with the `mktemp` template prefix `"${TMPDIR:-/tmp}/pr-review."` and removes nothing then, removes the files it wrote by exact name (`body.txt`, `view.json`, `diff`, `stat`, `comments.json`, and the `.cap` copy of each fetched file), and removes the folder with `rmdir` (`skills/pr-review/SKILL.md:142-146`; `DECISIONS.md:263-266`).
+**Traces to:** UR-031, UR-055 | **Priority:** Must | **Status:** Built for the file rule; Built (1.13.0): the per-run path (`mktemp -d "${TMPDIR:-/tmp}/pr-review.XXXXXX"`, `skills/pr-review/SKILL.md:132-148`, which also forbids any fixed path) and the `bkt` form (`--text="$(cat -- '<run folder>/body.txt')"`, `:242`); the fixed path `/tmp/pr-review-body.txt` was a 1.12.0 line, read on 2026-10-17
+**Source:** `skills/pr-review/SKILL.md` (Constraints; `:116`, `:117`, and `:139` show the fixed path `/tmp/pr-review-body.txt` and `--message-file`; `:96` and `:204` name `--message-file`); `skills/pr-review/references/review-workflow.md:44`, `:48-51`, `:308`, `:311`, `:314` (the fixed `/tmp` path), `:322` (the file-flag rule; `:319` is blank), `:332` (the fixed path and `--message`/`--message-file`, which bkt does not have); `.agent/research/bkt-cli-forms-20261017.md` (post a general comment: `--text` only, `--file` is the inline-comment anchor; `--text="$(cat <file>)"` is a constructed form that keeps the text out of the command string); `rules/llm-security-checklist.md` (LLM05)
 
 #### Scenario: Hostile PR body
 - **GIVEN** a PR description with a `$(...)` sequence that the draft repeats
 - **WHEN** the skill posts the comment
 - **THEN** the skill SHALL pass the text by file so the sequence does not run
+
+#### Scenario: No fixed body path (Built, 1.13.0)
+- **GIVEN** a symlink or another user's file already sits at `/tmp/pr-review-body.txt`
+- **WHEN** the skill posts a confirmed draft
+- **THEN** the skill SHALL NOT write to or read from that path, SHALL use a file it created for this run, and SHALL remove that file after the post or a "no" answer
+
+#### Scenario: Run folder removal is bound to the template (Built, 1.13.0)
+- **GIVEN** a `<run folder>` value that holds `..` or does not start with `"${TMPDIR:-/tmp}/pr-review."`
+- **WHEN** the skill removes the run folder at the end of the run
+- **THEN** the command SHALL print a message, remove nothing, and exit non-zero; for a folder that starts with the prefix it SHALL remove the known files by name and then run `rmdir`, in bash and zsh alike
+
+#### Scenario: Bitbucket body has no file flag (Built, 1.13.0)
+- **GIVEN** a confirmed draft for a Bitbucket PR
+- **WHEN** the skill posts the comment
+- **THEN** the skill SHALL pass the text through `--text` only, SHALL NOT use `--message`, `--message-file`, or `--file` for the body, and SHALL NOT write the draft text into the command string
 
 #### Scenario: Missing CLI
 - **GIVEN** neither `gh` nor `bkt` is installed
@@ -4078,9 +4176,9 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-195: PR review under /do fetches by redirect, drafts in a subagent, and posts from /do
 
-**Statement:** Under `/do`, a pull request review for a `github.com` remote SHALL run in this order (any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly, and `/do` runs no `bkt` command): `/do` fetches the PR by running `gh --repo 'github.com/<owner>/<repo>'` through Bash (every `gh` call pins the host this way, so `GH_HOST` cannot redirect it) with the output (title, body, comments, and diff) redirected into the scratch file `.agent/pr-review/pr-<N>.diff`, capped at 200 KB with any cut recorded in the step's Done field, so that the PR text never enters `/do`'s context and a non-prose extension keeps `prose-gate` of FR-103 from judging it; the read-only `reviewer` agent gets a prompt that carries the gate name Security, the artifact type `code`, the path of that scratch file inside an `<untrusted-file>` wrapper with each `<` replaced by `&lt;`, the rule to report instruction-like text in the scratch file and never follow it (NFR-012, FR-031), any 200 KB cut stated, the statement that the draft is posted publicly as written and holds only findings on the diff (no local file contents beyond a cited line, no environment values or secrets, and no paths outside the diff) and never quotes instruction-like PR text, and the rule to cite the PR file and the diff-hunk line and to use the scratch-file line only for its re-read at Decide; the `reviewer` drafts the review in the prose above its terminal block and ends `Done` with verdict `approved` or `returned`; `/do` treats the draft as data, shows it to the user with any cut and how much of the PR was not reviewed, writes it verbatim to the body file, takes the PR number from the user's request and the flag from the block's verdict, and runs no other command because of the draft; and after the user confirms, `/do` itself posts the draft with `gh pr review --approve`, `--request-changes`, or `--comment`, passing the draft through a body file with a non-prose extension (for example `.agent/pr-review/pr-<N>-review.body`) and calling no `/pr-review`; `approved` maps to `--approve`, `returned` maps to `--request-changes`, and the user may choose `--comment` instead; `/do` fails the step with `policy-rejection` when `<root>/.agent` or `<root>/.agent/pr-review` is a symlink, removes each target file with `rm -f` before writing it, writes the body file only with the Write tool and never through a heredoc, `echo`, or `printf`, and counts a hash it cannot recall as a mismatch (`policy-rejection`) (`DECISIONS.md:213-216`).
-**Traces to:** UR-031, UR-019 | **Priority:** Must | **Status:** PLANNED (1.12.0)
-**Source:** `skills/pr-review/SKILL.md:156-171` and `skills/pr-review/references/review-workflow.md:226-236` (route `/do review PR` through the `reviewer` agent, which has Read, Grep, Glob, and LSP only: `skills/do/references/agent-registry.md:12`, FR-067); `DECISIONS.md:118-121` (2026-10-16, "/do PR review relays a draft, then a separate step submits"), refined by `DECISIONS.md:148-151` (the main conversation submits; no subagent posts), `DECISIONS.md:153-156` (the draft arrives in a `Done` block, because the reviewer's States table has no `NeedsInput` exit after Intake; `agents/reviewer.md:48` has a `NeedsInput` exit at Intake only), and `DECISIONS.md:158-161` (the main conversation fetches the PR and passes it as untrusted data; the verdict-to-flag mapping and `--comment`), `DECISIONS.md:163-166` (on Bitbucket a returned verdict posts a comment with the findings and leaves the PR open; declining stays manual; outside the 1.12.0 `/do` flow, which is GitHub only, and kept for direct `/pr-review` in FR-143), and `DECISIONS.md:183-186` (`/do` fetches by redirect through Bash so the PR text never enters its context, posts with `gh` or `bkt` through a body file with a non-prose extension, calls no `/pr-review`, and the earlier one-confirmation exception of `DECISIONS.md:178-181` is withdrawn); `DECISIONS.md:193-196` (the Bitbucket approve-then-comment flow, which `DECISIONS.md:208-211` takes out of the `/do` flow for 1.12.0); `DECISIONS.md:208-211` (the `/do` PR review flow supports `github.com` remotes only; any other host fails the step with `precondition-failed` and the message to run `/pr-review` directly; the `bkt` command forms in the specs and the pr-review references do not match the bkt CLI v0.34.0, and correcting them is a follow-up); `skills/do/SKILL.md:518` ("Never do delivery work in the main agent."; posting a confirmed review is the one delivery action `/do` performs itself), `:28` ("never does delivery work itself"), and `:406` (a relayed question is the one place agent text is shown as it stands), which are planned conformance changes; `skills/pr-review/SKILL.md:156-171` (the `reviewer` calls `/pr-review`, `:163-168`) and `skills/pr-review/references/review-workflow.md:226-236` (`:231-235`), which change with this requirement because the reviewer no longer calls `/pr-review`; `skills/pr-review/SKILL.md:133` (the `bkt pr approve` form) and `:141` (the `bkt pr comment --message-file` form), both outside the 1.12.0 `/do` flow and relevant to direct `/pr-review` only; `DECISIONS.md:213-216` (the host pin, symlink checks, Write-tool body file, hash rule, and reviewer prompt statement); NFR-012 (untrusted data), FR-031 (untrusted-file wrapper). The direct `/pr-review` confirmation of FR-143 is a separate flow and this requirement does not depend on it
+**Statement:** Under `/do`, a pull request review for a `github.com` remote, or (Built, 1.13.0) for a `bitbucket.org` remote or a Bitbucket Data Center remote whose host matches exactly one `bkt` context (FR-203), SHALL run in this order (a remote whose hostname matches exactly one `bkt` context is a Bitbucket remote and proceeds to the pin (FR-203, rule 1); otherwise a remote that the Bitbucket recognition rule of FR-203 accepts fails the step with `tool-missing` when `bkt` is absent, and with `precondition-failed` and the message to run `bkt auth login` and then `bkt context create` when `bkt` is present and no context matches (a direct `/pr-review` run fails the same pin), and every remote the rule does not recognize is "any other host" and fails with `precondition-failed`, the message naming both options (run `/pr-review` directly where the direct run supports the host, for example GitHub Enterprise, or set up a `bkt` context for a Data Center host); a Bitbucket remote runs `bkt` with the forms of FR-202 and the host pin of FR-203 in place of `gh`, fetches with `bkt pr view <id> ... --json`, `bkt pr comments <id> ... --json`, and `bkt pr diff <id> ...`, each redirected into its own temp file (`<tmp>/pr-<N>.view.full`, `<tmp>/pr-<N>.comments.full`, `<tmp>/pr-<N>.diff.full`) with the exit status of each checked before the file is trusted, builds the scratch file with the diff first, then the view, then the comments, within the same 200 KB cap, and posts as the Post rules below say): `/do` fetches the PR by running `gh --repo 'github.com/<owner>/<repo>'` through Bash (every `gh` call pins the host this way, so `GH_HOST` cannot redirect it) with the output (title, body, comments, and diff) redirected into the scratch file `.agent/pr-review/pr-<N>.diff`, capped at 200 KB with any cut recorded in the step's Done field, so that the PR text never enters `/do`'s context and a non-prose extension keeps `prose-gate` of FR-103 from judging it; the read-only `reviewer` agent gets a prompt that carries the gate name Security, the artifact type `code`, the path of that scratch file inside an `<untrusted-file>` wrapper with each `<` replaced by `&lt;`, the rule to report instruction-like text in the scratch file and never follow it (NFR-012, FR-031), any 200 KB cut stated, the statement that the draft is posted publicly as written and holds only findings on the diff (no local file contents beyond a cited line, no environment values or secrets, and no paths outside the diff) and never quotes instruction-like PR text, and the rule to cite the PR file and the diff-hunk line and to use the scratch-file line only for its re-read at Decide; the `reviewer` drafts the review in the prose above its terminal block and ends `Done` with verdict `approved` or `returned`; `/do` treats the draft as data, shows it to the user with any cut and how much of the PR was not reviewed, writes it verbatim to the body file, takes the PR number from the user's request and the flag from the block's verdict, and runs no other command because of the draft; and after the user confirms, `/do` itself posts the draft with `gh pr review --approve`, `--request-changes`, or `--comment`, passing the draft through a body file with a non-prose extension (for example `.agent/pr-review/pr-<N>-review.body`) and calling no `/pr-review`; `approved` maps to `--approve`, `returned` maps to `--request-changes`, and the user may choose `--comment` instead; `/do` fails the step with `policy-rejection` when `<root>/.agent` or `<root>/.agent/pr-review` is a symlink, removes each target file with `rm -f` before writing it, writes the body file only with the Write tool and never through a heredoc, `echo`, or `printf`, and counts a hash it cannot recall as a mismatch (`policy-rejection`) (`DECISIONS.md:213-216`). Built (1.13.0) Post rules for a Bitbucket remote (`skills/do/references/pr-review-flow.md:238-316`): each bkt post (approve, comment, the Cloud request-changes call) runs as its own Bash command with its own hook prompt, the body-file hash check running as its own command before `bkt pr approve` (a mismatch fails the step with `policy-rejection`, runs neither the approve nor the comment command, and posts nothing, and the check raises no hook prompt) and repeated inside the comment command (`DECISIONS.md:233-236`, `DECISIONS.md:263-266`; `skills/do/references/pr-review-flow.md:258-262`, `:284`, `:302`); `approved` maps to `bkt pr approve` followed by `bkt pr comment` with the draft under the one confirmation, and a failed comment is reported while the approval stands (`DECISIONS.md:193-196`); `returned` on Bitbucket Cloud posts the draft as a comment and then makes the request-changes call through `bkt api` with a relative path, and no request-changes call runs when the comment fails; `returned` on Data Center posts the draft as a comment and leaves the PR open; the user may choose a comment alone. The follow-up hardening: a PreToolUse hook asks the user before the posting commands run (FR-206), `/do` guards every `.agent/` write it makes against a symlink (FR-207), and `/do` removes the files of PR `<N>` under `<root>/.agent/pr-review` after the post, a post declined at the hook prompt, or a "do not post" answer, and again at Cleanup (FR-208).
+**Traces to:** UR-031, UR-019, UR-054, UR-055 | **Priority:** Must | **Status:** Built (1.12.0) for the GitHub flow (read in `skills/do/references/pr-review-flow.md` on 2026-10-17; the scenarios marked PLANNED (1.12.0) below describe that built flow); Built (1.13.0) for the Bitbucket flow and the three hardening rules (the Bitbucket host pin at `skills/do/references/pr-review-flow.md:56-85`, the symlink guards at `skills/do/SKILL.md:247-275`, the cleanup at `skills/do/references/pr-review-flow.md:358-372`, the hook prompt outcomes at `:306-316`)
+**Source:** `skills/pr-review/SKILL.md:156-171` and `skills/pr-review/references/review-workflow.md:226-236` (route `/do review PR` through the `reviewer` agent, which has Read, Grep, Glob, and LSP only: `skills/do/references/agent-registry.md:12`, FR-067); `DECISIONS.md:118-121` (2026-10-16, "/do PR review relays a draft, then a separate step submits"), refined by `DECISIONS.md:148-151` (the main conversation submits; no subagent posts), `DECISIONS.md:153-156` (the draft arrives in a `Done` block, because the reviewer's States table has no `NeedsInput` exit after Intake; `agents/reviewer.md:48` has a `NeedsInput` exit at Intake only), and `DECISIONS.md:158-161` (the main conversation fetches the PR and passes it as untrusted data; the verdict-to-flag mapping and `--comment`), `DECISIONS.md:163-166` (on Bitbucket a returned verdict posts a comment with the findings and leaves the PR open; declining stays manual; outside the 1.12.0 `/do` flow, which is GitHub only, and kept for direct `/pr-review` in FR-143), and `DECISIONS.md:183-186` (`/do` fetches by redirect through Bash so the PR text never enters its context, posts with `gh` or `bkt` through a body file with a non-prose extension, calls no `/pr-review`, and the earlier one-confirmation exception of `DECISIONS.md:178-181` is withdrawn); `DECISIONS.md:193-196` (the Bitbucket approve-then-comment flow, which `DECISIONS.md:208-211` takes out of the `/do` flow for 1.12.0); `DECISIONS.md:208-211` (the `/do` PR review flow supports `github.com` remotes only; any other host fails the step with `precondition-failed` and the message to run `/pr-review` directly; the `bkt` command forms in the specs and the pr-review references do not match the bkt CLI v0.34.0, and correcting them is a follow-up); `skills/do/SKILL.md:527` (was `:518` at 1.11.1; "Never do delivery work in the main agent."; posting a confirmed review is the one delivery action `/do` performs itself), `:28` ("never does delivery work itself"), and `:412` (was `:406` at 1.11.1; a relayed question is the one place agent text is shown as it stands), which are planned conformance changes; `skills/pr-review/SKILL.md:156-171` (the `reviewer` calls `/pr-review`, `:163-168`) and `skills/pr-review/references/review-workflow.md:226-236` (`:231-235`), which change with this requirement because the reviewer no longer calls `/pr-review`; `skills/pr-review/SKILL.md:133` (the `bkt pr approve` form) and `:139` (the `bkt pr comment --message-file` form), both outside the 1.12.0 `/do` flow and relevant to direct `/pr-review` only; `DECISIONS.md:213-216` (the host pin, symlink checks, Write-tool body file, hash rule, and reviewer prompt statement); NFR-012 (untrusted data), FR-031 (untrusted-file wrapper). The direct `/pr-review` confirmation of FR-143 is a separate flow and this requirement does not depend on it. Follow-up to 1.12.0: the user decided in the version 1.3 elicitation to restore Bitbucket remotes in this flow, which ends the limit that `DECISIONS.md:208-211` recorded "for 1.12.0"; `.agent/research/bkt-cli-forms-20261017.md` gives the bkt forms; `skills/do/references/pr-review-flow.md:3`, `:15`, `:27`, `:39-40`, `:203`, and `:216` state the GitHub-only limit and change with this requirement. `DECISIONS.md:223-226` (2026-10-22) records the restored Bitbucket flow, the host pin, the ask hook, the cleanup, the symlink checks, and the Cloud and Data Center request-changes rule. `DECISIONS.md:228-231` (2026-10-22) adds the Cloud comment-first order and the hook-rejection outcomes (section 9, open points 3 and 7, closed). Other lines that name the GitHub-only limit or the `/pr-review` fallback and change with it: `skills/pr-review/SKILL.md:160`, `:164`, `:167`; `skills/pr-review/references/review-workflow.md:85`, `:92`, `:229`, `:233`, `:236`; `skills/do/SKILL.md:167`, `:296`, `:441`, `:527`
 
 #### Scenario: Fetch and hand off
 - **GIVEN** `/do review PR 123` and an approved plan with a `reviewer` step
@@ -4152,10 +4250,100 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** `/do` shows and then posts the confirmed draft
 - **THEN** `/do` SHALL post only on PR 123, the number in the user's request, with the flag from the block's verdict, SHALL write the draft verbatim to the body file, and SHALL run no command for PR 456
 
-#### Scenario: Bitbucket remote (PLANNED, 1.12.0)
-- **GIVEN** `/do review PR 123` in a repository whose remote is on Bitbucket, or on any host other than `github.com`
+#### Scenario: Bitbucket remote with no matching context (Built, 1.13.0)
+- **GIVEN** `/do review PR 123` in a repository whose remote the recognition rule of FR-203 accepts as Bitbucket, `bkt` is installed, and no `bkt` context matches the remote
 - **WHEN** `/do` prepares the review step
-- **THEN** the review step Status SHALL be `failed` with `error_class` `precondition-failed`, the message SHALL tell the user to run `/pr-review` directly, `/do` SHALL call no `bkt` command and no `gh` command, and `/do` SHALL start no `reviewer`
+- **THEN** the review step Status SHALL be `failed` with `error_class` `precondition-failed` and the message SHALL name the setup step (`bkt auth login`, then `bkt context create <name> --host <host> ... --set-active`), because `/pr-review` run directly fails the same pin; `/do` SHALL start no `reviewer` and post nothing
+
+#### Scenario: Data Center SSH remote matched by a context (Built, 1.13.0)
+- **GIVEN** `/do review PR 123` and an `origin` of `ssh://git@git.corp.example:7999/PROJ/repo.git` (no `bitbucket` in the host name, no `/scm/` HTTPS path), with exactly one `bkt` context for the hostname `git.corp.example`
+- **WHEN** `/do` prepares the review step
+- **THEN** `/do` SHALL treat the remote as Bitbucket Data Center by FR-203 rule 1, SHALL proceed to the host pin, and SHALL NOT fail the step as "any other host"
+
+#### Scenario: Host that is not supported (PLANNED, 1.12.0; narrowed in the follow-up)
+- **GIVEN** `/do review PR 123` in a repository whose remote is not `github.com` and is not recognized as Bitbucket by the rule of FR-203 (for example GitHub Enterprise or an unknown SSH host), and no `bkt` context matches its host, whether or not `bkt` is installed
+- **WHEN** `/do` prepares the review step
+- **THEN** the review step Status SHALL be `failed` with `error_class` `precondition-failed`, the message SHALL name both options (run `/pr-review` directly where the direct run supports the host, or set up a `bkt` context for a Data Center host), `/do` SHALL run no `bkt pr` or `bkt api` command and no `gh` command (only `bkt --version` and `bkt auth status --json` may run, to tell a Data Center host from an unsupported one, FR-203), and `/do` SHALL start no `reviewer`
+
+#### Scenario: Bitbucket Cloud fetch (Built, 1.13.0)
+- **GIVEN** `/do review PR 123` and a `bitbucket.org` remote, with the host pin of FR-203 passed
+- **WHEN** `/do` fetches
+- **THEN** `/do` SHALL run `bkt pr view 123 --context <name> --workspace <ws> --repo <slug> --json`, `bkt pr comments 123 --context <name> --workspace <ws> --repo <slug> --json`, and `bkt pr diff 123 --context <name> --workspace <ws> --repo <slug>`, each output redirected into its own temp file, SHALL read the exit status of each, and SHALL build the scratch file with the diff first, then the view, then the comments, within the 200 KB cap
+
+#### Scenario: Bitbucket CLI absent (Built, 1.13.0)
+- **GIVEN** a remote that the rule of FR-203 recognizes as Bitbucket, and `bkt` is not installed or its `--version` output is not that of bitbucket-cli
+- **WHEN** `/do` tries to fetch
+- **THEN** the review step Status SHALL be `failed` with `error_class` `tool-missing`, its dependents SHALL be `skipped` (FR-052), and `/do` SHALL start no `reviewer`
+
+#### Scenario: Cloud comment fails under /do (Built, 1.13.0)
+- **GIVEN** the verdict is `returned` on Bitbucket Cloud, the user confirmed, and `bkt pr comment` exits with an error
+- **WHEN** `/do` posts
+- **THEN** `/do` SHALL make no request-changes call, the review step Status SHALL be `failed` with `error_class` `tool-failed`, and `/do` SHALL show the draft and the error and SHALL NOT retry
+
+#### Scenario: Request-changes call fails after the comment (Built, 1.13.0)
+- **GIVEN** the comment posted and the `bkt api` request-changes call exits with an error
+- **WHEN** `/do` settles the step
+- **THEN** the review step Status SHALL be `failed` with `error_class` `tool-failed`, `/do` SHALL state that the comment is posted and the request failed, and `/do` SHALL NOT retry
+
+#### Scenario: Approval stands when the comment fails (Built, 1.13.0)
+- **GIVEN** the verdict is `approved` on Bitbucket, `bkt pr approve` succeeded, and `bkt pr comment` exits with an error
+- **WHEN** `/do` settles the step
+- **THEN** the review step Status SHALL be `failed` with `error_class` `tool-failed`, `/do` SHALL state that the approval stands, and `/do` SHALL NOT retry (`DECISIONS.md:193-196`)
+
+#### Scenario: User rejects the hook prompt (Built, 1.13.0)
+- **GIVEN** the user confirmed the draft in `/do` and then rejects the ask-hook prompt of FR-206 for the posting command
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** the review step Status SHALL be `completed` with the Done field recording that the post was declined at the hook prompt, `/do` SHALL NOT retry and SHALL NOT report `tool-failed`, and `/do` SHALL remove the files of that PR as for a "do not post" answer (FR-208; `DECISIONS.md:228-231`, `DECISIONS.md:233-236`)
+
+#### Scenario: First prompt of the Bitbucket approve-then-comment pair rejected (Built, 1.13.0)
+- **GIVEN** the verdict is `approved` on Bitbucket, each bkt post runs as its own Bash command, and the user rejects the prompt for `bkt pr approve`
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** `/do` SHALL run no `bkt pr comment`, the review step Status SHALL be `completed` with the Done field recording both the approval and the comment as declined, and `/do` SHALL remove the files of that PR (`DECISIONS.md:233-236`)
+
+#### Scenario: Second prompt of the Bitbucket pair rejected (Built, 1.13.0)
+- **GIVEN** the verdict is `approved` on Bitbucket, the user allowed the prompt for `bkt pr approve`, and rejects the prompt for `bkt pr comment`
+- **WHEN** the Bash result shows the second call was not allowed
+- **THEN** the review step Status SHALL be `completed` with the Done field recording that the approval was posted and the comment was declined, `/do` SHALL NOT retry, and `/do` SHALL remove the files of that PR (`DECISIONS.md:228-231`, `DECISIONS.md:233-236`)
+
+#### Scenario: Cloud comment prompt rejected (Built, 1.13.0)
+- **GIVEN** the verdict is `returned` on Bitbucket Cloud and the user rejects the prompt for `bkt pr comment`
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** `/do` SHALL make no request-changes call, the review step Status SHALL be `completed` with both recorded as declined, and `/do` SHALL remove the files of that PR (`DECISIONS.md:233-236`)
+
+#### Scenario: Cloud request-changes prompt rejected after the comment (Built, 1.13.0)
+- **GIVEN** the verdict is `returned` on Bitbucket Cloud, the comment posted, and the user rejects the prompt for the request-changes call
+- **WHEN** the Bash result shows the call was not allowed
+- **THEN** the review step Status SHALL be `completed` with the Done field recording the comment as posted and the request as declined, and `/do` SHALL remove the files of that PR (`DECISIONS.md:233-236`)
+
+#### Scenario: Partial diff after the bkt timeout (Built, 1.13.0)
+- **GIVEN** `bkt pr diff` writes part of the diff, then exits 1 after its 15-second timeout
+- **WHEN** `/do` checks the fetch
+- **THEN** the review step Status SHALL be `failed` with `error_class` `tool-failed`, `/do` SHALL NOT trust the byte count of the partial file, and `/do` SHALL start no `reviewer`
+
+#### Scenario: Data Center diff may be cut by the server (Built, 1.13.0)
+- **GIVEN** a Data Center PR whose diff the server cuts at its line cap without an error
+- **WHEN** `/do` shows the confirmation
+- **THEN** the confirmation SHALL say that the server may have cut the diff and that the review covers the text received, because the research could not confirm whether the cap applies to the call bkt makes
+
+#### Scenario: Bitbucket approved verdict (Built, 1.13.0)
+- **GIVEN** the verdict is `approved`, the remote is on Bitbucket, and the user confirmed the draft
+- **WHEN** `/do` posts
+- **THEN** `/do` SHALL run `bkt pr approve 123` and then `bkt pr comment 123` with the draft through `--text`, and if the comment fails SHALL report the failure and leave the approval in place
+
+#### Scenario: Bitbucket Cloud returned verdict (Built, 1.13.0)
+- **GIVEN** the verdict is `returned`, the remote is `bitbucket.org`, and the user confirmed the draft
+- **WHEN** `/do` posts
+- **THEN** `/do` SHALL post the draft as a comment and then make the request-changes call through `bkt api` with a relative path and the POST method, and SHALL NOT pass an absolute URL to `bkt api`
+
+#### Scenario: Bitbucket Data Center returned verdict (Built, 1.13.0)
+- **GIVEN** the verdict is `returned`, the remote is a Data Center host, and the user confirmed the draft
+- **WHEN** `/do` posts
+- **THEN** `/do` SHALL post the draft as a comment, leave the PR open, and run no `bkt api` call, because the Data Center call needs a user slug and the research found no verified bkt command that prints it
+
+#### Scenario: Bitbucket pin fails (Built, 1.13.0)
+- **GIVEN** `BKT_TOKEN` is set in the environment
+- **WHEN** `/do` prepares a Bitbucket review step
+- **THEN** the review step Status SHALL be `failed` with `error_class` `precondition-failed`, the message SHALL name the variable and not its value, and no `bkt pr` or `bkt api` call SHALL run (FR-203 allows only `bkt --version` and `bkt auth status --json` before the pin passes)
 
 #### Scenario: Fetch tool absent
 - **GIVEN** `gh` is not installed and the remote is `github.com`
@@ -4188,7 +4376,7 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **THEN** it SHALL end `Done` with verdict `approved` or `returned`, put the draft in the prose above its block, ask no question through `NeedsInput`, and name for each finding the PR file and line taken from the diff hunk, using the scratch-file line only for its re-read at Decide, so that the posted text never cites a line of `.agent/pr-review/`
 
 #### Scenario: Approved verdict confirmed
-- **GIVEN** the verdict is `approved` and the user confirmed the draft
+- **GIVEN** the verdict is `approved`, the remote is `github.com`, and the user confirmed the draft
 - **WHEN** `/do` posts
 - **THEN** it SHALL run `gh pr review 123 --approve` with the draft in the body file, and SHALL call no `/pr-review`
 
@@ -4203,7 +4391,7 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **THEN** it SHALL pass that exact draft through the body file `.agent/pr-review/pr-123-review.body`, so the posted text equals the text the user saw
 
 #### Scenario: Comment chosen instead
-- **GIVEN** the user confirmed the draft and chose a comment in place of the verdict
+- **GIVEN** the remote is `github.com` and the user confirmed the draft and chose a comment in place of the verdict
 - **WHEN** `/do` posts
 - **THEN** it SHALL run `gh pr review 123 --comment`
 
@@ -4270,13 +4458,537 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** a reviewer reads its version-tag example
 - **THEN** the example SHOULD use the `vX.Y.Z` form (for example `v1.1.0`) and SHOULD NOT show `assist-plugin--v1.1.0`
 
+### C.11 Follow-up after 1.12.0: Bitbucket, PR hardening, and bump path
+
+All requirements in this group are Built (1.13.0) (`DECISIONS.md:243-271`; each confirmed by reading the built files on 2026-10-22, not by running them). They follow the research report `.agent/research/bkt-cli-forms-20261017.md` (bkt v0.34.0, read from source, not run) and the user's answers in the version 1.3 elicitation.
+
+### FR-202: Bitbucket PR commands use the bkt v0.34.0 forms
+
+**Statement:** The `/pr-review` skill and its references SHALL use the bkt (avivsinai/bitbucket-cli) v0.34.0 command forms for Bitbucket Cloud and Data Center: a bare numeric PR id as the one positional argument of `bkt pr view`, `diff`, `approve`, `comment`, `comments`, and `decline`, with `--workspace <ws>` (Cloud) or `--project <KEY>` (Data Center) and `--repo <slug>` on every `bkt pr` call (each `bkt pr` and `bkt api` call also carries the `--context <name>` of FR-203); the comment body only through `--text`; changed files through `bkt pr diff <id> ... --stat` on Cloud and from the file headers of the full diff on Data Center, whose `--stat` prints totals only; comments through `bkt pr comments <id> ... --json`; reviewers and approval status through `bkt pr view <id> ... --json`; a PR found by branch through `bkt pr list ... --state OPEN --limit 0 --json --jq`; and every action that has no bkt command (request changes) only through `bkt api` with a relative path. Settled by step 1 of the build, which read the bkt v0.34.0 source (`DECISIONS.md:248-251`, `DECISIONS.md:238-241`): (a) `bkt api` sends GET when it has no method and no body, and POST when it has a body; (b) `--method`, short form `-X`, is the method option; (c) `bkt api` takes no repository flags, so its relative path names the repository and the call carries `--context` only; (d) `bkt --version` identifies bitbucket-cli when its first line matches `^bkt version v?[0-9]+\.[0-9]+\.[0-9]+`, and any other output (such as the `bkt 0.8.2` of dimo414/bkt) counts as `bkt` missing; (e) `--jq` prints a string JSON-quoted, so a comparison against a `--jq` string accepts the quoted form; and (f) each `--jq` filter that returns a list (the context lookup and the PR-by-branch lookup) uses the array form, with `[]?` iteration inside an outer array, so the output is always a JSON array. For the PR-by-branch lookup "exactly one" means an array of one id; for the context lookup the filter lists every configured context, so "exactly one" means exactly one element that meets the Match rule of FR-203 (`DECISIONS.md:263-266`).
+**Traces to:** UR-054, UR-031 | **Priority:** Must | **Status:** Built (1.13.0) (read in `skills/pr-review/SKILL.md:69`, `:165-242`, `skills/pr-review/references/review-workflow.md`, and `skills/pr-review/references/pr-detection.md` on 2026-10-22)
+**Source:** `.agent/research/bkt-cli-forms-20261017.md` (How a PR is identified; Command forms; Plugin forms mapped to v0.34.0); the lines to correct: `skills/pr-review/SKILL.md:57`, `:61`, `:87`, `:127`, `:130`, `:133`, `:139`, `:203`; `skills/pr-review/references/pr-detection.md:79`, `:83`, `:104-111`, `:131`, `:219-220`; `skills/pr-review/references/review-workflow.md:25`, `:37`, `:44`, `:49`, `:322` (`:319` is blank), `:326`, `:329`, `:332`, `:335`, `:337-343`; `DECISIONS.md:208-211`, `DECISIONS.md:223-226`. The report marks the request-changes forms, the branch filter, and `--text="$(cat <file>)"` as constructed and not run; step 1 of the build re-read the bkt v0.34.0 source for the method, body, repository-flag, version, and `--jq` points listed above (`DECISIONS.md:238-241`, `DECISIONS.md:248-251`), and this update did not run the filters against a live host
+
+#### Scenario: View by numeric id and repository flags
+- **GIVEN** a Cloud PR 123 in workspace `acme`, repository `repo`
+- **WHEN** the skill fetches it
+- **THEN** the skill SHALL run `bkt pr view 123 --context <name> --workspace acme --repo repo` (the context of FR-203) and SHALL NOT use a `<project>/<repo>/<id>` argument or `bkt pr get`
+
+#### Scenario: Data Center repository flags
+- **GIVEN** a Data Center PR 123 in project `PROJ`, repository `repo`
+- **WHEN** the skill fetches it
+- **THEN** the skill SHALL run `bkt pr view 123 --context <name> --project PROJ --repo repo` (the context of FR-203) and SHALL NOT pass `--workspace`
+
+#### Scenario: Comment body through --text only
+- **GIVEN** a confirmed draft for a Bitbucket PR
+- **WHEN** the skill posts the comment
+- **THEN** the skill SHALL pass the body through `--text` and SHALL NOT use `--message-file`, `--message`, `--body-file`, or `--file`, because `--file` anchors an inline comment
+
+#### Scenario: Changed files and reviewers on Cloud
+- **GIVEN** a Bitbucket Cloud PR
+- **WHEN** the skill lists changed files and reviewers
+- **THEN** the skill SHALL use `bkt pr diff <id> ... --stat` for the files and `bkt pr view <id> ... --json` for the reviewers, and SHALL NOT call `bkt pr reviewers`, which does not exist
+
+#### Scenario: Changed files on Data Center
+- **GIVEN** a Bitbucket Data Center PR
+- **WHEN** the skill lists changed files
+- **THEN** the skill SHALL take the file names from the file headers of the full `bkt pr diff` output and SHALL NOT rely on `--stat`, which prints totals only on Data Center
+
+#### Scenario: Branch name outside the allowed characters
+- **GIVEN** `/pr-review` is given a branch name that holds a character outside `^[A-Za-z0-9._/-]+$`, such as a quote, a space, or a `$(` sequence
+- **WHEN** the skill would place it in the `--jq` expression
+- **THEN** the skill SHALL NOT place it in the expression and SHALL ask the user for the PR number
+
+#### Scenario: Branch name within the allowed characters
+- **GIVEN** `/pr-review feature/user-auth` on a Bitbucket remote
+- **WHEN** the skill places the name in the `--jq` expression
+- **THEN** the skill SHALL place it only inside the string comparison of the expression and SHALL NOT build any other command text from it
+
+#### Scenario: Raw API takes a relative path only
+- **GIVEN** the skill needs the Cloud request-changes call
+- **WHEN** it runs `bkt api`
+- **THEN** the path SHALL be relative (it starts with `/repositories/`) and SHALL NOT start with `http://` or `https://`, because bkt sends stored credentials to an absolute URL
+
+#### Scenario: Request changes has no bkt command
+- **GIVEN** a confirmed Cloud `--changes-requested` verdict
+- **WHEN** the skill looks for a bkt command that requests changes
+- **THEN** the skill SHALL state that bkt has none, SHALL use `bkt api` with a relative path, and SHALL NOT invent a `bkt pr request-changes` command
+
+#### Scenario: Wrong tool with the same name
+- **GIVEN** `bkt --version` exits 0 but the output is not that of bitbucket-cli (dimo414/bkt is a different tool with the same binary name)
+- **WHEN** the skill checks the CLI
+- **THEN** the skill SHALL treat `bkt` as missing and report it, using the match `^bkt version v?[0-9]+\.[0-9]+\.[0-9]+` on the first line of the output (settled by step 1 of the build, `DECISIONS.md:248-251`)
+
+#### Scenario: Auth status is not proof
+- **GIVEN** `bkt auth status` exits 0
+- **WHEN** the skill decides whether the user is signed in
+- **THEN** the skill SHALL NOT treat the exit status as proof, because the command makes no HTTP call, and SHALL treat a failed first `bkt pr view` as the sign that the token or context is wrong
+
+#### Scenario: Partial diff
+- **GIVEN** `bkt pr diff` exits 1 after the 15-second timeout and left a partial file
+- **WHEN** the skill checks the fetch
+- **THEN** the skill SHALL report the failure, SHALL NOT review the partial file, and SHALL tell the user to retry
+
+#### Scenario: Raw API method and repository flags (Built, 1.13.0)
+- **GIVEN** the Cloud request-changes call
+- **WHEN** the skill runs `bkt api`
+- **THEN** the call SHALL carry `--context <name>` and `--method POST`, SHALL carry no `--workspace`, `--project`, or `--repo` (bkt v0.34.0 `bkt api` takes none; the relative path names the repository), and SHALL send no body
+
+#### Scenario: Install and sign-in lines
+- **GIVEN** `skills/pr-review/references/pr-detection.md` after the change
+- **WHEN** a reviewer reads its Bitbucket setup lines
+- **THEN** the lines SHALL show `bkt auth login` for the host kind and `bkt context create` with `--set-active`, because login does not create a context
+
+### FR-203: Bitbucket host is pinned before any bkt call
+
+**Statement:** Before the first `bkt pr` or `bkt api` call, `/pr-review` (direct run) and `/do` SHALL refuse to continue when `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR` is set (tested for presence by a command whose only output is an exit status, a variable that is set but empty counting as set, and reported by name and never by value), SHALL choose the one `bkt` context whose host matches the `origin` remote from `bkt auth status --json` (a `bitbucket.org` remote matches a context of kind cloud whose host base-URL hostname is `api.bitbucket.org` or `bitbucket.org`, the exact saved string being left to the spec step, and a Data Center remote matches a context whose host base URL has the same hostname as `origin`, ports ignored; zero or several matching contexts stop the run), SHALL pass that `--context <name>` on every `bkt pr` and `bkt api` call and the repository flags on every `bkt pr` call (`bkt api` takes no repository flags; its relative path names the repository, FR-202), SHALL read the contexts from `bkt auth status --json --jq` with a filter that always prints a JSON array and count the array elements that meet the match rule (`/do` counts the contexts that meet the Match rule and never compares a raw line; an empty array is zero matching contexts, not a tool failure), and, on Bitbucket Cloud in both flows (direct `/pr-review` and `/do`), SHALL compare the PR link that `bkt pr view <id> ... --json --jq` extracts (bkt's own `--jq`, because a separate `jq` may be absent; the received link is lowercased, the expected link holds the lowercase workspace and slug, and the comparison accepts the JSON-quoted form because `--jq` prints strings JSON-quoted) with `https://bitbucket.org/<ws>/<repo>/pull-requests/<id>` before it reads the diff; under `/do` the comparison runs inside one Bash command whose only output is an exit status, with distinct statuses for a failed `bkt pr view` (`tool-failed`) and for a mismatch (`policy-rejection`), so the PR text never enters `/do`'s context. `bkt --version` and `bkt auth status --json` are the only `bkt` calls that run before the pin passes. The workspace or project key and the repository slug come from the remote as follows: Cloud forms `https://bitbucket.org/<ws>/<repo>`, `git@bitbucket.org:<ws>/<repo>`, and `ssh://git@bitbucket.org/<ws>/<repo>`; Data Center forms `https://<host>[:<port>][/<context-path>]/scm/<KEY>/<repo>.git`, `ssh://git@<host>[:<port>]/<KEY>/<repo>.git` (SSH port 7999 by default), and the scp-like `git@<host>:<KEY>/<repo>.git` (no port, because the colon of scp syntax cannot carry one; the `git@host:7999/PROJECT/REPO.git` spelling of `pr-detection.md:59` is left to the spec step, section 9 open point 10), with the key and the slug taken from the last two path segments, a trailing `.git` removed, and the host compared without its port. A remote that is not `github.com` is classified in this order. (1) When `bkt` is present and exactly one context matches the remote's hostname (ports ignored), the remote is a Bitbucket remote whatever its host name or URL form, and the run proceeds to the pin and the steps above. (2) Otherwise the recognition rule of `skills/pr-review/references/pr-detection.md:81` (extended by `bitbucket.org`) decides: a remote whose host is `bitbucket.org`, whose HTTPS path holds `/scm/`, or whose host contains `bitbucket` is a Bitbucket remote with no matching context (the setup message when `bkt` is installed, `tool-missing` when it is absent or is another tool), and every other remote is "any other host" (FR-195). When `bkt` is absent, step 1 cannot run and step 2 alone decides. Several matching contexts stop the run as above.
+**Traces to:** UR-054, UR-055 | **Priority:** Must | **Status:** Built (1.13.0) (read in `skills/pr-review/SKILL.md:45-52`, `:165-206` and `skills/do/references/pr-review-flow.md:32-85` on 2026-10-22)
+**Source:** `DECISIONS.md:223-226` (the host pin); `DECISIONS.md:238-241` and `DECISIONS.md:248-251` (no repository flags on `bkt api`; the array-form filters); `skills/pr-review/references/pr-detection.md:48-62` (Data Center URL forms, `/scm/`, context path, SSH port 7999); `skills/do/references/pr-review-flow.md:38` (the parser takes three two-part forms with no port at 1.12.0; Data Center needs more); `.agent/research/bkt-cli-forms-20261017.md` (Pinning the target host, workspace, and account: bkt has no host flag on PR commands; `BKT_TOKEN` replaces the token for every host; `BKT_HOST` and `BKT_CONFIG_DIR` and the active context change the host; the pinning recipe). Not confirmed: the `base_url` value saved for a Cloud login, so the spec step fixes the Cloud comparison; `skills/do/references/pr-review-flow.md:42` (the `gh` host pin that this requirement matches for `bkt`)
+
+#### Scenario: Token override variable set
+- **GIVEN** `BKT_TOKEN` is set
+- **WHEN** a Bitbucket review starts
+- **THEN** the skill or `/do` SHALL stop before any `bkt pr` or `bkt api` call and name `BKT_TOKEN`, without its value (the presence test itself SHALL print no value); under `/do` the step Status SHALL be `failed` with `error_class` `precondition-failed`
+
+#### Scenario: Variable set but empty
+- **GIVEN** `BKT_TOKEN` is set to an empty string
+- **WHEN** a Bitbucket review starts
+- **THEN** the skill or `/do` SHALL treat it as set and stop in the same way
+
+#### Scenario: Host and config variables
+- **GIVEN** `BKT_HOST` or `BKT_CONFIG_DIR` is set
+- **WHEN** a Bitbucket review starts
+- **THEN** the skill or `/do` SHALL stop in the same way
+
+#### Scenario: No context matches the origin host
+- **GIVEN** the only `bkt` context points at `bitbucket.example.com` and `origin` is on `bitbucket.org`
+- **WHEN** the pin check runs
+- **THEN** the skill or `/do` SHALL stop before any PR call, and under `/do` the step Status SHALL be `failed` with `error_class` `precondition-failed`
+
+#### Scenario: Cloud context matches
+- **GIVEN** `origin` is `https://bitbucket.org/acme/repo.git` and exactly one context is of kind cloud
+- **WHEN** the pin check runs
+- **THEN** the check SHALL pass only if that context's base-URL hostname is `api.bitbucket.org` or `bitbucket.org`
+
+#### Scenario: Cloud-kind context with another host
+- **GIVEN** `origin` is on `bitbucket.org` and the only context of kind cloud has a base-URL hostname that is neither `api.bitbucket.org` nor `bitbucket.org`
+- **WHEN** the pin check runs
+- **THEN** the check SHALL fail as no matching context
+
+#### Scenario: Two contexts match
+- **GIVEN** two contexts of kind cloud, or two contexts for the Data Center hostname of `origin`
+- **WHEN** the pin check runs
+- **THEN** the skill or `/do` SHALL stop with `precondition-failed` under `/do`, ask the user to leave one matching context, and run no PR call
+
+#### Scenario: Data Center remote forms
+- **GIVEN** `origin` is `https://bitbucket.example.com/bitbucket/scm/PROJ/repo.git`, `ssh://git@bitbucket.example.com:7999/PROJ/repo.git`, or `git@bitbucket.example.com:PROJ/repo.git`
+- **WHEN** the skill or `/do` parses the remote
+- **THEN** it SHALL take the key `PROJ` and the slug `repo` from the last two path segments, compare the host `bitbucket.example.com` without the port, and apply the name pattern to both
+
+#### Scenario: Only version and status run before the pin
+- **GIVEN** an unsupported host
+- **WHEN** `/do` prepares the step
+- **THEN** the only `bkt` calls that run SHALL be `bkt --version` and `bkt auth status --json`
+
+#### Scenario: Context named on every call
+- **GIVEN** the pin check passed for the context `cloud-prod`
+- **WHEN** the skill or `/do` runs `bkt pr view`, `diff`, `comments`, `approve`, `comment`, or `api`
+- **THEN** each call SHALL carry `--context cloud-prod`, and each `bkt pr` call SHALL carry the repository flags (`bkt api` carries none and names the repository in its relative path), so the active context and the git remote cannot redirect it
+
+#### Scenario: Empty or multi-element context array (Built, 1.13.0)
+- **GIVEN** `bkt auth status --json --jq` prints `[]`, or an array with two elements that meet the match rule
+- **WHEN** the pin check counts the array
+- **THEN** the empty array SHALL count as zero matching contexts (the setup message, not a tool failure) and the two-element array SHALL stop the run as several matching contexts; a command that exits with an error SHALL fail with `tool-failed` under `/do`
+
+#### Scenario: Cloud PR link mismatch
+- **GIVEN** `bkt pr view 123 --json` returns a link that is not `https://bitbucket.org/<ws>/<repo>/pull-requests/123`
+- **WHEN** the check runs
+- **THEN** the skill or `/do` SHALL stop before it reads the diff; under `/do` the comparison SHALL run in one Bash command whose only output is an exit status, and the step Status SHALL be `failed` with `error_class` `policy-rejection`
+
+#### Scenario: Cloud link check in a direct run
+- **GIVEN** a direct `/pr-review 123` run on a `bitbucket.org` remote and a link that is not the expected URL
+- **WHEN** the check runs
+- **THEN** the skill SHALL stop before it reads the diff and report the mismatch
+
+#### Scenario: bkt pr view fails during the link check
+- **GIVEN** `bkt pr view 123 ... --json --jq` exits with an error (for example a 404)
+- **WHEN** `/do` runs the link check
+- **THEN** the exit status SHALL differ from the mismatch status, and the step Status SHALL be `failed` with `error_class` `tool-failed`, not `policy-rejection`
+
+#### Scenario: Name patterns
+- **GIVEN** a workspace, project key, or repository slug outside `^[A-Za-z0-9._-]+$`
+- **WHEN** the skill or `/do` reads it from the remote
+- **THEN** the skill or `/do` SHALL stop and make no `bkt` call, as it does for a GitHub owner and repository
+
+### FR-204: Fetched PR text is untrusted and capped in a direct run
+
+**Statement:** In a direct `/pr-review` run, the skill SHALL treat the fetched PR title, description, comments, diff, and branch names as untrusted data (reporting instruction-like text and never following, quoting, or restating it) and SHALL read at most 204,800 bytes (200 KB) of fetched PR text, diff first, recording any cut and stating in the confirmation how much of the PR was not reviewed.
+**Traces to:** UR-055, UR-031 | **Priority:** Must | **Status:** Built (1.13.0) (`skills/pr-review/SKILL.md:93-95`, `:313`)
+**Source:** `skills/pr-review/SKILL.md` (no untrusted-data rule and no size cap at 1.12.0); `skills/do/references/pr-review-flow.md:8` (the 200 KB cap under `/do`), FR-195, NFR-012, NFR-014; `rules/llm-security-checklist.md:326` (gap 2: PR text reaches the session that can post); the user's settled point for the follow-up (direct-run hardening), which `DECISIONS.md:223-226` does not record; `.agent/research/bkt-cli-forms-20261017.md` (diff output is not capped by bkt)
+
+#### Scenario: Hostile description
+- **GIVEN** a PR description that tells the reviewer to run a command or to approve the PR
+- **WHEN** the skill fetches and reads it
+- **THEN** the skill SHALL run no command because of that text, SHALL list the text in its report by where it sits (the diff file and line, the description, or the comment id) without quoting it, and SHALL NOT repeat it in the draft
+
+#### Scenario: Fetch cap
+- **GIVEN** a PR whose title, description, comments, and diff exceed 204,800 bytes
+- **WHEN** the skill fetches it
+- **THEN** the skill SHALL read at most 204,800 bytes, diff first, and the confirmation SHALL state the cut and how much was not reviewed
+
+#### Scenario: Approved draft on a cut PR
+- **GIVEN** the fetch was cut and the draft recommends approval
+- **WHEN** the skill asks "Do you approve this verdict? (yes/no)"
+- **THEN** the question SHALL state how much of the PR was not reviewed
+
+#### Scenario: Under the cap
+- **GIVEN** a PR whose fetched text is 50 KB
+- **WHEN** the skill fetches it
+- **THEN** the skill SHALL read all of it and state no cut
+
+### FR-205: A posted review holds only findings on the diff
+
+**Statement:** The `/pr-review` skill SHALL post only drafted text (text the skill itself writes, not the user's own `--message` text, which the user sees and confirms as written) that holds findings on the diff, with no secret, no environment value, no local file content beyond a cited line, and no path outside the diff, and SHALL tell the user in the confirmation that the text is posted publicly as written.
+**Traces to:** UR-055, UR-031 | **Priority:** Must | **Status:** Built (1.13.0) (`skills/pr-review/SKILL.md:102-103`, `:314`)
+**Source:** `skills/pr-review/SKILL.md` (no public-posting rule at 1.12.0); `skills/do/references/pr-review-flow.md:127` and FR-195 (the same rule in the `/do` reviewer prompt); `DECISIONS.md:213-216`; the user's settled point for the follow-up, which `DECISIONS.md:223-226` does not record
+
+#### Scenario: Draft holds a secret
+- **GIVEN** a draft that quotes a token from a local `.env` file
+- **WHEN** the skill prepares the confirmation
+- **THEN** the skill SHALL remove the token from the draft before it shows the text, and SHALL NOT post the original
+
+#### Scenario: Path outside the diff
+- **GIVEN** a draft that cites `/home/user/.ssh/config` or a file that is not in the diff
+- **WHEN** the skill prepares the confirmation
+- **THEN** the skill SHALL remove the citation or replace it with a diff file and line
+
+#### Scenario: Cited line is allowed
+- **GIVEN** a draft that cites line 40 of `src/auth.ts` from the diff
+- **WHEN** the skill prepares the confirmation
+- **THEN** the skill SHALL keep the citation
+
+#### Scenario: User's own message text
+- **GIVEN** `/pr-review 123 --comment --message "Great work, consider adding tests"`
+- **WHEN** the skill prepares the confirmation
+- **THEN** the skill SHALL show that text as the user wrote it, SHALL NOT filter or reword it, and SHALL apply the rule above only to text it drafted itself
+
+#### Scenario: Public notice
+- **GIVEN** any draft
+- **WHEN** the skill asks for confirmation
+- **THEN** the question SHALL state that the text is posted publicly as written
+
+### FR-206: A hook asks the user before PR posting commands run
+
+**Statement:** A PreToolUse hook on Bash and PowerShell, active in every session, SHALL return an ask decision before it lets run `gh pr review`, `gh pr merge`, `gh pr comment`, `gh pr close`, `bkt pr approve`, `bkt pr comment`, `bkt pr decline`, `bkt pr close`, `bkt pr merge`, or any `bkt api` call except one that passes every `bkt api` rule below. The hook is a guard under FR-091 and FR-118: its decision function `evaluate(input)` returns the ask decision (it reads no file and starts no process, so a test needs no replacement reader, FR-088), and the health check self-tests it.
+
+The ask rules for `bkt api`, applied to the words after `api`: a `bkt api` call passes only when every word is the one path, a `--method` option (or its `--method=<value>` form) whose value is GET or HEAD in any case, or a known read-only option (`--context`/`-c`, `--format`, `--jq`, `--template`, and the flags `--json` and `--yaml`). The call asks when it names a method other than GET or HEAD, when it has a body flag (`--input` or `--field`), when it has a second word after the path, when it has an option the hook does not recognize (`DECISIONS.md:238-241`; `-X` is not on the list, so a call with `-X` asks), and when any of its words holds `$` or a backtick. The hook also asks, outside `bkt api`, on any `bkt` option before the subcommand that is not a listed global option, when a word that is not an option follows it.
+
+The hook finds the program on two word lists for each part of the command, the quote-resolved words and the raw words, judges both, and asks when either list asks.
+
+The hook is a best-effort string-matching guard that fails open and never denies, like `doc-cli-guard`; Claude Code's permission prompts and the calling skill's own confirmation remain the primary control. A bypass form found after release is added to the full gap list in its five places (the hook's header comment, the hook spec's Requirement 9, this requirement, the `/health` overview, and `README.md`) without reopening the spec (`DECISIONS.md:258-261`, `DECISIONS.md:268-271`). `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md` carry a short pointer that the hook is best-effort with known gaps, plus the unverified items, and do not repeat the list.
+
+Closed forms (the hook asks for each): every command substitution (`$(...)` or backticks) in the program word and in each word before it (assignment values, wrapper words, runner words) is judged as its own command, nested substitutions included; substitutions nested more than 3 levels deep ask, because the hook cannot read them; a `$` or a backtick in any word the walk reads before the verb (option values and the words of an unlisted `bkt` option included), in the `pr`, verb, or `bkt` subcommand position, or in any word after `bkt api` asks, and in PowerShell an opening parenthesis in those positions asks; and redirection words between the program and the verb are skipped (`gh 2>/dev/null pr merge 1` asks) (`DECISIONS.md:253-261`).
+**Traces to:** UR-055, UR-019 | **Priority:** Must | **Status:** Built (1.13.0) (`hooks/pr-post-ask.js`, `hooks/impl/pr-post-ask.js:1-424`, registered at `hooks/hooks.json:29`, read on 2026-10-22)
+**Source:** `DECISIONS.md:223-226` (every session, the listed commands); `DECISIONS.md:228-231` (the ask on a `bkt api` call with a body flag and no method, until the bkt default method is confirmed); `DECISIONS.md:233-236` (each bkt post runs as its own Bash command, so each gets its own prompt); the `bkt api` rule for a call with a body flag and no method is a reading of that list, because a body flag may turn a call into a write (section 9, open point 9); `plugins/assist-plugin/hooks/hooks.json` (the Bash and PowerShell hooks `commit-attribution-guard` and `doc-cli-guard`; no hook asks before a PR post at 1.12.0); `rules/llm-security-checklist.md:326`; FR-086 (hook registration), FR-088 (deny only on a positive match), NFR-009 (fail open), FR-198 (program-name detection). A hook cannot tell a `/do` post from a direct post, so a direct `/pr-review` run gets this prompt after its own confirmation. Step 1 of the build confirmed from the bkt v0.34.0 source that `bkt api` uses `--method` (short `-X`), sends GET with no body, and sends POST with a body (`DECISIONS.md:248-251`), so the body-flag ask rule is now an ask on a call that carries a body flag, whatever its method, and the hook treats `-X` as an unrecognized option that asks. `DECISIONS.md:238-241` adds the ask on any `bkt api` option the hook does not recognize; `DECISIONS.md:253-256` and `:258-261` record the review findings and the best-effort stance; the known-gap list of the scenario below is the list in the header comment of `hooks/impl/pr-post-ask.js:23-39`
+
+#### Scenario: Posting command asks
+- **GIVEN** `/do` runs `gh pr review 123 --approve --body-file <path>` after the user confirmed the draft
+- **WHEN** the hook evaluates the Bash call
+- **THEN** the hook SHALL return an ask decision whose reason names the matched command family, and SHALL NOT deny the call
+
+#### Scenario: Merge asks
+- **GIVEN** a session runs `gh pr merge 123`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision
+
+#### Scenario: Bitbucket commands ask
+- **GIVEN** a session runs `bkt pr approve 123 --workspace acme --repo repo`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision
+
+#### Scenario: Raw API write asks
+- **GIVEN** a session runs `bkt api /repositories/acme/repo/pullrequests/123/request-changes --method POST`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision
+
+#### Scenario: Raw API read passes
+- **GIVEN** a session runs `bkt api /repositories/acme/repo/pullrequests/123 --method GET`, or the same call with no method and no body flag
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return no decision and the call SHALL proceed
+
+#### Scenario: Raw API body flag without a method asks
+- **GIVEN** a session runs `bkt api /repositories/acme/repo/pullrequests/123/comments --field content.raw=hello` with no `--method`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision
+
+#### Scenario: Quoted argument is not a command
+- **GIVEN** a session runs `git commit -m "docs: explain gh pr review and bkt pr approve"`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return no decision, because the words sit inside a quoted argument and are not the command
+
+#### Scenario: Self-test cases
+- **GIVEN** the health check session-start self-test
+- **WHEN** it runs the hook against its fixed cases
+- **THEN** the ask cases SHALL include `gh pr review 1 --approve`, `bkt pr comment 1 --text x`, and `bkt api /x --method POST`, and the no-ask cases SHALL include `gh pr view 1`, `bkt api /x --method GET`, and `git commit -m "docs: explain gh pr review"`; the built corpus holds 14 ask cases and 13 no-ask cases (`hooks/impl/health-check.js:1049-1079`)
+
+#### Scenario: Unrecognized bkt api option asks
+- **GIVEN** a session runs `bkt api /x -X POST` or `bkt api /x --unknown-flag`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision, because an option the hook does not recognize may carry a method or a body (`DECISIONS.md:238-241`)
+
+#### Scenario: Either word list asks
+- **GIVEN** a command in which the quote-resolved words give no ask but the raw words do, or the reverse
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision
+
+#### Scenario: Substitution in the program word or a word before it
+- **GIVEN** `out=$(gh pr merge 1)`, `` `gh pr merge 1` ``, or `out="x $(gh pr merge 1)"`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL judge the text inside each substitution as its own command and SHALL return an ask decision, nested substitutions included
+
+#### Scenario: Substitution nested too deep
+- **GIVEN** a command whose substitutions nest more than 3 levels
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision and SHALL NOT pass the command unread
+
+#### Scenario: Run-time expansion before the verb
+- **GIVEN** `gh pr $verb 1`, `bkt --format $f pr view 1`, or `bkt api /x $opt`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return an ask decision, because a `$` or a backtick in a word read before the verb, after an unlisted `bkt` option, or after `bkt api` can supply the verb or a write option
+
+#### Scenario: False ask disables the hook
+- **GIVEN** the hook returns an ask decision for a known-safe self-test case
+- **WHEN** the health check runs
+- **THEN** it SHALL add the hook to `hooks-disabled.json` and report it, as FR-091 does for a guard that denies a known-safe case, and SHALL remove it only after a full passing self-test
+
+#### Scenario: Missed ask is weak protection
+- **GIVEN** the hook returns no decision for a known ask case
+- **WHEN** the health check runs
+- **THEN** it SHALL report weak protection with the notice ending of FR-118 and SHALL leave the hook enabled, as FR-091 does for a guard that misses a known-prohibited case
+
+#### Scenario: Read commands pass
+- **GIVEN** a session runs `gh pr view 123` or `bkt pr view 123 --workspace acme --repo repo`
+- **WHEN** the hook evaluates the call
+- **THEN** the hook SHALL return no decision
+
+#### Scenario: Chained command
+- **GIVEN** a call `echo done && gh pr close 123`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL judge each part and SHALL return an ask decision
+
+#### Scenario: Hook failure
+- **GIVEN** the hook throws, times out, or gets malformed input
+- **WHEN** the call arrives
+- **THEN** the hook SHALL fail open with a warning, as NFR-009 requires
+
+#### Scenario: Registration and counts
+- **GIVEN** the hook added to `hooks/hooks.json` with a 5-second timeout
+- **WHEN** a reviewer compares the places that state hook counts (FR-086 and the BRD section 4 scope list; `CLAUDE.md` and `README.md` state none) with the registered hooks
+- **THEN** the counts SHALL agree at 11 scripts and 16 commands (read in `hooks/hooks.json` on 2026-10-22), and the change SHALL carry the `✓ LLM Security Clear` signature of NFR-011 because `hooks/` is on the LLM surface
+
+#### Scenario: Known gaps
+- **GIVEN** a posting command written in one of the forms below
+- **WHEN** the hook evaluates it
+- **THEN** the hook MAY pass it, and the five places that hold the full list (the hook's header comment, the hook spec's Requirement 9, this requirement, the `/health` overview, and `README.md`) SHALL list the same 11 known gaps, while `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md` SHALL carry only a pointer that the hook is best-effort with known gaps plus the unverified items (`DECISIONS.md:268-271`), because the hook is a best-effort guardrail that fails open (section 6, out of scope: "Hooks as a security boundary"). The list is the one in the header comment of `hooks/impl/pr-post-ask.js:23-39`:
+  1. a program word taken from a variable or an expression, and PowerShell splatting;
+  2. `gh api`, `gh pr edit`, `gh pr ready`, and `gh pr reopen`, a `gh` alias or extension, and `bkt pr` subcommands other than the five listed;
+  3. a command string run by another program (`bash -c`, `eval`, `Invoke-Expression`, `xargs`, `find -exec`, and similar), and argv wrappers outside the wrapper list (`setsid`, `doas`, `ionice`, `stdbuf --output`);
+  4. a command substitution inside another program's argument (`echo $(gh pr merge 1)`);
+  5. a Bash `GH` in capitals, `.cmd`, `.bat`, and `.ps1` shims, shell aliases, and renamed or linked binaries;
+  6. an option with a separate value ahead of the verb that the option lists do not name (`gh --body x pr comment 1`, `bkt pr --text x comment 1`);
+  7. a redirection that the shared lexer splits into separate parts (`gh 2>&1 pr merge 1`, `gh >&2 pr merge 1`, `gh &>/dev/null pr merge 1`, `gh >| out pr merge 1`, `bkt 2>&1 pr approve 1`, `gh < <(true) pr merge 1`);
+  8. a PowerShell array or script block in the verb position (`gh pr @('merge') 1`, `gh pr {merge} 1`), and a PowerShell comment that hides an opening parenthesis;
+  9. the quoting forms `$"gh"` and `$'g\x68'`, brace expansion, a glob in the program word, `(( x = 1 << 2 ))` read as a heredoc, and `sudo --user` with a separate value (the shared-parser forms `doc-cli-guard` lists);
+  10. the PowerShell forms listed for `doc-cli-guard`, and a redirection before the program;
+  11. REST calls through `curl`, another HTTP client, or an MCP tool.
+
+  Three more items are unverified and the health documentation SHALL say so (`DECISIONS.md:248-251`): whether an ask prompts in `bypassPermissions` mode, whether it prompts in plan mode, and whether an installed mod can approve a call that the hook would prompt for (the wording `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md` use). `README.md:296` states that a deny from another hook beats the ask.
+
+### FR-207: /do guards every .agent write against a symlink
+
+**Statement:** Before every write that `/do` makes under `<root>/.agent/` (the plan file under `.agent/main-plan/`, the change-check snapshot files, and the PR files under `.agent/pr-review/`), `/do` SHALL test with `test ! -L` that `<root>/.agent` and the folder it writes into are not symlinks (and, for the plan file, that the file itself is not a symlink, because `/do` edits it in place and so does not remove it), SHALL write nothing and stop with `policy-rejection` when one is a symlink (a PR step fails with `policy-rejection`; a plan-file or snapshot write, which belongs to no step, ends the plan in `Error` with `error_class` `policy-rejection` at the state that attempted the write; this Error writes no Status to the plan file, because the write is the unsafe one, and is shown in the reply only), and SHALL remove an existing target with `rm -f` before it writes a file that `/do` creates fresh (the snapshot files and the PR files).
+**Traces to:** UR-055, UR-019 | **Priority:** Must | **Status:** Built (1.13.0) (`skills/do/SKILL.md:247-275`, `skills/do/references/pr-review-flow.md:98-104`)
+**Source:** `skills/do/references/pr-review-flow.md:55-61` and `:78-84` (the guard for the three PR writes at 1.12.0); `DECISIONS.md:213-216` (the `rm -f` rule is the PR-file rule); `DECISIONS.md:223-226` (every `.agent` write /do makes gets a symlink check; it asks for the check only); FR-195 (the guard for PR files); FR-032 (snapshot files); `skills/do/SKILL.md:376` (snapshot files go to the session scratchpad, and only without one to `<root>/.agent/change-check/`); `skills/do/SKILL.md:404` and `:410` (the plan file is edited in place at 1.12.0 line numbers). A `rm -f` before the plan file would break that in-place edit, so the plan file gets the symlink test only. The Error terminal of `skills/do/SKILL.md:51` writes Status to a plan file that Branch already wrote; the `/do` Error-terminal change that this requirement names adds the exception that an `Error(policy-rejection)` raised by this requirement writes no Status to the plan file and is shown in the reply only. Adding a plan-level `Error(policy-rejection)` exit to a `## States` table of `skills/do/SKILL.md` needs `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` to exit 0 afterward when `hooks/lib/fsa-tables.js` mirrors that table (NFR-021). `fsa-write-bar` does not resolve symlinks and does not cover Bash writes (section 6, out of scope), so the guard is `/do`'s own check
+
+#### Scenario: Symlinked .agent
+- **GIVEN** `<root>/.agent` is a symlink to another directory
+- **WHEN** `/do` is about to write the plan file
+- **THEN** `/do` SHALL write nothing, and the plan SHALL end in `Error` with `error_class` `policy-rejection` at the state that attempted the write (for example Branch or Preflight)
+
+#### Scenario: Plan file edited in place
+- **GIVEN** `<root>/.agent`, `<root>/.agent/main-plan`, and the plan file are not symlinks
+- **WHEN** `/do` updates the plan file during a run
+- **THEN** `/do` SHALL run the symlink test before each Write or Edit and SHALL NOT run `rm -f` on the plan file
+
+#### Scenario: Plan file is a symlink
+- **GIVEN** the plan file is a symlink to another file
+- **WHEN** `/do` is about to edit it
+- **THEN** `/do` SHALL write nothing, SHALL write no Status to the plan file, and the plan SHALL end in `Error` with `error_class` `policy-rejection`, shown in the reply only
+
+#### Scenario: Symlinked snapshot folder without a scratchpad
+- **GIVEN** the session has no scratchpad directory, so snapshots go to `<root>/.agent/change-check/`, and that folder is a symlink
+- **WHEN** `/do` takes a snapshot
+- **THEN** `/do` SHALL write no snapshot and the plan SHALL end in `Error` with `error_class` `policy-rejection`
+
+#### Scenario: Snapshots in the scratchpad
+- **GIVEN** the session has a scratchpad directory
+- **WHEN** `/do` takes a snapshot
+- **THEN** the snapshot files are outside `<root>/.agent`, and this requirement SHALL NOT apply to them
+
+#### Scenario: Symlink at the target file
+- **GIVEN** `.agent/pr-review/pr-123.diff` is a symlink to `~/.bashrc`
+- **WHEN** `/do` writes the scratch file
+- **THEN** `/do` SHALL remove the link with `rm -f` before the write and SHALL NOT change `~/.bashrc`
+
+#### Scenario: Plain folders
+- **GIVEN** `<root>/.agent` and the target folder are ordinary directories
+- **WHEN** `/do` writes
+- **THEN** the write SHALL proceed
+
+### FR-208: PR scratch files are removed after use
+
+**Statement:** `/do` SHALL remove the files of PR `<N>` under `<root>/.agent/pr-review/` (the five names `pr-<N>.diff`, `pr-<N>.view.full`, `pr-<N>.diff.full`, `pr-<N>.comments.full`, and `pr-<N>-review.body`, each removed by its exact name with `rm -f --` and no glob pattern, so that PR 12 never touches the files of PR 123 and the command behaves the same in bash and zsh; `DECISIONS.md:263-266`) right after a successful post, a post declined at the hook prompt, or a "do not post" answer, SHALL sweep the files left by a failed or stopped PR step at Cleanup, SHALL refresh the change-check baseline for each removed path as it does after a write, and SHALL remove nothing through a symlinked folder. The symlink guard and the removal run in one Bash command that exits 3 when `<root>/.agent` or `<root>/.agent/pr-review` is a symlink (nothing removed, the step stays `completed`) and exits 0 when the guard passed and `rm -f --` ran, a file already gone not being an error.
+**Traces to:** UR-055 | **Priority:** Must | **Status:** Built (1.13.0) (`skills/do/references/pr-review-flow.md:358-372`, `skills/do/SKILL.md:548`, read on 2026-10-22)
+**Source:** `DECISIONS.md:223-226` (`pr-<N>*`); `DECISIONS.md:228-231` (cleanup matches `pr-<N>.*` and `pr-<N>-*` only; section 9, open point 6, closed), replaced by `DECISIONS.md:263-266` (no glob: the five files by exact name with `rm -f --` after the symlink guard); `DECISIONS.md:233-236` (the step is completed and the PR files are removed after a rejected hook prompt, as for a "do not post" answer); `skills/do/references/pr-review-flow.md:51` (refresh the baseline after a write under `.agent/pr-review/`); `skills/do/references/pr-review-flow.md:50`, `:89`, `:98`, `:154` (files `pr-<N>.diff`, `pr-<N>.view.full`, `pr-<N>.diff.full`, `pr-<N>-review.body`, which stay on disk at 1.12.0); `skills/do/SKILL.md:50` (Cleanup removes only worktrees at 1.12.0); FR-063 (worktree cleanup), FR-207
+
+#### Scenario: After a post
+- **GIVEN** a successful `gh pr review` or `bkt` post for PR 123
+- **WHEN** the step settles
+- **THEN** `/do` SHALL remove `pr-123.diff`, `pr-123.view.full`, `pr-123.diff.full`, `pr-123.comments.full`, and `pr-123-review.body`, SHALL refresh the change-check baseline for each removed path, and SHALL NOT remove a file for another PR number
+
+#### Scenario: PR 12 and PR 123
+- **GIVEN** `.agent/pr-review/` holds the files of PR 12 and PR 123
+- **WHEN** `/do` cleans up after PR 12
+- **THEN** `/do` SHALL remove the PR 12 files and SHALL leave `pr-123.diff` and `pr-123-review.body`
+
+#### Scenario: Post declined at the hook prompt
+- **GIVEN** the user rejected the ask-hook prompt for the posting command
+- **WHEN** the step settles as `completed`
+- **THEN** `/do` SHALL remove the files of that PR
+
+#### Scenario: After a do-not-post answer
+- **GIVEN** the user answered "Do not post"
+- **WHEN** the step settles as `completed`
+- **THEN** `/do` SHALL remove the five named files of PR 123 (`pr-123.diff`, `pr-123.view.full`, `pr-123.diff.full`, `pr-123.comments.full`, `pr-123-review.body`), and SHALL NOT remove the files of PR 1234
+
+#### Scenario: Failed step
+- **GIVEN** the step failed after the scratch file was written
+- **WHEN** `/do` reaches Cleanup
+- **THEN** `/do` SHALL remove the leftover files of that PR (the five names of FR-208) at Cleanup
+
+#### Scenario: Stopped step
+- **GIVEN** a stop returned the PR step to `pending`
+- **WHEN** `/do` reaches Cleanup
+- **THEN** `/do` SHALL remove the leftover files and the resumed step SHALL fetch again
+
+#### Scenario: Symlinked folder
+- **GIVEN** `<root>/.agent/pr-review` is a symlink
+- **WHEN** `/do` cleans up
+- **THEN** `/do` SHALL remove nothing (the single command exits 3) and SHALL report the symlink
+
+### FR-209: /bump validates the --path value
+
+**Statement:** The `/bump` skill SHALL handle a `--path` value in three ordered steps before it reads a version file, writes, commits, or tags: (1) normalize it by removing a leading `./` and a trailing `/`, reading `\` as `/`, and making an absolute path inside the git root root-relative, a value that resolves to the repository root counting as no `--path` (the default names and root tags apply, and the later steps are skipped; this includes a relative value that is empty or `.` after the `./` and `/` are removed, and an absolute value whose stripped, root-relative remainder is empty or `.`); (2) validate the normalized value, accepting only a relative path or an absolute path that resolves inside the git root, whose `<dir>` matches `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$`, has no `..` segment, no segment made only of dots, no segment that starts with `-`, and no segment that starts with `.` or contains `..` (rule R8, which also refuses `.github` and `a..b`, because such a segment gives an invalid git tag name; `DECISIONS.md:253-256`), and that names an existing directory (tested with `test -d "$(git rev-parse --show-toplevel)/<dir>"`, whose operand starts with the absolute root, so the test needs no `--`) whose real path stays inside the git root; (3) only then name `<dir>` and `<tagdir>` (FR-139). The checks run in the order R1 to R5, R8, R6, R7, and each stop prints one of eight messages, R1 to R8, that names the rule, ends with "nothing was changed", and quotes no raw `--path` text except the validated `<dir>` of R6: R1 absolute path outside the git root; R2 characters outside letters, digits, `.`, `_`, `-`, and `/`; R3 a `..` segment; R4 a segment made only of dots; R5 a segment that starts with `-`; R6 no such directory; R7 resolves outside the git root; R8 a segment that starts with `.` or contains `..`.
+**Traces to:** UR-056, UR-029 | **Priority:** Must | **Status:** Built (1.13.0) (`skills/bump/SKILL.md:82`, `:117-149`; `skills/bump/references/bump-strategy.md:258`, read on 2026-10-22)
+**Source:** `DECISIONS.md:223-226` (the form, the regular expression, no `..` or leading-dash segment, an existing directory inside the repository; `DECISIONS.md:228-231` (no dots-only segment; normalize before validation; section 9, open point 5, closed)); `DECISIONS.md:253-256` (no segment that starts with `.` or contains `..`, rule R8); `skills/bump/SKILL.md:79-82` (the commit message and tag are built from the value) and `:93` (the option); FR-139; `skills/bump/SKILL.md:82` (a `--path` that resolves to the repository root counts as no `--path`, which stays and is applied before this check)
+
+#### Scenario: Valid relative path
+- **GIVEN** `/bump minor --path ./services/auth` and `services/auth` exists in the repository
+- **WHEN** the skill validates the value
+- **THEN** `<dir>` SHALL be `services/auth` and the bump SHALL continue
+
+#### Scenario: Valid absolute path inside the root
+- **GIVEN** the absolute path of an existing directory inside the git root
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL convert it to a root-relative `<dir>` and continue
+
+#### Scenario: Parent segment
+- **GIVEN** `--path ../other` or `--path services/../../x`
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL stop with a message that names the rule broken, and SHALL change no file, make no commit, and create no tag
+
+#### Scenario: Shell characters
+- **GIVEN** `--path "svc$(id)"`, `--path "svc;x"`, or a value with a newline
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL stop before any change
+
+#### Scenario: Segment starts with a hyphen
+- **GIVEN** `--path -rf`
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL stop before any change
+
+#### Scenario: Directory does not exist
+- **GIVEN** `--path services/missing` and no such directory
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL stop and name the missing directory
+
+#### Scenario: Symlink leaves the repository
+- **GIVEN** `services/auth` is a symlink to a directory outside the git root
+- **WHEN** the skill validates the value
+- **THEN** the skill SHALL stop, because the real path is outside the root
+
+#### Scenario: Backslash spelling still works
+- **GIVEN** `.\services\auth\` and an existing `services/auth`
+- **WHEN** the skill validates the value
+- **THEN** `<dir>` SHALL be `services/auth`, as in FR-139
+
+#### Scenario: Absolute path outside the git root
+- **GIVEN** `--path /etc/other` and a git root of `/home/user/repo`
+- **WHEN** the skill runs step 2
+- **THEN** the skill SHALL stop before any change and name the rule broken
+
+#### Scenario: Root path counts as no --path
+- **GIVEN** `--path ./` or the root's own absolute path
+- **WHEN** the skill runs step 1
+- **THEN** the skill SHALL apply the default names (`chore: bump version to X.Y.Z`, `vX.Y.Z`) and SHALL skip steps 2 and 3
+
+#### Scenario: Stripped absolute value is empty or a dot
+- **GIVEN** an absolute value inside the git root whose root-relative remainder is empty or `.` (for example `<root>/.` or `<root>//`)
+- **WHEN** the skill runs step 1
+- **THEN** the skill SHALL count it as no `--path`, as for the root's own path
+
+#### Scenario: Segment starts with a dot or holds two dots (R8)
+- **GIVEN** `--path .github` or `--path a..b`
+- **WHEN** the skill runs step 2
+- **THEN** the skill SHALL stop with the R8 message ("--path has a segment that starts with "." or contains ".."; nothing was changed") before any file, commit, or tag changes
+
+#### Scenario: Directory test needs no option terminator
+- **GIVEN** a validated `<dir>`
+- **WHEN** the skill checks that the directory exists
+- **THEN** the skill SHALL run `test -d` on the absolute root followed by `/<dir>` with no `--`, so the operand cannot read as an option
+
+#### Scenario: Eight stop messages
+- **GIVEN** each of the eight rule breaks R1 to R8
+- **WHEN** the skill stops
+- **THEN** each message SHALL name its rule, end with "nothing was changed", and quote no raw `--path` text except the validated `<dir>` of R6
+
+### FR-210: The LLM checklist states the PR gap as a written rule with unscoped Bash
+
+**Statement:** Row 2 of the open-gap table in `plugins/assist-plugin/rules/llm-security-checklist.md` (line 326 at 1.12.0) SHALL say that, in a direct `/pr-review` run, the confirmation before a verdict is a written rule only, that the skill holds unscoped Bash which runs with no prompt, and that attacker-controlled PR text therefore reaches a session that can run the posting commands, with the prompt of FR-206 as a best-effort, fail-open control that does not rely on the model and has the known gaps that FR-206 lists.
+**Traces to:** UR-057 | **Priority:** Should | **Status:** Built (1.13.0) (`rules/llm-security-checklist.md:326`, row 2, read on 2026-10-22; the line also names the known gaps of FR-206 and keeps the `/do` sentence). `DECISIONS.md:223-226` does not mention this wording; it is a settled point of the follow-up request
+**Source:** `plugins/assist-plugin/rules/llm-security-checklist.md:326` (row 2 says the text reaches the session "behind the confirmation gate"); `skills/pr-review/SKILL.md:8-14` (Write and Bash, unscoped); NFR-013 (the unscoped `pr-review` Bash is a listed exception that runs without a prompt). The checklist is on the LLM surface (NFR-011), so the change needs the gate. The edit is outside this requirements step; this requirement records the change for the spec and task plan
+
+#### Scenario: Row 2 wording
+- **GIVEN** the checklist after the change
+- **WHEN** a reviewer reads row 2 of the open-gap table
+- **THEN** the row SHALL say the confirmation gate is a written rule only and that unscoped Bash runs with no prompt, and SHALL NOT describe the confirmation as a control that holds on its own
+
+#### Scenario: Under /do
+- **GIVEN** the same row
+- **WHEN** a reviewer reads the `/do` sentence
+- **THEN** it SHALL keep the statement that the PR text goes to a file only the read-only `reviewer` reads and that `/do` posts after the user confirms
+
+#### Scenario: Gate on the change
+- **GIVEN** the edit to the checklist
+- **WHEN** the merge policy is checked
+- **THEN** the change SHALL carry `✓ LLM Security Clear` (NFR-011)
+
 ## 5. Non-functional requirements
 
 Each requirement uses the form:
 
 > The [system/component] SHALL [quality attribute] [measurable threshold] [under conditions].
 
-Every threshold below is copied from the cited source. This document does not claim the thresholds were measured, except where a row says it was checked by reading files.
+Every threshold below is copied from the cited source. This document does not claim the thresholds were measured, except where a row says it was checked by reading files or gives a measured median (NFR-008, NFR-025).
 
 ### 5.1 Token and context cost
 
@@ -4314,7 +5026,13 @@ Every threshold below is copied from the cited source. This document does not cl
 | ID | Requirement | Traces to | Metric |
 |----|-------------|-----------|--------|
 | NFR-007 | Each hook command SHALL finish within its registered timeout. | BR-007, FR-086 | 5 seconds; 10 seconds for the SessionStart health check (`hooks/hooks.json`) |
-| NFR-008 | The per-write hooks (`prose-gate`, `prose-advisor`, `fsa-write-bar`) SHOULD add no more than 110 ms to a write. | BR-003, FR-103, FR-106, FR-108 | 110 ms, measured as the median wall-clock time of 20 runs of `node hooks/<hook>.js` on one fixed input per hook: for `prose-gate` and `prose-advisor`, a `Write` tool call that creates a 2 KB `.md` file of clean prose at `notes/a.md`; for `fsa-write-bar`, a `Write` tool call by `assist-plugin:developer` to `src/main.ts` with 2 KB of content. The method is set here for the user to confirm (section 9, open question 1); the sources state "about 80 to 110 ms" without a method |
+| NFR-008 | The per-write hooks (`prose-gate`, `prose-advisor`, `fsa-write-bar`) SHOULD add no more than 110 ms to a write. | BR-003, FR-103, FR-106, FR-108 | 110 ms, measured as the median wall-clock time of 20 runs of `node hooks/<hook>.js` on one fixed input per hook: for `prose-gate` and `prose-advisor`, a `Write` tool call that creates a 2 KB `.md` file of clean prose at `notes/a.md`; for `fsa-write-bar`, a `Write` tool call by `assist-plugin:developer` to `src/main.ts` with 2 KB of content. The method is confirmed by the user (`DECISIONS.md:243-246`): the median of 20 runs on a fixed input, with a 110 ms limit that is a SHOULD, so a median over the limit is a finding. Measured medians from the qa run on this machine, as reported to this step and not repeated here: `prose-gate` 67.2 ms, `prose-advisor` 56.1 ms, `fsa-write-bar` 54.4 ms; the sources state "about 80 to 110 ms" |
+| NFR-025 | Built (1.13.0): The posting ask hook of FR-206, which runs on every Bash and PowerShell call, SHOULD add no more than 110 ms to a call. | BR-003, FR-206 | 110 ms, the NFR-008 limit, measured as the median wall-clock time of 20 runs of `node hooks/<hook>.js` on one fixed input: a `Bash` tool call with the command `git status` (no match). The method follows NFR-008 and is confirmed (`DECISIONS.md:243-246`). Measured median from the qa run on this machine, as reported to this step: `pr-post-ask` 57.6 ms, under the limit |
+
+#### Scenario: Ask hook latency (Built, 1.13.0)
+- **GIVEN** a `Bash` call with the command `git status`
+- **WHEN** a reviewer applies the NFR-025 method
+- **THEN** the median over 20 runs SHOULD be at most 110 ms (57.6 ms in the qa run)
 
 #### Scenario: Hook does not answer
 - **GIVEN** a guard that does not answer within 3 seconds
@@ -4345,7 +5063,7 @@ Every threshold below is copied from the cited source. This document does not cl
 | NFR-011 | A change to the LLM surface (`agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/`, each at the repository root, under any `plugins/<name>/`, or under `.claude/`, any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth, and `.claude/settings*.json`; not an application folder such as `src/hooks/`) SHALL carry the signature `✓ LLM Security Clear` before merge, with no fast-track path. | BR-005, FR-061, FR-193, FR-199 | OWASP Top 10 for LLM Applications (LLM01 to LLM07, LLM09, LLM10; LLM08 out of scope), `rules/llm-security-checklist.md`. Built (1.11.1) for `skills/**/SKILL.md` and `skills/**/references/*.md`; PLANNED (1.12.0): the path anchor (repository root, `plugins/<name>/`, `.claude/`; wording at `rules/assist-plugin-rule.md:103`, `:335`, `:359-360`, `rules/llm-security-checklist.md:11`, `:304`, and `skills/do/references/review-protocol.md:432`) and every file under `skills/**`, which adds the 87 reference files below `references/` that the narrow glob missed (a count of the files the SKILL.md files link to, by `specs/spec-skills.md`, OP-1) and `metadata.json`. `rules/llm-security-checklist.md:11` changes with it (`:304` and `CLAUDE.md:114` already say all of `skills/`) |
 | NFR-012 | Every prompt that carries document, web, or tool text SHALL mark that text as untrusted data, with 100% of document paths in chain, build, gate, and fix prompts inside the `untrusted-file` wrapper. | BR-006, FR-031, FR-099 | OWASP LLM01 (Prompt Injection) |
 | NFR-013 | Every skill SHALL pre-approve only scoped grants for its documented output paths and commands, except the listed exceptions; a scoped grant is a path pattern for Write and Edit, and a fixed command, a fixed program-and-subcommand prefix, or a fixed program that only reads (with no subcommand) for Bash. | BR-006, FR-146, FR-152, FR-156, FR-158, FR-163, FR-165 | OWASP LLM06 (Excessive Agency); `DECISIONS.md` (2026-10-12, Scoped write grants; clarify and voice-script tool grants). Grants since 1.11.1: `./docs/requirements/BRD-*.md`, `./docs/requirements/URD-*.md`, `./docs/requirements/FR-NFR-*.md`, `./docs/requirements/requirements-*.json` (FR-183); `./specs/spec-*.md`, `./specs/spec-*.json`, `./specs/openapi/*.json`, `./specs/openapi/*.yaml`, `./*/specs/spec-*.md`, `./*/specs/spec-*.json`; `./docs/task-plans/task-plan-*.md` (FR-185); `./README.md`; `./docs/tts/voice-*.md`; `./.agent/clarify/clarify-*.md`. These are the scoped grants of `gather-requirements`, `spec-from-requirements`, `task-plan`, `technical-writing`, `voice-script`, and `clarify`. The 4803a0d grants were `./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json` and `./task-plan-*.md`. PLANNED (1.12.0): the restatement to every skill, and these twelve unscoped grants as the listed exceptions (the twelfth, `branch` with `Bash(git:*)`, from `DECISIONS.md:158-161`), so a write or command through them runs without a prompt (`specs/spec-skills.md`, OP-6; the answer to OP-6 in `plan-deferred-decisions-20261016-1059.md`): `bump` Write, Edit, and Bash (`skills/bump/SKILL.md:8-14`); `code` Write and Edit (`skills/code/SKILL.md:8-13`); `integrated-test` Write and Edit (`skills/integrated-test/SKILL.md:9-14`); `pr-review` Write and Bash (`skills/pr-review/SKILL.md:8-14`); `review-md` Write (`skills/review-md/SKILL.md:7-11`); `create-test` Write (`skills/create-test/SKILL.md:8-12`); `run-test` Write (`skills/run-test/SKILL.md:8-12`); `debug` Bash (`skills/debug/SKILL.md:6-11`); `map-project` Bash (`skills/map-project/SKILL.md:7-10`); `commit` Bash (`skills/commit/SKILL.md:7-8`); `do` Edit, Write, and Bash (`skills/do/SKILL.md:13-22`, whose tools are Read, Edit, Write, Grep, Glob, Bash, Agent, SendMessage, and AskUserQuestion); `branch` Bash(git:*) (`skills/branch/SKILL.md:9`; a program prefix with any subcommand, which is not a fixed command, a fixed program-and-subcommand prefix, or a read-only fixed program). The read-only fixed-program rule (`DECISIONS.md:163-166`) covers `branch` Bash(df:*) (`skills/branch/SKILL.md:10`), `branch` Bash(realpath:*) (`:12`), and `pentest` Bash(govulncheck *) (`skills/pentest/SKILL.md:30`), so these are scoped and not exceptions. In a main-session run no hook limits their writes (FR-113) |
-| NFR-014 | The plugin SHALL enforce its documented caps on reads, questions, rounds, and logs. | BR-006, FR-020, FR-025, FR-050, FR-073, FR-195 | OWASP LLM10 (Unbounded Consumption); caps: 20 paths per document type, 10 documents read in full, 2000 lines per document, last 200 lines of `DECISIONS.md`, 4 questions per call, 64 KB per message file, 500 `fsa-log` lines, 200 health-log lines, and (PLANNED, 1.12.0) 200 KB for the PR text that `/do` fetches into `.agent/pr-review/pr-<N>.diff` (FR-195) |
+| NFR-014 | The plugin SHALL enforce its documented caps on reads, questions, rounds, and logs. | BR-006, FR-020, FR-025, FR-050, FR-073, FR-195, FR-204 | OWASP LLM10 (Unbounded Consumption); caps: 20 paths per document type, 10 documents read in full, 2000 lines per document, last 200 lines of `DECISIONS.md`, 4 questions per call, 64 KB per message file, 500 `fsa-log` lines, 200 health-log lines, and (PLANNED, 1.12.0) 200 KB for the PR text that `/do` fetches into `.agent/pr-review/pr-<N>.diff` (FR-195), and (Built, 1.13.0) the same 200 KB for the PR text a direct `/pr-review` run reads (FR-204; `skills/pr-review/SKILL.md:95`, 204,800 bytes) |
 | NFR-015 | No agent or skill file SHALL contain a hardcoded token, an API key, a host ending in `.company.com` or `.internal` (other than `host.docker.internal`), or a `user:password`-style credential (a `-u` or `--user` value, or URL userinfo of the form `://x:y@`, whose parts are not `<...>` placeholders; `host:port` is not a credential); example hosts use `example.com`-style names and example credentials use `<user>:<token>` placeholders. | BR-006 | OWASP LLM02 and LLM07; `rules/llm-security-checklist.md`; 0 occurrences of the pattern. PLANNED (1.12.0): the pattern and the placeholder names (the answer to OP-13 in `plan-deferred-decisions-20261016-1059.md`). Current hits to fix, listed by the planning gate review on 2026-10-16: `skills/pr-review/references/pr-detection.md:23`, `:24`, `:52`, `:53`, `:58`, `:59`, `:111`, `:168`, `:224`, `:227` (`curl -u username:password`), `:258`, and `:262`, and `skills/pr-review/SKILL.md:60`, and `skills/integrated-test/references/integration-patterns/go.md:65`, where the database URL is built from container variables with no literal credential (`DECISIONS.md:193-196`). Allowed: `host.docker.internal` (`skills/pentest/references/zap.md:255`), which is a Docker name and not an internal host |
 | NFR-016 | The files `hook-health.jsonl` and `fsa-log.jsonl` SHALL hold no command text, arguments, environment values, stdin, prompts, report text, artifact paths, questions, or file contents. | BR-006, BR-007, FR-090, FR-115 | OWASP LLM02; 0 such fields |
 
@@ -4511,6 +5229,7 @@ Every threshold below is copied from the cited source. This document does not cl
 - The document locations of 2026-10-16, built in 1.11.1: FR-182 and FR-183 (`docs/requirements/` output and grant), FR-184 and FR-185 (`docs/task-plans/` output and grant), FR-186 (`task-planner` write bar), FR-187 to FR-192 (SpecGate search, legacy notes, conflict-check path list, chain Writes, no path taken from `DECISIONS.md`, change check against the git root). The folders `docs/requirements/` and `docs/task-plans/` resolve against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory). PLANNED (1.12.0): the Spec step writes `specs/` under the same root (FR-190); the `specs/` search already resolves against it (FR-187, FR-189).
 - The `docs/tts/` exemption under the project root and the session directory (FR-181), built in 1.11.1.
 - The 1.12.0 changes, PLANNED, from the 40 deferred points answered on 2026-10-16: the named OWASP for LLM gate over `skills/**` (FR-054, FR-061, FR-199, NFR-011); Cleanup chooses the terminal and prints its report (FR-062 to FR-064); the snapshot-file outcome (FR-032); `ask` model row, registry-first routing, no plan file on a first-pass Error, the `general-purpose` body (FR-007, FR-009, FR-010, FR-012); skill rules (FR-136 to FR-139, FR-143, FR-147, FR-148, FR-175 to FR-177, FR-193 to FR-197, FR-200, FR-201, NFR-004, NFR-013, NFR-015, NFR-020); hook rules (FR-088, FR-091, FR-093, FR-094, FR-099, FR-118, FR-198).
+- The follow-up to 1.12.0, built for 1.13.0 (version 1.4), from the user's answers in the version 1.3 elicitation: Bitbucket support in `/pr-review` and the `/do` PR review flow (FR-142 to FR-144, FR-195, FR-202, FR-203); `/pr-review` direct-run hardening (FR-204, FR-205); `/do` PR flow hardening, the posting ask hook, `.agent` symlink checks, and PR file cleanup (FR-206 to FR-208); `/bump --path` validation (FR-209); and the checklist wording (FR-210).
 
 #### Out of scope (system exclusions)
 
@@ -4525,6 +5244,8 @@ Every threshold below is copied from the cited source. This document does not cl
 | Audio generation by `/voice-script` | The skill writes script files only | Never (stated exclusion) |
 | Skills for Jira, Bitbucket PR tooling beyond `pr-review`, certificate prep, context7, branch-to-Jira; meta-skills create-agent and create-skill | The plugin stays generic (`docs/TOKEN_OPTIMIZATION.md`) | Never (stated exclusion) |
 | A `## States` table for `qa`, `planner`, `ask`, `explore`, `researcher`, `devops`, `general-purpose`, `worker`, `requirements-gatherer`, and `solutions-architect` | `/do` accepts any `trace` from an agent without a table (`skills/do/references/fsa-template.md`) | Not scheduled in the sources |
+| Request changes on Bitbucket Data Center through the participants call | The call needs the signed-in user's slug, and the research found no verified bkt command that prints it (`.agent/research/bkt-cli-forms-20261017.md`, Request changes; Not confirmed) | Not scheduled; Data Center posts a comment instead (FR-195) |
+| Ask-hook coverage of the 11 known gaps of FR-206 (among them `gh api`, `gh pr edit`, `gh pr ready`, `gh pr reopen`, posting commands built from variables, and split redirections such as `2>&1`) | The hook is a best-effort string-matching guardrail that fails open; a form found later joins the gap list and does not reopen the spec (FR-206; `DECISIONS.md:258-261`; "Hooks as a security boundary" above) | Not scheduled in the sources |
 
 ## 7. Constraints
 
@@ -4534,9 +5255,11 @@ Every threshold below is copied from the cited source. This document does not cl
 - Technical: the plugin is licensed AGPL-3.0-or-later (`plugin.json`, `README.md`).
 - Interface: `/do` dispatches agents as `assist-plugin:<name>` and parses the ten-field `fsa` block.
 - Interface: the marketplace manifest follows the Claude Code marketplace schema (`.claude-plugin/marketplace.json`).
-- Interface: `gh` or `bkt` must be installed and authenticated for `/pr-review` (`skills/pr-review/SKILL.md`).
+- Interface: `gh` or `bkt` must be installed and authenticated for `/pr-review` (`skills/pr-review/SKILL.md`). Built (1.13.0): `bkt` means avivsinai/bitbucket-cli, targeted at v0.34.0 (released 2026-10-15), whose binary name matches dimo414/bkt (FR-202); bkt has no host flag on PR commands, so the host is pinned by FR-203.
 - Process: the markdown is the source of truth for the state tables and test globs; on drift, edit the JavaScript to match (`scripts/check-fsa-tables.js`).
 - Process: no requirement in this document contradicts a `DECISIONS.md` entry, with one reading to note (the last sentences of this bullet: `DECISIONS.md:135` against FR-112). The entries that bind these requirements are 2026-10-12 (prose hooks, attribution, scoped grants, clarify and voice-script), 2026-10-13 (spec-first, task-planner, protected paths, narrowed hidden-path bar), and 2026-10-14 (self-hosted documents, changelog pointer; Write guard lists live in `rules/assist-plugin-rule.md`). The 2026-10-16 entry "Requirements in docs/requirements/, task plans in docs/task-plans/" corrects the location part of the 2026-10-14 self-hosted-documents entry: requirements go to `docs/requirements/`, task plans to `docs/task-plans/`, specs stay in `specs/`, and older projects keep root-level files in place with a plain note in `DECISIONS.md` (FR-182 to FR-190, FR-174). The second 2026-10-16 entry, "Legacy root documents and the requirements JSON", settles three points: `task-planner` writes only `docs/task-plans/task-plan-*.md` (root-level plans in older projects are read, and a rework writes a new file in `docs/task-plans/`), `requirements-<slug>.json` goes to `docs/requirements/`, and SpecGate also searches the old root patterns and, after plan approval, appends a plain note to `DECISIONS.md`. The 2026-10-16 entry "Legacy location records are notes, not search input" makes that record a note and has SpecGate find root-level documents only through its fixed root patterns, never by paths parsed out of `DECISIONS.md` (FR-187, FR-188, FR-191). The 2026-10-16 entry "docs/requirements/ and docs/task-plans/ resolve against the session's git root" resolves both folders against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory) for SpecGate, the `gather-requirements` and `task-plan` writes, and the `fsa-write-bar` judgement of the `task-planner` path, so a session started in a subdirectory gets a write prompt because the skills' `./` grants are relative to the working directory (FR-182 to FR-187). The 2026-10-16 entry "1.11.1 design points for root notes, change check, and grants" fixes four points: for the root note, `/do` reads only the headings of `DECISIONS.md`, at plan approval just before it appends a "kept at the repository root" note, to skip a duplicate, and the cited-line window of FR-024 is unchanged (FR-188); the change check takes its snapshots and steering-file hashes against the session's git root (FR-192); `gather-requirements` keeps its grant scoped to `docs/requirements/`, so an in-place update of a legacy root-level requirements file asks the user first (FR-183); and with no usable working directory `fsa-write-bar` lets `task-planner` write only a plain relative `docs/task-plans/task-plan-*.md` and denies absolute, `~`, drive-relative, and `..` targets (FR-186). The 2026-10-12 entry on prose hooks fixes the `docs/tts/` exemption relative to the project root, and the 2026-10-16 entry refines it to the project root plus the session's working directory when that directory is inside the project (FR-104, FR-181). Twenty-two entries (counted at `DECISIONS.md:108-216`), eighteen of them dated 2026-10-16 and added on this plan's date after the 1.11.1 sign-off, one more of 2026-10-16 ("doc-cli-guard is best-effort with a listed set of known gaps", `:198`), and three of 2026-10-17 (the sign-off at `:203`, "/do PR review supports GitHub only in 1.12.0" at `:208`, and "/do PR flow hardening after the security gate" at `:213`), bind the 1.12.0 changes: "OWASP for LLM gate is a named /do gate covering skills/**" (FR-054, FR-061, FR-199, NFR-011), "Specs resolve against the session's git root" (FR-187, FR-189, FR-190), "/do PR review relays a draft, then a separate step submits" (FR-195, refined by the entries at `DECISIONS.md:148-151`, `:153-156`, and `:158-161`: the draft ends `Done` and the main conversation fetches and submits), "/bump --path naming and pointer changelogs" (FR-138, FR-139), "skills metadata.json mirrors SKILL.md frontmatter" (FR-193), "A non-plugin --agent main session is a main session" (FR-112), "Documentation CLI guard and injection filter cover PowerShell and launchers" (FR-094, FR-099, FR-198), "/commit runs on Haiku through frontmatter" (FR-196), "The main conversation submits a /do PR review; mmdc reaches root specs" (FR-195, FR-093, FR-199), "/do PR review draft arrives in a Done block; more package runners" (FR-195, FR-198), "LLM gate trigger, branch grant, mmdc root paths, and PR flags" (FR-061, FR-093, FR-195, FR-175 to FR-177, NFR-013), "Read-only program grants are scoped; Bitbucket returned reviews comment" (NFR-013, FR-143), and "LLM gate path anchor, metadata source, PowerShell aliases, writing-context self-test" (FR-061, FR-199, NFR-011, FR-193, FR-099, FR-094, FR-198, FR-118, FR-091), "Auto-loaded files join the LLM gate; mmdc reaches subproject specs" (FR-061, FR-199, NFR-011, FR-054, FR-093), and "One confirmation covers a /do PR review submission" (FR-143, FR-195; its exception is withdrawn by the next entry), "/do fetches PRs by redirect and posts with gh or bkt" (FR-195, FR-143), "doc-cli-guard judges every chained command; PowerShell assignment forms" (FR-094, FR-099, FR-200), and "Shell operators stay denied in documentation CLIs; Bitbucket approvals; test DSNs" (FR-094, FR-195, NFR-015), "doc-cli-guard is best-effort with a listed set of known gaps" (FR-094, FR-198), "Deferred-decision documents signed off for 1.12.0" (this document as a whole), "/do PR review supports GitHub only in 1.12.0" (FR-195; FR-143 as a note), and "/do PR flow hardening after the security gate" (FR-195, FR-094, FR-099). One difference remains between a recorded entry and a requirement: `DECISIONS.md:135` says a call with an `agent_type` but no `agent_id` is a main session, which reads broader than FR-112. FR-112 keeps a main session started with `--agent assist-plugin:<name>` denied, as the heading at `DECISIONS.md:133` ("A non-plugin --agent main session is a main session") and `hooks/impl/fsa-write-bar.js:26-28` say, so the statement "no requirement contradicts a `DECISIONS.md` entry" holds only with that reading.
+
+- Process: two `DECISIONS.md` entries came after the twenty-two counted above. `DECISIONS.md:218-221` (2026-10-17, "code-reviewer and researcher run at effort high") concerns agent effort values, binds none of FR-202 to FR-210, and no requirement here contradicts it. `DECISIONS.md:223-226` (2026-10-22, "PR posting safeguards and Bitbucket in the PR review flows") binds FR-143 (the Cloud request-changes rule replaces `DECISIONS.md:163-166` for Cloud and leaves it in force for Data Center), FR-195 (the Bitbucket flow ends the GitHub-only limit of `DECISIONS.md:208-211`, which that entry supersedes for Bitbucket), FR-203 (host pin), FR-206 (ask hook), FR-207 (symlink checks), FR-208 (cleanup), and FR-209 (`--path`). The entry does not record the direct-run points of FR-204, FR-205, and FR-210. `DECISIONS.md:228-231` (2026-10-22, "Bitbucket request-changes order, hook rejection, and stricter checks") refines `DECISIONS.md:223-226` and binds FR-143 and FR-195 (Cloud order: comment first, no request-changes call when the comment fails; hook-rejection outcomes), FR-206 (ask on a `bkt api` call with a body flag and no method), FR-208 (`pr-<N>.*` and `pr-<N>-*` matching), and FR-209 (no dots-only segment; normalize before validation); section 9 open points 3, 5, 6, 7, and 9 are closed by it. No requirement here contradicts it. `DECISIONS.md:233-236` (2026-10-22, "Each Bitbucket post is its own command; a rejected prompt stops the pair") refines `DECISIONS.md:228-231` and binds FR-143 and FR-195 (each bkt post is its own Bash command with its own hook prompt; a rejected first prompt of a pair runs no second command and records both as declined; on Cloud an allowed comment and a rejected request-changes prompt record the comment as posted and the request as declined; the step is completed and the PR files are removed), FR-206 (one prompt per command), and FR-208 (cleanup after a rejection). No requirement here contradicts it. Version 1.4 adds seven entries of 2026-10-22 (listed through `DECISIONS.md:271`). `DECISIONS.md:238-241` ("bkt api repository flags and unknown options") binds FR-202 and FR-203 (a `bkt api` call names the repository through its relative path and takes no repository flags) and FR-206 (the hook asks on any `bkt api` option it does not recognize). `DECISIONS.md:243-246` ("Follow-up build scope, supersession, and timing method") binds the Status flips of version 1.4 and confirms the NFR-008 and NFR-025 method (median of 20 runs, 110 ms, a SHOULD). `DECISIONS.md:248-251` ("Follow-up documents signed off; step 1 research results applied") binds FR-202, FR-203, and FR-206 (the settled bkt facts and the array-form filters). `DECISIONS.md:253-256` and `DECISIONS.md:258-261` bind FR-209 and FR-139 (rule R8) and FR-206 (closed forms, the known-gap list, the best-effort stance). `DECISIONS.md:263-266` binds FR-208 and FR-144 (cleanup by exact name, no glob), FR-143 and FR-195 (the body-hash check before `bkt pr approve`), FR-209 (R6 is `test -d` with no `--`), and FR-202 (the meaning of "exactly one" for the context lookup). `DECISIONS.md:268-271` binds FR-206 (the full gap list in five places). No requirement here contradicts them.
 
 ## 8. Traceability matrix
 
@@ -4546,23 +5269,23 @@ Each row lists the user requirements derived from the business requirement, the 
 |----|----|----|-----|--------|
 | BR-001 | UR-001 to UR-005, UR-022 | FR-001 to FR-018, FR-025, FR-026, FR-045 to FR-053, FR-062 to FR-066, FR-068 to FR-070, FR-083 | NFR-010 | Built; PLANNED (1.12.0) parts: FR-007, FR-009, FR-010, FR-012, FR-062 to FR-064 |
 | BR-002 | UR-001, UR-002 | FR-001, FR-005, FR-008 to FR-018, FR-045, FR-046, FR-053, FR-065, FR-066 | none | Built; PLANNED (1.12.0) parts: FR-009, FR-010, FR-012 |
-| BR-003 | UR-024 | FR-107 | NFR-001 to NFR-005, NFR-008 (NFR-006 withdrawn) | Built; PLANNED (1.12.0) part: NFR-004 |
+| BR-003 | UR-024 | FR-107 | NFR-001 to NFR-005, NFR-008, NFR-025 (NFR-006 withdrawn) | Built; PLANNED (1.12.0) part: NFR-004; Built (1.13.0): NFR-025 |
 | BR-004 | UR-004, UR-006 to UR-009, UR-011 | FR-005, FR-006, FR-007, FR-019 to FR-030, FR-032 to FR-041, FR-043, FR-044, FR-049, FR-050, FR-070 to FR-073, FR-083, FR-151, FR-187 to FR-192 | none | Built; PLANNED (1.12.0) parts: FR-007, FR-032, FR-190 |
-| BR-005 | UR-013, UR-014, UR-034, UR-042, UR-049, UR-053 | FR-048, FR-053 to FR-061, FR-077 to FR-082, FR-109, FR-130, FR-147, FR-148, FR-167 to FR-171, FR-193, FR-199 | NFR-011, NFR-024 | Built; PLANNED (1.12.0) parts: FR-054, FR-061, FR-147, FR-148, FR-193, FR-199, NFR-011 |
-| BR-006 | UR-011, UR-012, UR-019 to UR-021, UR-031, UR-050 | FR-022, FR-024, FR-027, FR-031 to FR-033, FR-035, FR-043, FR-044, FR-065, FR-067, FR-071, FR-074, FR-076, FR-085, FR-092 to FR-094, FR-099 to FR-102, FR-108 to FR-114, FR-142 to FR-144, FR-151, FR-175 to FR-177, FR-183, FR-185, FR-186, FR-190, FR-192, FR-195, FR-198 | NFR-012 to NFR-016 | Built; PLANNED (1.12.0) parts: FR-032, FR-093, FR-094, FR-099, FR-143, FR-175 to FR-177, FR-190, FR-195, FR-198, NFR-013, NFR-015 |
-| BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118 |
+| BR-005 | UR-013, UR-014, UR-034, UR-042, UR-049, UR-053, UR-057 | FR-048, FR-053 to FR-061, FR-077 to FR-082, FR-109, FR-130, FR-147, FR-148, FR-167 to FR-171, FR-193, FR-199, FR-210 | NFR-011, NFR-024 | Built; PLANNED (1.12.0) parts: FR-054, FR-061, FR-147, FR-148, FR-193, FR-199, NFR-011; Built (1.13.0): FR-210 |
+| BR-006 | UR-011, UR-012, UR-019 to UR-021, UR-031, UR-050, UR-054 to UR-056 | FR-022, FR-024, FR-027, FR-031 to FR-033, FR-035, FR-043, FR-044, FR-065, FR-067, FR-071, FR-074, FR-076, FR-085, FR-092 to FR-094, FR-099 to FR-102, FR-108 to FR-114, FR-142 to FR-144, FR-151, FR-175 to FR-177, FR-183, FR-185, FR-186, FR-190, FR-192, FR-195, FR-198, FR-202 to FR-209, FR-086 | NFR-012 to NFR-016 | Built; PLANNED (1.12.0) parts: FR-032, FR-093, FR-094, FR-099, FR-143, FR-175 to FR-177, FR-190, FR-195, FR-198, NFR-013, NFR-015; Built (1.13.0): FR-086 (counts), FR-202 to FR-209 |
+| BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118; Built (1.13.0): FR-086 (11 scripts and 16 commands), FR-091 and FR-118 (ask-hook clause) |
 | BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148 |
 | BR-009 | UR-015, UR-028 | FR-095 to FR-098, FR-120, FR-135, FR-136, FR-196 | none | Built; PLANNED (1.12.0) parts: FR-136, FR-196 |
-| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197 | none | Built; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200 |
+| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209 | none | Built; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
 | BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194 |
-| BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195 |
+| BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195, FR-206, FR-207 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195; Built (1.13.0): FR-206, FR-207 |
 | BR-013 | UR-006, UR-035 to UR-038 | FR-005, FR-019, FR-020, FR-028 to FR-030, FR-032 to FR-035, FR-074 to FR-076, FR-078, FR-083 to FR-085, FR-149 to FR-160, FR-179, FR-182 to FR-187, FR-190 to FR-192, FR-197 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-197 |
 | BR-014 | UR-048 | FR-174 | none | Built (1.11.1) |
 | BR-015 | UR-044, UR-051 | FR-121, FR-122, FR-126 to FR-129, FR-180 | NFR-021 | Built (1.11.1); FR-126 accepted limit noted |
-| BR-016 | UR-045, UR-053 | FR-130, FR-193, FR-201 | NFR-020 | Built; PLANNED (1.12.0) parts: FR-193, FR-201, NFR-020 |
+| BR-016 | UR-045, UR-053, UR-057 | FR-130, FR-193, FR-201, FR-210 | NFR-020 | Built; PLANNED (1.12.0) parts: FR-193, FR-201, NFR-020; Built (1.13.0): FR-210 |
 | BR-017 | UR-052 | FR-178 | none | Built (1.11.1) |
 
-**Orphans:** none. Every FR traces to at least one UR, every UR to at least one BR, and every NFR to a BR, UR, or FR.
+**Orphans:** none. Every FR traces to at least one UR, every UR to at least one BR, and every NFR to a BR, UR, or FR. Rechecked for version 1.3: FR-202 to FR-210 trace to UR-054 to UR-057 (and UR-031, UR-019, UR-029 for some); UR-054 and UR-056 trace to BR-010 and BR-006, UR-055 to BR-006, UR-057 to BR-005 and BR-016; NFR-025 traces to BR-003 and FR-206. A follow-up FR (FR-206) that traces to UR-019 and UR-055 sits in the BR-006 and BR-012 rows, not the BR-010 row.
 
 **Dead ends:** none. Every BR has at least one UR. BR-002, BR-004, BR-009, BR-010, BR-012, BR-013, and BR-014 have no NFR of their own; their quality bars sit in the NFRs of BR-003, BR-006, BR-007, and BR-016.
 
@@ -4583,12 +5306,12 @@ Each row lists the user requirements derived from the business requirement, the 
 
 **Open questions**
 
-1. NFR-002 and NFR-008 carry a measurement method now, but their limits (1,195 characters, 110 ms) still come from documented estimates. The NFR-008 method (median wall-clock time of 20 runs of `node hooks/<hook>.js` on a fixed 2 KB `Write` input per hook) is proposed here and awaits the user's confirmation. Should the maintainers also replace the limits with measured values?
+1. NFR-002 and NFR-008 carry a measurement method now, but their limits (1,195 characters, 110 ms) still come from documented estimates. The NFR-008 and NFR-025 method (median wall-clock time of 20 runs of `node hooks/<hook>.js` on a fixed input per hook, limit 110 ms, a SHOULD, so a median over it is a finding) is confirmed by the user (`DECISIONS.md:243-246`). The qa run reported measured medians on this machine: `pr-post-ask` 57.6 ms, `prose-gate` 67.2 ms, `prose-advisor` 56.1 ms, `fsa-write-bar` 54.4 ms. The 110 ms limit itself still comes from the documented estimate, so the question that remains is whether the maintainers want to replace it with a limit set from measured values.
 2. `README.md`, `docs/SPECIFICATION.md`, and `docs/TOKEN_OPTIMIZATION.md` quote different savings figures with no stated measurement method. This document leaves token savings as BR-003 with no percentage target.
 3. Closed by the user on 2026-10-16 (`DECISIONS.md:158-161`): `.claude/settings*.json` stays in the LLM gate trigger (FR-061, FR-199, NFR-011).
 4. Closed by the user on 2026-10-16 (`DECISIONS.md:148-151`): the named OWASP for LLM gate uses the Security gate's iteration bound and binding final `code-reviewer` pass (FR-055, FR-199).
 5. Closed by the user on 2026-10-16 (`DECISIONS.md:148-151`, `:158-161`, `:173-176`): `sa-mermaid-only` accepts absolute `-i` and `-o` paths under `<git root>/specs/` and `<git root>/<dir>/specs/` with the same segment rules, the walk for `.git` starts at the hook input's cwd, and absolute paths are denied when no `.git` is found (FR-093).
-6. Closed by the user on 2026-10-16 (`DECISIONS.md:148-151`, `:153-156`, `:158-161`): PR review under `/do` has `/do` fetch the PR by redirect into `.agent/pr-review/pr-<N>.diff` (`DECISIONS.md:183-186`) so that only `reviewer` reads the PR text; `reviewer` drafts in the prose above its block and ends `Done` with `approved` or `returned`; `/do` shows the draft; after the user confirms, `/do` itself posts with `gh pr review` (`--approve`, `--request-changes`, `--comment`) through a body file, calling no `/pr-review`; no subagent posts; and since `DECISIONS.md:208-211` only `github.com` remotes are supported in this flow (FR-195).
+6. Closed by the user on 2026-10-16 (`DECISIONS.md:148-151`, `:153-156`, `:158-161`): PR review under `/do` has `/do` fetch the PR by redirect into `.agent/pr-review/pr-<N>.diff` (`DECISIONS.md:183-186`) so that only `reviewer` reads the PR text; `reviewer` drafts in the prose above its block and ends `Done` with `approved` or `returned`; `/do` shows the draft; after the user confirms, `/do` itself posts with `gh pr review` (`--approve`, `--request-changes`, `--comment`) through a body file, calling no `/pr-review`; no subagent posts; and, as 1.12.0 history, `DECISIONS.md:208-211` limited this flow to `github.com` remotes; `DECISIONS.md:223-226` and the follow-up of version 1.3 restore Bitbucket remotes (FR-195, FR-202, FR-203).
 7. FR-196 depends on Claude Code skill frontmatter supporting `model`. The spec step verifies it; this document does not.
 8. Closed as a plain fix: the OP-14 answer covers the release checklist (FR-194), and the documentation drift in `docs/SPECIFICATION.md:292` (two `technical-writing` subcommands where the skill has four), `MARKETPLACE.md:50` (omits `check-fsa-tables.js`), and `MARKETPLACE.md:78` (tags like `assist-plugin--v1.1.0` while `/bump` creates `vX.Y.Z`) is now FR-201.
 9. Closed by the user on 2026-10-16 (`DECISIONS.md:158-161`): in "answer N, block M" citations each answered question is its own answer N (FR-175 to FR-177).
@@ -4607,9 +5330,46 @@ Each row lists the user requirements derived from the business requirement, the 
 - Skills: OP-1 (FR-061, NFR-011), OP-3 (FR-148), OP-4 (FR-195), OP-5 (NFR-004), OP-6 (NFR-013), OP-7a, OP-7b, OP-7d, OP-7e and the pointer follow-up (FR-137 to FR-139, FR-200), OP-8 (FR-143), OP-9 (FR-175 to FR-177), OP-10 (NFR-020), OP-11a and OP-11b (FR-136, FR-196), OP-12 (FR-147), OP-13 (NFR-015), OP-14 (FR-194), the FR-177 versus FR-154 conflict (FR-154, FR-177), and the `metadata.json` mirror (FR-193).
 - Hooks: OP-B1 (FR-088), OP-B2 (FR-091), OP-B3 (FR-092), OP-B4 (FR-094), OP-B5a and OP-B5b (FR-118), OP-B7 (FR-112), OP-B8 and OP-B11 (FR-094, FR-099), OP-B9 and OP-B10 (FR-198), OP-B12 (FR-126, accepted limit).
 - Plain fixes: the Dispatch-only compare-before-write rule (FR-032), the build-intent scenario (FR-005, found Built in 1.11.1 at `skills/do/SKILL.md:171-181`), the `[Author]` rule (FR-197), and OP-7c, the `--no-changelog` argument hint (FR-138).
-- Later answers of 2026-10-16 (`DECISIONS.md:148-161`): PR review drafts in `reviewer` and ends `Done`, the main conversation fetches the PR, maps the verdict to a flag, and submits (FR-195); `sa-mermaid-only` accepts absolute paths only under `<git root>/specs/` (FR-093); the OWASP for LLM gate uses the Security gate's bound and binding pass, and `.claude/settings*.json` stays in the trigger (FR-199, FR-061); package runners also include `npm exec`, `pnpx`, `yarn dlx`, and `bun x` (FR-198); `branch` `Bash(git:*)` is an NFR-013 exception; each answered question is its own answer N (FR-175 to FR-177). Further answers (`DECISIONS.md:163-216`; `:213-216` hardens the `/do` PR review flow with a pinned `--repo 'github.com/<owner>/<repo>'`, symlink checks and `rm -f`, a Write-tool body file, a hash-mismatch rule, and a public-draft statement in the reviewer prompt, FR-195, and lists new `doc-cli-guard` and injection-filter bypass forms as known gaps, FR-094, FR-099; `:208-211` limits the `/do` PR review flow to `github.com` remotes in 1.12.0, so any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly, and leaves the correction of the `bkt` command forms, including `/pr-review`'s references, as a follow-up outside these requirements, FR-195, FR-143; `:198` keeps `doc-cli-guard` best-effort with listed known gaps and adds `exec`, `sudo`, and `eval` as wrappers, FR-094, FR-198; `:203` records the sign-off; `:193-196` keeps the whole-command shell-operator denial in `doc-cli-guard` when any part runs `ctx7` or `firecrawl`, has an approved Bitbucket review run `bkt pr approve` then `bkt pr comment` under the one confirmation with a failed comment reported and the approval standing, and builds test database URLs from variables, FR-094, FR-195, NFR-015; `:183-186` has `/do` fetch a PR by `gh` or `bkt` through Bash with the output redirected into `.agent/pr-review/pr-<N>.diff` (200 KB cap), post a confirmed draft itself with `gh pr review` or `bkt` through a body file, call no `/pr-review`, and withdraws the `:178-181` exception, FR-195, FR-143; `:188-191` has `doc-cli-guard` judge each part of a chained command, the injection filter skip a leading PowerShell assignment and an opening `(` or `$(`, and `/bump` offer three answers when it stops on an unclear changelog, FR-094, FR-099, FR-200; `:173-176` adds any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth to the LLM gate and `<git root>/<dir>/specs/` to the mmdc paths; `:178-181` makes the user's yes to `/do`'s prompt for a draft the `/pr-review` confirmation for that identical draft text in the same turn, with no re-draft and no second ask, while any other pre-supplied flag still asks, FR-143, FR-195): read-only fixed-program Bash grants are scoped (NFR-013); a returned verdict on Bitbucket posts a comment and leaves the PR open in a direct `/pr-review` (FR-143 alone, since the `/do` flow is GitHub only); the LLM surface path anchor (FR-061, FR-199, NFR-011); SKILL.md frontmatter is the source of `metadata.json` and `debug` gains `effort: high` (FR-193); `iwr` and `irm` aliases and per-shell case rules (FR-094, FR-099, FR-198); a failed `writing-context` self-test never disables it (FR-091, FR-118).
+- Later answers of 2026-10-16 (`DECISIONS.md:148-161`): PR review drafts in `reviewer` and ends `Done`, the main conversation fetches the PR, maps the verdict to a flag, and submits (FR-195); `sa-mermaid-only` accepts absolute paths only under `<git root>/specs/` (FR-093); the OWASP for LLM gate uses the Security gate's bound and binding pass, and `.claude/settings*.json` stays in the trigger (FR-199, FR-061); package runners also include `npm exec`, `pnpx`, `yarn dlx`, and `bun x` (FR-198); `branch` `Bash(git:*)` is an NFR-013 exception; each answered question is its own answer N (FR-175 to FR-177). Further answers (`DECISIONS.md:163-216`; `:213-216` hardens the `/do` PR review flow with a pinned `--repo 'github.com/<owner>/<repo>'`, symlink checks and `rm -f`, a Write-tool body file, a hash-mismatch rule, and a public-draft statement in the reviewer prompt, FR-195, and lists new `doc-cli-guard` and injection-filter bypass forms as known gaps, FR-094, FR-099; `:208-211` limits the `/do` PR review flow to `github.com` remotes in 1.12.0, so any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly, and leaves the correction of the `bkt` command forms, including `/pr-review`'s references, as a follow-up outside these requirements (brought inside them in version 1.3: FR-202, FR-203, and `DECISIONS.md:223-226`), FR-195, FR-143; `:198` keeps `doc-cli-guard` best-effort with listed known gaps and adds `exec`, `sudo`, and `eval` as wrappers, FR-094, FR-198; `:203` records the sign-off; `:193-196` keeps the whole-command shell-operator denial in `doc-cli-guard` when any part runs `ctx7` or `firecrawl`, has an approved Bitbucket review run `bkt pr approve` then `bkt pr comment` under the one confirmation with a failed comment reported and the approval standing, and builds test database URLs from variables, FR-094, FR-195, NFR-015; `:183-186` has `/do` fetch a PR by `gh` or `bkt` through Bash with the output redirected into `.agent/pr-review/pr-<N>.diff` (200 KB cap), post a confirmed draft itself with `gh pr review` or `bkt` through a body file, call no `/pr-review`, and withdraws the `:178-181` exception, FR-195, FR-143; `:188-191` has `doc-cli-guard` judge each part of a chained command, the injection filter skip a leading PowerShell assignment and an opening `(` or `$(`, and `/bump` offer three answers when it stops on an unclear changelog, FR-094, FR-099, FR-200; `:173-176` adds any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth to the LLM gate and `<git root>/<dir>/specs/` to the mmdc paths; `:178-181` makes the user's yes to `/do`'s prompt for a draft the `/pr-review` confirmation for that identical draft text in the same turn, with no re-draft and no second ask, while any other pre-supplied flag still asks, FR-143, FR-195): read-only fixed-program Bash grants are scoped (NFR-013); a returned verdict on Bitbucket posts a comment and leaves the PR open in a direct `/pr-review` (FR-143 alone, since the 1.12.0 `/do` flow was GitHub only; the follow-up restores Bitbucket there, FR-195); the LLM surface path anchor (FR-061, FR-199, NFR-011); SKILL.md frontmatter is the source of `metadata.json` and `debug` gains `effort: high` (FR-193); `iwr` and `irm` aliases and per-shell case rules (FR-094, FR-099, FR-198); a failed `writing-context` self-test never disables it (FR-091, FR-118).
+
+**Settled by the user in the version 1.3 elicitation (follow-up to 1.12.0; recorded at `DECISIONS.md:223-226`)**
+
+- Ask hook: every session; `gh pr review`, `gh pr merge`, `gh pr comment`, `gh pr close`, `bkt pr approve`, `bkt pr comment`, `bkt pr decline`, `bkt pr close`, `bkt pr merge`, and `bkt api` with POST, PUT, PATCH, or DELETE (FR-206).
+- Cleanup: the five files of PR `<N>` (removed by exact name with no glob, `DECISIONS.md:263-266`, which replaced the `pr-<N>.*` and `pr-<N>-*` matching of `DECISIONS.md:228-231`) are removed right after a post or a "do not post" answer, with a sweep at `/do` Cleanup, and nothing is removed through a symlinked folder (FR-208).
+- `/bump --path`: the strict relative-path form (FR-209).
+- Bitbucket host pin: refuse when `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR` is set; context base URL must match the origin host; `--context` and repository flags on every call; Cloud PR link check (FR-203). Request changes: Cloud through `bkt api` with a relative path, Data Center posts a comment and leaves the PR open (FR-143, FR-195).
+- Symlink checks cover every `.agent/` write `/do` makes (plan file, snapshots, PR files) (FR-207).
+
+**Settled by the user for the build (version 1.4; `DECISIONS.md:238-261`)**
+
+- `bkt api` repository flags and unknown options: a `bkt api` call names the repository through its relative path and takes no repository flags; the ask hook asks on any `bkt api` option it does not recognize (`DECISIONS.md:238-241`; FR-202, FR-203, FR-206).
+- Build scope and timing method: the build reuses the gated task plan, pauses for the 1.13.0 hand release and again before the commit, creates no tag, and pushes nothing; the NFR-008 and NFR-025 timing method is confirmed (`DECISIONS.md:243-246`).
+- Step 1 results: `bkt api` sends GET with no method and no body and POST with a body; `--method` (short `-X`) is the method option; `bkt api` takes no repository flags; the `bkt --version` pattern holds; the two `--jq` filters use the array form (`DECISIONS.md:248-251`; FR-202, FR-203, FR-206).
+- Review findings: `/bump --path` refuses a segment that starts with `.` or contains `..` (R8); the ask hook closes the cheap bypass forms and lists the rest as known gaps (`DECISIONS.md:253-256`; FR-139, FR-206, FR-209).
+- Cleanup by name and pre-release fixes (`DECISIONS.md:263-266`): no glob in either cleanup (FR-208, FR-144); on Bitbucket the body-hash check runs as its own command before `bkt pr approve` (FR-143, FR-195); "exactly one" for the context lookup means one element that meets the Match rule (FR-202, FR-203).
+- Where the gap list lives (`DECISIONS.md:268-271`): the full list sits in five places, and `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md` carry a pointer plus the unverified items (FR-206).
+- The ask hook is a best-effort guard; a bypass form found later joins every gap list without reopening the spec (`DECISIONS.md:258-261`; FR-206).
+
+**Open points for the spec step (follow-up to 1.12.0), as of version 1.4**
+
+Version 1.4 closes point 2 in part (the facts the build settled) and restates point 9. Points 11 and 12 (the two cleanup-glob items) are closed by `DECISIONS.md:263-266`, and point 6 is restated. Points 1, 3, 5, and 7 stay closed. Point 4 records a user choice and needs no action. Points 8 and 10 stay open.
+
+1. Closed: `DECISIONS.md:223-226` (2026-10-22) records the Bitbucket answers. It ends the GitHub-only limit of `DECISIONS.md:208-211` and supersedes the comment-only rule of `DECISIONS.md:163-166` for Bitbucket Cloud (section 7).
+2. Partly closed by the build (`DECISIONS.md:248-251`; FR-202, FR-203). Step 1 read the bkt v0.34.0 source and settled the `bkt --version` pattern (`^bkt version v?[0-9]+\.[0-9]+\.[0-9]+`), the `bkt api` method option (`--method`, short `-X`), its default method (GET with no body, POST with a body), the absence of repository flags on `bkt api`, the JSON-quoted `--jq` strings, and the array-form filters. Still unconfirmed: the `base_url` saved for a Cloud login (the pin accepts both `api.bitbucket.org` and `bitbucket.org`), server comment-length limits (the skill caps a Bitbucket comment at 16,000 bytes), whether the Data Center line cap affects `bkt pr diff`, and whether the case Bitbucket Cloud uses for the workspace and slug in the PR link matches the lowercase comparison (`.agent/research/bkt-cli-forms-20261017.md`, Not confirmed). None of these was run against a live host in this update.
+3. Closed by the user (`DECISIONS.md:228-231`): on Bitbucket Cloud a returned verdict posts the findings as a comment first and then makes the request-changes call, and no request-changes call is made when the comment fails (FR-143, FR-195).
+4. The posting ask hook adds a prompt after the confirmation of a direct `/pr-review` run, because a hook cannot tell the two flows apart. The user chose that scope.
+5. Closed by the user (`DECISIONS.md:228-231`): FR-209 keeps its two narrowings of `DECISIONS.md:225`: no segment made only of dots (the regular expression alone would allow `.` and `...`), and the order normalize, validate, then name, with the repository-root path counting as no `--path` before validation.
+6. Closed by the user (`DECISIONS.md:228-231`, replaced by `DECISIONS.md:263-266`): `DECISIONS.md:225` wrote `pr-<N>*`; `DECISIONS.md:228-231` read it as `pr-<N>.*` and `pr-<N>-*`, and `DECISIONS.md:263-266` then dropped the glob. FR-208 removes the five named files, so cleanup after PR 12 never removes the files of PR 123.
+7. Closed by the user (`DECISIONS.md:228-231`): when the user rejects the ask-hook prompt after confirming a draft in `/do`, the step is `completed`, the Done field records that the post was declined at the hook prompt, nothing is retried, and the files of that PR are removed as for a "do not post" answer. If only the second prompt of the Bitbucket approve-then-comment pair is rejected, the step is `completed` with the approval recorded as posted and the comment as declined (FR-195).
+8. The research found no bkt form for PR merge conflicts, so FR-142 limits the conflicts item to GitHub and says so on Bitbucket. Whether a conflict check through `bkt api` belongs in a later release is open.
+9. Closed by the user (`DECISIONS.md:228-231`): FR-206 asks on a `bkt api` call that has a body flag (`--input` or `--field`) and no method, because the research did not confirm bkt's default method. This is broader than the method list in `DECISIONS.md:225`. Step 1 confirmed from the source that bkt sends POST when a body is present (`DECISIONS.md:248-251`), which supports the rule; it stays in FR-206 and also covers an unrecognized option (`DECISIONS.md:238-241`).
+10. The Data Center remote forms and the one-matching-context rule of FR-203 follow `pr-detection.md:48-62` and the research's `auth status` keys; the spec step confirms them against real remotes, because the research did not run bkt. Still open at version 1.4: no real remote was run.
+11. Closed by the user (`DECISIONS.md:263-266`): `/do` removes the five PR files by exact name with `rm -f --` after the symlink guard, in one command that exits 3 on a symlink, with no glob, so it behaves the same in bash and zsh (FR-208). The glob form at `specs/spec-orchestration-dispatch.md:1289` is replaced in the spec fold.
+12. Closed by the user (`DECISIONS.md:263-266`): the `/pr-review` run-folder removal checks the `"${TMPDIR:-/tmp}/pr-review."` prefix, refuses `..`, removes its known files by name, and runs `rmdir` (FR-144). The unbound form at `specs/spec-skills-pr-review.md:655` is replaced in the spec fold.
 
 **Source differences found (not requirements)**
+
+- `skills/pr-review/references/pr-detection.md:23`, `:24`, and other lines still hold the placeholder-credential hits that NFR-015 lists; FR-202 touches the same file, so the spec step handles both together.
 
 - At 4803a0d, `skills/do/SKILL.md` (SpecGate step 2 and the Decompose chain table), `skills/gather-requirements/SKILL.md` (Output and Write scope), `skills/task-plan/SKILL.md` (Routing and Write scope), `agents/task-planner.md` (Write scope), `agents/intake-reviewer.md` (Conflict check), and `hooks/lib/fsa-paths.js` (`TASK_PLAN_GLOB`) place requirements and task plans at the repository root or the working directory. `DECISIONS.md` (2026-10-16) puts them in `docs/requirements/` and `docs/task-plans/`. FR-182 to FR-190 closed the difference in 1.11.1 (checked by reading the sources on 2026-10-16), apart from the Spec step's `specs/` path (FR-190, PLANNED, 1.12.0).
 - `rules/llm-security-checklist.md` (lines 187 and 316, section "LLM06" and the table "Open Gaps Found in This Audit") says no agent file declares `tools:` and names 12 agent files. All 16 current agent files declare `tools:`. FR-065 and FR-067 follow the agent files.
@@ -4642,4 +5402,6 @@ Each row lists the user requirements derived from the business requirement, the 
 | 1.0 | 2026-10-14 | Toni-Jan Keith Monserrat | Initial draft for assist-plugin 1.11.0 plus three PLANNED 1.11.1 changes |
 | 1.1 | 2026-10-16 | Toni-Jan Keith Monserrat | Baseline moved to 1.11.1. The 22 requirements PLANNED (1.11.1) set to Built after a read of the sources. The 40 deferred points answered on 2026-10-16 added as PLANNED (1.12.0): new FR-193 to FR-201; changed FR-005, FR-007, FR-009, FR-010, FR-012, FR-032, FR-054, FR-061 to FR-064, FR-088, FR-091, FR-092, FR-093, FR-094, FR-099, FR-112, FR-118, FR-126, FR-136 to FR-139, FR-143, FR-147, FR-148, FR-154, FR-175 to FR-177, FR-187, FR-189, FR-190, NFR-004, NFR-011, NFR-013, NFR-015, NFR-020 |
 | 1.2 | 2026-10-17 | Toni-Jan Keith Monserrat | Post-sign-off changes from `DECISIONS.md:178-216`: FR-094 (per-part judging, metacharacter rule kept on the whole command, hidden-name assignment, known gaps), FR-099 (PowerShell assignment forms, known gaps), FR-143 (one-confirmation exception withdrawn, bkt forms follow-up), FR-195 (fetch by redirect, `gh` only on `github.com`, posting from `/do`, hardening), FR-198 (`exec`, `sudo`, `eval` wrappers), FR-200 (three answers on a stop), sections 7 and 9 (twenty-two entries through `DECISIONS.md:216`), and URD UC-003 |
+| 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | Four follow-up groups after 1.12.0, PLANNED (follow-up to 1.12.0): new FR-202 to FR-210 (bkt v0.34.0 forms, Bitbucket host pin, direct-run untrusted-data rule and fetch cap, public-posting rule, PR posting ask hook, `.agent` symlink checks, `pr-review` file cleanup, `/bump --path` validation, checklist row 2 wording); changed FR-139, FR-142, FR-143 (citations of `SKILL.md:41`, `:82`, `:203` kept and `:209` corrected to `:208`; Bitbucket Cloud request changes), FR-144 (no fixed body path; bkt `--text`), FR-195 (Bitbucket remotes restored; Status Built (1.12.0) for the GitHub flow), FR-086 (11 scripts and 16 commands after the ask hook; the 15-command scenario marked as holding until FR-206 is built), FR-091 and FR-118 (a guard includes the ask hook; a false ask counts as a false deny), NFR-014, new NFR-025 (ask hook latency), sections 1, 6, 7, 8, and 9; URD UR-054 to UR-057 and UC-003; BRD scope. Documents stay DRAFT until the user signs off. Fix pass 2 (same version): planning-gate findings 1 to 11 applied (FR-203 Cloud base-URL host and both-flow link check, FR-207 Error exception, hook-rejection outcomes per `DECISIONS.md:233-236`, FR-195 pin and setup-step wording, FR-143 Built tags, FR-203 scp-like Data Center form). Fix pass 1 (same version): planning-gate findings 1 to 32 applied (FR-207 plan-file rule, FR-206 self-test and latency, matrix rows, `DECISIONS.md:223-226` citations, FR-203 context rule, FR-208 file names, FR-209 order, open points 5 to 10) |
+| 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | Status after the follow-up build (`DECISIONS.md:243-271`), no new elicitation: PLANNED (follow-up to 1.12.0) set to Built (1.13.0) for FR-086 (11 scripts and 16 commands replace the 10 and 15 counts), FR-091 and FR-118 (ask-hook clauses), FR-139, FR-142 to FR-144, FR-195, FR-202 to FR-210, NFR-014, NFR-025, and the section 8 Status cells; nothing was found unbuilt. FR-206: the unrecognized-`bkt api`-option ask rule and the either-word-list rule, the best-effort stance, the 11-item known-gap list from the hook header comment, the three unverified items, and the closed forms (substitution spans, nested depth, run-time expansion, redirection words). FR-209 and FR-139: rule R8, the `test -d` check without `--`, an empty or `.` stripped absolute value as no `--path`, and the eight stop messages. FR-202 and FR-203: the step 1 results (`bkt api` methods and body, `--method`/`-X`, no repository flags on `bkt api`, version pattern, JSON-quoted `--jq` strings), the array-form filters, and `/do` counting contexts that meet the Match rule. NFR-008 and NFR-025: timing method confirmed, medians from the qa run (57.6, 67.2, 56.1, and 54.4 ms). Section 9: points settled by the build closed or narrowed. Fix pass 1 (same version, `DECISIONS.md:263-271`): FR-208 removes the five PR files by exact name with `rm -f --` after the symlink guard in one command that exits 3 on a symlink (no glob); FR-144 adds the run-folder removal bound to the `mktemp` prefix; FR-143 and FR-195 add the separate body-hash check before `bkt pr approve`; FR-202 clause (f) says "exactly one" for the context lookup means one element that meets the Match rule; FR-206 and the gap list live in five places with a pointer in `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md`; stale line citations corrected; section 9 points 6, 11, and 12 closed. Documents stay DRAFT until the user signs off |
 

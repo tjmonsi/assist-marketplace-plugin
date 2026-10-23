@@ -1,7 +1,7 @@
 flowchart TD
   S(["node hooks/health-check.js with its arguments"]) --> A["--data-dir DIR sets CLAUDE_PLUGIN_DATA when DIR is non-empty"]
-  A --> B["Self-test 8 hooks against fixed allow and deny cases; PLANNED 1.12.0: 9, with writing-context"]
-  B --> C["Update hooks-disabled.json: disable on a false deny (guards) or any failure (the three filters); never for writing-context; remove on a full pass"]
+  A --> B["Self-test 10 hooks, pr-post-ask and writing-context included, against fixed cases"]
+  B --> C["Update hooks-disabled.json: disable on a false deny (guards; a false ask of pr-post-ask counts) or any failure (the three filters); never for writing-context; remove on a full pass"]
   C --> D["Read hook-health.jsonl, fsa-log.jsonl, health-state.json"]
   D --> E{"--session-start?"}
   E -->|yes| F{"Any problem?"}

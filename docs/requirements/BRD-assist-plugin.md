@@ -1,11 +1,11 @@
 # assist-plugin: Business Requirements Document
 
-**Version:** 1.1
-**Date:** 2026-10-16
+**Version:** 1.4
+**Date:** 2026-10-22
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
-Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every business requirement is **Built**. The 1.12.0 changes (the 40 deferred points answered on 2026-10-16) change no business requirement; they appear as PLANNED (1.12.0) in the user and functional requirements that serve these.
+Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every business requirement is **Built**. The 1.12.0 changes (the 40 deferred points answered on 2026-10-16) change no business requirement; they appear as PLANNED (1.12.0) in the user and functional requirements that serve these. Version 1.3 (aligned with the URD and FR-NFR version numbers; there is no BRD 1.2) also changes no business requirement; the follow-up after 1.12.0 (Bitbucket PR review, PR review hardening, `/bump --path` validation) serves BR-005, BR-006, BR-010, and BR-016 through UR-054 to UR-057. Version 1.4 (2026-10-22) changes no business requirement either; it records the follow-up as built for release 1.13.0 (`DECISIONS.md:243-271`), confirmed by reading the built files, and the version files still read 1.12.0 until the hand release.
 
 ---
 
@@ -61,7 +61,7 @@ Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1
 - Orchestration with `/do`: routing, plans, approval, dispatch, review gates, spec-first flow, decision records.
 - The 16 agents and their terminal-block contract.
 - The 22 skills (18 user-invocable, 4 internal).
-- The 10 hook scripts (15 hook commands) in `hooks/hooks.json`, their shared libraries, and the two maintenance scripts (`sync-writing-standard.js`, `check-fsa-tables.js`).
+- The 11 hook scripts (16 hook commands) in `hooks/hooks.json` (Built, 1.13.0: the posting ask hook of FR-206 added one script and one command to the 10 scripts and 15 commands of 1.12.0; FR-086 holds the count), their shared libraries, and the two maintenance scripts (`sync-writing-standard.js`, `check-fsa-tables.js`).
 - The writing standard and the opt-in `assist-plugin:terse` output style.
 - Governance rules in `rules/assist-plugin-rule.md` and `rules/llm-security-checklist.md`.
 - Marketplace identity and installation (`.claude-plugin/marketplace.json`, `plugin.json`).
@@ -69,6 +69,7 @@ Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1
 - Requirements documents in `docs/requirements/`, task plans in `docs/task-plans/`, and specs in `specs/` (built in 1.11.1), with SpecGate searching those folders, the old root patterns (`./BRD-*.md`, `./URD-*.md`, `./FR-NFR-*.md`, `./requirements-*.json`, `./task-plan-*.md`), never taking a path from `DECISIONS.md`, which gets only a plain note that an older project keeps its files at the root (`DECISIONS.md`, 2026-10-16). The requirements and task-plan folders resolve against the git root of the session's working directory; PLANNED (1.12.0): `specs/` resolves against the same root (`DECISIONS.md`, 2026-10-16, Specs resolve against the session's git root).
 - The `docs/tts/` exemption under the project root and the session's working directory (when inside the project) in `prose-gate` and `prose-advisor` (built in 1.11.1), as `DECISIONS.md` (2026-10-12 and 2026-10-16) says.
 - PLANNED (1.12.0): the changes decided on 2026-10-16 for the 40 deferred points (named OWASP for LLM gate over `skills/**`, Cleanup owning the terminal state, PowerShell coverage in `doc-cli-guard` and the injection filter, `/bump --path` naming, PR review under `/do`, skill `metadata.json` mirror, and the rest listed in `docs/requirements/FR-NFR-assist-plugin.md`, section 6).
+- Built (1.13.0): Bitbucket Cloud and Data Center support in `/pr-review` and the `/do` PR review flow with working `bkt` commands, hardening of both PR flows (untrusted PR text, fetch cap, public-posting rule, a best-effort hook with listed known gaps that asks before posting commands, symlink checks, file cleanup), `/bump --path` validation, and the LLM checklist wording (FR-202 to FR-210). This stays inside the generic `pr-review` skill; the out-of-scope row on Bitbucket PR tooling beyond `pr-review` is unchanged.
 
 #### Out of scope
 
@@ -129,7 +130,7 @@ Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1
 | Agent | A subagent definition in `agents/*.md` that `/do` dispatches as `assist-plugin:<name>` |
 | Skill | A `skills/*/SKILL.md` instruction set, user-invocable or internal |
 | Hook | A script registered in `hooks/hooks.json` that runs on a Claude Code event |
-| Guard | A PreToolUse hook that can deny a call (`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`) |
+| Guard | A PreToolUse hook that can deny or ask about a call (`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`; Built, 1.13.0: the posting ask hook of FR-206, which asks and never denies) |
 | Fail open | A hook failure lets the call proceed with a warning; only a positive match denies |
 | Spec-first | The rule that a build request gets requirements, a spec, and a task plan, approved by the user, before any build step |
 | Build step | A step that writes code, config, pipelines, infrastructure, or tests |
@@ -143,3 +144,5 @@ Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1
 |---------|------|--------|---------|
 | 1.0 | 2026-10-14 | Toni-Jan Keith Monserrat | Initial draft for assist-plugin 1.11.0 plus three PLANNED 1.11.1 changes |
 | 1.1 | 2026-10-16 | Toni-Jan Keith Monserrat | Baseline moved to 1.11.1. BR-014 and BR-017 and the 1.11.1 parts of other BRs set to Built. Scope notes the 1.12.0 changes from the 40 deferred points |
+| 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | Scope notes the follow-up after 1.12.0 (Bitbucket PR review, PR review hardening, `/bump --path` validation). No business requirement changes. Glossary: a guard may deny or ask (the FR-206 ask hook, PLANNED). Documents stay DRAFT until the user signs off |
+| 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | Status after the follow-up build (`DECISIONS.md:243-271`), no new elicitation: scope and glossary mark the Bitbucket PR review, the PR flow hardening, `/bump --path` validation, the checklist wording, and the posting ask hook as Built (1.13.0); the hook count reads 11 scripts and 16 commands. No business requirement changes. Documents stay DRAFT until the user signs off |

@@ -1,18 +1,44 @@
 sequenceDiagram
   actor User
-  participant Skill as pr-review skill
-  participant Git as git remote
+  participant Skill as pr-review skill, direct run
+  participant Git as git remote origin
   participant CLI as gh or bkt
-  User->>Skill: /pr-review 123 with optional verdict flag
-  Skill->>Git: git remote -v
-  Git-->>Skill: github, bitbucket.org, or /scm/ URL
-  Skill->>CLI: fetch PR details, read-only
-  CLI-->>Skill: title, description, author, state, files, comments, reviewers, conflicts
-  Skill->>Skill: draft verdict and the exact text to post
-  Skill->>User: Do you approve this verdict? (yes/no)
-  alt explicit affirmative
-    Skill->>Skill: Write confirmed text to a temp file
-    Skill->>CLI: review command with --body-file or --message-file
-  else no, edits, or unclear answer
-    Skill->>Skill: revise draft, ask again, run no state-changing command
+  participant Hook as pr-post-ask hook
+  User->>Skill: /pr-review 123 or a branch name, optional verdict flag
+  Skill->>Git: git remote get-url origin, credentials stripped
+  Git-->>Skill: host, owner or workspace or project key, repository
+  alt GitHub host
+    Skill->>CLI: gh pr list --head, only for a branch name that matches the pattern
+  else not GitHub
+    Skill->>CLI: pin step 1, bkt --version identity check
+    Skill->>CLI: pin step 2, BKT_TOKEN, BKT_HOST, BKT_CONFIG_DIR presence tests
+    Skill->>CLI: pin step 3, bkt auth status --json, an array of contexts, count the ones matching the origin host
+    Note over Skill,CLI: none or several matching, stop with the setup lines or the request to leave one
+    Skill->>CLI: branch search, only for a branch name, bkt pr list, an array of ids
   end
+  Skill->>Skill: PR number digits only, else ask the user, then make the run folder with mktemp -d
+  opt Bitbucket Cloud
+    Skill->>CLI: pin step 4, PR link check, exit status only, stop on 3 or 4
+  end
+  Skill->>CLI: fetch view, diff, comments, and on Cloud stat, each redirected into the run folder
+  Skill->>Skill: cut each file into a .cap file and page it with the Read tool, at most 204,800 bytes, diff first, record any cut
+  Skill->>Skill: treat the PR text as data, draft findings on the diff only
+  Skill->>Skill: Write the draft to body.txt in the run folder, on Bitbucket keep its hash
+  Skill->>User: verdict, exact body, cut, public notice, then Do you approve this verdict? (yes/no)
+  alt explicit yes
+    opt Bitbucket approval
+      Skill->>Skill: body-hash check as its own command, a mismatch posts nothing
+    end
+    loop each post command, its own Bash call
+      Skill->>Hook: posting command
+      Hook->>User: ask prompt
+      alt user allows
+        Hook-->>CLI: command runs, posted, or failed with no retry
+      else user rejects
+        Hook-->>Skill: not allowed, declined, run no next command
+      end
+    end
+  else no, edits, or unclear answer
+    Skill->>Skill: revise and ask again, run no posting command
+  end
+  Skill->>Skill: remove the run folder, prefix checked, files by name, then rmdir

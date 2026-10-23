@@ -1,11 +1,11 @@
 # assist-plugin: User Requirements Document
 
-**Version:** 1.2
-**Date:** 2026-10-17
+**Version:** 1.4
+**Date:** 2026-10-22
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
-Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless marked **PLANNED (1.12.0)**. UR-048, UR-050, UR-051, and UR-052 were PLANNED (1.11.1) and are now Built. UR-053 is new and PLANNED (1.12.0); the 1.12.0 changes to existing behavior sit in the functional requirements (`docs/requirements/FR-NFR-assist-plugin.md`) and do not change the wording of the other user requirements.
+Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless marked **PLANNED (1.12.0)**. UR-048, UR-050, UR-051, and UR-052 were PLANNED (1.11.1) and are now Built. UR-054 to UR-057 were added in version 1.3 as PLANNED (follow-up to 1.12.0): Bitbucket PR review, PR review hardening, `/bump --path` validation, and the checklist wording. Version 1.4 sets them to Built (1.13.0) after the follow-up build (`DECISIONS.md:243-271`): the functional requirements that satisfy them (FR-202 to FR-210) were confirmed by reading the built files on 2026-10-22, not by running them, and the version files still read 1.12.0 until the 1.13.0 hand release. UR-053 is new and PLANNED (1.12.0); the 1.12.0 changes to existing behavior sit in the functional requirements (`docs/requirements/FR-NFR-assist-plugin.md`) and do not change the wording of the other user requirements.
 
 ---
 
@@ -29,7 +29,7 @@ Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is 
 Each requirement uses the shall-statement form:
 > The [user/role] shall be able to [accomplish goal] [qualifying condition].
 
-Status is Built unless the row says PLANNED (1.12.0).
+Status is Built unless the row says PLANNED (1.12.0). UR-054 to UR-057 read Built (1.13.0).
 
 | ID | Requirement | Stakeholder | Traces to | Priority |
 |----|-------------|-------------|-----------|----------|
@@ -86,6 +86,10 @@ Status is Built unless the row says PLANNED (1.12.0).
 | UR-051 | The plugin maintainer shall be told when the verdict, task-plan path, protected-path, or auto-loaded-file tables in code differ from the markdown that documents them. | Plugin maintainer | BR-015 | Must |
 | UR-052 | The plugin maintainer shall be able to read the release history in one changelog. | Plugin maintainer | BR-017 | Should |
 | UR-053 | PLANNED (1.12.0): The plugin maintainer shall be able to rely on each skill's `metadata.json` matching the frontmatter of its `SKILL.md`, with a test that fails on a difference and lists the skills that have no `metadata.json`. | Plugin maintainer | BR-016, BR-005 | Should |
+| UR-054 | Built (1.13.0): The plugin user shall be able to review a Bitbucket Cloud or Data Center pull request with `/pr-review` using `bkt` commands that work, and to have `/do` run the same review for a Bitbucket remote, with the call kept on the host of the repository. | Plugin user | BR-010, BR-006 | Must |
+| UR-055 | Built (1.13.0): The plugin user shall have pull request text treated as data, posted reviews limited to findings on the diff, a prompt, in every session, before the commands on the posting ask hook's list that post, merge, or close a pull request (a best-effort guardrail with known gaps, FR-206), and the scratch files of a `/do` review written safely and removed afterward. | Plugin user | BR-006 | Must |
+| UR-056 | Built (1.13.0): The plugin user shall have the `--path` value of `/bump` checked before it reaches the commit message and tag, and a value that would give an invalid git tag name refused (FR-209). | Plugin user | BR-010, BR-006 | Must |
+| UR-057 | Built (1.13.0): The plugin maintainer shall be able to read in the LLM security checklist that the pull request confirmation is a written rule and that the skill's Bash runs with no prompt. | Plugin maintainer | BR-005, BR-016 | Should |
 
 ## 4. Use case summaries
 
@@ -108,10 +112,10 @@ Status is Built unless the row says PLANNED (1.12.0).
 #### UC-003: Review a pull request
 
 - **Primary actor:** Plugin user
-- **Precondition:** `gh` or `bkt` is installed and authenticated; a git remote exists.
+- **Precondition:** `gh` or `bkt` is installed and authenticated; a git remote exists. Built (1.13.0): for a Bitbucket remote, `bkt auth login` was run and a `bkt` context exists for the host (login does not create one), and `BKT_TOKEN`, `BKT_HOST`, and `BKT_CONFIG_DIR` are unset (FR-203).
 - **Success guarantee:** A verdict was posted only after the user confirmed the drafted text.
 - **Main scenario:** (1) The user types `/pr-review 123`. (2) The skill detects the platform and fetches the PR. (3) It drafts a verdict. (4) The user confirms. (5) The skill posts the verdict through a message file.
-- **Key extensions:** The user answers no and edits the draft. The PR is the user's own and the skill returns an error. PLANNED (1.12.0): under `/do`, the read-only `reviewer` drafts the verdict in the prose above its block and ends `Done` with `approved` or `returned`, `/do` fetched the PR by redirect so that the PR text never enters its context and shows the draft, and after the user confirms, `/do` itself posts it with `gh` through a body file, without calling `/pr-review`; no subagent posts. The `/do` flow supports `github.com` remotes only in 1.12.0, and any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly (FR-195).
+- **Key extensions:** The user answers no and edits the draft. The PR is the user's own and the skill returns an error. PLANNED (1.12.0): under `/do`, the read-only `reviewer` drafts the verdict in the prose above its block and ends `Done` with `approved` or `returned`, `/do` fetched the PR by redirect so that the PR text never enters its context and shows the draft, and after the user confirms, `/do` itself posts it with `gh` through a body file, without calling `/pr-review`; no subagent posts. The `/do` flow supports `github.com` remotes only in 1.12.0, and any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly (FR-195). Built (1.13.0): the flow also supports `bitbucket.org` and matching Bitbucket Data Center remotes with `bkt`, refuses to run when `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR` is set, removes its `pr-<N>` files afterward, while a best-effort hook with listed known gaps asks before the posting commands on its list in every session, a direct `/pr-review` run included (FR-206); a user who rejects that prompt gets a declined post, not a failure, and no retry; a direct `/pr-review` run treats PR text as data, caps the fetch at 200 KB, and posts only findings on the diff (FR-202 to FR-208).
 
 #### UC-004: Recover from a hook failure
 
@@ -180,3 +184,5 @@ Status is Built unless the row says PLANNED (1.12.0).
 | 1.0 | 2026-10-14 | Toni-Jan Keith Monserrat | Initial draft for assist-plugin 1.11.0 plus three PLANNED 1.11.1 changes |
 | 1.1 | 2026-10-16 | Toni-Jan Keith Monserrat | Baseline moved to 1.11.1. UR-048, UR-050 to UR-052 set to Built. UR-053 added (PLANNED, 1.12.0). UC-003 and UC-005 note the 1.12.0 changes |
 | 1.2 | 2026-10-17 | Toni-Jan Keith Monserrat | Post-sign-off change: UC-003 now says `/do` fetches the PR by redirect, posts with `gh` only, supports `github.com` remotes only in 1.12.0, and calls no `/pr-review` (`DECISIONS.md:183-216`, FR-195) |
+| 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | UR-054 to UR-057 added (PLANNED, follow-up to 1.12.0): Bitbucket PR review, PR review hardening, `/bump --path` validation, checklist wording. UC-003 notes the Bitbucket flow and hardening (FR-202 to FR-210). Documents stay DRAFT until the user signs off |
+| 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | UR-054 to UR-057 set to Built (1.13.0) after the follow-up build (`DECISIONS.md:243-271`), confirmed by reading the built files. UR-056 adds the refusal of a value that gives an invalid git tag name (rule R8, FR-209). UC-003 marks the Bitbucket flow built, calls the ask hook best-effort with listed known gaps, and adds the declined outcome of a rejected prompt. No new elicitation. Documents stay DRAFT until the user signs off |

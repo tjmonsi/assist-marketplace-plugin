@@ -7,21 +7,21 @@
 | **Feature** | Health check: hook self-tests, auto-disable, session notice, health report, attribution settings |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, FR-091, FR-107, FR-118, FR-119, FR-120, NFR-007, NFR-009, NFR-016 |
+| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, FR-091, FR-107, FR-118, FR-119, FR-120, FR-206, NFR-007, NFR-009, NFR-016 |
 | **Feature type** | Functionality |
-| **Status** | Approved |
+| **Status** | Draft |
 
 Status values: Draft, Review, Approved, Implemented.
 
 ## Description
 
-`hooks/health-check.js` self-tests the eight hooks that make decisions against fixed allow and deny cases, keeps `hooks-disabled.json` in step with the results, and either prints one notice at session start when something is wrong or prints a full report for `/assist-plugin:health`. The report also reads, without writing, Claude Code's `attribution.commit` and `attribution.pr` settings. It implements UR-018 and the auto-disable side of the fail-open design (the consumer side is in spec-hooks-platform.md). The `/health` skill that runs the report and explains its findings is FR-166 (Area C). This spec describes the behavior at assist-plugin 1.11.1 (commit 41034c1), whose self-tests include the FR-181 and FR-186 cases. The change log at the end records the 1.12.0 (PLANNED) changes: a ninth, report-only self-test for `writing-context` and the `; protection is weak` notice ending (FR-118).
+`hooks/health-check.js` self-tests the ten hooks that make decisions (the guards `doc-cli-guard`, `commit-attribution-guard`, `sa-mermaid-only`, `pr-post-ask`, `prose-gate`, and `fsa-write-bar`; the filters `injection-filter`, `prose-advisor`, and `fsa-log`; and the report-only `writing-context`) against fixed cases, keeps `hooks-disabled.json` in step with the results, and either prints one notice at session start when something is wrong or prints a full report for `/assist-plugin:health`. The report also reads, without writing, Claude Code's `attribution.commit` and `attribution.pr` settings. It implements UR-018 and the auto-disable side of the fail-open design (the consumer side is in spec-hooks-platform.md). The `/health` skill that runs the report and explains its findings is FR-166 (Area C). Requirements Self-tests, Auto-disable and re-enable, and Session-start notice describe the build of 2026-10-22 (follow-up to 1.12.0), folded from the Change Logs 2026-10-16, 2026-10-17, and 2026-10-22; the other requirements keep their 1.11.1 (commit 41034c1) text, with their line cites refreshed against the built files on 2026-10-22.
 
 ## Triggered by
 
 | Trigger type | Source | Condition |
 |---|---|---|
-| Event | SessionStart, matcher `startup\|resume`, argument `--session-start`, timeout 10 s (`hooks/hooks.json:114-123`) | Session start and resume (not `clear` or `compact`) |
+| Event | SessionStart, matcher `startup\|resume`, argument `--session-start`, timeout 10 s (`hooks/hooks.json:118-128`) | Session start and resume (not `clear` or `compact`) |
 | Called by feature | `/assist-plugin:health` skill (FR-166) | `node "${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js" --data-dir "${CLAUDE_PLUGIN_DATA}"`, with `--clear` when the user passes it |
 
 ## Required data
@@ -29,7 +29,7 @@ Status values: Draft, Review, Approved, Implemented.
 | Data | Source | Type | Notes |
 |---|---|---|---|
 | Arguments | Command line | strings | `--session-start`, `--clear`, `--data-dir DIR` |
-| Self-test corpora | `impl/health-check.js:83-922` | fixed objects | Test data; injection samples are inert text and are never printed |
+| Self-test corpora | `impl/health-check.js:97-1139` (read on 2026-10-22) | fixed objects | Test data; injection samples are inert text and are never printed |
 | `hooks-disabled.json`, `health-state.json`, `hook-health.jsonl`, `fsa-log.jsonl` | `${CLAUDE_PLUGIN_DATA}` | JSON | Validated on read (spec-hooks-platform.md) |
 | Settings files | `<project>/.claude/settings.local.json`, `<project>/.claude/settings.json`, `$CLAUDE_CONFIG_DIR/settings.json` or `~/.claude/settings.json` | JSON | `<project>` is `CLAUDE_PROJECT_DIR`, else the process working directory; report mode only |
 
@@ -38,7 +38,7 @@ Status values: Draft, Review, Approved, Implemented.
 | Condition | Check | If not met |
 |---|---|---|
 | Node 6 or newer | `lib/launch.js` | `unsupported-node` warning; the check does not run |
-| `CLAUDE_PLUGIN_DATA` set (directly or through `--data-dir`) | `canPersist` (`impl/health-check.js:1165`) | Self-tests still run and report; nothing is disabled, re-enabled, or remembered |
+| `CLAUDE_PLUGIN_DATA` set (directly or through `--data-dir`) | `canPersist` (`impl/health-check.js:1392`) | Self-tests still run and report; nothing is disabled, re-enabled, or remembered |
 
 ## Algorithmic steps
 
@@ -47,8 +47,8 @@ Start-to-end flow. Source: [spec-hooks-health-check-flow.mmd](spec-hooks-health-
 ```mermaid
 flowchart TD
   S(["node hooks/health-check.js with its arguments"]) --> A["--data-dir DIR sets CLAUDE_PLUGIN_DATA when DIR is non-empty"]
-  A --> B["Self-test 8 hooks against fixed allow and deny cases; PLANNED 1.12.0: 9, with writing-context"]
-  B --> C["Update hooks-disabled.json: disable on a false deny (guards) or any failure (the three filters); never for writing-context; remove on a full pass"]
+  A --> B["Self-test 10 hooks, pr-post-ask and writing-context included, against fixed cases"]
+  B --> C["Update hooks-disabled.json: disable on a false deny (guards; a false ask of pr-post-ask counts) or any failure (the three filters); never for writing-context; remove on a full pass"]
   C --> D["Read hook-health.jsonl, fsa-log.jsonl, health-state.json"]
   D --> E{"--session-start?"}
   E -->|yes| F{"Any problem?"}
@@ -64,30 +64,51 @@ flowchart TD
   L --> M
 ```
 
-**Note:** PNG rendering requires mermaid-cli with its headless browser, which is missing on this machine (see spec-hooks-platform.md). Render with `mmdc -i specs/spec-hooks-health-check-flow.mmd -o specs/spec-hooks-health-check-flow.png` once it is installed.
+**Note:** PNG rendering requires mermaid-cli with its headless browser, which is missing on this machine (see spec-hooks-platform.md; the run of 2026-10-22 failed the same way). Render with `mmdc -i specs/spec-hooks-health-check-flow.mmd -o specs/spec-hooks-health-check-flow.png` once it is installed.
 
 ### Requirement: Self-tests
 
-The health check SHALL, in both modes, run each of the eight hooks below against its fixed allow and deny cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, and temp directories per case.
+The health check SHALL, in both modes, run each of the ten hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; and `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list.
 
-**Requirement refs:** FR-118, UR-018
-**Status:** Built (1.11.1); PLANNED (1.12.0): the `writing-context` self-test (OP-B5 closed 2026-10-16; Change Log 2026-10-16, MODIFIED)
-**Source:** `hooks/impl/health-check.js:3-36`, `:801-960`, `:1167`
+**Requirement refs:** FR-118, FR-107, FR-206, UR-018, UR-055
+**Status:** Built: the `writing-context` self-test in 1.12.0 (commit `bb09e29`); the `pr-post-ask` self-test in the follow-up to 1.12.0 (build of 2026-10-22). Folded from the Change Logs 2026-10-16, 2026-10-17, and 2026-10-22
+**Source:** `hooks/impl/health-check.js`, read on 2026-10-22: the header `:3-62` (the `pr-post-ask` line `:38-40`), the `require` list `:69-85`, the `GUARDS` entries `:928-1139` (`pr-post-ask` `:1041-1080`, `writing-context` `:1129-1138`), `nounsFor` `:1143-1151`, `selfTest` `:1160-1178`
 
 | Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
 |---|---|---|---|---|
-| `doc-cli-guard` | guard | 10 | 14 | `deny === true` |
+| `doc-cli-guard` | guard | 16 | 23 | `deny === true` |
 | `commit-attribution-guard` | guard | 17 | 22 | `deny === true`; stub file reader, `cwd` `/assist-selftest/project` |
-| `sa-mermaid-only` | guard | 10 | 19 | `deny === true` |
-| `injection-filter` | filter | 23 benign | 34 injection | The scan finds a rule, strips an invisible character, or changes the text; the two end-to-end cases flag when the hook emits a rewrite |
+| `sa-mermaid-only` | guard | 16 | 28 | `deny === true`; a case with a `cwd` carries a `findGitRoot` stub, and the wrapper throws for one without it |
+| `pr-post-ask` | guard | 13 no-ask cases | 14 ask cases | `ask === true`, which the wrapper maps to `deny === true` |
+| `injection-filter` | filter | 23 benign | 36 injection | The scan finds a rule, strips an invisible character, or changes the text; the end-to-end cases (one benign, three injected: WebFetch, PowerShell, and the `sudo` wrapper) flag when the hook emits a rewrite |
 | `prose-gate` | guard | 32 | 31 | `deny === true`; stub file reader, explicit allowlist, temp directory, `projectDir`, and `findGitRoot` |
 | `prose-advisor` | filter | 11 clean | 10 advisory | The advisor returns output |
 | `fsa-write-bar` | guard | 51 | 106 | `deny === true`; explicit roots, and a `cwd` and `findGitRoot` stub for every task-planner case |
 | `fsa-log` | filter | 32 clean reports | 32 broken reports | The record holds problems; a record holding the sentinel text, or output other than exactly one `systemMessage` on a warning event, makes the case throw |
+| `writing-context` | report-only filter | 3 silent cases | 3 context cases | The hook returns a `stdout` object |
 
-Counts at 1.11.1, from the corpora at `hooks/impl/health-check.js:221-345` (prose), `:406-567` (`fsa-write-bar`), and `:802-921` (the other hooks). At 1.11.1 `writing-context` has no self-test; its problems show only in the health log. A case result is one of: correct, false deny (an allow case flagged), false allow (a deny case not flagged), or threw.
+Counts at the build of 2026-10-22, counted by reading the corpora of `hooks/impl/health-check.js`: injection `:101-160` and the end-to-end inputs `:362-390`, prose `:235-359`, `fsa-write-bar` `:437-598`, `fsa-log` `:643-739`, `writing-context` `:822-834`, `commit-attribution-guard` `:868-911`, and the inline cases of `doc-cli-guard`, `sa-mermaid-only`, and `pr-post-ask` in `GUARDS` `:929-1080`. A case result is one of: correct, false deny (an allow case flagged), false allow (a deny case not flagged), or threw.
 
-Built in 1.11.1 (FR-181): every `prose-gate` and `prose-advisor` case carries the keys `projectDir` and `findGitRoot` (`withRoot`, `:157-165`), `diskReader` (`:179-190`) forwards them and throws for a case that lacks them, and the 13 cases of spec-hooks-prose-hooks.md (Requirement: Self-test isolation for the project root) are in the corpora. Built in 1.11.1 (FR-186): every task-planner case carries a `cwd` and a `findGitRoot` stub, and the wrapper throws for a case without one (`:903-910`).
+Isolation, built in 1.11.1 (FR-181, FR-186): every `prose-gate` and `prose-advisor` case carries the keys `projectDir` and `findGitRoot` (`withRoot`, `:177-179`), `diskReader` (`:193-204`) forwards them and throws for a case that lacks them, and the 13 cases of spec-hooks-prose-hooks.md (Requirement: Self-test isolation for the project root) are in the corpora; every task-planner case carries a `cwd` and a `findGitRoot` stub, and the wrapper throws for a case without one (`:1110-1117`).
+
+`writing-context` cases (the hook's `evaluate(input, options)` takes `{env, readFile}`, so the hook's code did not change):
+
+| Kind | Label | Input | Reader | Correct result |
+|---|---|---|---|---|
+| context | installed standard at SessionStart | `{"hook_event_name": "SessionStart", "source": "startup"}` | the hook's own reader, at the plugin root | `stdout.hookSpecificOutput.additionalContext` starts with the exported `HEADER` and a line break and is longer than that |
+| context | SubagentStart | `{"hook_event_name": "SubagentStart"}` | stub returning `- Rule one.\n- Rule two.\n` | `hookEventName` `SubagentStart` and `additionalContext` equal to `HEADER` + `\n` + `- Rule one.\n- Rule two.` |
+| context | over the cap | `{"hook_event_name": "SessionStart"}` | stub returning 12,000 characters of bullet lines | `additionalContext` of at most 10,000 characters and `logKind` `standard-truncated`; a longer context makes the case throw |
+| silent | other event | `{"hook_event_name": "PostToolUse"}` | stub, not called | `null` |
+| silent | missing standard | `{"hook_event_name": "SessionStart"}` | stub returning null | no `stdout`, `logKind` `missing-standard` |
+| silent | empty standard | `{"hook_event_name": "SessionStart"}` | stub returning `\n\n` | no `stdout`, `logKind` `empty-standard` |
+
+Rules:
+- `writing-context` is report-only: its `GUARDS` entry carries `reportOnly: true`; `updateDisabled` never adds it to `hooks-disabled.json`, and `buildProblems` gives it no suffix (Requirement: Auto-disable and re-enable; Requirement: Session-start notice). A full pass still removes a listed `writing-context` entry, as for every self-tested hook (FR-091).
+- Report nouns of `writing-context`: allow `silent cases`, deny `context cases`, false deny `silent case` (verb `INJECTED`), false allow `context case` (verb `MISSED`). Report line at a pass: `  writing-context: PASS (3 silent cases, 3 context cases)`.
+- The self-test calls each hook's `evaluate` and never the runtime, so a self-test case never writes `hook-health.jsonl`; the `writing-context` `logKind` is checked on the returned object.
+- Every condition in the Correct result column is checked. Flagged (a `stdout` object present) decides correct, false deny, or false allow. A case whose `stdout` presence is right but which fails any other condition throws an `Error` that names the case and the failed condition, so the report lists it under "case threw" with that condition (`writingContextFlagged`, `:838-844`; `failedCondition`, `:784-788`).
+- The `pr-post-ask` entry: `name: prPostAsk.NAME`, `evaluate: (input) => ({ deny: prPostAsk.evaluate(input).ask === true })`, `allow` and `deny` holding the 27 cases of spec-hooks-pr-post-ask.md, Requirement 8 (built with `bash()` and `powershell()`, `:89-95`, each commented with its case number), and `nouns: { allow: "no-ask cases", deny: "ask cases", falseDeny: "known-safe command", falseAllow: "known posting command", altered: "ASKED", missed: "NOT ASKED" }`. It has no `filter` and no `reportOnly` flag, so `updateDisabled` and `buildProblems` treat it as a guard. Its cases carry no `cwd` and need no stub: the hook reads no file and walks no directory. Report line at a pass: `  pr-post-ask: PASS (13 no-ask cases, 14 ask cases)`.
+- `module.exports` (`:1464`) exports `GUARDS` and the `writing-context` corpora, among others, for unit tests.
 
 #### Scenario: All pass
 
@@ -101,19 +122,58 @@ Built in 1.11.1 (FR-181): every `prose-gate` and `prose-advisor` case carries th
 - **WHEN** the self-test runs
 - **THEN** the result SHALL record that case under "case threw" with the error's name and source line, and the hook's result SHALL be FAIL
 
+#### Scenario: Writing-context self-test passes
+
+- **GIVEN** `rules/writing-standard-compact.md` is present and readable
+- **WHEN** the session-start self-test runs `writing-context` against its fixed cases
+- **THEN** every case SHALL be correct and the notice SHALL NOT name `writing-context`
+
+#### Scenario: Compact standard unreadable
+
+- **GIVEN** `rules/writing-standard-compact.md` is missing or unreadable
+- **WHEN** the session starts
+- **THEN** the notice SHALL include `writing-context self-test failed (1 context case(s) missed)` with no suffix
+- **AND** the health check SHALL NOT add `writing-context` to `hooks-disabled.json`
+
+#### Scenario: Writing-context case throws
+
+- **GIVEN** a test fault makes the over-the-cap case return a context longer than 10,000 characters
+- **WHEN** the self-test runs
+- **THEN** the report SHALL list the case under "case threw", the `writing-context` self-test SHALL be FAIL, and `hooks-disabled.json` SHALL NOT gain `writing-context`
+
+#### Scenario: Right stdout presence, wrong content
+
+- **GIVEN** a test fault makes the SubagentStart case return a `stdout` object whose `hookEventName` is `SessionStart`
+- **WHEN** the self-test runs
+- **THEN** the case SHALL throw an `Error` naming the case and the condition `hookEventName SubagentStart`, and the report SHALL list it under "case threw"
+
+#### Scenario: Ask-hook self-test passes
+
+- **GIVEN** `pr-post-ask` gives the expected result on every case
+- **WHEN** the session starts
+- **THEN** the notice SHALL NOT name `pr-post-ask`, and the report SHALL show `  pr-post-ask: PASS (13 no-ask cases, 14 ask cases)`
+
+#### Scenario: A no-ask case asks
+
+- **GIVEN** a hook defect makes `gh pr view 1` return `ask: true`
+- **WHEN** the report runs
+- **THEN** the report SHALL show `  pr-post-ask: FAIL (13 no-ask cases, 14 ask cases)` and the line `    known-safe command was ASKED: Bash: gh pr view 1`
+
 ### Requirement: Auto-disable and re-enable
 
-When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards) or any false deny, false allow, or thrown case (filters), and remove a listed hook when its latest self-test passes every case.
+When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, whose self-test is report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
 
-**Requirement refs:** FR-091, UR-017, UR-018
-**Status:** Built; FR-091 now states this built rule (OP-B2 closed 2026-10-16); PLANNED (1.12.0): the wording of `rules/assist-plugin-rule.md:411` and of "the `hooks/impl/health-check.js:10-16` header", as FR-091 names it, where the edit lands at `hooks/impl/health-check.js:8`, and `writing-context` as a report-only hook (Change Log 2026-10-16, MODIFIED)
-**Source:** `hooks/impl/health-check.js:962-989`, `:1169-1178`; `hooks/lib/health.js:135-147`
+**Requirement refs:** FR-091, FR-206, UR-017, UR-018
+**Status:** Built: the eight hooks of 1.11.1 and `writing-context` in 1.12.0 (commit `bb09e29`); `pr-post-ask` in the follow-up to 1.12.0 (build of 2026-10-22). Folded from the Change Logs 2026-10-16 and 2026-10-22
+**Source:** `hooks/impl/health-check.js:1182-1211` (`updateDisabled`, read on 2026-10-22), the header lines `:5-11` and `:38-40`; `rules/assist-plugin-rule.md:413` (Hook Fail-Open Rule)
 
 Rules:
-- Entry: `{"<hook>": {"reason": "self-test: <reasons>", "ts": <ISO time>}}`. Guard reason: `<falseDeny noun> <altered verb> (<N> case[s])`, for example `known-safe command denied (1 case)`. Filter reasons, joined by `, `: `<N> <falseDeny noun>(s) <altered verb>`, `<N> <falseAllow noun>(s) <missed verb>`, `<N> case(s) threw`.
-- A guard with only false allows or thrown cases is not disabled; it is reported as failing and stays enabled.
+- Entry: `{"<hook>": {"reason": "self-test: <reasons>", "ts": <ISO time>}}`. Guard reason: `<falseDeny noun> <altered verb> (<N> case[s])`, for example `known-safe command denied (1 case)`, or for `pr-post-ask` `known-safe command asked (1 case)`. Filter reasons, joined by `, `: `<N> <falseDeny noun>(s) <altered verb>`, `<N> <falseAllow noun>(s) <missed verb>`, `<N> case(s) threw`.
+- A guard with only false allows or thrown cases is not disabled; it is reported as failing and keeps its state. For `pr-post-ask` a false allow is a missed ask.
+- A report-only hook (`writing-context`) is never added: `updateDisabled` tests `reportOnly` before the filter branches (`:1189-1197`).
 - A listed hook whose latest self-test fails without a disabling reason (a guard with only false allows or throws) keeps its entry; only a full pass removes it.
 - An empty list deletes the file. A write error adds the note `could not update hooks-disabled.json (<error>)` to the report.
+- The Hook Fail-Open Rule (`rules/assist-plugin-rule.md:413`) states the same rule: a guard whose self-test denies a known-safe command, and a filter whose self-test fails in any way, is auto-disabled until a later full pass; a guard that only misses a known-prohibited command keeps its state; a failed `writing-context` self-test is reported only; a guard whose self-test asks on a known-safe command (the PR posting ask hook) is treated like one that denies it. The header of `hooks/impl/health-check.js` (`:8-9`) says a guard that only misses keeps its state, enabled or listed until a full pass. The rule file is on the LLM surface (NFR-011).
 
 #### Scenario: Buggy guard
 
@@ -149,37 +209,85 @@ Rules:
 
 - **GIVEN** the same state
 - **WHEN** the health check runs without `--session-start`
-- **THEN** the report SHALL show `Data directory: NOT SET (failures cannot be logged and guards cannot be disabled)` (`impl/health-check.js:1028`) and the guard's `FAIL` line, write no file, and list no change under `Changes made:`
+- **THEN** the report SHALL show `Data directory: NOT SET (failures cannot be logged and guards cannot be disabled)` (`impl/health-check.js:1255`) and the guard's `FAIL` line, write no file, and list no change under `Changes made:`
 
 #### Scenario: Entry for a hook without a self-test
 
-- **GIVEN** `hooks-disabled.json` holds an entry for `writing-context`, which has no self-test
+- **GIVEN** `hooks-disabled.json` holds an entry for `retired-hook`, a name that no self-test covers
 - **WHEN** the health check runs with `--session-start`
-- **THEN** the notice SHALL include `writing-context guard is disabled (protection is off)`, and SHALL include it again at every later session start while the entry exists (1.11.1; the Change Log 2026-10-16 replaces this scenario, because `writing-context` gains a self-test)
+- **THEN** the notice SHALL include `retired-hook guard is disabled (protection is off)`, and SHALL include it again at every later session start while the entry exists
+
+#### Scenario: Writing-context failure never disables it
+
+- **GIVEN** the `writing-context` self-test fails and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the failure and SHALL NOT add `writing-context` to `hooks-disabled.json`
+
+#### Scenario: Hand-added writing-context entry and a full pass
+
+- **GIVEN** `hooks-disabled.json` holds a `writing-context` entry and its self-test passes every case
+- **WHEN** the health check runs with `CLAUDE_PLUGIN_DATA` set
+- **THEN** it SHALL remove the entry and report `writing-context re-enabled: all self-tests pass`
+
+#### Scenario: Listed guard that now only misses a deny
+
+- **GIVEN** a guard already listed in `hooks-disabled.json` whose latest self-test no longer denies a known-safe case but still allows a known-prohibited case
+- **WHEN** the health check runs
+- **THEN** it SHALL keep the guard in `hooks-disabled.json`, because an entry is removed only after a full passing self-test
+
+#### Scenario: False ask disables the hook
+
+- **GIVEN** `pr-post-ask` returns an ask decision for the known-safe case `gh pr view 1`
+- **WHEN** the health check runs with `CLAUDE_PLUGIN_DATA` set
+- **THEN** it SHALL add `{"pr-post-ask": {"reason": "self-test: known-safe command asked (1 case)", "ts": <ISO time>}}` to `hooks-disabled.json`, report `pr-post-ask disabled: self-test: known-safe command asked (1 case)` under `Changes made:`, and the notice SHALL end that item with `; guard disabled until a later check passes`
+
+#### Scenario: Re-enabled after a full pass
+
+- **GIVEN** `pr-post-ask` is listed and its latest self-test passes all 27 cases
+- **WHEN** the health check runs
+- **THEN** it SHALL remove the entry and report `pr-post-ask re-enabled: all self-tests pass`
+
+#### Scenario: Missed ask is weak protection
+
+- **GIVEN** `pr-post-ask` returns no decision for the ask case `gh pr merge 123` and asks on no known-safe case
+- **WHEN** the session starts
+- **THEN** the notice SHALL read `pr-post-ask self-test failed (1 known posting command(s) not asked); protection is weak`, and the hook SHALL stay out of `hooks-disabled.json`, or stay listed when it was listed before
 
 ### Requirement: Session-start notice
 
 With `--session-start`, the health check SHALL print one `{"systemMessage": "assist-plugin health: <problems joined by "; ">. Run /assist-plugin:health for details."}` when at least one problem below exists, print nothing otherwise, and never print plain text.
 
 **Requirement refs:** FR-118, UR-017, UR-018
-**Status:** Built; PLANNED (1.12.0): the `; protection is weak` ending for a guard with only missed denies (OP-B5 closed 2026-10-16; Change Log 2026-10-16, MODIFIED)
-**Source:** `hooks/impl/health-check.js:44-47`, `:1000-1022`, `:1170`, `:1180-1208`
+**Status:** Built: the `; protection is weak` ending and the report-only rule in 1.12.0 (commit `bb09e29`). Folded from the Change Log 2026-10-16
+**Source:** `hooks/impl/health-check.js:1222-1249` (`buildProblems`, read on 2026-10-22), `:1213-1220` (`failureLabel`)
 
 Problems, in order:
-1. Per failed self-test: `<name> self-test failed (<counts>)`, followed by `; guard disabled until a later check passes` or `; filter disabled until a later check passes` when this run added the entry (`impl/health-check.js:976-981`, `:1005`), or by `; could not disable it (CLAUDE_PLUGIN_DATA is not set)` when the run had a disabling failure but no data directory (`:1006`). The first suffix is printed even when the later write of `hooks-disabled.json` fails (`:1172-1178`); that failure shows only as a note in report mode.
-2. Per entry still in the list after this run's update whose hook did not fail this run: `<name> guard is disabled (protection is off)` (`impl/health-check.js:1009-1012`). The list checked is the in-memory list after `updateDisabled` (`:1170`, passed on at `:1202`), and that update already removed every hook that passed all cases (`:982-985`). The line therefore appears only for an entry that names no self-tested hook, such as a hand-added `writing-context` entry or a stale name, and it repeats every session while that entry exists. A listed hook that failed this run appears only through item 1, so a listed guard whose latest run fails only by false allows shows `self-test failed (...)` with no word that it is still disabled.
+1. Per failed self-test: `<name> self-test failed (<counts>)`, followed by `; guard disabled until a later check passes` or `; filter disabled until a later check passes` when this run added the entry (`disabledNow`, `impl/health-check.js:1201`, `:1230`), by `; could not disable it (CLAUDE_PLUGIN_DATA is not set)` when the run had a disabling failure but no data directory (`:1231`), or by `; protection is weak` for a guard whose self-test has at least one false allow and no false deny, whether or not it is listed in `hooks-disabled.json` (`:1232`). A report-only hook (`writing-context`) gets no suffix (`:1229`). Thrown cases do not change the choice: a thrown case never disables a guard, so a guard with false allows and thrown cases and no false deny also gets `; protection is weak`. The first suffix is printed even when the later write of `hooks-disabled.json` fails; that failure shows only as a note in report mode.
+2. Per entry still in the list after this run's update whose hook did not fail this run: `<name> guard is disabled (protection is off)` (`impl/health-check.js:1236-1239`). The list checked is the in-memory list after `updateDisabled`, and that update already removed every hook that passed all cases (`:1204-1207`). The line therefore appears only for an entry that names no self-tested hook, such as a stale name, and it repeats every session while that entry exists. A listed hook that failed this run appears only through item 1: a listed guard whose latest run fails only by false allows shows `self-test failed (...); protection is weak`, and the report's `Disabled guards:` section shows that it stays listed.
 3. When health-log entries are newer than `lastNotified`: `<N> hook failure(s) logged since the last notice (latest: <hook> <kind>)`.
 4. When `fsa-log` records of event `subagent-stop` or `handback` with problems are newer than `fsaLastNotified`: `<N> subagent report(s) with terminal-block problems logged since the last notice (latest: <agent> <first problem>)`.
 
 After either mode, when new entries existed and `CLAUDE_PLUGIN_DATA` is set, the timestamps of the newest counted entries are stored in `health-state.json` as `lastNotified` and `fsaLastNotified`. The attribution settings are not read in this mode.
 
-`<counts>` reads, for example, `1 known-prohibited command(s) allowed` for a guard with one false allow. At 1.11.1 the notice does not say "weak"; the `/health` skill's finding table explains that the guard stays enabled with weak protection (`skills/health/SKILL.md:43`). FR-118 (`docs/requirements/FR-NFR-assist-plugin.md:2494-2497`) adds the ending `; protection is weak`, PLANNED (1.12.0) in the change log.
+`<counts>` reads, for example, `1 known-prohibited command(s) allowed` for a guard with one false allow, or `1 known posting command(s) not asked` for `pr-post-ask` (its nouns, Requirement: Self-tests).
 
 #### Scenario: Weak guard
 
-- **GIVEN** a guard allows a known-prohibited case
+- **GIVEN** a guard that is not listed allows a known-prohibited case and denies no known-safe case
 - **WHEN** the session starts
-- **THEN** the notice SHALL read `<name> self-test failed (1 known-prohibited command(s) allowed)` and the guard SHALL stay enabled (built wording at 1.11.1; the change log gives the PLANNED wording)
+- **THEN** the notice SHALL read `<name> self-test failed (1 known-prohibited command(s) allowed); protection is weak` and the guard SHALL stay enabled
+
+#### Scenario: Weak guard with a thrown case
+
+- **GIVEN** `doc-cli-guard` is not listed, and its self-test has one false allow, one thrown case, and no false deny
+- **WHEN** the session starts
+- **THEN** the notice SHALL read `doc-cli-guard self-test failed (1 known-prohibited command(s) allowed, 1 case(s) threw); protection is weak`
+
+#### Scenario: Listed guard that only misses
+
+- **GIVEN** `doc-cli-guard` is listed from an earlier run and its latest self-test has one false allow and no false deny
+- **WHEN** the session starts
+- **THEN** the notice SHALL read `doc-cli-guard self-test failed (1 known-prohibited command(s) allowed); protection is weak`, and the entry SHALL stay
 
 #### Scenario: New hook failures
 
@@ -194,12 +302,12 @@ Without `--session-start`, the health check SHALL print a plain-text report with
 
 **Requirement refs:** FR-119, UR-018, NFR-016
 **Status:** Built
-**Source:** `hooks/impl/health-check.js:1024-1062`, `:1210-1221`
+**Source:** `hooks/impl/health-check.js:1251-1289` (`formatReport`), `:1437-1448` (report mode in `run`), read on 2026-10-22
 
 Line formats:
 - `assist-plugin hook health`, a blank line.
 - `Node: <version> (minimum supported: 6) OK`; `Data directory: <path>` or `Data directory: NOT SET (failures cannot be logged and guards cannot be disabled)`.
-- `Guard self-tests:` then per hook `  <name>: PASS|FAIL (<allow count> <allow noun>, <deny count> <deny noun>)`, then per failing case `    <noun> was <DENIED|ALLOWED|ALTERED|MISSED|ADVISED|FLAGGED>: <label>` or `    case threw: <label> (<error>)`. Case labels are printed, never sample text.
+- `Guard self-tests:` then per hook `  <name>: PASS|FAIL (<allow count> <allow noun>, <deny count> <deny noun>)`, then per failing case `    <noun> was <DENIED|ALLOWED|ALTERED|MISSED|ADVISED|FLAGGED|INJECTED|ASKED|NOT ASKED>: <label>` (the nouns and verbs of each hook, Requirement: Self-tests) or `    case threw: <label> (<error>)`. Case labels are printed, never sample text.
 - `Changes made:` with one line per disable or re-enable, when any.
 - `Disabled guards:` then `  <name>: <reason> (since <ts>)` or `  none`.
 - The attribution section (Requirement: Attribution settings report).
@@ -224,7 +332,7 @@ With `--clear` in report mode, the health check SHALL read the health-log entrie
 
 **Requirement refs:** FR-119, UR-018
 **Status:** Built
-**Source:** `hooks/impl/health-check.js:1180`, `:1210-1211`, `:1060`; `hooks/lib/health.js:212-223`
+**Source:** `hooks/impl/health-check.js:1391`, `:1437-1438`, `:1287` (read on 2026-10-22); `hooks/lib/health.js:212-223`
 
 #### Scenario: Clear
 
@@ -245,7 +353,7 @@ In report mode the health check SHALL read the local, project, and user Claude C
 
 **Requirement refs:** FR-120, UR-015, UR-018, BR-009
 **Status:** Built
-**Source:** `hooks/impl/health-check.js:38-42`, `:1064-1158`, `:1212-1217`; `DECISIONS.md` (2026-10-12, No AI attribution in commits or PRs)
+**Source:** `hooks/impl/health-check.js:47-51` (header), `:1291-1385` (`attributionFiles`, `inspectSettings`, `attributionReport`), `:1439-1444` (the call in report mode), read on 2026-10-22; `DECISIONS.md` (2026-10-12, No AI attribution in commits or PRs)
 
 Output:
 - First line `Claude Code attribution settings (read-only; this check never edits settings):`.
@@ -281,7 +389,7 @@ The health check SHALL fail open: an error takes the platform failure path with 
 
 **Requirement refs:** NFR-007, NFR-009, UR-017
 **Status:** Built
-**Source:** `hooks/impl/health-check.js:53`, `:57`, `:1224-1235`
+**Source:** `hooks/impl/health-check.js:62` (header), `:66` (`WATCHDOG_MS`), `:1451-1462` (`main`), read on 2026-10-22
 
 #### Scenario: Error during the run
 
@@ -299,8 +407,8 @@ The health check SHALL fail open: an error takes the platform failure path with 
 
 | Rule ID | Rule | Traces to | Applied at step | Example |
 |---|---|---|---|---|
-| RULE-001 | A false deny makes a guard untrustworthy: disable it; a false allow only weakens it: keep it | FR-091 | Requirement: Auto-disable and re-enable | `known-safe command denied (1 case)` |
-| RULE-002 | A filter that fails in either direction is disabled, because its rewrites or logs can no longer be trusted | FR-091 | Requirement: Auto-disable and re-enable | `1 benign sample(s) altered` |
+| RULE-001 | A false deny makes a guard untrustworthy: disable it; a false allow only weakens it: keep it. For `pr-post-ask` a false ask is a false deny and a missed ask is a false allow | FR-091, FR-206 | Requirement: Auto-disable and re-enable | `known-safe command denied (1 case)`; `known-safe command asked (1 case)` |
+| RULE-002 | A filter that fails in either direction is disabled, because its rewrites or logs can no longer be trusted; the report-only `writing-context` is never disabled | FR-091, FR-118 | Requirement: Auto-disable and re-enable | `1 benign sample(s) altered` |
 | RULE-003 | The session-start mode speaks only when something is wrong | FR-118 | Requirement: Session-start notice | Silent when healthy |
 | RULE-004 | Settings are reported, never edited | FR-120 | Requirement: Attribution settings report | Read-only |
 | RULE-005 | Test data never reaches output: labels only | FR-119, NFR-016 | Requirement: Health report | Injection sample text is not printed |
@@ -368,8 +476,10 @@ Not applicable: a leaf feature of spec-hooks-platform.md.
 | UR-015 | Requirement: Attribution settings report | Local-file-wins scenario |
 | UR-017 | Requirement: Auto-disable and re-enable | Buggy guard scenario |
 | UR-018 | Requirement: Health report; Requirement: Clear the failure log | Report and clear scenarios |
-| FR-091 | Requirement: Auto-disable and re-enable | Buggy, fixed, weak guard, and filter scenarios |
-| FR-118 | Requirement: Self-tests; Requirement: Session-start notice | All-pass and weak-guard scenarios |
+| FR-091 | Requirement: Auto-disable and re-enable | Buggy, fixed, weak guard, and filter scenarios; writing-context, hand-added entry, and listed-guard scenarios (`tests/hooks/health-check-1-12-0.test.js`) |
+| FR-107 | Requirement: Self-tests | Writing-context case table |
+| FR-118 | Requirement: Self-tests; Requirement: Session-start notice | All-pass and weak-guard scenarios; writing-context pass, unreadable, and throw scenarios; report and notice of a run with the 27 `pr-post-ask` cases |
+| FR-206, UR-055 | Requirement: Self-tests; Requirement: Auto-disable and re-enable | `hooks-disabled.json` after a false ask, a full pass, and a missed ask; a run with a no-ask case that asks (`tests/hooks/health-check-pr-post-ask.test.js`); HEALTH run at qa on 2026-10-22: ten PASS lines, `pr-post-ask` 13 and 14 (`.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`) |
 | FR-119 | Requirement: Health report; Requirement: Clear the failure log | Report and clear scenarios |
 | FR-120 | Requirement: Attribution settings report | Unset-key and never-writes scenarios |
 | NFR-007 | Requirement: Health check failure handling | Slow disk scenario |
@@ -377,6 +487,8 @@ Not applicable: a leaf feature of spec-hooks-platform.md.
 | NFR-016 | Requirement: Health report | Labels-only check on a failing injection case |
 
 ## Change Log: 2026-10-16
+
+Folded into the main body on 2026-10-22: Requirement: Self-tests and Requirement: Auto-disable and re-enable through the Change Log 2026-10-22, whose MODIFIED Requirements quote this entry's Now text as their Was, and Requirement: Session-start notice directly, because the folded Auto-disable statement reports weak protection.
 
 **Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16, final and approved; baseline assist-plugin 1.11.1, commit 41034c1): FR-091 reworded, with the writing-context scenario (`:1881-1915`, scenario `:1907-1910`), FR-118 PLANNED parts (`:2478-2507`, scenarios `:2484-2497`; the weak-protection ending applies to a guard listed in `hooks-disabled.json` or not, `:2494-2497`); `DECISIONS.md:168-171` (a failed writing-context self-test is reported and never disables writing-context); the answers to OP-B2, OP-B5a, and OP-B5b in `.agent/main-plan/plan-deferred-decisions-20261016-1059.md` (User Decisions).
 
@@ -555,6 +667,8 @@ These choices fill gaps the requirements leave open; each needs the user's sign-
 
 ## Change Log: 2026-10-17
 
+Folded into the main body on 2026-10-22 (the `injection-filter` counts of Requirement: Self-tests).
+
 **Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.2 (2026-10-17): FR-198 (statement `:2802`: `exec`, `sudo`, and `eval` are wrappers for both `doc-cli-guard` and `injection-filter`) and FR-118 (`:2478-2507`, unchanged); `DECISIONS.md:198-201`.
 
 ### Body edits without a behavior change
@@ -572,3 +686,125 @@ None.
 ### REMOVED Requirements
 
 None.
+
+## Change Log: 2026-10-22
+
+Folded into the main body on 2026-10-22.
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.3 (2026-10-17, DRAFT): FR-206 (`:4655-4734`; scenarios Self-test cases `:4696-4699`, False ask disables the hook `:4701-4704`, Missed ask is weak protection `:4706-4709`), FR-091 (`:1890-1924`; the clause at `:1892`: the posting ask hook counts as a guard, a false ask is treated like a false deny, and a missed ask like a missed deny), and FR-118 (`:2487-2516`; the clause at `:2489`: its fixed cases are ask and no-ask cases); `DECISIONS.md:223-226`, and `:238-241` (the ask on an unrecognized `bkt api` option, which adds cases 25 to 27 to the table of spec-hooks-pr-post-ask.md, Requirement 8, so the hook has 27 cases). Every change in this entry is PLANNED (follow-up to 1.12.0). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-22: at 1.12.0 (commit `bb09e29`) `GUARDS` (`hooks/impl/health-check.js:924-1095`) holds nine entries, `writing-context` included as a report-only filter (`:1085-1094`); `selfTest` (`:1116-1134`) flags a case by `decision.deny === true`; `updateDisabled` (`:1138-1167`) disables a guard on a false deny only; and `buildProblems` (`:1178-1205`) ends the notice of a guard with only false allows with `; protection is weak`.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review. Requirement refs: UR-055 and FR-206 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: the health check self-tests ten hooks, `pr-post-ask` included.
+- Algorithmic steps, node B of the flow diagram (inline and `spec-hooks-health-check-flow.mmd`): "Self-test 10 hooks, `pr-post-ask` included". The `.mmd` source is not edited in this pass; the node text follows at the fold.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** (Change Log 2026-10-16) The health check SHALL, in both modes, run each of the nine hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case.
+
+**Now:** The health check SHALL, in both modes, run each of the ten hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; and `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list.
+
+**Reason:** FR-118 (clause at `:2489`) and FR-206 (scenario Self-test cases, `:4696-4699`).
+
+**Requirement refs:** FR-118, FR-206, UR-018, UR-055 | **Status:** PLANNED (follow-up to 1.12.0)
+
+New row of the self-test table:
+
+| Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
+|---|---|---|---|---|
+| `pr-post-ask` | guard | 13 no-ask cases | 14 ask cases | `ask === true`, which the wrapper maps to `deny === true` |
+
+Rules:
+- The `GUARDS` entry: `name: prPostAsk.NAME`, `evaluate: (input) => ({ deny: prPostAsk.evaluate(input).ask === true })`, `allow` and `deny` holding the cases of spec-hooks-pr-post-ask.md, Requirement 8 (built with `bash()` and `powershell()`, `hooks/impl/health-check.js:85-91`), and `nouns: { allow: "no-ask cases", deny: "ask cases", falseDeny: "known-safe command", falseAllow: "known posting command", altered: "ASKED", missed: "NOT ASKED" }`. It has no `filter` and no `reportOnly` flag, so `updateDisabled` and `buildProblems` treat it as a guard with no code change there.
+- The module joins the `require` list at `hooks/impl/health-check.js:70-81`, and the header comment (`:3-48`) gains a line: "The pr-post-ask is a guard: its corpus holds `gh` and `bkt` posting commands (must ask) and read commands, quoted mentions, and `bkt api` reads (must not ask); a false ask disables it like a false deny, and a missed ask reports weak protection."
+- The cases carry no `cwd` and need no stub: `pr-post-ask` reads no file and walks no directory.
+- Report line at a pass: `  pr-post-ask: PASS (13 no-ask cases, 14 ask cases)`.
+
+##### Scenario: Ask-hook self-test passes
+
+- **GIVEN** `pr-post-ask` gives the expected result on every case
+- **WHEN** the session starts
+- **THEN** the notice SHALL NOT name `pr-post-ask`, and the report SHALL show its PASS line
+
+##### Scenario: A no-ask case asks
+
+- **GIVEN** a hook defect makes `gh pr view 1` return `ask: true`
+- **WHEN** the report runs
+- **THEN** the report SHALL show `  pr-post-ask: FAIL (13 no-ask cases, 14 ask cases)` and the line `    known-safe command was ASKED: Bash: gh pr view 1`
+
+#### Requirement: Auto-disable and re-enable
+
+**Was:** (Change Log 2026-10-16) When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, whose self-test is report-only, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Now:** When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, whose self-test is report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Reason:** FR-091 (clause at `:1892`) and FR-206 (scenarios `:4701-4709`).
+
+**Requirement refs:** FR-091, FR-206, UR-017, UR-018 | **Status:** PLANNED (follow-up to 1.12.0)
+
+Planned conformance: the Hook Fail-Open Rule line at `rules/assist-plugin-rule.md:413` adds "a guard whose self-test asks on a known-safe command (the PR posting ask hook) is treated like one that denies it". The rule file is on the LLM surface (NFR-011).
+
+##### Scenario: False ask disables the hook
+
+- **GIVEN** `pr-post-ask` returns an ask decision for the known-safe case `gh pr view 1`
+- **WHEN** the health check runs with `CLAUDE_PLUGIN_DATA` set
+- **THEN** it SHALL add `{"pr-post-ask": {"reason": "self-test: known-safe command asked (1 case)", "ts": <ISO time>}}` to `hooks-disabled.json`, report `pr-post-ask disabled: self-test: known-safe command asked (1 case)` under `Changes made:`, and the notice SHALL end that item with `; guard disabled until a later check passes`
+
+##### Scenario: Re-enabled after a full pass
+
+- **GIVEN** `pr-post-ask` is listed and its latest self-test passes all 27 cases
+- **WHEN** the health check runs
+- **THEN** it SHALL remove the entry and report `pr-post-ask re-enabled: all self-tests pass`
+
+##### Scenario: Missed ask is weak protection
+
+- **GIVEN** `pr-post-ask` returns no decision for the ask case `gh pr merge 123` and asks on no known-safe case
+- **WHEN** the session starts
+- **THEN** the notice SHALL read `pr-post-ask self-test failed (1 known posting command(s) not asked); protection is weak`, and the hook SHALL stay out of `hooks-disabled.json`, or stay listed when it was listed before
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-118, FR-206 | Change Log 2026-10-22: Requirement: Self-tests | Report and notice of a run with the 27 cases; a run with a no-ask case that asks |
+| FR-091, FR-206 | Change Log 2026-10-22: Requirement: Auto-disable and re-enable | `hooks-disabled.json` after a false ask, a full pass, and a missed ask |
+
+### Design choices for sign-off
+
+1. The report nouns of the `pr-post-ask` entry (`no-ask cases`, `ask cases`, `ASKED`, `NOT ASKED`), so the notice reads `known posting command(s) not asked` in place of FR-118's `known-prohibited command(s) allowed` while keeping its `; protection is weak` ending (FR-206, `:4706-4709`, asks for the ending only).
+
+## Change Log: 2026-10-22 (fold)
+
+**Source:** `DECISIONS.md:243-246` (the spec bodies are folded after qa in the same run) and `:248-251` (the 2026-10-22 deltas signed off); the build of `docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md`, qa passed on 2026-10-22, HEALTH printing ten PASS lines with `pr-post-ask` at 13 no-ask and 14 ask cases (`.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`). `hooks/impl/health-check.js` was read on 2026-10-22, and every case count in the body was counted by reading its corpus.
+
+Folded into the main body:
+
+- Change Log 2026-10-22, the list "Body text this entry supersedes": the Description names ten hooks, and node B of the flow diagram (inline and `spec-hooks-health-check-flow.mmd`) reads "Self-test 10 hooks, pr-post-ask and writing-context included"; node C names the false ask.
+- Requirement: Self-tests, from the Change Log 2026-10-22 Now (which quotes the 2026-10-16 Now), with the `writing-context` row and case table of 2026-10-16, the `injection-filter` count of 2026-10-17, and the `pr-post-ask` row and rules of 2026-10-22. The row counts of `doc-cli-guard` (16, 23) and `sa-mermaid-only` (16, 28) are the 2026-10-16 PLANNED counts, now read in the built corpus; the other rows kept their 1.11.1 counts, also read in the built corpus. Line cites refreshed.
+- Requirement: Auto-disable and re-enable, from the Change Log 2026-10-22 Now, with the 2026-10-16 scenarios (retired-hook entry, writing-context, hand-added entry, listed guard that only misses) and the 2026-10-22 scenarios (false ask, re-enabled, missed ask). The PLANNED wording of the rule file and the header comment is described as built (`rules/assist-plugin-rule.md:413`; `hooks/impl/health-check.js:8-9`).
+- Requirement: Session-start notice, from the Change Log 2026-10-16 Now: the `; protection is weak` ending, no suffix for a report-only hook, and the three weak-guard scenarios. Problem 2 no longer names a hand-added `writing-context` entry as its example, because `writing-context` now has a self-test.
+- Business rules RULE-001 and RULE-002, and Traceability rows for FR-107, FR-118, and FR-206.
+
+Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`references/delta-format.md`, Folding a delta into the main body, step 5); a `review` pass follows. Every pending change log entry of this spec is now folded. Rendering of the flow diagram failed again on 2026-10-22 (chrome-headless-shell missing).
+
+### Rework 2: line cites refreshed (no behavior change)
+
+The planning gate found cites that the build had moved. Re-read on 2026-10-22: the SessionStart entry is `hooks/hooks.json:118-128`; `canPersist` is `hooks/impl/health-check.js:1392`; the `Data directory: NOT SET` line is `:1255`. The Sources of Requirement: Health report (`:1251-1289`, `:1437-1448`), Requirement: Clear the failure log (`:1391`, `:1437-1438`, `:1287`), Requirement: Attribution settings report (`:47-51`, `:1291-1385`, `:1439-1444`), and Requirement: Health check failure handling (`:62`, `:66`, `:1451-1462`) are refreshed the same way, and the Description says so. The report's verb list in Requirement: Health report gains `INJECTED`, `ASKED`, and `NOT ASKED`, the verbs of the folded `writing-context` and `pr-post-ask` self-tests.

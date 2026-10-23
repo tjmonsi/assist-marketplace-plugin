@@ -1,0 +1,13 @@
+flowchart TD
+  W(["/do is about to write under root/.agent"]) --> K{"Which file?"}
+  K -->|"plan file, Write or Edit"| GP["One Bash command: test ! -L on root/.agent,<br/>root/.agent/main-plan, and the plan file"]
+  K -->|"snapshot file, no scratchpad"| GS["One Bash command: test ! -L on root/.agent<br/>and root/.agent/change-check"]
+  K -->|"snapshot file in the scratchpad"| SKIP(["Outside root/.agent: no guard"])
+  K -->|"PR file"| GR["guard of the PR flow, built in 1.12.0:<br/>test ! -L on root/.agent and root/.agent/pr-review, then mkdir -p"]
+  GP -->|"exit 0"| WP["Write or Edit the plan file in place; no rm -f"]
+  GS -->|"exit 0"| WS["rm -f the snapshot file in the same command that writes it"]
+  GR -->|"exit 0"| WR["rm -f each target, then write"]
+  GP -->|"non-zero: a symlink"| EP(["Plan ends in Error, policy-rejection, at the state that tried the write;<br/>a blocked terminal Status write is reported the same way instead of the terminal;<br/>no Status written; shown in the reply only"])
+  GS -->|"non-zero: a symlink"| EP
+  GR -->|"non-zero, no mkdir message: a symlink"| FS(["Only the PR step failed: policy-rejection;<br/>the run keeps its usual outcome, and Cleanup reports the symlink without changing the terminal"])
+  GR -->|"mkdir message"| FT(["PR step failed: tool-failed"])

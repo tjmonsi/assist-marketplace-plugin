@@ -7,13 +7,13 @@
 | **Feature** | `/do` orchestration: the Communicator state machine, its agents, and its review gates |
 | **Parent feature** | None |
 | **Sub-features** | spec-orchestration-planning.md, spec-orchestration-plan-approval.md, spec-orchestration-spec-first.md, spec-orchestration-dispatch.md, spec-orchestration-review-gates.md, spec-orchestration-terminal-block.md, spec-orchestration-agents.md |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-024 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024 |
 | **Feature type** | Architecture |
-| **Status** | Approved |
+| **Status** | Draft |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cites were refreshed against that file on 2026-10-16. Text that says "at 4803a0d" describes the earlier 1.11.0 baseline. Every behavior here is Built unless marked PLANNED, as `docs/requirements/FR-NFR-assist-plugin.md` (v1.1) marks it. The Change Log at the end of this file records the PLANNED (1.12.0) changes and holds where it differs from the main body. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root (`DECISIONS.md`, `docs/requirements/FR-NFR-assist-plugin.md`). Area B (hooks, `specs/spec-hooks*`) and Area C (skills, `specs/spec-skills*`) are cited by FR ID only.
+Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cites were refreshed against that file on 2026-10-16. Text that says "at 4803a0d" describes the earlier 1.11.0 baseline. Every behavior here is Built unless marked PLANNED, as `docs/requirements/FR-NFR-assist-plugin.md` (v1.1) marks it. On 2026-10-22 the Change Logs 2026-10-16 (except MODIFIED Requirement: Every loop is bounded), 2026-10-17, 2026-10-17 (PR flow hardening), and 2026-10-22 were folded into this body after the build of the follow-up to 1.12.0 (Change Log: 2026-10-22 (fold)); text that names that build cites `skills/do/SKILL.md` and `skills/do/references/pr-review-flow.md` as read on 2026-10-22. Paths are relative to `plugins/assist-plugin/` unless they start at the repository root (`DECISIONS.md`, `docs/requirements/FR-NFR-assist-plugin.md`). Area B (hooks, `specs/spec-hooks*`) and Area C (skills, `specs/spec-skills*`) are cited by FR ID only.
 
 ## Description
 
@@ -23,17 +23,17 @@ Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cite
 
 | Component | Responsibility | Owns data | Technology |
 |---|---|---|---|
-| `/do` Communicator | Runs the States table in `skills/do/SKILL.md:36-51`: ingest, classify, decompose, clarify, route, plan, approve, dispatch, gate, sign off, display, clean up. Never does delivery work itself (`skills/do/SKILL.md:518`), with one PLANNED (1.12.0) exception: it posts a user-confirmed PR review with `gh`, on a `github.com` remote only (FR-195; `DECISIONS.md:208-211`), so `skills/do/SKILL.md:518`, `:28`, and `:406` change with it | Plan file, `DECISIONS.md` entries, change-check snapshot files and their sha256 values, the `Documents approved` value it last wrote, approved-document hashes | Claude Code skill, Opus, effort xhigh (`skills/do/SKILL.md:12`, `skills/do/references/model-routing.md:9`); tools Read, Edit, Write, Grep, Glob, Bash, Agent, SendMessage, AskUserQuestion (`skills/do/SKILL.md:13-22`) |
+| `/do` Communicator | Runs the States table in `skills/do/SKILL.md:36-51`: ingest, classify, decompose, clarify, route, plan, approve, dispatch, gate, sign off, display, clean up. Never does delivery work itself, with one exception: it posts a user-confirmed PR review with `gh` on a `github.com` remote or with `bkt` on a Bitbucket remote (FR-195; `DECISIONS.md:223-226`; `skills/do/SKILL.md:28`, `:561`). Built: `gh` in 1.12.0, `bkt` in the follow-up to 1.12.0 | Plan file, `DECISIONS.md` entries, change-check snapshot files and their sha256 values, the `Documents approved` value it last wrote, approved-document hashes | Claude Code skill, Opus, effort xhigh (`skills/do/SKILL.md:12`, `skills/do/references/model-routing.md:9`); tools Read, Edit, Write, Grep, Glob, Bash, Agent, SendMessage, AskUserQuestion (`skills/do/SKILL.md:13-22`) |
 | User | Approves or cancels plans, documents, waivers, and decisions; answers Clarify and relayed questions | Answers | AskUserQuestion, chat |
 | Registry agents (16) | Deliver one step each and end with a terminal block | Artifacts inside the step's Writes | `agents/*.md`, dispatched as `assist-plugin:<name>` (`skills/do/references/agent-registry.md:3`) |
 | intake-reviewer | Pre-approval, read-only `review` of a user file and `conflict-check` of a build request | None (findings are inline) | `agents/intake-reviewer.md`, tools Read, Grep, Glob |
 | Gate reviewers | reviewer, code-reviewer (code and planning gates; the named OWASP for LLM Gate, PLANNED 1.12.0, FR-199), qa (Testing Gate), `review-md` (Report Quality Gate) | None | `skills/do/references/review-protocol.md:54-58` |
-| Plan file | The run's record: steps, approvals, Spec-First values, statuses | Plan Status, step Status, User Decisions | Markdown at `.agent/main-plan/plan-[slug]-[timestamp].md` per `skills/do/references/plan-format.md` |
-| `DECISIONS.md` | Append-only log of architectural decisions at the root of the project the plan changes | Dated decision entries | Markdown (`skills/do/SKILL.md:335-352`) |
-| Change-check snapshots | Baseline and window snapshots of git status and content hashes around document-chain steps | Sorted snapshot files | Session scratchpad, else `.agent/change-check/` (`skills/do/SKILL.md:371`) |
-| PR review files (PLANNED 1.12.0) | The fetched PR title, body, comments, and diff (at most 200 KB) for the reviewer step to read, and the confirmed draft for the post | Two files per PR review step | `<root>/.agent/pr-review/pr-<N>.diff`, the diff first and then the title, body, and comments, cut with `head -c` from temp files that `/do` never reads and hashed in the same command; and `<root>/.agent/pr-review/pr-<N>-review.body`, the draft written once, with the Write tool only, when the reviewer's block arrives, hashed and read back in one command, and re-checked in the post command; non-prose extensions, so prose-gate does not judge them. A symlinked `<root>/.agent` or `<root>/.agent/pr-review` fails the step with `policy-rejection` before any write, each target file is removed with `rm -f` before it is written, and a hash `/do` cannot recall counts as a mismatch (`DECISIONS.md:213-216`). The `untrusted-file` wrapper holds the plain absolute path; Bash commands single-quote it (FR-195, FR-103, NFR-014; spec readings in spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14) |
+| Plan file | The run's record: steps, approvals, Spec-First values, statuses | Plan Status, step Status, User Decisions | Markdown that Branch writes at `<root>/.agent/main-plan/plan-[slug]-[timestamp].md` per `skills/do/references/plan-format.md` (`skills/do/SKILL.md:245`); every Write or Edit of it follows the plan-file symlink guard and never an `rm -f` (FR-207; Requirement: /do guards every .agent write against a symlink) |
+| `DECISIONS.md` | Append-only log of architectural decisions at the root of the project the plan changes | Dated decision entries | Markdown (`skills/do/SKILL.md:370-387`) |
+| Change-check snapshots | Baseline and window snapshots of git status and content hashes around document-chain steps | Sorted snapshot files | Session scratchpad, else `'<root>/.agent/change-check/'` behind the snapshot symlink guard, each write starting with `rm -f --` of its file (`skills/do/SKILL.md:259-265`, `:406`; FR-207) |
+| PR review files | The fetched PR title, body, comments, and diff (at most 200 KB) for the reviewer step to read, and the confirmed draft for the post | The scratch file and the body file per PR review step, plus the temp files `pr-<N>.diff.full`, `pr-<N>.view.full`, and, on Bitbucket, `pr-<N>.comments.full` when the session has no scratchpad | `<root>/.agent/pr-review/pr-<N>.diff`, the diff first and then the title, body, and comments, cut with `head -c` from temp files that `/do` never reads and hashed in the same command; and `<root>/.agent/pr-review/pr-<N>-review.body`, the draft written once, with the Write tool only, when the reviewer's block arrives, hashed and read back in one command, and re-checked in the post command; non-prose extensions, so prose-gate does not judge them. A symlinked `<root>/.agent` or `<root>/.agent/pr-review` fails the step with `policy-rejection` before any write, each target file is removed with `rm -f` before it is written, and a hash `/do` cannot recall counts as a mismatch (`DECISIONS.md:213-216`). The files of PR `<N>` are removed after a post, a declined post, or a "do not post" answer, and swept at Cleanup, never through a symlinked folder (FR-208; `DECISIONS.md:223-226`, `:228-231`). The `untrusted-file` wrapper holds the plain absolute path; Bash commands single-quote it (FR-195, FR-103, NFR-014; spec-orchestration-dispatch.md, Requirements 14 and 15) |
 | `/do` reference files | Routing, model, plan, terminal-block, review, and fix rules that `/do` reads and agents cannot open | Static tables | `skills/do/references/*.md` |
-| Hooks (Area B) | Bar subagent writes to protected and out-of-role paths, limit mmdc, filter injection, log terminal blocks | `fsa-log.jsonl`, `hook-health.jsonl` | Node hooks; FR-092, FR-093, FR-099, FR-100, FR-108 to FR-117 |
+| Hooks (Area B) | Bar subagent writes to protected and out-of-role paths, limit mmdc, filter injection, log terminal blocks, and ask the user before each PR posting command (`pr-post-ask`, in every session, `/do`'s own posts included) | `fsa-log.jsonl`, `hook-health.jsonl` | Node hooks; FR-092, FR-093, FR-099, FR-100, FR-108 to FR-117, FR-206 |
 
 ## Component boundaries
 
@@ -45,7 +45,7 @@ Baseline: assist-plugin 1.11.1 at commit 41034c1; `skills/do/SKILL.md` line cite
 | `/do` to user | Step table, Order line, questions with options | Chat and AskUserQuestion, at most 4 questions per call | The user's own answer; no agent message is approval |
 | `/do` to plan file and `DECISIONS.md` | Plan creation, status updates, approvals, sign-off value, decision entries | Write, Edit | Only `/do` writes them; fsa-write-bar denies every subagent Write, Edit, MultiEdit, and NotebookEdit there (FR-112, Area B); Bash writes are not covered |
 | `/do` to git | `git status` and content hashes for the change check | Bash | Local repository |
-| `/do` to the PR host (PLANNED 1.12.0) | Before a PR review step, the PR title, body, comments, and diff, redirected by Bash into `.agent/pr-review/pr-<N>.diff` (200 KB cap) without entering `/do`'s context; after the user confirms, the draft from `.agent/pr-review/pr-<N>-review.body` | Host and repository from `git -C '<root>' remote get-url origin`, with any `user:password@` stripped by a `sed` in the same command so no credential reaches `/do` (spec reading: only `github.com` is accepted and selects `gh`; any other host, `bitbucket.org` included (`DECISIONS.md:208-211`), a URL form other than `https://`, `git@host:`, or `ssh://`, or an owner or repo outside `^[A-Za-z0-9._-]+$` fails the step with `precondition-failed`); every `gh` call pinned with `--repo 'github.com/<owner>/<repo>'`, so `GH_HOST` cannot redirect it (`DECISIONS.md:213-216`); `gh pr review '<N>'` with `--approve`, `--request-changes`, or `--comment` and `--body-file`; no `bkt` call and no `/pr-review` call (FR-195) | One yes to the one `/do` prompt that shows the draft; the PR number comes from the user's request and the flag from the reviewer's verdict; no subagent posts to the PR host (`DECISIONS.md:183-186`, `:208-211`) |
+| `/do` to the PR host | Before a PR review step, the PR title, body, comments, and diff, redirected by Bash into `.agent/pr-review/pr-<N>.diff` (200 KB cap) without entering `/do`'s context; after the user confirms, the draft from `.agent/pr-review/pr-<N>-review.body` | Host and repository from `git -C '<root>' remote get-url origin`, with any `user:password@` stripped by a `sed` in the same command so no credential reaches `/do`. A `github.com` remote selects `gh`, every call pinned with `--repo 'github.com/<owner>/<repo>'`, so `GH_HOST` cannot redirect it (`DECISIONS.md:213-216`), and the post is `gh pr review '<N>'` with `--approve`, `--request-changes`, or `--comment` and `--body-file`. A Bitbucket remote (`bitbucket.org`, or a Data Center remote whose host matches exactly one `bkt` context) selects `bkt` after the host pin of FR-203: no `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR` set, exactly one matching context, `--context` and the repository flags on every `bkt pr` call, and on Cloud a PR link check; each `bkt` post (approve, comment, the Cloud request-changes call) is its own Bash command. Any other host, a URL form outside the parsed ones, or a name outside `^[A-Za-z0-9._-]+$` fails the step with `precondition-failed`. No `/pr-review` call (FR-195; `DECISIONS.md:223-226`, `:233-236`; spec-orchestration-dispatch.md, Requirement 14) | One yes to the one `/do` prompt that shows the draft; then the ask hook of FR-206 may prompt for each posting command, and a rejected prompt is a declined post, not a failure (`DECISIONS.md:228-231`); the PR number comes from the user's request and the flag from the reviewer's verdict; no subagent posts to the PR host (`DECISIONS.md:183-186`) |
 | Agent to project files | Artifacts | Write, Edit, Bash (by agent tools) | Agent `tools` frontmatter (FR-065, FR-067); fsa-write-bar and sa-mermaid-only (Area B) |
 | Agent to `fsa-log.jsonl` | Checked block fields, problem codes | SubagentStop, SubagentHandback, Agent results | fsa-log hook (FR-115, Area B), warn only |
 
@@ -73,7 +73,7 @@ flowchart TD
   DA -->|"ok"| AS["AgentSelection"]
   AS -->|"unmatched, rounds below limit"| Cl
   AS -->|"unmatched at limit"| Err
-  AS -->|"all-matched"| Br["Branch: write plan file"]
+  AS -->|"all-matched"| Br["Branch: plan-file guard, then write the plan file<br/>at root/.agent/main-plan/"]
   Br -->|"direct"| PF["Preflight"]
   Br -->|"intake"| DInt["Dispatch, intake mode"]
   Br -->|"approve"| PA
@@ -86,22 +86,33 @@ flowchart TD
   PF -->|"ok"| DFull["Dispatch, full mode"]
   DFull -->|"docs-ready"| DS["DocSignOff"]
   DS -->|"approve or edit"| DFull
-  DS -->|"cancel"| Disp["Display: results;<br/>chooses no terminal (PLANNED 1.12.0)"]
+  DS -->|"cancel"| Disp["Display: results;<br/>chooses no terminal"]
   DFull -->|"all-settled"| Disp
   DStop -->|"all-settled"| Disp
-  Disp -->|"shown"| Clean{"Cleanup: prints its own report,<br/>chooses the terminal"}
+  Disp -->|"shown"| Clean{"Cleanup: sweeps the PR files, prints its own report,<br/>chooses the terminal"}
   Clean -->|"stopped"| Pau(["Paused"])
   Clean -->|"some-failed-or-skipped"| Par(["Partial"])
   Clean -->|"all-completed"| Com(["Complete"])
+  Ingest -->|"unsafe-path, on resume"| ErrP(["Error: policy-rejection;<br/>no Status written, shown in the reply only"])
+  Br -->|"unsafe-path"| ErrP
+  PA -->|"unsafe-path"| ErrP
+  PF -->|"unsafe-path"| ErrP
+  DInt -->|"unsafe-path"| ErrP
+  DFull -->|"unsafe-path"| ErrP
+  DStop -->|"unsafe-path"| ErrP
+  DS -->|"unsafe-path"| ErrP
+  Clean -->|"unsafe-path, tested first"| ErrP
 ```
 
-Source: [spec-orchestration-dataflow.mmd](spec-orchestration-dataflow.mmd). PNG not rendered (rendering skipped on 2026-10-16): `mmdc` 12.0.0 is installed but cannot find its headless browser, chrome-headless-shell 154.0.8037.57, in `~/.cache/puppeteer`. Once that browser is installed, render with `mmdc -i specs/spec-orchestration-dataflow.mmd -o specs/spec-orchestration-dataflow.png` and embed the image.
+Source: [spec-orchestration-dataflow.mmd](spec-orchestration-dataflow.mmd). PNG not rendered: `mmdc` is installed but cannot find its headless browser, chrome-headless-shell 154.0.8037.57, in `~/.cache/puppeteer` (runs of 2026-10-16 and 2026-10-22). Once that browser is installed, render with `mmdc -i specs/spec-orchestration-dataflow.mmd -o specs/spec-orchestration-dataflow.png` and embed the image.
 
-The Display and Cleanup edges follow the States table (`skills/do/SKILL.md:49-50`). OPEN-2 is closed: Cleanup chooses the terminal and prints its own cleanup report after the Display reply, and Display chooses nothing (FR-062 to FR-064, PLANNED 1.12.0; Change Log 2026-10-16). At 1.11.1 the Display row still ends "Choose the terminal" (`skills/do/SKILL.md:49`) and Cleanup puts its report in the Display reply (`:505`). The Error node shows OPEN-6, also closed: a run that ends in Error before Branch writes no plan file (FR-012, PLANNED 1.12.0).
+The Display and Cleanup edges follow the States table (`skills/do/SKILL.md:49-50`): Display presents the results and chooses nothing, and Cleanup sweeps the PR files, prints its own cleanup report after the Display reply, and chooses the terminal (FR-062 to FR-064, OPEN-2 closed; built in 1.12.0). The Error node shows OPEN-6, also closed: a run that ends in Error before Branch writes no plan file (FR-012; built in 1.12.0, `skills/do/SKILL.md:51`). The `unsafe-path` edges are the outcome of the plan-file and snapshot symlink guards (FR-207; Requirement: /do guards every .agent write against a symlink): a non-zero guard exit takes `unsafe-path` ahead of every other outcome of the state, and the Cleanup row lists it first (`skills/do/SKILL.md:38`, `:44-48`, `:50`, `:274`). The conflict-mode Dispatch writes no plan file and draws no such edge, and a symlinked PR folder draws none either: it fails only the PR step.
 
 ### Requirement: Request flow from Ingest to one terminal state
 
-The `/do` skill SHALL move every run through the states of `skills/do/SKILL.md:36-51` in table order, pick each next state only from the current state's outcome, and end the run in exactly one of `Complete`, `Partial`, `Paused`, `Cancelled`, or `Error`. (FR-001, FR-002, FR-013, FR-064; `skills/do/SKILL.md:34-51`)
+The `/do` skill SHALL move every run through the states of `skills/do/SKILL.md:36-51` in table order, pick each next state only from the current state's outcome, end the run in exactly one of `Complete`, `Partial`, `Paused`, `Cancelled`, or `Error` with Cleanup choosing among `Complete`, `Partial`, and `Paused`, write no plan file for a run that ends in `Error` before Branch, and write no Status for a run that ends in `Error(policy-rejection)` raised by the plan-file or snapshot symlink guard, a terminal whose Status write that guard blocks included. (FR-001, FR-002, FR-012, FR-013, FR-064, FR-207; `skills/do/SKILL.md:34-51`)
+
+**Status:** Built: Cleanup's terminal choice and the first-pass Error rule in 1.12.0 (commit `bb09e29`); the guard Error rule in the follow-up to 1.12.0 (build of 2026-10-22; `skills/do/SKILL.md:51`, `:269-275`). Folded from the Change Logs 2026-10-16 and 2026-10-22.
 
 #### Scenario: Non-build request runs to Complete
 
@@ -124,7 +135,7 @@ The `/do` skill SHALL move every run through the states of `skills/do/SKILL.md:3
 - **THEN** `/do` SHALL name steps 2 and 3 to the user and dispatch no agent
 - **AND** the plan file's Status SHALL read `Error`
 
-A first pass that ends in Error stops before Branch has written any plan file. OPEN-6 is closed: such a run writes no plan file (FR-012, PLANNED 1.12.0); the Scenario is in the Change Log 2026-10-16.
+A first pass that ends in Error stops before Branch has written any plan file, and such a run writes no plan file (FR-012, OPEN-6 closed).
 
 #### Scenario: Refused resume leaves the plan file unchanged
 
@@ -132,6 +143,31 @@ A first pass that ends in Error stops before Branch has written any plan file. O
 - **WHEN** the user sends `resume <that plan>`
 - **THEN** `/do` SHALL name the failed check and end in Error with class `plan-invalid`
 - **AND** the plan file SHALL be byte-for-byte unchanged
+
+#### Scenario: First-pass Error writes no plan file
+
+- **GIVEN** a `build` request with one point still open after Clarify round 5, and no plan file for the request yet
+- **WHEN** Decompose runs again
+- **THEN** `/do` SHALL end in `Error` with class `plan-invalid` and list the open point
+- **AND** no new file SHALL appear under `.agent/main-plan/`
+
+#### Scenario: Error on a resumed plan
+
+- **GIVEN** a resumed plan with Status `Paused` and an Edit steps answer that makes two steps depend on each other
+- **WHEN** DependencyAnalysis ends in `Error` with class `plan-invalid`
+- **THEN** the plan file's Status SHALL still read `Paused`
+
+#### Scenario: Cleanup chooses the terminal
+
+- **GIVEN** a run whose steps all reached `completed`
+- **WHEN** Display has shown the results
+- **THEN** Cleanup SHALL set the plan Status to `Complete`, and the plan file's Status SHALL change only after the Display reply is shown
+
+#### Scenario: Guard Error writes no Status
+
+- **GIVEN** an approved plan in Dispatch and a `<root>/.agent/main-plan` that has become a symlink
+- **WHEN** `/do` is about to record a step result
+- **THEN** the run SHALL end in `Error` with `policy-rejection`, the plan file's Status line SHALL be unchanged, and the reply SHALL name the symlinked path
 
 ### Requirement: Build steps start only after document sign-off or waiver
 
@@ -247,6 +283,159 @@ The `/do` skill SHALL be the only writer of the plan file and `DECISIONS.md`, ap
 - **THEN** the changed `DECISIONS.md` hash SHALL count as an unexpected change, because `DECISIONS.md` matches no chain step's Writes
 - **AND**, since FR-192 (Built 1.11.1), the hashed `DECISIONS.md` SHALL be the one at the session's git root in a subdirectory session too (spec-orchestration-chain-signoff.md, Requirement 1a)
 
+### Requirement: /do itself posts a confirmed PR review, and no subagent posts
+
+The `/do` skill SHALL fetch a pull request by a Bash redirect that keeps the PR text out of its context and, after the user confirms the reviewer's draft, post that draft itself, with `gh` on a `github.com` `origin` or with `bkt` on a Bitbucket `origin` after the host pin of FR-203, as its one delivery action, so that no subagent posts to the PR host; a PR review on any other `origin` fails with `precondition-failed`, and the PR's files are removed after use (FR-208). (FR-195, FR-203, FR-206, FR-208; `DECISIONS.md:148-151`, `:183-186`, `:213-216`, `:223-226`; the full flow is spec-orchestration-dispatch.md, Requirements 14 and 15)
+
+**Status:** Built: the `gh` flow in 1.12.0 (commit `bb09e29`); the `bkt` flow, the hook-prompt outcomes, and the removal in the follow-up to 1.12.0 (build of 2026-10-22; `skills/do/references/pr-review-flow.md`). Folded from the Change Logs 2026-10-16, 2026-10-17, 2026-10-17 (PR flow hardening), and 2026-10-22. In 1.12.0 the flow covered `github.com` only (`DECISIONS.md:208-211`); `DECISIONS.md:223-226` restored Bitbucket, and `DECISIONS.md:243-246` records that it replaces the GitHub-only limit.
+
+#### Scenario: Draft confirmed and posted
+
+- **GIVEN** `/do review PR 123` with the `origin` fetch URL `https://github.com/acme/shop.git`, an approved plan with one `reviewer` step, and a reviewer that ends `Done` with verdict `approved` and a draft above its block
+- **WHEN** the user confirms the draft that `/do` shows
+- **THEN** `/do` SHALL run `gh pr review '123' --repo 'github.com/acme/shop' --approve --body-file '<root>/.agent/pr-review/pr-123-review.body'` and SHALL call no `/pr-review`
+- **AND** no subagent SHALL run `gh pr review` during the run
+
+#### Scenario: Draft not confirmed
+
+- **GIVEN** the same plan and a user who declines the draft
+- **WHEN** `/do` settles the plan
+- **THEN** `/do` SHALL post nothing to the PR host and SHALL record in the step's Done field that the draft was not posted
+
+#### Scenario: Post fails
+
+- **GIVEN** the user confirmed the draft and `gh pr review '123' --repo 'github.com/acme/shop' --approve` exits with an error
+- **WHEN** `/do` posts
+- **THEN** the step SHALL read `failed` with `error_class` `tool-failed`, `/do` SHALL show the draft and the error, and SHALL NOT retry
+
+#### Scenario: GH_HOST does not redirect the post
+
+- **GIVEN** `GH_HOST=ghe.example.com` in the session's environment, the `origin` fetch URL `https://github.com/acme/shop.git`, and a draft the user confirmed with verdict `approved`
+- **WHEN** `/do` posts
+- **THEN** `/do` SHALL run `gh pr review '123' --repo 'github.com/acme/shop' --approve --body-file '<root>/.agent/pr-review/pr-123-review.body'`, and no call SHALL go to `ghe.example.com`
+
+#### Scenario: Bitbucket remote
+
+- **GIVEN** `/do review PR 123` with the `origin` `https://bitbucket.org/acme/shop.git`, exactly one context `cloud-prod` of kind `cloud`, no `BKT_*` variable set, and a reviewer that ends `Done` with verdict `approved`
+- **WHEN** the user confirms the draft and allows both ask-hook prompts
+- **THEN** `/do` SHALL run `bkt pr approve '123' --context 'cloud-prod' --workspace 'acme' --repo 'shop'` and then the comment command with `--text`, each as its own Bash command, and SHALL call no `/pr-review`
+- **AND** no subagent SHALL run `bkt` or `gh` during the run
+
+#### Scenario: Unsupported host
+
+- **GIVEN** `/do review PR 123` with a GitHub Enterprise `origin` and no `bkt` context for its host
+- **WHEN** the step starts
+- **THEN** the step SHALL read `failed` with `precondition-failed` and the message SHALL name both options, and no reviewer SHALL be dispatched
+
+### Requirement: /do guards every .agent write against a symlink
+
+Before every write that `/do` makes under `<root>/.agent/` (the plan file, which Branch writes at `<root>/.agent/main-plan/plan-[slug]-[timestamp].md`, the change-check snapshot files, and the PR files under `.agent/pr-review/`), the `/do` skill SHALL test with `test ! -L` that `<root>/.agent` and the folder it writes into are not symlinks (and, for the plan file, that the file itself is not a symlink), SHALL write nothing and stop with `policy-rejection` when one is a symlink, taking the outcome `unsafe-path` ahead of every other outcome of the state when the plan-file or snapshot guard exits non-zero, and SHALL remove an existing target with `rm -f` before it writes a file it creates fresh (the snapshot files and the PR files), never the plan file, which it edits in place. (FR-207, FR-032, FR-195, UR-055, UR-019, BR-012)
+
+**Status:** Built: the PR-file guard in 1.12.0 (commit `bb09e29`); the plan-file and snapshot guards and the `unsafe-path` outcome in the follow-up to 1.12.0 (build of 2026-10-22). Folded from the Change Log 2026-10-22 with the build's wording. **Source:** `docs/requirements/FR-NFR-assist-plugin.md:4738`, scenarios `:4742-4775` (version 1.3); `DECISIONS.md:213-216` (the `rm -f` rule), `:223-226`; built in `skills/do/SKILL.md:245` (Branch writes the plan at `<root>/.agent/main-plan/`), `:247-275` (Symlink guards), `:38-51` (the `## States` rows), `:551` (Cleanup), and `skills/do/references/pr-review-flow.md:96-104` (the PR-file guard), read on 2026-10-22
+
+Guard commands, each one Bash command run on its own just before the write (`skills/do/SKILL.md:249-265`; flow source [spec-orchestration-agent-write-guard.mmd](spec-orchestration-agent-write-guard.mmd)):
+
+| Write | Guard | Then | On a symlink |
+|---|---|---|---|
+| Plan file, each Write or Edit (Branch, a resume at Ingest, PlanApproval, Preflight, Dispatch, DocSignOff, Cleanup, and a terminal Status) | `test ! -L '<root>/.agent' && test ! -L '<root>/.agent/main-plan' && test ! -L '<plan path>'` | The Write or Edit; no `rm -f` | Outcome `unsafe-path`: the plan ends in `Error` with `policy-rejection` at that state; no Status is written |
+| Snapshot file, only when the session has no scratchpad (`'<root>/.agent/change-check/'`) | `test ! -L '<root>/.agent' && test ! -L '<root>/.agent/change-check'` | The command that writes the snapshot starts its `&&` chain with `rm -f --` of that file | The same `unsafe-path` outcome |
+| Snapshot file in the session scratchpad | none: outside `<root>/.agent` | As at 1.12.0 | Not applicable |
+| PR files | `<guard>` of the PR flow, with `mkdir -p` (`pr-review-flow.md:96-104`) | `rm -f --` of each target | The PR step fails with `policy-rejection` (spec-orchestration-dispatch.md, Requirement 14) |
+
+`test ! -L` on a path that does not exist exits 0, so a first write into a missing folder proceeds, and the folder is created as before; the plan-file and snapshot guards add no `mkdir`. A non-zero exit of the plan-file or snapshot guard means a symlink, because `test` has no other failure for these operands. Known limit, as for the PR guard: a folder swapped for a symlink after the guard and before the write is not caught; `fsa-write-bar` resolves no symlinks and does not cover Bash writes (FR-NFR section 6).
+
+The `Error(policy-rejection)` of this requirement belongs to no step. It writes no Status to the plan file, because that write is the unsafe one, and the reply names the symlinked path and the state. In Dispatch, `/do` then sends no new dispatch and no SendMessage, names the steps still running in the reply, and ends; their results are not recorded, because the plan file cannot be written safely. A terminal Status write that the plan-file guard blocks is reported as `Error(policy-rejection)` in place of the terminal it was about to write, with no Status written: `Complete`, `Partial`, and `Paused` from Cleanup; `Cancelled` from the PlanApproval cancel and the Preflight stop; and an `Error` of another class, the `Error(plan-invalid)` rows included (`skills/do/SKILL.md:269-273`).
+
+Scope of the outcome: only a symlink found by the plan-file guard or the snapshot guard raises `Error(policy-rejection)` for the run. A symlink found by the PR-file guard fails only the PR step with `policy-rejection` (`pr-review-flow.md:351`; spec-orchestration-dispatch.md, Requirement 14), and one found by the Cleanup sweep or the removal after a post is reported in the cleanup report or the reply and changes no terminal (spec-orchestration-dispatch.md, Requirements 12 and 15). Keeping the outcome to the plan-file and snapshot guards keeps each state's outcomes exclusive (rule T2 of `references/fsa-template.md`).
+
+`## States` table, as built (`skills/do/SKILL.md:38-51`): the rows Ingest (on `resume`; the guard runs before the step Status reset), Branch, PlanApproval, Preflight, Dispatch, DocSignOff, and Cleanup carry the outcome `unsafe-path (the plan-file or snapshot guard found a symlink) -> Error(policy-rejection)`. A non-zero plan-file or snapshot guard exit takes this outcome ahead of every other outcome of the state, `resume` at Ingest and the terminal choices at Cleanup included (`:274`), and the Cleanup row lists `unsafe-path` first, before `stopped`, `some-failed-or-skipped`, and `all-completed` (`:50`, `:551`). The terminal row (`:51`) says that an `Error(policy-rejection)` raised by the plan-file or snapshot symlink guard writes no Status to any plan file and is shown in the reply only, and that a terminal whose Status write the plan-file guard blocks is reported as `Error(policy-rejection)` with no Status written. `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exited 0 at qa on 2026-10-22 (NFR-021; `.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`).
+
+#### Scenario: Symlinked .agent at Branch
+
+- **GIVEN** `<root>/.agent` is a symlink to another directory
+- **WHEN** `/do` reaches Branch and is about to write the plan file at `<root>/.agent/main-plan/`
+- **THEN** `/do` SHALL write nothing, the run SHALL end in `Error` with `error_class` `policy-rejection` at Branch, and the reply SHALL name `<root>/.agent`
+- **AND** no file SHALL appear under the symlink's target
+
+#### Scenario: Plan file at the git root in a subdirectory session
+
+- **GIVEN** a session started in `<repo>/src`, git root `<repo>`, and no symlink on the path
+- **WHEN** Branch writes the plan file
+- **THEN** the plan file SHALL be under `<repo>/.agent/main-plan/`, and the plan-file guard SHALL test `<repo>/.agent`, `<repo>/.agent/main-plan`, and that file
+
+#### Scenario: Plan file edited in place
+
+- **GIVEN** `<root>/.agent`, `<root>/.agent/main-plan`, and the plan file are not symlinks
+- **WHEN** `/do` updates a step Status during Dispatch
+- **THEN** `/do` SHALL run the plan-file guard before the Edit and SHALL NOT run `rm -f` on the plan file
+
+#### Scenario: Plan file is a symlink
+
+- **GIVEN** the plan file is a symlink to another file, found when `/do` is about to set a step `in_progress`
+- **WHEN** the guard exits non-zero
+- **THEN** `/do` SHALL write nothing, SHALL write no Status to the plan file, SHALL end the plan in `Error` with `policy-rejection`, and SHALL show it in the reply only
+- **AND** the link's target file SHALL be byte-for-byte unchanged
+
+#### Scenario: Unsafe path ahead of resume
+
+- **GIVEN** `resume <plan>` for a plan whose Status is `Paused` and whose approval is recorded, and `<root>/.agent/main-plan` is a symlink
+- **WHEN** Ingest runs the plan-file guard before the step Status reset
+- **THEN** the outcome SHALL be `unsafe-path`, not `resume`: the run SHALL end in `Error` with `policy-rejection`, no step Status SHALL be reset, and PlanApproval SHALL NOT run
+
+#### Scenario: Cleanup tests unsafe-path first
+
+- **GIVEN** every step is `completed` and the plan file has become a symlink when Cleanup is about to write the terminal Status
+- **WHEN** the plan-file guard exits non-zero
+- **THEN** Cleanup SHALL take `unsafe-path` before `all-completed`, write no Status, and report the run as `Error(policy-rejection)`, not `Complete`
+
+#### Scenario: Cancel with a symlinked plan folder
+
+- **GIVEN** Branch wrote the plan file, `<root>/.agent/main-plan` then became a symlink, and the user answers Cancel at PlanApproval
+- **WHEN** `/do` is about to write the Status `Cancelled` and the plan-file guard exits non-zero
+- **THEN** `/do` SHALL write no Status, SHALL report the run as `Error` with `policy-rejection`, and the reply SHALL name the symlinked path and SHALL NOT report `Cancelled`
+
+#### Scenario: Plan-invalid error with a symlinked plan file
+
+- **GIVEN** an edit pass whose Decompose reaches `Error(plan-invalid)` on a plan file that Branch wrote in the same run, and the plan file has become a symlink
+- **WHEN** `/do` is about to write the Status and the plan-file guard exits non-zero
+- **THEN** `/do` SHALL write no Status and SHALL report the run as `Error` with `policy-rejection`, which replaces the `plan-invalid` class
+
+#### Scenario: Symlinked PR folder fails only the PR step
+
+- **GIVEN** a PR review step in Dispatch and `<root>/.agent/pr-review` is a symlink when the PR-file guard runs, while `<root>/.agent`, `<root>/.agent/main-plan`, and the plan file are not symlinks
+- **WHEN** the PR-file guard exits non-zero with no `mkdir` message
+- **THEN** the PR step SHALL read `failed` with `policy-rejection`, Dispatch SHALL go on to its usual outcome, and the run SHALL NOT end in `Error(policy-rejection)` for that symlink
+
+#### Scenario: Symlinked PR folder at Cleanup
+
+- **GIVEN** every step is `completed`, the plan-file guard exits 0, and `<root>/.agent/pr-review` is a symlink when Cleanup sweeps the PR files
+- **WHEN** Cleanup runs
+- **THEN** the sweep SHALL remove nothing, the cleanup report SHALL name the symlink, and the plan SHALL end `Complete`
+
+#### Scenario: Symlinked snapshot folder without a scratchpad
+
+- **GIVEN** a session with no scratchpad directory, so snapshots go to `<root>/.agent/change-check/`, and that folder is a symlink
+- **WHEN** `/do` takes the Preflight snapshot
+- **THEN** `/do` SHALL write no snapshot, and the plan SHALL end in `Error` with `policy-rejection` at Preflight
+
+#### Scenario: Snapshots in the scratchpad
+
+- **GIVEN** the session has a scratchpad directory and `<root>/.agent/change-check` is a symlink
+- **WHEN** `/do` takes a snapshot
+- **THEN** `/do` SHALL write the snapshot to the scratchpad and SHALL NOT run the snapshot guard, because the files are outside `<root>/.agent`
+
+#### Scenario: Planted file at a snapshot target
+
+- **GIVEN** no scratchpad, plain folders, and `<root>/.agent/change-check/<snapshot name>` is a symlink to `~/.bashrc`
+- **WHEN** `/do` writes that snapshot
+- **THEN** the write command SHALL remove the link with `rm -f --` first, and `~/.bashrc` SHALL be unchanged
+
+#### Scenario: Plain folders
+
+- **GIVEN** `<root>/.agent` and every target folder are ordinary directories
+- **WHEN** `/do` writes
+- **THEN** the write SHALL proceed
+
 ### Requirement: Every loop is bounded
 
 The `/do` skill SHALL bound every loop by a named counter, maximum, and exhausted target, except the loops that only the user's answer exits. (NFR-010; `skills/do/SKILL.md:53-68`)
@@ -281,7 +470,7 @@ Source: `skills/do/SKILL.md:53-68`; `skills/do/references/review-protocol.md:54-
 
 ### Requirement: Read and question caps
 
-The `/do` skill SHALL keep its own document lists, document reads, and questions within the caps below: the orchestration caps of NFR-014, the citation window of FR-024, and the change-check line limit of `skills/do/SKILL.md:420`. (NFR-014, FR-020, FR-024, FR-025)
+The `/do` skill SHALL keep its own document lists, document reads, and questions within the caps below: the orchestration caps of NFR-014, the citation window of FR-024, and the change-check line limit of `skills/do/SKILL.md:456` (read on 2026-10-22). (NFR-014, FR-020, FR-024, FR-025)
 
 | Cap | Value | Enforced by | Spec |
 |---|---|---|---|
@@ -289,7 +478,7 @@ The `/do` skill SHALL keep its own document lists, document reads, and questions
 | Lines `/do` reads around a cited line | 5 before and 5 after, listed paths only | `/do` Clarify | spec-orchestration-spec-first.md |
 | Questions per AskUserQuestion call | 4 | `/do` Clarify, PlanApproval, relay | spec-orchestration-planning.md, spec-orchestration-dispatch.md |
 | Changed lines brought into context per change-check comparison | 50 plus a count of the rest | `/do` change check | spec-orchestration-chain-signoff.md |
-| PR text `/do` fetches for a PR review (PLANNED 1.12.0) | 200 KB kept in `<root>/.agent/pr-review/pr-<N>.diff`, the diff first; the diff's own byte count and how much of it was cut are named in the confirmation; `/do` reads none of the text | `/do` PR fetch (Bash redirect, `wc -c`) | spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14 |
+| PR text `/do` fetches for a PR review | 200 KB (204,800 bytes) kept in `<root>/.agent/pr-review/pr-<N>.diff`, the diff first, then the title, body, and comments; the diff's own byte count and how much of it was cut are named in the confirmation; `/do` reads none of the text | `/do` PR fetch (Bash redirect, `wc -c`, `head -c`) | spec-orchestration-dispatch.md, Requirement 14 |
 
 The conflict check's read cap (10 documents in full, 2000 lines each plus Grep hits, the last 200 lines of `DECISIONS.md`) is intake-reviewer's own and is specified in spec-orchestration-agents.md (FR-073). The 64 KB message-file cap and the 500-line and 200-line log caps of NFR-014 belong to Area B hooks (FR-098, FR-115, FR-090).
 
@@ -305,6 +494,12 @@ The conflict check's read cap (10 documents in full, 2000 lines each plus Grep h
 - **WHEN** `/do` asks them
 - **THEN** no AskUserQuestion call SHALL carry more than 4 questions
 
+#### Scenario: PR fetch cut
+
+- **GIVEN** a PR whose diff takes 300 KB and whose title, body, and comments take 50 KB
+- **WHEN** `/do` fetches it for a review
+- **THEN** `<root>/.agent/pr-review/pr-<N>.diff` SHALL hold the first 200 KB of the diff, written by `head -c 204800` from the diff's temp file with no pipe, and the confirmation SHALL name the diff's 300 KB byte count and the 100 KB of diff not reviewed
+
 ## Topology
 
 ```mermaid
@@ -318,14 +513,15 @@ flowchart LR
   Do -->|"SendMessage: answers, retry"| Agents
   Agents -->|"final message, fsa block"| Do
   Agents -->|"Write, Edit within Writes"| Files[("Project files")]
-  Do -.->|"Bash: gh, fetch, then post the<br/>confirmed draft (PLANNED 1.12.0)"| PR[("PR host<br/>github.com only")]
-  PR -.->|"Bash redirect, 200 KB cap,<br/>never in /do's context"| PRS[(".agent/pr-review/<br/>pr-N.diff, pr-N-review.body")]
+  Do -.->|"Bash: gh, or bkt after the host pin; fetch,<br/>then post the confirmed draft"| PR[("PR host<br/>github.com or Bitbucket")]
+  PR -.->|"Bash redirect, 200 KB cap,<br/>never in /do's context"| PRS[(".agent/pr-review/<br/>pr-N.diff, pr-N-review.body;<br/>removed after use")]
   PRS -.->|"Read by the reviewer step"| Agents
+  AskHook["pr-post-ask hook, Area B"] -.->|"ask before each post"| Do
   Hooks["Hooks, Area B<br/>fsa-write-bar, sa-mermaid-only,<br/>injection-filter, fsa-log"] -.->|"deny or warn"| Agents
   Agents -.->|"SubagentStop, handback"| Log[("fsa-log.jsonl")]
 ```
 
-Source: [spec-orchestration-topology.mmd](spec-orchestration-topology.mmd). PNG not rendered (rendering skipped on 2026-10-16, same cause as the Data flow diagram). Render with `mmdc -i specs/spec-orchestration-topology.mmd -o specs/spec-orchestration-topology.png` once `mmdc` can start its browser.
+Source: [spec-orchestration-topology.mmd](spec-orchestration-topology.mmd). PNG not rendered (rendering skipped on 2026-10-16 and 2026-10-22, same cause as the Data flow diagram). Render with `mmdc -i specs/spec-orchestration-topology.mmd -o specs/spec-orchestration-topology.png` once `mmdc` can start its browser.
 
 ## Cloud boundaries
 
@@ -346,14 +542,17 @@ Not applicable: `/do` and its agents run inside the user's local Claude Code ses
 | Hook fails or is disabled (Area B) | A write bar does not deny | Hook health warning (FR-089, FR-091) | Hooks fail open; the `/do` change check and approved-document hashes remain as orchestrator-side checks |
 | Under 2G free disk at Preflight | Agents could fail mid-write | `df -h .` | Ask the user; delete nothing; `Cancelled` if the user stops (FR-018) |
 | Project is not a git repository | No change check | Preflight | Record `skipped: change-check not-run (no git)` and show it at PlanApproval and Display (FR-034) |
-| PR review asked for on a host other than `github.com`, Bitbucket included (PLANNED 1.12.0) | `/do` cannot fetch or post the PR | Host check of the `origin` URL when the step starts | The step fails with `precondition-failed` and the message to run `/pr-review` directly; no `gh` or `bkt` command runs and no reviewer is dispatched (`DECISIONS.md:208-211`; spec-orchestration-dispatch.md, Change Log 2026-10-17) |
-| PR fetch fails before a PR review step (PLANNED 1.12.0) | No PR text for the reviewer | `gh` is absent (`tool-missing`) or exits with an error (`tool-failed`) | The step fails, no reviewer is dispatched, nothing is posted, nothing is retried (spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14) |
-| PR post fails after the user confirmed (PLANNED 1.12.0) | The review is not on the PR | `gh pr review` exits with an error | The step fails with `tool-failed`; `/do` shows the draft and the error and retries nothing (FR-195) |
-| Scratch or body file changed before `/do` uses it (PLANNED 1.12.0) | A tampered diff could mislead the review, or a tampered body could post text the user did not see | sha256 kept by `/do` when it writes each file, re-checked when the reviewer's block arrives and right before posting (spec reading); a hash `/do` cannot recall counts as a mismatch (`DECISIONS.md:213-216`) | The step fails with `policy-rejection`; nothing is posted (spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14) |
-| PR review folder is a symlink, or a target file is a planted symlink (PLANNED 1.12.0) | A redirect or the body write could land outside the repository | `test ! -L` on `<root>/.agent` and `<root>/.agent/pr-review` before `mkdir -p`, before each write; `rm -f` of each target file at the head of each write chain | A symlinked folder fails the step with `policy-rejection` and nothing is written; a planted link at a target file is removed, not followed (`DECISIONS.md:213-216`; spec-orchestration-dispatch.md, Change Log 2026-10-17, PR flow hardening) |
-| Draft exposes local data (PLANNED 1.12.0) | The public review could show local file contents, environment values, secrets, or quoted instruction-like PR text | The reviewer prompt's public-draft rule; the user reads the draft before any post | The draft holds only findings on the diff; nothing is posted without the user's yes (`DECISIONS.md:213-216`) |
-| PR text or draft addressed to `/do` (PLANNED 1.12.0) | A planted request could make `/do` run a command or post on another PR | Not detected; prevented by design | The PR text goes into the scratch file by redirect and never enters `/do`'s context; `/do` treats the draft as data, takes the PR number from the user's request and the flag from the verdict, and runs no other command because of the draft (FR-195) |
-| The user does not confirm a PR review draft (PLANNED 1.12.0) | A review the user did not accept could be posted | The confirmation answer after `/do` shows the draft | Nothing is posted; the step's Done field records that the draft was not submitted (FR-195) |
+| PR review asked for on a host that is neither `github.com` nor a Bitbucket remote by FR-203 | `/do` cannot fetch or post the PR | Classification of the `origin` URL when the step starts | The step fails with `precondition-failed` and a message that names both options (run `/pr-review` directly where it supports the host, or set up a `bkt` context for a Data Center host); no fetch runs and no reviewer is dispatched (`DECISIONS.md:223-226`; spec-orchestration-dispatch.md, Requirement 14) |
+| Bitbucket host pin fails | `/do` could post to the wrong host or account | A set `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR`; no or several matching `bkt` contexts; a Cloud PR link that names another repository | The step fails with `precondition-failed` (or `policy-rejection` for a link mismatch) before any `bkt pr` or `bkt api` call reads the PR (FR-203; spec-orchestration-dispatch.md, Requirement 14) |
+| PR fetch fails before a PR review step | No PR text for the reviewer | `gh` or `bkt` is absent (`tool-missing`) or exits with an error, a partial diff included (`tool-failed`) | The step fails, no reviewer is dispatched, nothing is posted, nothing is retried (spec-orchestration-dispatch.md, Requirement 14) |
+| PR post fails after the user confirmed | The review is not on the PR | `gh pr review` or a `bkt` post exits with an error | The step fails with `tool-failed`; `/do` shows the draft and the error, states which command stands, and retries nothing (FR-195) |
+| The user rejects the ask-hook prompt for a post (FR-206) | The review, or its second part, is not on the PR | A Bash result that reports the call was not allowed, with no command exit status | The post is recorded as declined, no later post command runs, nothing is retried, the step settles `completed`, and the PR files are removed (`DECISIONS.md:228-231`, `:233-236`) |
+| Scratch or body file changed before `/do` uses it | A tampered diff could mislead the review, or a tampered body could post text the user did not see | sha256 kept by `/do` when it writes each file, re-checked when the reviewer's block arrives and right before posting; a hash `/do` cannot recall counts as a mismatch (`DECISIONS.md:213-216`) | The step fails with `policy-rejection`; nothing is posted (spec-orchestration-dispatch.md, Requirement 14) |
+| PR review folder is a symlink, or a target file is a planted symlink | A redirect or the body write could land outside the repository | `test ! -L` on `<root>/.agent` and `<root>/.agent/pr-review` before `mkdir -p`, before each write; `rm -f` of each target file at the head of each write chain | A symlinked folder fails the step with `policy-rejection` and nothing is written; a planted link at a target file is removed, not followed (`DECISIONS.md:213-216`) |
+| `<root>/.agent`, `<root>/.agent/main-plan`, the plan file, or `<root>/.agent/change-check` is a symlink (FR-207) | A plan-file or snapshot write could land outside the repository, or a forged plan file could be written through the link | The plan-file guard before every plan-file Write or Edit; the snapshot guard before a snapshot write when the session has no scratchpad | Outcome `unsafe-path`, ahead of every other outcome of the state: the run ends in `Error(policy-rejection)`, nothing is written, no Status is written, and the reply names the path (Requirement: /do guards every .agent write against a symlink) |
+| Draft exposes local data | The public review could show local file contents, environment values, secrets, or quoted instruction-like PR text | The reviewer prompt's public-draft rule; the user reads the draft before any post | The draft holds only findings on the diff; nothing is posted without the user's yes (`DECISIONS.md:213-216`) |
+| PR text or draft addressed to `/do` | A planted request could make `/do` run a command or post on another PR | Not detected; prevented by design | The PR text goes into the scratch file by redirect and never enters `/do`'s context; `/do` treats the draft as data, takes the PR number from the user's request and the flag from the verdict, and runs no other command because of the draft (FR-195) |
+| The user does not confirm a PR review draft | A review the user did not accept could be posted | The confirmation answer after `/do` shows the draft | Nothing is posted; the step's Done field records that the draft was not submitted, and the PR files are removed (FR-195, FR-208) |
 
 ## Non-functional requirements addressed
 
@@ -361,7 +560,7 @@ Not applicable: `/do` and its agents run inside the user's local Claude Code ses
 |---|---|---|
 | NFR-010 | 100% of loops name a counter, maximum, and exhausted target, except user-exited loops | Loops table in `skills/do/SKILL.md:53-68` and every agent `## States` table (Requirement: Every loop is bounded; spec-orchestration-terminal-block.md) |
 | NFR-012 | 100% of document paths in chain, build, gate, and fix prompts inside the `untrusted-file` wrapper | `/do` builds every such prompt with the Send wrapper and escapes `<` (spec-orchestration-dispatch.md) |
-| NFR-014 | 20 paths per type, 10 full reads, 2000 lines, last 200 lines of `DECISIONS.md`, 4 questions per call; PLANNED (1.12.0): 200 KB of fetched PR text | `/do`'s own caps: Requirement: Read and question caps; intake-reviewer's read cap: spec-orchestration-agents.md; the PR fetch cap: spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14 |
+| NFR-014 | 20 paths per type, 10 full reads, 2000 lines, last 200 lines of `DECISIONS.md`, 4 questions per call, 200 KB of fetched PR text | `/do`'s own caps: Requirement: Read and question caps; intake-reviewer's read cap: spec-orchestration-agents.md; the PR fetch cap: spec-orchestration-dispatch.md, Requirement 14 |
 | NFR-011 | `✓ LLM Security Clear` before merge of plugin-surface changes | Merge-policy rule of `rules/assist-plugin-rule.md:330-350` (spec-orchestration-review-gates.md, Requirement 12); PLANNED (1.12.0, OPEN-1 closed): `/do` runs the named OWASP for LLM Gate on every step that changes the LLM surface (FR-199; spec-orchestration-review-gates.md, Change Log 2026-10-16) |
 | NFR-024 | At least 70% coverage of new and changed code | Testing Gate (spec-orchestration-review-gates.md) |
 | NFR-003 | Agent `description` at most 400 characters | spec-orchestration-agents.md |
@@ -373,7 +572,7 @@ Not applicable: `/do` and its agents run inside the user's local Claude Code ses
 | Decision | Options considered | Chosen | Rationale |
 |---|---|---|---|
 | D1: approval exception (`skills/do/SKILL.md:259-261`) | Approve every plan; skip approval for read-only plans | Skip only for exactly one step of effect `read` whose agent is ask or explore | Those two agents have no write tools; a researcher or inserted intake step still needs approval |
-| D2: unmatched work (`skills/do/SKILL.md:200`) | Fall back to `general-purpose`; let the main agent do it; ask the user | Ask at Clarify; Error(plan-invalid) at the limit | The main agent never delivers, and `general-purpose` takes a step only when its responsibilities match. PLANNED (1.12.0): the one delivery action `/do` performs itself is posting a user-confirmed PR review with `gh`, on a `github.com` remote only (FR-195, `DECISIONS.md:183-186`, `:208-211`); `skills/do/SKILL.md:518`, `:28`, and `:406` change to say so |
+| D2: unmatched work (`skills/do/SKILL.md:200`) | Fall back to `general-purpose`; let the main agent do it; ask the user | Ask at Clarify; Error(plan-invalid) at the limit | The main agent never delivers, and `general-purpose` takes a step only when its responsibilities match. The one delivery action `/do` performs itself is posting a user-confirmed PR review, with `gh` on a `github.com` remote or with `bkt` on a Bitbucket remote (FR-195, `DECISIONS.md:183-186`, `:223-226`; `skills/do/SKILL.md:28`, `:442`, `:561`). Built: `gh` in 1.12.0, `bkt` in the follow-up to 1.12.0 |
 | D3: failed steps (`skills/do/SKILL.md:431-435`) | Stop the plan; skip dependents only | Skip dependents, keep independent steps running; intake review exempt | Independent work stays useful; an intake failure comes before approval |
 | D4: intake review (`skills/do/SKILL.md:243-257`) | Trust user files; review read-only before planning writes | One read-only intake-reviewer step per user file before any write step | User files can carry planted text; the review cannot change anything |
 | D5: decision records (`skills/do/SKILL.md:335-352`) | Write at decision time; write at Approve | Keep in the plan until Approve, then append | A cancelled or edited plan leaves `DECISIONS.md` alone |
@@ -389,7 +588,7 @@ Not applicable: `/do` and its agents run inside the user's local Claude Code ses
 | Legacy location records are notes, not search input (`DECISIONS.md`, 2026-10-16) | A `Location:` line form that SpecGate parses; a plain note for people | A plain note entry headed "Requirements kept at the repository root" or "Task plans kept at the repository root"; SpecGate finds root-level documents only through its fixed root patterns and never parses paths out of `DECISIONS.md`; the `Location:` line form is dropped | Recorded user decision. Built (1.11.1): FR-188, FR-191 (spec-orchestration-spec-first.md, Requirements 15 and 16); FR-020 holds without exception |
 | `docs/requirements/` and `docs/task-plans/` resolve against the session's git root (`DECISIONS.md`, 2026-10-16) | Resolve against the working directory; resolve against the git root | The git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory) for SpecGate, the skills' writes, and the task-planner write bar; a subdirectory session gets a write prompt because the skills' `./` grants are relative to the working directory | Recorded user decision. Built (1.11.1): FR-187 (every SpecGate pattern), FR-188 (the `DECISIONS.md` at that root), FR-190 (chain Writes) in Area A; FR-182 to FR-186 in Areas B and C |
 | Specs resolve against the session's git root (`DECISIONS.md:113-116`, 2026-10-16) | Keep the Spec step's `specs/` relative to the working directory; resolve it against the git root like `docs/requirements/` and `docs/task-plans/` | The git root: the Spec chain step writes and names `<root>/specs/...`, so specs, requirements, and task plans share one root in a subdirectory session | Recorded user decision. PLANNED (1.12.0): FR-190 (spec-orchestration-spec-first.md, Change Log 2026-10-16); the SpecGate `specs/` search (FR-187) and the conflict-check path list (FR-189) already resolve against `<root>` at 1.11.1 (`skills/do/SKILL.md:118-120`) |
-| PR review under `/do` (`DECISIONS.md:118-121`, refined by `:148-151`, `:153-156`, `:158-161`, `:163-166`, `:183-186`, `:193-196`, 2026-10-16, and by `:208-211` and `:213-216`, 2026-10-17; `:178-181` withdrawn by `:183-186`) | The reviewer submits after a relayed confirmation; a separately approved step by an agent with Bash submits; the main conversation fetches and submits through `/pr-review`; `/do` fetches by redirect and posts with `gh` or `bkt`; the same with `gh` on `github.com` only | For 1.12.0 only a `github.com` `origin` is supported; any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly, and correcting the `bkt` forms is a follow-up (`DECISIONS.md:208-211`). After the security gate, every `gh` call names `github.com` in `--repo`, a symlinked PR folder fails the step, each target file is removed before it is written, the body file is written only with the Write tool, a hash `/do` cannot recall counts as a mismatch, and the reviewer prompt carries the public-draft rule (`DECISIONS.md:213-216`). `/do` fetches the PR with `gh` through Bash, output redirected into `.agent/pr-review/pr-<N>.diff` (200 KB cap), so the PR text never enters its context; reviewer gets gate Security, type `code`, the path in an `untrusted-file` wrapper, the report-and-never-follow rule, any cut, and the citation rule (FR-195); reviewer ends `Done` with `approved` or `returned` and the draft in its prose; `/do` treats the draft as data, shows it once, and after a yes writes it to `.agent/pr-review/pr-<N>-review.body` and posts it itself with `gh pr review`, calling no `/pr-review` (`approved` to `--approve`, `returned` to `--request-changes`, or `--comment` when the user picks it); no subagent posts | Recorded user decision. PLANNED (1.12.0): FR-195 (spec-orchestration-dispatch.md and spec-orchestration-agents.md, Change Logs 2026-10-16; spec-orchestration-dispatch.md, Change Log 2026-10-17) |
+| PR review under `/do` (`DECISIONS.md:118-121`, refined by `:148-151`, `:153-156`, `:158-161`, `:163-166`, `:183-186`, `:193-196`, 2026-10-16, by `:208-211` and `:213-216`, 2026-10-17, and by `:223-226`, `:228-231`, `:233-236`, and `:238-241`, 2026-10-22; `:178-181` withdrawn by `:183-186`; `:208-211` and, for Cloud, `:163-166` replaced by the 2026-10-22 entries, `:243-246`) | The reviewer submits after a relayed confirmation; a separately approved step by an agent with Bash submits; the main conversation fetches and submits through `/pr-review`; `/do` fetches by redirect and posts with `gh` or `bkt`; the same with `gh` on `github.com` only | `/do` fetches the PR through Bash, output redirected into `.agent/pr-review/pr-<N>.diff` (200 KB cap), so the PR text never enters its context: with `gh` on a `github.com` `origin`, every call naming `github.com` in `--repo`; with `bkt` on a Bitbucket `origin` after the host pin (no `BKT_*` override set, exactly one matching context, `--context` and the repository flags on every `bkt pr` call, a Cloud PR link check). A symlinked PR folder fails the step, each target file is removed before it is written, the body file is written only with the Write tool, a hash `/do` cannot recall counts as a mismatch, and the reviewer prompt carries the public-draft rule (`DECISIONS.md:213-216`). The reviewer gets gate Security, type `code`, the path in an `untrusted-file` wrapper, the report-and-never-follow rule, any cut, and the citation rule, and ends `Done` with `approved` or `returned` and the draft in its prose; `/do` treats the draft as data, shows it once, and after a yes posts it itself, calling no `/pr-review`: `gh pr review` with `--approve`, `--request-changes`, or `--comment`; or each `bkt` post as its own Bash command (approve then comment; on Cloud, comment then the `bkt api` request-changes call; on Data Center, a comment that leaves the PR open). A post rejected at the ask-hook prompt is declined, not failed, and the PR files are removed after use; no subagent posts | Recorded user decision. Built: the `gh` flow in 1.12.0, the `bkt` flow, the hook-prompt outcomes, and the file removal in the follow-up to 1.12.0 (spec-orchestration-dispatch.md, Requirements 14 and 15) |
 | OPEN-1 (closed): how `/do` dispatches the OWASP for LLM gate | Run it as a named gate on reviewer or code-reviewer; fold it into the Security gate; another path the user names | Decided: a named "OWASP for LLM Gate" on reviewer or code-reviewer, run in addition to the artifact-type gate on every step whose artifacts change the LLM surface (`agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/`, each at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`; not an application folder such as `src/hooks/`), with artifact type `code` in the gate prompt, the Security gate's bound (2 consecutive `approved` or 10 iterations), and its binding final code-reviewer pass | `DECISIONS.md:108-111`, `:148-151`, `:158-161`, `:168-171`, `:173-176`; FR-199, FR-061, FR-054 (PLANNED 1.12.0). At 1.11.1 no `/do` path dispatches it: the gate names in `agents/reviewer.md:50`, `agents/code-reviewer.md:51`, and `skills/do/references/review-protocol.md:66` leave it out. spec-orchestration-review-gates.md, Change Log 2026-10-16 |
 | OPEN-2 (closed): Display and Cleanup order, and which state chooses the terminal | Display chooses and Cleanup reports separately; Cleanup chooses and its report joins the Display reply | Decided: Display presents the results and chooses nothing; Cleanup chooses the terminal and prints its own cleanup report after the Display reply | The user's answer to OPEN-2 (`.agent/main-plan/plan-deferred-decisions-20261016-1059.md`, User Decisions); FR-062, FR-063, FR-064 (PLANNED 1.12.0). At 1.11.1 `skills/do/SKILL.md:49` ends the Display row with "Choose the terminal", `:505` puts the cleanup report in the Display reply, and `:508-512` has Cleanup choose. spec-orchestration-dispatch.md (Requirements 11 to 13) and spec-orchestration-chain-signoff.md (Requirement 12), Change Logs 2026-10-16 |
 | OPEN-3 (closed): outcome of a snapshot-file mismatch or lost snapshot hashes | Fail the attributed step under the one-step rule; hold only the build steps | Decided: with exactly one chain step since the last snapshot, that step fails with `policy-rejection` under the one-step rule and every `Build: yes` step is held; with several steps, every `Build: yes` step is held, no single step is blamed, and DocSignOff shows an "unexpected change" row | The user's answer to OPEN-3; FR-032 (PLANNED 1.12.0). At 1.11.1 `skills/do/SKILL.md:420` states the attribution and the build hold only; `:425` is the one-step rule. spec-orchestration-chain-signoff.md (Requirement 4), Change Log 2026-10-16 |
@@ -411,7 +610,7 @@ Not applicable: `/do` and its agents run inside the user's local Claude Code ses
 | Plan file, approval, preflight, and decision records | spec-orchestration-plan-approval.md | Plan file format, intake review, approval exception and prompt, edit loop, Approve and Cancel, Preflight, `DECISIONS.md` entries |
 | Spec-first gate and document chain | spec-orchestration-spec-first.md | SpecGate, conflict check, build Clarify, never-quote rule, chain steps, reuse, build hold, waiver; document locations under the session's git root, root notes, and no path from `DECISIONS.md` (FR-187, FR-188, FR-190, FR-191, Built 1.11.1); the Spec step's `<root>/specs/` Writes (FR-190, PLANNED 1.12.0) |
 | Change check and document sign-off | spec-orchestration-chain-signoff.md (child of spec-orchestration-spec-first.md) | Snapshots, unexpected changes, artifact validation, DocSignOff, approved-document recheck; the snapshot-file outcome and the Dispatch-only compare-before-write rule (FR-032, PLANNED 1.12.0) |
-| Dispatch, results, and completion | spec-orchestration-dispatch.md | Ready steps, prompt content, untrusted wrappers, block handling, relays, out-of-scope, failures, Display, Cleanup, terminal state; Cleanup's terminal choice and report and the PR review flow (FR-062 to FR-064, FR-195, PLANNED 1.12.0) |
+| Dispatch, results, and completion | spec-orchestration-dispatch.md | Ready steps, prompt content, untrusted wrappers, block handling, relays, out-of-scope, failures, Display, Cleanup, terminal state; Cleanup's terminal choice and report (FR-062 to FR-064), the PR review flow on `github.com` and Bitbucket remotes (FR-195, FR-202, FR-203, FR-206), and the PR file removal (FR-207, FR-208) |
 | Review gates and fix phase | spec-orchestration-review-gates.md | Gate choice and prompt, bounds, binding pass, fix routing, OWASP, Testing, Code Review, and Planning gates, and the LLM Security merge rule; the named OWASP for LLM Gate (FR-199, PLANNED 1.12.0) |
 | Terminal-block contract | spec-orchestration-terminal-block.md | Ten-field block, agent `## States` tables, NeedsInput protocol |
 | Agent catalog | spec-orchestration-agents.md | 16 agent files, models, tools, and per-agent behavior |
@@ -434,9 +633,12 @@ Not applicable: assist-plugin has no submodules. SpecGate globs `./*/specs/spec-
 | Change check finds an attributable unexpected change, or artifact validation fails | Fail the step | `policy-rejection`; later chain and build steps `skipped` |
 | Relay maximum reached (3 per phase or 10 total) | Ask no more | Step `failed` |
 | Gate bound reached without approval | One binding code-reviewer pass | `completed` on `approved`, `failed` on `returned` |
-| Error on a new plan versus a resumed plan | Set Status `Error` on a new plan whose file exists (an edit pass); leave a resumed plan's Status unchanged (`skills/do/SKILL.md:51`); PLANNED (1.12.0, OPEN-6 closed): a first-pass Error writes no plan file (FR-012) | User sees the error class and reason |
-| PR fetch or post fails (PLANNED 1.12.0) | Retry nothing; show the draft, when there is one, and the error; after a fetch failure dispatch no reviewer | Step `failed` with `tool-missing` or `tool-failed` (spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14) |
-| PR review on a host other than `github.com`, Bitbucket included (PLANNED 1.12.0) | Run no `gh` or `bkt` command; tell the user to run `/pr-review` directly | Step `failed` with `precondition-failed` (spec-orchestration-dispatch.md, Change Log 2026-10-17) |
+| Error on a new plan versus a resumed plan | Set Status `Error` on a new plan whose file exists (an edit pass); leave a resumed plan's Status unchanged; a first-pass Error writes no plan file (FR-012, OPEN-6 closed; `skills/do/SKILL.md:51`) | User sees the error class and reason |
+| The plan-file or snapshot symlink guard exits non-zero | Outcome `unsafe-path`, ahead of every other outcome of the state; write nothing more; in Dispatch, send nothing more and name the running steps | `Error(policy-rejection)` with no Status written, shown in the reply only (FR-207; Requirement: /do guards every .agent write against a symlink) |
+| PR fetch or post fails | Retry nothing; show the draft, when there is one, and the error, and state which `bkt` command stands; after a fetch failure dispatch no reviewer | Step `failed` with `tool-missing` or `tool-failed` (spec-orchestration-dispatch.md, Requirement 14) |
+| PR post declined at the ask-hook prompt | Run no later post command; retry nothing; remove the PR files | Step `completed` with the decline recorded (FR-206; spec-orchestration-dispatch.md, Requirement 14) |
+| PR review on a host that is neither `github.com` nor a Bitbucket remote by FR-203 | Run no fetch; name both options (run `/pr-review` directly where it supports the host, or set up a `bkt` context for a Data Center host) | Step `failed` with `precondition-failed` (spec-orchestration-dispatch.md, Requirement 14) |
+| Bitbucket host pin fails | Run no `bkt pr` or `bkt api` call | Step `failed` with `precondition-failed`, `policy-rejection` (Cloud link mismatch), or `tool-failed` (failed link check) (spec-orchestration-dispatch.md, Requirement 14) |
 
 ## Events
 
@@ -446,14 +648,18 @@ Not applicable: assist-plugin has no submodules. SpecGate globs `./*/specs/spec-
 | NeedsInput relay | An agent block with `state: NeedsInput` | `/do`, which asks the user and resumes the same agent | Numbered `questions`, `resume_at` | At most 3 per phase and 10 per step |
 | Resume message | `/do` | The same agent ID | The user's answers, `resume_at`, the "Dispatch prompt text" | One per relay |
 | SubagentStop, SubagentHandback | Claude Code runtime | fsa-log hook (FR-115 to FR-117, Area B) | Final message | Warn only; never blocks |
-| PR draft confirmation (PLANNED 1.12.0) | `/do`, after the reviewer step ends `Done`; the step reads `waiting-user` until the answer (spec reading) | The user | The target repository and PR number, the block's verdict, the reviewer's draft exactly as written, after a cut the diff's own byte count and how much of the diff was cut, any part the reviewer listed as not read, and the choices with the command behind each (spec reading) | Asked once per PR review step; nothing is posted before the answer; the step becomes `completed` after a successful post or a "do not post" answer (FR-195) |
-| PR review post (PLANNED 1.12.0) | `/do`, through Bash | The PR host | `gh pr review '<N>' --repo 'github.com/<owner>/<repo>'` with `--approve`, `--request-changes`, or `--comment` and `--body-file '<root>/.agent/pr-review/pr-<N>-review.body'`; `github.com` remotes only | Only after the user's yes and while the scratch and body files match the hashes `/do` kept; no retry on failure; no `/pr-review` call (FR-195, `DECISIONS.md:183-186`, `:208-211`) |
+| PR draft confirmation | `/do`, after the reviewer step ends `Done`; the step reads `waiting-user` until the answer | The user | The target repository (`owner/repo`, `workspace/slug`, or `KEY/slug`) and PR number, the block's verdict, the reviewer's draft exactly as written, after a cut the diff's own byte count and how much of the diff was cut, any part the reviewer listed as not read, on Data Center that the server may have cut the diff, that a permission prompt may follow for each posting command, and the choices with the command behind each | Asked once per PR review step; nothing is posted before the answer; the step becomes `completed` after its post commands ran, a post declined at the hook prompt, or a "do not post" answer (FR-195) |
+| PR review post | `/do`, through Bash | The PR host | `gh pr review '<N>' --repo 'github.com/<owner>/<repo>'` with `--approve`, `--request-changes`, or `--comment` and `--body-file '<root>/.agent/pr-review/pr-<N>-review.body'`; or, on a Bitbucket remote, each of `bkt pr approve`, `bkt pr comment ... --text="$(cat -- <body>)"`, and the Cloud `bkt api` request-changes call as its own Bash command | Only after the user's yes and while the scratch and body files match the hashes `/do` kept; each command may meet an ask-hook prompt; no retry on failure; no `/pr-review` call (FR-195, FR-206, `DECISIONS.md:183-186`, `:223-226`, `:233-236`) |
 
 ## Traceability
 
 | Requirement | Spec section | Verified by |
 |---|---|---|
-| FR-001, FR-064 | Requirement: Request flow from Ingest to one terminal state | Scenario run of `/do` on a non-build prompt; plan file Status inspection |
+| FR-001, FR-064 | Requirement: Request flow from Ingest to one terminal state | Scenario run of `/do` on a non-build prompt; plan file Status inspection; plan Status write order after Display |
+| FR-012, FR-207 | Requirement: Request flow from Ingest to one terminal state (first-pass Error, guard Error) | `.agent/main-plan/` listing after a first-pass Error; plan file Status line unchanged after a guard Error |
+| FR-207, UR-055, NFR-021 | Requirement: /do guards every .agent write against a symlink | Fixtures with a symlinked `.agent`, `.agent/main-plan`, plan file, and `.agent/change-check` (with and without a scratchpad), and a planted snapshot target: run terminal, plan file bytes, and the link targets' bytes before and after (`tests/skills/contracts-do-followup.test.js`); `check-fsa-tables.js --check` exit 0 |
+| FR-195, FR-203, FR-206, FR-208, UR-031, UR-054 | Requirement: /do itself posts a confirmed PR review, and no subagent posts | Agent and Bash call log of a `/do review PR` run: a redirected fetch, one post per command after the yes, no `/pr-review` call; spec-orchestration-dispatch.md, Requirements 14 and 15 |
+| NFR-014, FR-195 | Requirement: Read and question caps (PR fetch row) | Size of `.agent/pr-review/pr-<N>.diff` after a 350 KB PR; confirmation text |
 | FR-002 | Requirement: Request flow from Ingest to one terminal state (Refused resume) | `resume` on a `Complete` plan; file hash before and after |
 | FR-013 | Requirement: Request flow from Ingest to one terminal state (Single read-only step) | Plan file `## User Decisions` inspection |
 | FR-019, FR-028, FR-030, FR-037, FR-041 | Requirement: Build steps start only after document sign-off or waiver | Plan file `Documents approved` checked before each `Build: yes` dispatch (SC-002) |
@@ -469,6 +675,8 @@ Not applicable: assist-plugin has no submodules. SpecGate globs `./*/specs/spec-
 | UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-022 | Data flow requirements and sub-specs | Sub-spec traceability tables |
 
 ## Change Log: 2026-10-16
+
+Folded into the main body on 2026-10-22, except MODIFIED Requirement: Every loop is bounded (the OWASP for LLM Gate row), which the 2026-10-22 entry does not build on and which stays here for the next fold. ADDED Requirement: /do itself posts a confirmed PR review and MODIFIED Requirement: Request flow are folded through the Change Log 2026-10-22, whose MODIFIED Requirements quote this entry's text as their Was; MODIFIED Requirement: Read and question caps is folded directly, because its row describes the PR flow the folded requirement runs.
 
 **Source:** `docs/requirements/FR-NFR-assist-plugin.md` v1.1 (2026-10-16): FR-012, FR-062, FR-063, FR-064, FR-195, and FR-199 changed or added as PLANNED (1.12.0); FR-187 to FR-192 set to Built (1.11.1). `DECISIONS.md:108-111`, `:113-116`, `:118-121`, `:148-151`, `:153-156`, `:158-161`, `:163-166`, `:168-171`, `:173-176`, `:183-186`, and `:193-196` (2026-10-16); `:178-181` is withdrawn by `:183-186`. The user's answers to OPEN-1 to OPEN-7 (`.agent/main-plan/plan-deferred-decisions-20261016-1059.md`, User Decisions).
 
@@ -563,6 +771,8 @@ The `/do` skill SHALL fetch a pull request by a Bash redirect that keeps the PR 
 
 ## Change Log: 2026-10-17
 
+Folded into the main body on 2026-10-22, through the Change Log 2026-10-22. The GitHub-only limit this entry records is history: `DECISIONS.md:223-226` restored Bitbucket remotes, and `:243-246` records that the 2026-10-22 entries replace the limit.
+
 **Source:** `DECISIONS.md:208-211` (2026-10-17), which refines the 2026-10-16 PR review entries (`DECISIONS.md:183-186`, `:193-196`) for FR-195 (PLANNED 1.12.0; `docs/requirements/FR-NFR-assist-plugin.md` v1.2, `:4079-4219`): the `/do` PR review flow supports `github.com` remotes only in 1.12.0; any other host, Bitbucket included, fails the step with `precondition-failed` and the message to run `/pr-review` directly; correcting the `bkt` command forms is a follow-up. Status stays Approved: the change is the user's recorded decision.
 
 Body edits made in place: the Components row for `/do`, the `/do` to the PR host boundary, the Topology diagram and its source `.mmd`, the Failure modes rows (a new host row; the Bitbucket approval case removed from the post row), design decision D2, the PR review decision row, the Error handling table (a new host row), and the PR review post event now name `gh` on `github.com` only. Diagram rendering was skipped: `mmdc` cannot start its headless browser. The full flow change is in spec-orchestration-dispatch.md, Change Log 2026-10-17.
@@ -590,6 +800,8 @@ Body edits made in place: the Components row for `/do`, the `/do` to the PR host
 
 ## Change Log: 2026-10-17 (PR flow hardening)
 
+Folded into the main body on 2026-10-22, through the Change Log 2026-10-22.
+
 **Source:** `DECISIONS.md:213-216` (2026-10-17, "/do PR flow hardening after the security gate"), for FR-195 (PLANNED 1.12.0; `docs/requirements/FR-NFR-assist-plugin.md` v1.2, `:4081` and the Scenario "Host pinned on every gh call" at `:4090-4093`). Status stays Approved: the change is the user's recorded decision.
 
 Body edits made in place: the PR review files row of Components (Write-tool body file, symlink refusal, `rm -f`, forgotten hash), the `/do` to the PR host boundary (`--repo 'github.com/<owner>/<repo>'`, `GH_HOST`), the PR review post event, Failure modes (the tamper row gains the forgotten hash; new rows for a symlinked folder or target and for a draft that exposes local data), and the PR review decision row. Every `--repo` in this file now names `github.com`. The full flow change is in spec-orchestration-dispatch.md, Change Log 2026-10-17 (PR flow hardening).
@@ -613,3 +825,204 @@ Body edits made in place: the PR review files row of Components (Write-tool body
 | Requirement | Spec section | Verified by |
 |---|---|---|
 | FR-195 (PLANNED) | MODIFIED Requirement: /do itself posts a confirmed PR review, and no subagent posts | Bash log of a post with `GH_HOST` set: `--repo 'github.com/acme/shop'` on the `gh pr review` call |
+
+## Change Log: 2026-10-22
+
+Folded into the main body on 2026-10-22.
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.3 (2026-10-17, DRAFT): FR-207 added (`:4736-4775`: every `/do` write under `<root>/.agent/` gets a symlink test, a symlink found by a plan-file or snapshot write ends the plan in `Error` with `policy-rejection` and writes no Status, and the Error-terminal exception), FR-195 revised (`:4163-4392`: Bitbucket remotes restored in the `/do` flow), FR-203 (`:4522-4596`), FR-206 (`:4655-4734`), and FR-208 (`:4777-4816`); NFR-021 (`:5078`) for the `## States` table edit; UR-054 and UR-055 (`docs/requirements/URD-assist-plugin.md:89-90`). Decisions: `DECISIONS.md:223-226` (every `.agent` write `/do` makes gets a symlink check; Bitbucket in the `/do` flow), `:228-231`, and `:233-236`. Every change in this entry is PLANNED (follow-up to 1.12.0). This spec received a delta, so its Status returns to `Review` (FR-154). The full PR flow is in spec-orchestration-dispatch.md, Change Log 2026-10-22.
+
+Read on 2026-10-22 at 1.12.0 (commit `bb09e29`): `skills/do/SKILL.md:44` (Branch writes the plan file), `:51` (the terminal row: "`Error` sets the Status only on a plan file that Branch already wrote in the same run (an edit pass); a resumed plan keeps its Status"), `:376` (snapshot files go to the session scratchpad, and only without one to `'<root>/.agent/change-check/'`), `:404` and `:410` (the plan file is edited in place), and `skills/do/references/pr-review-flow.md:55-61` (the PR-file guard). No symlink test guards the plan file or the snapshot folder at 1.12.0.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review. Requirement refs: UR-054, UR-055, FR-032, FR-203, FR-206, FR-207, FR-208, and NFR-021 added.
+- Source diagram added for this entry: [spec-orchestration-agent-write-guard.mmd](spec-orchestration-agent-write-guard.mmd). Rendering failed on 2026-10-22: `mmdc` cannot find chrome-headless-shell (ver. 154.0.8037.57).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Components: the `/do` row's exception reads "posts a user-confirmed PR review with `gh` on a `github.com` remote or with `bkt` on a Bitbucket remote (FR-195)"; the Plan file and Change-check snapshots rows add the symlink test of FR-207; the PR review files row adds `pr-<N>.comments.full` and the removal of FR-208.
+- Component boundaries: the `/do` to the PR host row names `gh` for `github.com` and `bkt` after the host pin of FR-203 for a Bitbucket remote, with the ask hook of FR-206 between `/do`'s confirmation and each post.
+- Data flow diagram (inline and `spec-orchestration-dataflow.mmd`): an `unsafe-path` edge (a symlink found by the plan-file or snapshot guard) to `Error(policy-rejection)` from Ingest (resume), Branch, PlanApproval, Preflight, Dispatch, DocSignOff, and Cleanup; a symlinked PR folder draws no such edge. Topology diagram (inline and `spec-orchestration-topology.mmd`): the PR host node reads "github.com or Bitbucket", and the `.agent/pr-review/` node gains "removed after use". The `.mmd` sources are not edited in this pass.
+- Failure modes: the row "PR review asked for on a host other than `github.com`, Bitbucket included" becomes "a host that is neither `github.com` nor a Bitbucket remote by FR-203"; new rows for a symlinked `.agent`, `.agent/main-plan`, plan file, or `.agent/change-check` (FR-207) and for a post declined at the hook prompt (FR-206).
+- Error handling and Events: the PR rows name `bkt` for a Bitbucket remote; a row for `Error(policy-rejection)` from the symlink guard.
+- Design decisions: D2 and the PR review row name the restored Bitbucket flow (`DECISIONS.md:223-226`, `:228-231`, `:233-236`).
+
+### ADDED Requirements
+
+#### Requirement: /do guards every .agent write against a symlink
+
+Before every write that `/do` makes under `<root>/.agent/` (the plan file under `.agent/main-plan/`, the change-check snapshot files, and the PR files under `.agent/pr-review/`), the `/do` skill SHALL test with `test ! -L` that `<root>/.agent` and the folder it writes into are not symlinks (and, for the plan file, that the file itself is not a symlink), SHALL write nothing and stop with `policy-rejection` when one is a symlink, and SHALL remove an existing target with `rm -f` before it writes a file it creates fresh (the snapshot files and the PR files), never the plan file, which it edits in place.
+
+**Requirement refs:** FR-207, FR-032, FR-195, UR-055, UR-019, BR-012 | **Status:** Built (1.12.0) for the PR files; PLANNED (follow-up to 1.12.0) for the plan file and the snapshot files | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:4738`, scenarios `:4742-4775`; `DECISIONS.md:213-216` (the `rm -f` rule), `:223-226`; `skills/do/SKILL.md:44`, `:51`, `:376`, `:404`, `:410`
+
+Guard commands (spec reading; flow source above):
+
+| Write | Guard, one Bash command run on its own just before the write | Then | On a symlink |
+|---|---|---|---|
+| Plan file, each Write or Edit (Branch, a resume at Ingest, PlanApproval, Preflight, Dispatch, DocSignOff, Cleanup, and a terminal Status) | `test ! -L '<root>/.agent' && test ! -L '<root>/.agent/main-plan' && test ! -L '<plan path>'` | The Write or Edit; no `rm -f` | The plan ends in `Error` with `policy-rejection` at that state; no Status is written |
+| Snapshot file, only when the session has no scratchpad (`'<root>/.agent/change-check/'`) | `test ! -L '<root>/.agent' && test ! -L '<root>/.agent/change-check'` | The command that writes the snapshot starts its `&&` chain with `rm -f --` of that file | The same plan-level `Error(policy-rejection)` |
+| Snapshot file in the session scratchpad | none: outside `<root>/.agent` | As at 1.12.0 | Not applicable |
+| PR files | `<guard>` of the PR flow, with `mkdir -p` (`pr-review-flow.md:55-61`) | `rm -f --` of each target (built) | The PR step fails with `policy-rejection` (spec-orchestration-dispatch.md, Requirement 14) |
+
+`test ! -L` on a path that does not exist exits 0, so a first write into a missing folder proceeds, and the folder is created as at 1.12.0; this requirement adds no `mkdir`. A non-zero exit of the plan-file or snapshot guard means a symlink, because `test` has no other failure for these operands. Known limit, as for the PR guard: a folder swapped for a symlink after the guard and before the write is not caught; `fsa-write-bar` resolves no symlinks and does not cover Bash writes (FR-NFR section 6).
+
+The `Error(policy-rejection)` of this requirement belongs to no step. It writes no Status to the plan file, because that write is the unsafe one, and the reply names the symlinked path and the state. In Dispatch, `/do` then sends no new dispatch and no SendMessage, names the steps still running in the reply, and ends; their results are not recorded, because the plan file cannot be written safely (spec reading). The same holds when the plan-file guard blocks a terminal Status write: the run is reported as `Error(policy-rejection)` in place of the terminal it was about to write, with no Status written, whatever that terminal was (spec reading). That covers `Complete`, `Partial`, and `Paused` from Cleanup; `Cancelled` from the PlanApproval cancel and the Preflight stop (`skills/do/SKILL.md:45`, `:46`); and an `Error` of another class, including the `Error(plan-invalid)` that Decompose, DependencyAnalysis, and AgentSelection reach (`:40`, `:42`, `:43`, `:51`). An earlier `Error` is replaced the same way. None of those rows gains the outcome below, because the terminal row states the rule once.
+
+Scope of the outcome (spec reading): only a symlink found by the plan-file guard or the snapshot guard raises `Error(policy-rejection)` for the run. A symlink found by the PR-file guard fails only the PR step with `policy-rejection` (`pr-review-flow.md:61`; spec-orchestration-dispatch.md, Requirement 14), and one found by the Cleanup sweep or the removal after a post is reported in the cleanup report or the reply and changes no terminal (spec-orchestration-dispatch.md, Requirements 12 and 15). Keeping the outcome to the plan-file and snapshot guards keeps each state's outcomes exclusive (rule T2 of `references/fsa-template.md`): in Dispatch and Cleanup, a symlinked PR folder leads to the usual outcomes of those states.
+
+Planned `## States` table edits in `skills/do/SKILL.md` (spec reading): each of the rows Ingest (on `resume`), Branch, PlanApproval, Preflight, Dispatch, DocSignOff, and Cleanup gains the outcome `unsafe-path (the plan-file or snapshot guard found a symlink) -> Error(policy-rejection)`, and the terminal row (`:51`) gains two sentences: "An `Error(policy-rejection)` raised by the plan-file or snapshot symlink guard writes no Status to any plan file and is shown in the reply only." and "A terminal whose Status write the plan-file guard blocks is reported as `Error(policy-rejection)` with no Status written." The terminal-row edit is part of the `check-fsa-tables.js` follow-on: `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` SHALL exit 0 after the seven row edits and the terminal-row edit (NFR-021); whether `hooks/lib/fsa-tables.js` mirrors the `/do` table is checked at build time, and a difference is fixed in the JavaScript, because the markdown wins.
+
+##### Scenario: Symlinked .agent at Branch
+
+- **GIVEN** `<root>/.agent` is a symlink to another directory
+- **WHEN** `/do` reaches Branch and is about to write the plan file
+- **THEN** `/do` SHALL write nothing, the run SHALL end in `Error` with `error_class` `policy-rejection` at Branch, and the reply SHALL name `<root>/.agent`
+- **AND** no file SHALL appear under the symlink's target
+
+##### Scenario: Plan file edited in place
+
+- **GIVEN** `<root>/.agent`, `<root>/.agent/main-plan`, and the plan file are not symlinks
+- **WHEN** `/do` updates a step Status during Dispatch
+- **THEN** `/do` SHALL run the plan-file guard before the Edit and SHALL NOT run `rm -f` on the plan file
+
+##### Scenario: Plan file is a symlink
+
+- **GIVEN** the plan file is a symlink to another file, found when `/do` is about to set a step `in_progress`
+- **WHEN** the guard exits non-zero
+- **THEN** `/do` SHALL write nothing, SHALL write no Status to the plan file, SHALL end the plan in `Error` with `policy-rejection`, and SHALL show it in the reply only
+- **AND** the link's target file SHALL be byte-for-byte unchanged
+
+##### Scenario: Cancel with a symlinked plan folder
+
+- **GIVEN** Branch wrote the plan file, `<root>/.agent/main-plan` then became a symlink, and the user answers Cancel at PlanApproval
+- **WHEN** `/do` is about to write the Status `Cancelled` and the plan-file guard exits non-zero
+- **THEN** `/do` SHALL write no Status, SHALL report the run as `Error` with `policy-rejection`, and the reply SHALL name the symlinked path and SHALL NOT report `Cancelled`
+
+##### Scenario: Plan-invalid error with a symlinked plan file
+
+- **GIVEN** an edit pass whose Decompose reaches `Error(plan-invalid)` on a plan file that Branch wrote in the same run, and the plan file has become a symlink
+- **WHEN** `/do` is about to write the Status and the plan-file guard exits non-zero
+- **THEN** `/do` SHALL write no Status and SHALL report the run as `Error` with `policy-rejection`, which replaces the `plan-invalid` class
+
+##### Scenario: Symlinked PR folder fails only the PR step
+
+- **GIVEN** a PR review step in Dispatch and `<root>/.agent/pr-review` is a symlink when the PR-file guard runs, while `<root>/.agent`, `<root>/.agent/main-plan`, and the plan file are not symlinks
+- **WHEN** the PR-file guard exits non-zero with no `mkdir` message
+- **THEN** the PR step SHALL read `failed` with `policy-rejection`, Dispatch SHALL go on to its usual outcome, and the run SHALL NOT end in `Error(policy-rejection)` for that symlink
+
+##### Scenario: Symlinked PR folder at Cleanup
+
+- **GIVEN** every step is `completed`, the plan-file guard exits 0, and `<root>/.agent/pr-review` is a symlink when Cleanup sweeps the PR files
+- **WHEN** Cleanup runs
+- **THEN** the sweep SHALL remove nothing, the cleanup report SHALL name the symlink, and the plan SHALL end `Complete`
+
+##### Scenario: Symlinked snapshot folder without a scratchpad
+
+- **GIVEN** a session with no scratchpad directory, so snapshots go to `<root>/.agent/change-check/`, and that folder is a symlink
+- **WHEN** `/do` takes the Preflight snapshot
+- **THEN** `/do` SHALL write no snapshot, and the plan SHALL end in `Error` with `policy-rejection` at Preflight
+
+##### Scenario: Snapshots in the scratchpad
+
+- **GIVEN** the session has a scratchpad directory and `<root>/.agent/change-check` is a symlink
+- **WHEN** `/do` takes a snapshot
+- **THEN** `/do` SHALL write the snapshot to the scratchpad and SHALL NOT run the snapshot guard, because the files are outside `<root>/.agent`
+
+##### Scenario: Planted file at a snapshot target
+
+- **GIVEN** no scratchpad, plain folders, and `<root>/.agent/change-check/<snapshot name>` is a symlink to `~/.bashrc`
+- **WHEN** `/do` writes that snapshot
+- **THEN** the write command SHALL remove the link with `rm -f --` first, and `~/.bashrc` SHALL be unchanged
+
+##### Scenario: Plain folders
+
+- **GIVEN** `<root>/.agent` and every target folder are ordinary directories
+- **WHEN** `/do` writes
+- **THEN** the write SHALL proceed
+
+### MODIFIED Requirements
+
+#### Requirement: Request flow from Ingest to one terminal state
+
+**Was:** (Change Log 2026-10-16) The `/do` skill SHALL move every run through the states of `skills/do/SKILL.md:36-51` in table order, pick each next state only from the current state's outcome, end the run in exactly one of `Complete`, `Partial`, `Paused`, `Cancelled`, or `Error` with Cleanup choosing among `Complete`, `Partial`, and `Paused`, and write no plan file for a run that ends in `Error` before Branch.
+
+**Now:** The `/do` skill SHALL move every run through the states of `skills/do/SKILL.md:36-51` in table order, pick each next state only from the current state's outcome, end the run in exactly one of `Complete`, `Partial`, `Paused`, `Cancelled`, or `Error` with Cleanup choosing among `Complete`, `Partial`, and `Paused`, write no plan file for a run that ends in `Error` before Branch, and write no Status for a run that ends in `Error(policy-rejection)` raised by the plan-file or snapshot symlink guard, a terminal whose Status write that guard blocks included.
+
+**Reason:** FR-207 (`:4738`; Source `:4740`: the Error-terminal exception).
+
+**Requirement refs:** FR-001, FR-012, FR-064, FR-207 | **Status:** PLANNED (follow-up to 1.12.0) for the exception
+
+##### Scenario: Guard Error writes no Status
+
+- **GIVEN** an approved plan in Dispatch and a `<root>/.agent/main-plan` that has become a symlink
+- **WHEN** `/do` is about to record a step result
+- **THEN** the run SHALL end in `Error` with `policy-rejection`, the plan file's Status line SHALL be unchanged, and the reply SHALL name the symlinked path
+
+The other Scenarios of this requirement are unchanged.
+
+#### Requirement: /do itself posts a confirmed PR review, and no subagent posts
+
+**Was:** (Change Log 2026-10-17) The `/do` skill SHALL fetch a pull request by a Bash redirect that keeps the PR text out of its context and, after the user confirms the reviewer's draft, post that draft itself with `gh`, as its one delivery action, so that no subagent posts to the PR host; a PR review on an `origin` other than `github.com` fails with `precondition-failed`.
+
+**Now:** The `/do` skill SHALL fetch a pull request by a Bash redirect that keeps the PR text out of its context and, after the user confirms the reviewer's draft, post that draft itself, with `gh` on a `github.com` `origin` or with `bkt` on a Bitbucket `origin` after the host pin of FR-203, as its one delivery action, so that no subagent posts to the PR host; a PR review on any other `origin` fails with `precondition-failed`, and the PR's files are removed after use (FR-208).
+
+**Reason:** FR-195 (`:4165`), restoring Bitbucket remotes (`DECISIONS.md:223-226`); FR-208.
+
+**Requirement refs:** FR-195, FR-203, FR-206, FR-208, UR-031, UR-054, UR-055 | **Status:** Built (1.12.0) for `gh`; PLANNED (follow-up to 1.12.0) for `bkt` and the removal
+
+The Scenario "Bitbucket remote" of the Change Log 2026-10-17 is withdrawn and replaced by the one below. The Scenarios "Draft confirmed and posted", "Draft not confirmed", "Post fails", and "GH_HOST does not redirect the post" are unchanged.
+
+##### Scenario: Bitbucket remote
+
+- **GIVEN** `/do review PR 123` with the `origin` `https://bitbucket.org/acme/shop.git`, exactly one context `cloud-prod` of kind `cloud`, no `BKT_*` variable set, and a reviewer that ends `Done` with verdict `approved`
+- **WHEN** the user confirms the draft and allows both ask-hook prompts
+- **THEN** `/do` SHALL run `bkt pr approve '123' --context 'cloud-prod' --workspace 'acme' --repo 'shop'` and then the comment command with `--text`, each as its own Bash command, and SHALL call no `/pr-review`
+- **AND** no subagent SHALL run `bkt` or `gh` during the run
+
+##### Scenario: Unsupported host
+
+- **GIVEN** `/do review PR 123` with a GitHub Enterprise `origin` and no `bkt` context for its host
+- **WHEN** the step starts
+- **THEN** the step SHALL read `failed` with `precondition-failed` and the message SHALL name both options, and no reviewer SHALL be dispatched
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-207, UR-055 | Change Log 2026-10-22: ADDED Requirement: /do guards every .agent write against a symlink | Fixtures with a symlinked `.agent`, `.agent/main-plan`, plan file, and `.agent/change-check` (with and without a scratchpad), and a planted snapshot target: run terminal, plan file bytes, and the link targets' bytes before and after |
+| FR-207, FR-012 | Change Log 2026-10-22: MODIFIED Requirement: Request flow from Ingest to one terminal state | Plan file Status line unchanged after a guard Error |
+| NFR-021 | Change Log 2026-10-22: ADDED Requirement (States table edits) | `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exits 0 |
+| FR-195, FR-203, FR-206, FR-208, UR-054 | Change Log 2026-10-22: MODIFIED Requirement: /do itself posts a confirmed PR review, and no subagent posts | spec-orchestration-dispatch.md, Change Log 2026-10-22 |
+
+### Design choices for sign-off
+
+1. The plan-file and snapshot guards test only for symlinks, with no `mkdir -p`; a missing folder is created as at 1.12.0.
+2. A guard `Error` in Dispatch sends nothing more, names the running steps, and does not wait for them.
+3. A guard that blocks a terminal Status write ends the run in `Error(policy-rejection)` in place of that terminal, an earlier `Error` of another class included.
+4. The `unsafe-path` outcome added to seven rows of the `## States` table, and the terminal-row sentence.
+
+## Change Log: 2026-10-22 (fold)
+
+**Source:** `DECISIONS.md:243-246` (the 2026-10-22 entries replace the GitHub-only limit of the `/do` PR review flow; the spec bodies are folded after qa in the same run) and `:248-251` (the 2026-10-22 deltas signed off; step 1 research); the build of `docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md`, qa passed on 2026-10-22 with `check-fsa-tables.js --check` at exit 0 (`.agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md:95`). `skills/do/SKILL.md` and `skills/do/references/pr-review-flow.md` were read on 2026-10-22.
+
+Folded into the main body:
+
+- Change Log 2026-10-22, the list "Body text this entry supersedes": Components (the `/do` exception names `gh` and `bkt`; the Plan file and Change-check snapshots rows carry the FR-207 symlink test; the PR review files row adds `pr-<N>.comments.full` and the FR-208 removal), Component boundaries (the PR host row names `gh` and `bkt` after the host pin, with the ask hook after `/do`'s confirmation), the Data flow diagram (inline and `spec-orchestration-dataflow.mmd`: `unsafe-path` edges to `Error(policy-rejection)` from Ingest on resume, Branch, PlanApproval, Preflight, the intake, full, and stop Dispatch modes, DocSignOff, and Cleanup; none for a symlinked PR folder or the conflict-mode Dispatch, which writes no plan file), the Topology diagram (inline and `spec-orchestration-topology.mmd`: the PR host is "github.com or Bitbucket", the PR files are "removed after use", and the ask hook is drawn), Failure modes, Error handling, Events, and the Design decisions D2 and PR review rows.
+- ADDED Requirement: /do guards every .agent write against a symlink, with the build-time wording (`skills/do/SKILL.md:245`, `:247-275`, `:38-51`): Branch writes the plan at `<root>/.agent/main-plan/...`; a non-zero plan-file or snapshot guard exit takes `unsafe-path` ahead of every other outcome of the state, `resume` at Ingest and the terminal choices at Cleanup included; the Cleanup row lists `unsafe-path` first. The proposed `## States` edits are described as built. New Scenarios: Plan file at the git root in a subdirectory session, Unsafe path ahead of resume, Cleanup tests unsafe-path first.
+- MODIFIED Requirement: Request flow from Ingest to one terminal state, from the 2026-10-22 Now (which quotes the 2026-10-16 Now), with the Scenarios First-pass Error writes no plan file, Error on a resumed plan, Cleanup chooses the terminal, and Guard Error writes no Status.
+- MODIFIED Requirement: /do itself posts a confirmed PR review, and no subagent posts, from the 2026-10-22 Now (which quotes the 2026-10-17 Now), placed in the body with the Scenarios Draft confirmed and posted, Draft not confirmed, Post fails, GH_HOST does not redirect the post, Bitbucket remote (the 2026-10-22 version; the 2026-10-17 "Bitbucket remote" scenario is withdrawn), and Unsupported host. The GitHub-only text is history.
+- MODIFIED Requirement: Read and question caps (Change Log 2026-10-16): the PR fetch row loses its PLANNED label and points at spec-orchestration-dispatch.md, Requirement 14; the Scenario PR fetch cut is added.
+- Every cross-reference to "spec-orchestration-dispatch.md, Change Log 2026-10-16, Requirement 14" in the folded text now points at that spec's body Requirement 14, folded the same day.
+
+Not folded in this pass: MODIFIED Requirement: Every loop is bounded of the Change Log 2026-10-16 (the OWASP for LLM Gate row of the loops table).
+
+Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`references/delta-format.md`, Folding a delta into the main body, step 5); a `review` pass follows. Rendering of both diagrams failed again on 2026-10-22 (chrome-headless-shell missing).
+
+### Rework 2: line cites refreshed (no behavior change)
+
+The planning gate found cites that the build had moved. Re-read on 2026-10-22: in Requirement: /do guards every .agent write against a symlink, the scope paragraph cites the PR-file guard row of the failure table at `skills/do/references/pr-review-flow.md:351`; Requirement: Read and question caps cites the change-check line limit at `skills/do/SKILL.md:456`. The other cites of the guard requirement (`skills/do/SKILL.md:245`, `:247-275`, `:551`; `pr-review-flow.md:96-104`) were re-read on 2026-10-23 and hold.

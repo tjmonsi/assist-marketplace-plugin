@@ -219,3 +219,53 @@ Plan: .agent/main-plan/plan-apply-deferred-decisions-20261016-1130.md
 
 Decision: the user changed the frontmatter `effort` of the code-reviewer and researcher agents from `xhigh` to `high`; the agent bodies, `skills/do/references/model-routing.md`, the LLM security checklist, and the orchestration specs follow. reviewer, solutions-architect, planner, and /do keep `xhigh`.
 Plan: .agent/main-plan/plan-apply-deferred-decisions-20261016-1130.md
+
+## 2026-10-22: PR posting safeguards and Bitbucket in the PR review flows
+
+Decision: a PreToolUse ask hook covers every session and asks before PR posting commands: gh pr review, merge, comment, and close; bkt pr approve, comment, decline, close, and merge; and bkt api with a POST, PUT, PATCH, or DELETE method. /do removes its `pr-<N>*` files under `.agent/pr-review` right after a post or a "do not post" answer and sweeps leftovers at Cleanup, never through a symlinked folder. Every `.agent` write /do makes (plan file, snapshots, PR files) gets a symlink check. Bitbucket host pinning refuses when BKT_TOKEN, BKT_HOST, or BKT_CONFIG_DIR is set, requires the chosen bkt context's base URL to match the origin host, passes `--context` and the repository flags on every call, and on Cloud compares the PR link with the expected URL. Request changes on Bitbucket Cloud uses the raw `bkt api` request-changes call with a relative path; on Data Center it posts a comment and leaves the PR open. `/bump --path` accepts only a relative path (or an absolute path inside the git root) matching `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$`, with no `..` or leading-dash segment, naming an existing directory inside the repository; any other value stops before any change.
+Plan: .agent/main-plan/plan-post-1-12-0-followups-20261017-0406.md
+
+## 2026-10-22: Bitbucket request-changes order, hook rejection, and stricter checks
+
+Decision: refines the earlier 2026-10-22 entry. On Bitbucket Cloud a returned verdict posts the findings as a comment first and then makes the request-changes call; when the comment fails, no request-changes call is made. Rejecting the ask-hook prompt after a /do confirmation leaves the step completed with the post recorded as declined, no retry, and the PR files removed; when only the second prompt of a Bitbucket approve-then-comment pair is rejected, the approval is recorded as posted and the comment as declined. `/bump --path` also rejects a segment made only of dots and is normalized before validation. Cleanup matches `pr-<N>.*` and `pr-<N>-*` only. The ask hook also asks on a `bkt api` call with a body flag and no method, until the bkt default method is confirmed. Requirements: FR-143, FR-195, FR-206, FR-208, FR-209 (docs/requirements/FR-NFR-assist-plugin.md, section 9 open points 3, 5, 6, 7, 9).
+Plan: .agent/main-plan/plan-post-1-12-0-followups-20261017-0406.md
+
+## 2026-10-22: Each Bitbucket post is its own command; a rejected prompt stops the pair
+
+Decision: each bkt post (approve, comment, the Cloud request-changes call) runs as its own Bash command with its own ask-hook prompt. Rejecting the first prompt of a pair runs no second command and records both as declined. On Cloud, an allowed comment followed by a rejected request-changes prompt records the comment as posted and the request as declined. The step is completed and the PR files are removed, as for a "do not post" answer.
+Plan: .agent/main-plan/plan-post-1-12-0-followups-20261017-0406.md
+
+## 2026-10-22: bkt api repository flags and unknown options
+
+Decision: a `bkt api` call names the repository through its relative path; repository flags are added only if a build-time read of the bkt source shows `bkt api` accepts them (reading of FR-203). The PR posting ask hook also asks on any `bkt api` option it does not recognize, beyond the FR-206 list; asking adds prompts only and never blocks.
+Plan: .agent/main-plan/plan-post-1-12-0-followups-20261017-0406.md
+
+## 2026-10-22: Follow-up build scope, supersession, and timing method
+
+Decision: the 2026-10-22 entries at lines 223-241 replace the GitHub-only limit of the /do PR review flow (lines 208-211) and, for Bitbucket Cloud, the comment-only request-changes rule (lines 163-166). The build of `docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md` reuses that gated task plan, pauses for the user before the 1.13.0 hand release and again before the commit, creates no tag, and pushes nothing. The spec bodies and the FR-206 wording are folded after qa in the same run. The NFR-008 and NFR-025 timing method is confirmed: the median of 20 runs on a fixed input, with a 110 ms limit (a SHOULD; a median over it is a finding).
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-22: Follow-up documents signed off; step 1 research results applied
+
+Decision: the requirements v1.3 (`docs/requirements/`), the 2026-10-22 spec deltas and `specs/spec-hooks-pr-post-ask.md`, and `docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md` with its labeled choices S1 to S14 are approved for the build. Step 1 confirmed from the bkt v0.34.0 source that `bkt api` sends GET with no method and no body and POST with a body, that `--method` (short `-X`) is the method option, that `bkt api` takes no repository flags (the spec stands), and that the `bkt --version` pattern holds. The two `--jq` filters (context lookup and PR-by-branch lookup) use the form that always prints a JSON array (`[]?` iteration inside an outer array), and "exactly one" means an array of length 1; the spec fold updates the spec text to match. The /pr-review and /do declined outcome is built on the documented separation of a rejected prompt from a command failure; the real rejection text is recorded by manual row 2. The ask hook's known-gap text also lists bypassPermissions mode, plan mode, and installed mods as unverified.
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-22: /bump tag names and pr-post-ask gaps found in review
+
+Decision: `/bump --path` also rejects a segment that starts with `.` or contains `..`, because such a value gives an invalid git tag name; the run stops before any file, commit, or tag changes (narrows FR-209 and FR-139; the fold updates the requirement and spec). The `pr-post-ask` hook closes three bypass forms found in the security review: it judges the text inside `$(...)` and backticks (as the whole command or an assignment value) as its own command, asks when the `pr`, verb, or `bkt` subcommand word holds `$` or a backtick, and skips redirection words between the program and the verb. It lists as known gaps the shared-parser forms doc-cli-guard already lists (brace expansion, globs in the program word, `<<` read as a heredoc in arithmetic, a long sudo option with a separate value) and the forms `$"..."` and `$'\x..'` quoting, `stdbuf --output`, argv wrappers outside the wrapper list (for example setsid, doas, ionice), shell aliases, and renamed or linked binaries. Every known-gap list (the hook spec, FR-206, /health, CLAUDE.md, Claude.md, README, ARCHITECTURE) is kept equal.
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-22: pr-post-ask is a best-effort guard
+
+Decision: the `pr-post-ask` hook is a best-effort string-matching guard, like doc-cli-guard (2026-10-16 entry); Claude Code's permission prompts and the skills' own confirmation remain the primary control. One last in-file change closes the cheap forms: a quote-aware scan of every `$(...)` and backtick span in an assignment value or program word, an ask (not a pass) when the substitution depth limit is reached, and the run-time-expansion test on option values before the verb. The remaining forms found in review (redirections the shared lexer splits such as `2>&1`, `&>`, `>|`, and `< <(...)`; PowerShell `@(...)` arrays and script blocks in the verb position; a PowerShell comment that hides an opening parenthesis) are listed as known gaps, and a bypass form found later is added to every gap list without reopening the spec. The shared lexer is not changed in this release.
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-22: PR file cleanup by name, and pre-release fixes
+
+Decision: the PR file cleanup uses no glob patterns. /do removes the five PR files of PR `<N>` by exact name with `rm -f --`, after the symlink guard; /pr-review first checks that the run folder path starts with the `mktemp` template prefix, removes its known files by name, then removes the folder with `rmdir`. Both forms work in bash and zsh, and an executed test runs them under zsh when zsh is installed. On Bitbucket, the body-hash check runs as its own command before `bkt pr approve`, so a changed body file stops the post before the approval. CLAUDE.md, Claude.md, and ARCHITECTURE.md say "whether an installed mod can approve", and both link-check notes say `--jq` prints strings JSON-quoted. Corrections recorded with this entry: the `/bump` R6 check is `test -d` with no `--` (bash's `test` rejects `--`); "exactly one" for the context lookup in the 2026-10-22 research entry means exactly one element that meets the Match rule, not an array of length 1, since the filter lists every configured context.
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-22: Where the pr-post-ask gap list lives
+
+Decision: clarifies the 2026-10-22 entry on pr-post-ask gaps. The full known-gap list is kept equal in five places: the hook's header comment, the hook spec's Requirement 9, FR-206, the /health overview, and README.md. CLAUDE.md, plugins/assist-plugin/Claude.md, and docs/ARCHITECTURE.md carry a short pointer that the hook is best-effort with known gaps, plus the unverified items, and do not repeat the list.
+Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
