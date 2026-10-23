@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.13.0
+### assist-plugin v1.13.1
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
@@ -304,7 +304,7 @@ The `pr-post-ask` hook (PreToolUse on `Bash` and `PowerShell`) asks you before a
 - **`prose-advisor`** (PostToolUse on the same tools): adds a short advisory note about hedges, intensifiers, AI vocabulary, throat-clearing, and similar tells in the added text. It never blocks.
 - **`writing-context`** (SessionStart and SubagentStart): injects the compact standard (`rules/writing-standard-compact.md`, about 1,195 characters or 300 tokens) into the session and into each subagent. The health check self-tests it; a failure is reported and never disables it.
 
-Both per-write hooks skip files under the system temp directory and files under `docs/tts/` in the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and in the session's working directory when that directory is inside the project, where voice scripts from `/voice-script` may use em dashes as pause marks. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
+Both per-write hooks skip files under the system temp directory. Files under `docs/tts/` are judged like other prose, with fenced blocks exempt. To exempt other paths, list path substrings in `prose-gate-allowlist.json` in the plugin data directory, for example `["/drafts/", "notes/verbatim"]`; the single entry `["*"]` turns the gate and the advisor off for every path. A missing or malformed file means no allowlist. The file is separate from `hooks-disabled.json`, so a health check never changes it.
 
 All three fail open. The per-write hooks add about 80 to 110 ms to each write. The plugin also ships an opt-in output style, `assist-plugin:terse`: answer-first replies with no preamble, recap, or sign-off. Select it with `/output-style`; subagents do not use it.
 

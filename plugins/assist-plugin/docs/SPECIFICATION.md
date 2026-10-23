@@ -420,7 +420,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 **Constraints:**
 - Writes only `docs/tts/voice-*.md` and runs only `date +%Y%m%d-%H%M`; generates no audio
-- `prose-gate` and `prose-advisor` skip `docs/tts/` in the project root (`CLAUDE_PROJECT_DIR`, else the git root, else the hook's working directory) and in the session's working directory when that directory is inside the project, so scripts may use em dashes as pause marks
+- `prose-gate` and `prose-advisor` judge files under `docs/tts/` like other prose, with fenced blocks exempt, and the voice-script skill keeps U+2014, U+2015, and curly quotes out of the whole saved file
 
 ---
 
