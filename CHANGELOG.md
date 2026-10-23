@@ -2,6 +2,40 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.13.1] - 2026-10-23
+
+### Changed
+
+- `/voice-script` writes no U+2014, U+2015, or curly quote anywhere in a saved script
+  - Pause marks follow a per-model pause-mark table in the skill: a spaced hyphen for ElevenLabs v2, a double hyphen for Gemini 3.8, the listed marks or tags for other catalogued models, and commas and periods for ordinary-punctuation and uncatalogued models
+  - Draft and header em dashes are swapped and counted in a fixed header note
+  - Curly quotes are straightened, with a note
+  - Kept draft tells are flagged by family and line
+  - A typed voice id, clip path, or model id with a banned character is refused
+  - When `prose-gate` denies header text, the skill makes one same-path retry, else it prints the script in chat
+- `prose-gate` and `prose-advisor` no longer skip `docs/tts/`: voice scripts are judged like other prose, with fenced blocks exempt (FR-181 retired). The prose hooks no longer read `CLAUDE_PROJECT_DIR` or walk for `.git`.
+- The `/health` self-test corpus is now `prose-gate` 24 allow and 38 deny, `prose-advisor` 10 clean and 12 flagged.
+
+### Documentation
+
+- `CLAUDE.md`, `Claude.md`, `README.md`, `SPECIFICATION.md`, and the `/health` overview describe the new behavior
+- Requirements v1.5 (FR-211 to FR-213, UR-058), spec deltas, the task plan, and `DECISIONS.md` entries dated 2026-10-23
+
+### Compatibility
+
+- A `docs/tts/` file written before 1.13.1 with an em dash in its header is now denied on edit
+- The AtticAI claude kit's `banned-phrase-gate` no longer conflicts with saved voice scripts
+
+### Tests
+
+- 1586 tests: 1584 pass, 0 fail, 2 skipped (zsh not installed)
+- Not yet verified: live `/voice-script` runs per pause-mark row with a whole-file character count, draft fixtures, and a header deny with retry; zsh runs of the two cleanup tests; a Node 6 parse; Mermaid PNG and SVG rendering (needs `npx puppeteer browsers install chrome-headless-shell`)
+
+### Follow-ups
+
+- Spec fold for PH:800 (`prose-diff` also reads the allowlist and `os.tmpdir`)
+- Task-plan line 252 numeric-range wording (the skill follows the spec: the model's pause mark)
+
 ## [1.13.0] - 2026-10-23
 
 ### Added
