@@ -217,6 +217,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 - Review gate enforcement
 - `stop` and `resume <plan>`: a stop lets running steps finish and starts no new ones, and a resume asks for approval again before it re-dispatches the pending steps
 - Partial and Paused ends keep the plan file, so the user sees what ran, what failed, and what remains
+- PR review for `github.com` remotes and for Bitbucket Cloud and Data Center remotes through `bkt` (host pinned to one `bkt` context before any `bkt pr` or `bkt api` call); the main conversation posts the confirmed review, `pr-post-ask` may ask before each post, a rejected prompt makes the post `declined`, not failed, and the PR files under `.agent/pr-review/` are removed after use and at Cleanup
 
 ---
 
@@ -377,7 +378,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 
 **Workflow:**
-1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, and `fsa-log` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only)
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `pr-post-ask`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, and `fsa-log` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only)
 2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
 3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
 4. With `--clear`, truncate `hook-health.jsonl` after showing it
@@ -387,7 +388,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 
 **Constraints:**
 - Hooks fail open: a failure lets the command run with a `systemMessage` warning; only a positive guard match denies
-- A guard whose self-test denies a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes
+- A guard whose self-test denies, or for `pr-post-ask` asks on, a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes (an ask on a known-safe command counts as a false deny). A posting command that `pr-post-ask` does not ask on leaves it enabled and reports weak protection
 - The health log never holds command text, arguments, environment values, or stdin
 
 ---
