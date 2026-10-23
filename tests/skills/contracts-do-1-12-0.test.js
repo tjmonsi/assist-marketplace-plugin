@@ -13,6 +13,13 @@
 // specs/spec-orchestration-spec-first.md, DECISIONS.md lines 108-216 (the GitHub-only /do PR
 // review and its hardening), and docs/requirements/FR-NFR-assist-plugin.md (version 1.2).
 //
+// The 2026-10-22 follow-up (task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md,
+// step 27) restores Bitbucket remotes in the /do PR review flow. The assertions below that held
+// the GitHub-only wording now assert the wording of both hosts: the four-step classification, the
+// Bitbucket fetch variants, the declined-post outcome, the body check before the approval, and the
+// context on every bkt command. The new Bitbucket flow, the symlink guards, and the cleanup are
+// tested in tests/skills/contracts-do-followup.test.js.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -302,10 +309,11 @@ test("Change check and Decision records: the appends at Approve come before the 
   assert.ok(/The append runs before Preflight takes the change-check baseline, so the baseline already holds it/.test(dr));
 });
 
-test("Change check refreshes the baseline after /do's own writes under <root>/.agent/pr-review/", () => {
-  // [Scenario: Scratch and body files not judged as prose (refresh part) | spec-orchestration-dispatch.md Requirement 14 | FR-195 | FR-032]
+test("Change check refreshes the baseline after /do's own writes and removals under <root>/.agent/pr-review/", () => {
+  // [Scenario: Scratch and body files not judged as prose (refresh part); No step is blamed for the removal
+  //  | spec-orchestration-dispatch.md Requirements 14 and 15 | FR-195 | FR-208 | FR-032]
   const cc = joined(section(DO, "### Change check"));
-  assert.ok(/after each \/do write under `<root>\/\.agent\/pr-review\/` for a PR review, refresh that file['’]s status line/.test(cc));
+  assert.ok(/after each \/do write or removal under `<root>\/\.agent\/pr-review\/` for a PR review \(Cleanup included\), refresh that file['’]s status line/.test(cc));
 });
 
 // ---------------------------------------------------------------------------
@@ -521,14 +529,14 @@ test("SKILL.md intro and Constraints carry the one exception: posting a user-con
   assert.ok(/never does delivery work itself, with one exception: posting a user-confirmed PR review draft \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\)/.test(intro));
   const rule = linesOf(DO).find((l) => l.indexOf("- Never do delivery work in the main agent.") === 0);
   assert.ok(rule, "constraint line missing");
-  assert.ok(/The one exception is posting a user-confirmed PR review draft with `gh` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\)/.test(rule));
+  assert.ok(/The one exception is posting a user-confirmed PR review draft with `gh` or `bkt` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\)/.test(rule));
 });
 
-test("SKILL.md Done bullet: a PR review step runs no gate, waits in waiting-user, and completes after a post or a 'do not post' answer", () => {
-  // [Scenario: Waiting for the confirmation; Draft not confirmed; PR review step after Done | spec-orchestration-dispatch.md Requirement 14 Status | FR-195 | FR-051 | FR-052]
+test("SKILL.md Done bullet: a PR review step runs no gate, waits in waiting-user, and completes after a post, a post declined at the hook prompt, or a 'do not post' answer", () => {
+  // [Scenario: Waiting for the confirmation; Draft not confirmed; Declined post completes the step | spec-orchestration-dispatch.md Requirements 14 Status and 5 | FR-195 | FR-051 | FR-052 | FR-048]
   const done = linesOf(DO).find((l) => l.indexOf("- **Done:**") === 0);
   assert.ok(done, "Done bullet missing");
-  assert.ok(/except for a PR review step: it runs no gate, sets the step `waiting-user` while the confirmation is open, and becomes `completed` only after a successful post or a "do not post" answer/.test(done));
+  assert.ok(/except for a PR review step: it runs no gate, sets the step `waiting-user` while the confirmation is open, and becomes `completed` only after a successful post, a post the user declined at the hook prompt, or a "do not post" answer/.test(done));
   assert.ok(done.indexOf("references/pr-review-flow.md") !== -1);
 });
 
@@ -546,8 +554,8 @@ test("SKILL.md Constraints: a PR review step's returned verdict is the PR verdic
   assert.ok(/A PR review step['’]s `returned` verdict is the PR verdict, not a failed review/.test(line));
 });
 
-test("SKILL.md Decompose 'PR review requests': non-build, one reviewer step, number pattern, ambiguity, GitHub only", () => {
-  // [Scenario: PR number that is not a number; PR URL for another repository; PR reference still open at the clarify limit; Unsupported host
+test("SKILL.md Decompose 'PR review requests': non-build, one reviewer step, number pattern, ambiguity, both hosts, any other host fails with both options", () => {
+  // [Scenario: PR number that is not a number; PR URL for another repository; PR reference still open at the clarify limit; Host that is not supported
   //  | spec-orchestration-dispatch.md Requirement 14 Plan | FR-195]
   const p = joined(section(DO, "### PR review requests"));
   assert.ok(/is `non-build` and decomposes into one `reviewer` step of effect `read`/.test(p));
@@ -555,25 +563,28 @@ test("SKILL.md Decompose 'PR review requests': non-build, one reviewer step, num
   assert.ok(/a branch name, no number, or a URL for another repository makes the outcome `ambiguous`/i.test(p));
   assert.ok(/the PR-number question carries no Recommended option/.test(p));
   assert.ok(/the open PR reference becomes an assumption and `<N>` stays unset/.test(p));
-  assert.ok(/`github\.com` remotes only/.test(p));
-  assert.ok(/Bitbucket included, fails the step at start with `precondition-failed` and the message to run `\/pr-review` directly/.test(p));
+  assert.ok(/The flow supports `github\.com` remotes with `gh` and Bitbucket remotes with `bkt` after the host pin; `\/do` runs no `bkt` command at Decompose/.test(p));
+  assert.ok(/Any other host fails the step at start with `precondition-failed` and a message that names both options/.test(p));
+  assert.ok(!/remotes only/.test(p), "the paragraph still limits the flow to GitHub");
 });
 
-test("SKILL.md PlanApproval: the plan names /do's own fetch and post with gh, GitHub only, and the draft confirmation", () => {
-  // [Scenario: Waiting for the confirmation; Unsupported host | spec-orchestration-dispatch.md Requirement 14 Plan | FR-195]
+test("SKILL.md PlanApproval: the plan names /do's own fetch and post with gh for github.com or bkt for a Bitbucket remote, and the draft confirmation", () => {
+  // [Scenario: Waiting for the confirmation; Host that is not supported | spec-orchestration-dispatch.md Requirement 14 Plan | FR-195]
   const pa = joined(section(DO, "### Show the plan in chat"));
   const line = linesOf(pa).find((l) => /^- For a PR review step:/.test(l));
   assert.ok(line, "no PR review line under the Order line");
-  assert.ok(/`\/do`['’]s own fetch and post with `gh` \(GitHub only in 1\.12\.0/.test(line));
-  assert.ok(/`precondition-failed`/.test(line) && /points to `\/pr-review`/.test(line));
+  assert.ok(/`\/do`['’]s own fetch and post with `gh` for a `github\.com` remote or with `bkt` for a Bitbucket remote after the host pin, decided when the step starts/.test(line));
+  assert.ok(/Any other host fails with `precondition-failed` and a message that names both options/.test(line));
+  assert.ok(!/GitHub only/.test(line), "the line still says GitHub only");
   assert.ok(/Approve covers the fetch; nothing is posted without the later confirmation/.test(line));
   assert.ok(/A PR review step names the draft confirmation here/.test(pa));
 });
 
-test("SKILL.md Dispatch and Send point to pr-review-flow.md for a PR review step", () => {
-  // [Scenario: Fetch and hand off | spec-orchestration-dispatch.md Requirement 14 Send | FR-195]
+test("SKILL.md Dispatch and Send point to pr-review-flow.md for a PR review step, naming both hosts and one Bash command per bkt post", () => {
+  // [Scenario: Fetch and hand off; Bitbucket Cloud fetch | spec-orchestration-dispatch.md Requirement 14 Send | FR-195]
   const dispatch = joined(section(DO, "## Dispatch"));
-  assert.ok(/A PR review step follows \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\): `\/do` fetches with `gh` \(GitHub remotes only\)/.test(dispatch));
+  assert.ok(/A PR review step follows \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\): `\/do` classifies the `origin` \(the classification order is in that file\), fetches with `gh` for a `github\.com` remote or with `bkt` for a Bitbucket remote after the host pin/.test(dispatch));
+  assert.ok(/each `bkt` post as its own Bash command/.test(dispatch));
   const send = joined(section(DO, "### Send"));
   const line = linesOf(send).find((l) => l.indexOf("- For a PR review step:") === 0);
   assert.ok(line, "Send has no PR review bullet");
@@ -583,25 +594,27 @@ test("SKILL.md Dispatch and Send point to pr-review-flow.md for a PR review step
 });
 
 test("SKILL.md Display does not raise a post request the reviewer lists for a PR review; Failed steps points at the flow's failures", () => {
-  // [Scenario: Post is not an out-of-scope request; Dependent of a failed PR post | spec-orchestration-dispatch.md Requirement 14 | FR-195]
+  // [Scenario: Post is not an out-of-scope request; Dependent of a failed Bitbucket fetch | spec-orchestration-dispatch.md Requirements 14 and 9 | FR-195 | FR-052]
   const d = joined(section(DO, "## Display"));
   assert.ok(/A post request the `reviewer` lists for a PR review is not raised: `\/do` posts a confirmed draft itself/.test(d));
   const f = joined(section(DO, "### Failed steps (decision D3)"));
   assert.ok(f.indexOf("references/pr-review-flow.md#failures") !== -1);
-  assert.ok(/a host other than `github\.com` \(Bitbucket included, `precondition-failed`\)/.test(f));
+  assert.ok(/a host that is neither `github\.com` nor a Bitbucket remote by that file['’]s classification \(`precondition-failed`\)/.test(f));
+  assert.ok(/A post the user declined at the hook prompt is not a failure: the step is `completed`/.test(f));
   assert.ok(/Its dependents are `skipped` as above/.test(f));
 });
 
 test("plan-format.md defines waiting-user, completed, and failed with the PR review cases", () => {
-  // [Scenario: Waiting for the confirmation; Draft not confirmed; Post fails | spec-orchestration-dispatch.md Requirement 14 Status | FR-195 | FR-051]
+  // [Scenario: Waiting for the confirmation; Draft not confirmed; Declined post completes the step; Post fails
+  //  | spec-orchestration-dispatch.md Requirements 14 Status and 5 | FR-195 | FR-051 | FR-048]
   const lines = linesOf(read("skills/do/references/plan-format.md"));
   const wu = lines.find((l) => /^\s+- `waiting-user`:/.test(l));
   const co = lines.find((l) => /^\s+- `completed`:/.test(l));
   const fa = lines.find((l) => /^\s+- `failed`:/.test(l));
   assert.ok(wu && co && fa, "a status definition is missing");
   assert.ok(/open draft confirmation of a PR review step/.test(wu));
-  assert.ok(/A PR review step runs no gate: it is `completed` after a successful post or a "do not post" answer/.test(co));
-  assert.ok(/A PR review step is also `failed` on a fetch or post error/.test(fa));
+  assert.ok(/A PR review step runs no gate: it is `completed` after a post, a post the user declined at the hook prompt, or a "do not post" answer/.test(co));
+  assert.ok(/A PR review step is also `failed` on a fetch, link-check, or post error/.test(fa));
 });
 
 // ---------------------------------------------------------------------------
@@ -709,16 +722,27 @@ test("every gh pr diff, gh pr view, and gh pr review command carries --repo 'git
   assert.deepStrictEqual(other, [], "unexpected gh command:\n" + other.join("\n"));
 });
 
-test("no command line in the flow file starts with bkt", () => {
-  // [Scenario: Bitbucket remote | spec-orchestration-dispatch.md Requirement 14 (DECISIONS.md:208-211) | FR-195]
-  const bad = [];
+test("every bkt pr and bkt api command line in the flow file carries --context '<ctx>', and the Cloud request-changes call carries no repository flag", () => {
+  // [Scenario: Bitbucket Cloud fetch; Bitbucket Cloud returned verdict
+  //  | spec-orchestration-dispatch.md Requirement 14 Host and repository (2026-10-22; replaces the 2026-10-17 "Bitbucket remote" scenario) | FR-195 | FR-202 | FR-203]
+  const inv = [];
   CMDS.forEach((e) => {
-    if (/^bkt\b/.test(e.text)) bad.push("line " + e.n + ": " + e.text);
-    segments(e.text).forEach((s) => {
-      if (/^bkt\b/.test(s)) bad.push("line " + e.n + ": " + s);
-    });
+    (e.text.match(/\bbkt (?:pr|api)\b[^&|;)]*/g) || []).forEach((x) => inv.push({ n: e.n, inv: x.trim() }));
   });
-  assert.deepStrictEqual(bad, [], "bkt command in the flow file:\n" + bad.join("\n"));
+  assert.ok(inv.length >= 7, "expected the link check, the three fetches, approve, comment, and the api call; found " + inv.length);
+  const noContext = inv.filter((x) => x.inv.indexOf("--context '<ctx>'") === -1).map((x) => "line " + x.n + ": " + x.inv);
+  assert.deepStrictEqual(noContext, [], "bkt command without --context '<ctx>':\n" + noContext.join("\n"));
+  const api = inv.filter((x) => /^bkt api\b/.test(x.inv));
+  assert.ok(api.length >= 1, "no bkt api command");
+  api.forEach((x) => assert.ok(!/--(?:workspace|project|repo)\b/.test(x.inv), "line " + x.n + ": the request-changes call carries a repository flag: " + x.inv));
+  // The only bkt commands that carry no --context run before the pin passes.
+  const other = [];
+  CMDS.forEach((e) =>
+    segments(e.text).forEach((s) => {
+      if (/^bkt\b/.test(s) && !/^bkt (?:pr|api)\b/.test(s) && !/^bkt (?:--version|auth status --json)\b/.test(s)) other.push("line " + e.n + ": " + s);
+    })
+  );
+  assert.deepStrictEqual(other, [], "an unexpected bkt command:\n" + other.join("\n"));
 });
 
 test("each combined Post command holds the hash check in front of every posting command it joins with &&", () => {
@@ -823,22 +847,31 @@ test("each target write is preceded by rm -f of the target: the scratch file and
   assert.ok(/The order is `<guard>`, then `rm -f --`, then the Write call/.test(sectionText("## Read the result")));
 });
 
-test("the scratch-file block comes in two variants chosen by <D>, each ending with the hash tool", () => {
-  // [Scenario: Diff under the cap; Part of the scratch file not read; Fetch cap | spec-orchestration-dispatch.md Requirement 14 Fetch | FR-195 | NFR-014]
+test("the scratch-file block has two GitHub variants chosen by <D> and three Bitbucket variants chosen by <D> and <V>, each starting with rm -f -- and ending with the hash tool", () => {
+  // [Scenario: Diff under the cap; Part of the scratch file not read; Fetch cap; Bitbucket Cloud fetch
+  //  | spec-orchestration-dispatch.md Requirement 14 Fetch | FR-195 | NFR-014]
   const variants = CMDS.filter((e) => e.text.indexOf("head -c 204800") !== -1);
-  const two = variants.filter((e) => e.text.indexOf("head -c $((204800 - <D>))") !== -1);
-  const one = variants.filter((e) => e.text.indexOf("$((204800") === -1);
-  assert.ok(two.length >= 1, "no variant with the second head -c $((204800 - <D>)) append");
-  assert.ok(one.length >= 1, "no variant without the second head");
+  assert.ok(variants.length >= 4, "expected two GitHub blocks and the Bitbucket blocks; found " + variants.length);
+  const diffOnly = variants.filter((e) => e.text.indexOf("$((204800") === -1);
+  const withView = variants.filter((e) => e.text.indexOf("head -c $((204800 - <D>))") !== -1);
+  const withComments = variants.filter((e) => e.text.indexOf("head -c $((204800 - <D> - <V>))") !== -1);
+  assert.ok(diffOnly.length >= 1, "no variant without a second head");
+  assert.ok(withView.length >= 2, "expected the GitHub and the Bitbucket diff-plus-view variants");
+  assert.strictEqual(withComments.length, 1, "expected one Bitbucket diff, view, and comments variant");
   variants.forEach((e) => {
     const segs = segments(e.text);
+    assert.ok(/^rm -f -- /.test(segs[0]), "line " + e.n + ": the block does not start with rm -f --");
     assert.ok(/^(sha256sum|shasum -a 256)\b/.test(segs[segs.length - 1]), "line " + e.n + ": the block does not end with the hash tool");
     assert.ok(e.text.indexOf("> '<root>/.agent/pr-review/pr-<N>.diff'") !== -1, "line " + e.n + ": the diff is not written to the scratch file");
   });
-  two.forEach((e) => assert.ok(e.text.indexOf(">> '<root>/.agent/pr-review/pr-<N>.diff'") !== -1, "line " + e.n + ": the second head appends"));
+  withView.concat(withComments).forEach((e) => assert.ok(e.text.indexOf(">> '<root>/.agent/pr-review/pr-<N>.diff'") !== -1, "line " + e.n + ": the second head appends"));
+  withComments.forEach((e) => assert.ok(e.text.indexOf("pr-<N>.comments.full'") !== -1, "line " + e.n + ": the three-file variant does not append the comments"));
   const fetch = sectionText("## Fetch");
-  assert.ok(/When `<D>` is under 204,800/.test(fetch));
-  assert.ok(/Otherwise the diff alone fills the cap and there is no second `head`/.test(fetch));
+  assert.ok(/GitHub, when `<D>` is under 204,800/.test(fetch));
+  assert.ok(/GitHub, otherwise the diff alone fills the cap and there is no second `head`/.test(fetch));
+  assert.ok(/Bitbucket, when `<D>` is at least 204,800: the diff alone/.test(fetch));
+  assert.ok(/Bitbucket, when `<D>` \+ `<V>` is at least 204,800/.test(fetch));
+  assert.ok(/Bitbucket, otherwise the diff, the view, and the first `204800 - <D> - <V>` bytes of the comments/.test(fetch));
   assert.ok(/The hash tool runs on the finished file in the same Bash command/.test(fetch));
 });
 
@@ -857,8 +890,8 @@ test("the body file is written with the Write tool and never through a heredoc, 
 });
 
 test("the two forgotten-hash rules each end in policy-rejection: scratch-file hash at the block's arrival, body-file hash before the post", () => {
-  // [Scenario: Hash /do cannot recall (Scratch-file hash cannot be recalled; Body-file hash cannot be recalled)
-  //  | spec-orchestration-dispatch.md Requirement 14 Tamper check (DECISIONS.md:213-216) | FR-195]
+  // [Scenario: Hash /do cannot recall (Scratch-file hash cannot be recalled; Body-file hash cannot be recalled); Body hash forgotten before a Bitbucket approval
+  //  | spec-orchestration-dispatch.md Requirement 14 Tamper check (DECISIONS.md:213-216; 2026-10-22 "PR file cleanup by name") | FR-195]
   const scratch = FLOW_LINES.find((l) => /scratch-file hash/.test(l) && /cannot recall/.test(l) && /block arrives/.test(l));
   assert.ok(scratch, "no rule for a scratch-file hash that /do cannot recall when the block arrives");
   assert.ok(/`policy-rejection`/.test(scratch));
@@ -866,7 +899,8 @@ test("the two forgotten-hash rules each end in policy-rejection: scratch-file ha
   const body = FLOW_LINES.find((l) => /body-file hash/.test(l) && /cannot recall/.test(l) && /before the post/.test(l));
   assert.ok(body, "no rule for a body-file hash that /do cannot recall before the post");
   assert.ok(/`policy-rejection`/.test(body));
-  assert.ok(/no `gh` post runs|no `gh pr review`/.test(body));
+  assert.ok(/no post command runs/.test(body));
+  assert.ok(/On Bitbucket this holds before the body check that precedes `bkt pr approve`, so no approval is posted without its comment/.test(body));
   assert.ok(/A kept hash that `\/do` cannot recall \(for example after context compaction\) counts as a mismatch/.test(FLOW));
 });
 
@@ -934,7 +968,7 @@ test("GH_HOST is named as the reason for the host pin", () => {
 });
 
 test("the flow file states that /do calls no /pr-review, and every /pr-review mention says so or points to a direct run", () => {
-  // [Scenario: Fetch and hand off; Bitbucket remote | spec-orchestration-dispatch.md Requirement 14 | FR-195]
+  // [Scenario: Fetch and hand off; Host that is not supported | spec-orchestration-dispatch.md Requirement 14 | FR-195]
   assert.ok(/`\/do` calls no `\/pr-review`/.test(FLOW));
   const mentions = FLOW_LINES.map((l, i) => ({ l: l, n: i + 1 })).filter((x) => x.l.indexOf("`/pr-review`") !== -1);
   assert.ok(mentions.length >= 3);
@@ -943,19 +977,27 @@ test("the flow file states that /do calls no /pr-review, and every /pr-review me
   });
 });
 
-test("every host other than github.com, Bitbucket included, fails with precondition-failed and the literal message to run /pr-review directly", () => {
-  // [Scenario: Unsupported host; Bitbucket remote | spec-orchestration-dispatch.md Requirement 14 Host and repository (DECISIONS.md:208-211) | FR-195]
+test("classification: github.com selects gh, one matching bkt context makes a Bitbucket remote, a Bitbucket-looking remote without a context fails, and every other host fails with precondition-failed and a message naming both options", () => {
+  // [Scenario: Data Center SSH remote matched by a context; Bitbucket remote with no matching context; Host that is not supported; Bitbucket CLI absent
+  //  | spec-orchestration-dispatch.md Requirement 14 Host and repository (2026-10-22; replaces the 2026-10-17 host allowlist) | FR-195 | FR-203]
   const host = sectionText("## Host and repository");
-  assert.ok(/Host allowlist: only `github\.com`, which selects `gh`/.test(host));
-  const bb = FLOW_LINES.filter((l) => /bitbucket/i.test(l) && /`precondition-failed`/.test(l));
-  assert.ok(bb.length >= 2, "expected the Host and the Failures statements");
-  assert.ok(bb.some((l) => l.indexOf("run `/pr-review` directly") !== -1), "the literal message 'run `/pr-review` directly' is missing");
-  assert.ok(/any other host/.test(host));
-  assert.ok(/No fetch runs, no reviewer starts, and no `gh` or `bkt` command runs/.test(host));
+  assert.ok(/Classification at step start, in this order:/.test(host));
+  const i1 = host.indexOf("1. `github.com` selects `gh`.");
+  const i2 = host.indexOf("2. Otherwise, when `bkt --version` shows bitbucket-cli");
+  const i3 = host.indexOf("3. Otherwise a remote on `bitbucket.org`");
+  const i4 = host.indexOf("4. Every other remote fails with `precondition-failed` and a message that names both options");
+  assert.ok(i1 >= 0 && i2 > i1 && i3 > i2 && i4 > i3, "classification items missing or out of order");
+  assert.ok(/It fails with `tool-missing` when `bkt` is absent or is another tool, and with `precondition-failed` and the setup message/.test(host));
+  assert.ok(host.indexOf("run `/pr-review` directly") !== -1, "the literal option 'run `/pr-review` directly' is missing");
+  assert.ok(/set up a `bkt` context for a Data Center host/.test(host));
+  assert.ok(/No fetch runs and no reviewer starts/.test(host));
+  const failures = sectionText("## Failures");
+  assert.ok(/A remote that is neither `github\.com` nor a Bitbucket remote by the classification \| `precondition-failed` \|/.test(failures));
 });
 
-test("the host check reads the origin URL with remote get-url origin and a sed -E userinfo strip, and parses three URL forms", () => {
-  // [Scenario: Token-bearing origin URL; Origin URL in another form; No origin remote | spec-orchestration-dispatch.md Requirement 14 Host and repository | FR-195]
+test("the host check reads the origin URL with remote get-url origin and a sed -E userinfo strip, and parses the GitHub, Cloud, and Data Center URL forms", () => {
+  // [Scenario: Token-bearing origin URL; Origin URL in another form; No origin remote; Data Center SSH remote matched by a context
+  //  | spec-orchestration-dispatch.md Requirement 14 Host and repository | FR-195 | FR-203]
   const cmd = CMDS.find((e) => e.text.indexOf("remote get-url origin") !== -1);
   assert.ok(cmd, "no remote get-url origin command");
   assert.ok(/git -C '<root>' remote get-url origin/.test(cmd.text));
@@ -963,16 +1005,27 @@ test("the host check reads the origin URL with remote get-url origin and a sed -
   assert.ok(segs.some((s) => /^sed -E /.test(s)), "no sed -E userinfo strip in the pipeline");
   assert.ok(/set -o pipefail/.test(cmd.text));
   const host = sectionText("## Host and repository");
-  assert.ok(/Three URL forms parse/.test(host));
-  assert.ok(host.indexOf("https://<host>/<owner>/<repo>") !== -1 && host.indexOf("git@<host>:<owner>/<repo>") !== -1 && host.indexOf("ssh://git@<host>/<owner>/<repo>") !== -1);
+  [
+    "`https://<host>/<a>/<b>`",
+    "`git@<host>:<a>/<b>`",
+    "`ssh://git@<host>/<a>/<b>`",
+    "`https://<host>[:<port>][/<context-path>]/scm/<KEY>/<slug>.git`",
+    "`ssh://git@<host>[:<port>]/<KEY>/<slug>.git`",
+    "`git@<host>:<KEY>/<slug>.git`",
+  ].forEach((f) => assert.ok(host.indexOf(f) !== -1, "the URL form is not listed: " + f));
+  assert.ok(/with the key and slug taken from the last two path segments/.test(host));
+  assert.ok(/A trailing `\.git` is removed\. Hosts compare without port and without case\./.test(host));
   assert.ok(/A failed `git remote get-url origin` \(no `origin` remote\)[^\n]*`precondition-failed`/.test(host));
 });
 
-test("owner and repo names must match ^[A-Za-z0-9._-]+$ or the step fails with precondition-failed", () => {
-  // [Scenario: Unsafe owner or repo name | spec-orchestration-dispatch.md Requirement 14 Host and repository | FR-195]
+test("names must match ^[A-Za-z0-9._-]+$ for the owner, repo, workspace, project key, and slug, or the step fails with precondition-failed", () => {
+  // [Scenario: Unsafe owner or repo name | spec-orchestration-dispatch.md Requirement 14 Host and repository | FR-195 | FR-203]
   const host = sectionText("## Host and repository");
   assert.ok(host.indexOf("`^[A-Za-z0-9._-]+$`") !== -1);
-  assert.ok(/Name pattern: the owner and the repo must each match[^\n]*`precondition-failed`/.test(host));
+  assert.ok(
+    host.indexOf("Name pattern: every name (`<owner>`, `<repo>`, `<ws>`, `<slug>`, `<KEY>`) must match `^[A-Za-z0-9._-]+$`, or the step fails with `precondition-failed` before any `gh` or `bkt` call") !== -1,
+    "the name-pattern sentence does not cover owner, repo, workspace, key, and slug"
+  );
 });
 
 test("a second remote never changes the target and every <N> is single-quoted", () => {
@@ -990,7 +1043,7 @@ test("Plan section: the number pattern, the ambiguity cases, and no Recommended 
   assert.ok(/marks no option Recommended on the PR-number question/.test(plan));
   assert.ok(/`ambiguous`/.test(plan));
   assert.ok(/`<N>` stays unset/.test(plan));
-  assert.ok(/fails with `precondition-failed` and no `gh` command runs/.test(plan));
+  assert.ok(/fails with `precondition-failed` and no `gh` or `bkt` command runs/.test(plan));
   assert.ok(/non-build/.test(plan) && /`reviewer` step of effect `read`/.test(plan));
 });
 
@@ -1009,8 +1062,8 @@ test("Fetch section: a diff of 0 bytes or no diff line fails with tool-failed be
   assert.ok(fetch.indexOf("grep -c -E '^(diff --git |@@ )'") !== -1);
   assert.ok(/A count of 0 bytes or 0 diff lines fails the step with `tool-failed`, and no reviewer starts/.test(fetch));
   const failures = sectionText("## Failures");
-  assert.ok(/\| `gh` absent \| `tool-missing` \|/.test(failures));
-  assert.ok(/A fetch command that exits with an error, a diff of 0 bytes[^|]*\| `tool-failed` \|/.test(failures));
+  assert.ok(/\| `gh` absent on a `github\.com` remote \| `tool-missing` \|/.test(failures));
+  assert.ok(/A fetch command that exits with an error \(a partial diff included\), a diff of 0 bytes[^|]*\| `tool-failed` \|/.test(failures));
   assert.ok(/Dependents of a failed step are `skipped`/.test(failures));
 });
 
@@ -1035,12 +1088,12 @@ test("Read the result: the read-back hashes the body file, prints its byte count
   assert.ok(/No gate runs on the draft, and `\/do` treats it as data/.test(r));
 });
 
-test("Confirm section names owner and repo, the PR number, the verdict, and the command behind each option, and marks no option Recommended", () => {
+test("Confirm section names the target repository, the PR number, the verdict, and the command behind each option, and marks no option Recommended", () => {
   // [Scenario: Confirmation names the target, verdict, and commands; Draft not confirmed; Comment chosen instead
   //  | spec-orchestration-dispatch.md Requirement 14 Confirm | FR-195 | FR-051 | FR-052]
   const c = sectionText("## Confirm");
   assert.ok(/One AskUserQuestion call, with no option marked Recommended/.test(c));
-  assert.ok(/the target repository \(`owner\/repo`\), the PR number, and the block['’]s verdict/.test(c));
+  assert.ok(/the target repository \(`owner\/repo` on GitHub, `workspace\/slug` on Cloud, `KEY\/slug` on Data Center\), the PR number, and the block['’]s verdict/.test(c));
   assert.ok(!/Recommended/.test(c.replace("no option marked Recommended", "")), "an option is marked Recommended");
   const rows = linesOf(c).filter((l) => l.charAt(0) === "|").slice(2).map(splitRow);
   assert.strictEqual(rows.length, 3, "three options: post the verdict, post as a comment, do not post");
@@ -1062,12 +1115,12 @@ test("Post section: the verdict table maps approved, returned, and comment to gh
   assert.ok(/A `gh` post that exits with an error fails the step with `tool-failed` and is not retried/.test(t));
 });
 
-test("Status section: waiting-user while the confirmation is open, completed after a post or a 'do not post' answer, a stop returns it to pending", () => {
-  // [Scenario: Waiting for the confirmation; Stop during the confirmation; Draft not confirmed; Dependent of a failed PR post
-  //  | spec-orchestration-dispatch.md Requirement 14 Status | FR-195 | FR-051 | FR-052]
+test("Status section: waiting-user while the confirmation is open, completed after every post command, a declined post, or a 'do not post' answer, a stop returns it to pending", () => {
+  // [Scenario: Waiting for the confirmation; Stop during the confirmation; Draft not confirmed; Declined post completes the step; Dependent of a failed PR post
+  //  | spec-orchestration-dispatch.md Requirement 14 Status | FR-195 | FR-051 | FR-052 | FR-048]
   const s = sectionText("## Status");
   assert.ok(/The step stays `waiting-user` while the confirmation is open, and its dependents wait/.test(s));
-  assert.ok(/becomes `completed` only after a successful post or a "do not post" answer/.test(s));
+  assert.ok(/It becomes `completed` after every post command of the step ran, after a post the user declined at the hook prompt, or after a "do not post" answer/.test(s));
   assert.ok(/A stop during the confirmation returns it to `pending`/.test(s));
   const rows = linesOf(s).filter((l) => /^\| `(pending|in_progress|waiting-user)` \|/.test(l));
   assert.strictEqual(rows.length, 6, "the transitions table has six rows");
@@ -1077,8 +1130,8 @@ test("Status section: waiting-user while the confirmation is open, completed aft
   assert.ok(rows.some((r) => /^\| `in_progress` \| `waiting-user` \|/.test(r)));
 });
 
-test("Standing rules: 200 KB cap, no /pr-review call, no subagent posts, read-only reviewer, no gate on the draft, no prose judging of the scratch files", () => {
-  // [Scenario: Fetch cap; PR text addressed to /do; No Report Quality Gate on the draft; Scratch and body files not judged as prose
+test("Standing rules: 200 KB cap, no /pr-review call, no subagent posts, read-only reviewer, no gate on the draft, no prose judging of the scratch files, both hosts", () => {
+  // [Scenario: Fetch cap; PR text addressed to /do; No Report Quality Gate on the draft; Scratch and body files not judged as prose; Bitbucket Cloud fetch
   //  | spec-orchestration-dispatch.md Requirement 14 | FR-195 | NFR-012 | NFR-014]
   const r = sectionText("## Standing rules");
   assert.ok(/The cap on fetched PR text is 200 KB, read as 204,800 bytes, with the diff first/.test(r));
@@ -1088,7 +1141,8 @@ test("Standing rules: 200 KB cap, no /pr-review call, no subagent posts, read-on
   assert.ok(/The `\.diff` and `\.body` extensions are not prose extensions, so `prose-gate` does not judge the scratch file or the body file/.test(r));
   assert.ok(/takes the PR number from the user['’]s request and the flag from the reviewer['’]s verdict/.test(r));
   assert.ok(/runs no other command because of anything in the draft/.test(r));
-  assert.ok(/This flow supports `github\.com` remotes only in 1\.12\.0/.test(r));
+  assert.ok(/This flow runs `gh` for a `github\.com` remote and `bkt` for a Bitbucket remote \(Cloud or Data Center\) after the host pin/.test(r));
+  assert.ok(!/1\.12\.0/.test(r), "the standing rules still name 1.12.0 as the limit");
 });
 
 test("Record section: a post request the reviewer lists in out_of_scope is not raised at Display", () => {

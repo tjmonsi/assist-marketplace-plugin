@@ -14,6 +14,9 @@
 // docs/requirements/FR-NFR-assist-plugin.md (FR-118, FR-091, FR-088, FR-107). Decisions:
 // DECISIONS.md lines 168-171 and 198-201.
 // Task plan step 33. The Scenario "Wording in the rule file" belongs to step 37 (docs tests).
+// Follow-up to 1.12.0 (task plan step 22): the GUARDS list test names ten hooks, with pr-post-ask
+// added (specs/spec-hooks-health-check.md, Change Log 2026-10-22, Requirement: Self-tests). The
+// pr-post-ask self-test itself is covered in tests/hooks/health-check-pr-post-ask.test.js.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -241,7 +244,7 @@ const SIZES = [
   ["fsa-write-bar", 51, 106],
 ];
 
-test("[Scenario: All pass (nine self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16) | FR-118] GUARDS lists the nine hooks", () => {
+test("[Scenario: All pass (ten self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16 and 2026-10-22) | FR-118 FR-206] GUARDS lists the ten hooks, the nine of 1.12.0 and pr-post-ask", () => {
   const names = hc.GUARDS.map((g) => g.name).sort();
   assert.deepStrictEqual(names, [
     "commit-attribution-guard",
@@ -249,6 +252,7 @@ test("[Scenario: All pass (nine self-tested hooks) | " + SPEC + " Self-tests (Ch
     "fsa-log",
     "fsa-write-bar",
     "injection-filter",
+    "pr-post-ask",
     "prose-advisor",
     "prose-gate",
     "sa-mermaid-only",

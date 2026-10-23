@@ -13,6 +13,12 @@
 // specs/spec-skills-health.md (FR-118, FR-166), specs/spec-skills.md (NFR-004, NFR-013,
 // NFR-015), and docs/requirements/FR-NFR-assist-plugin.md (version 1.2).
 //
+// The 2026-10-22 follow-up (task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md,
+// step 27) changes the pr-review skill text: Bitbucket Cloud posts a comment and then makes a
+// request-changes call, Data Center posts a comment only, and the /do flow supports both hosts.
+// The pr-review assertions below follow that text. The new Bitbucket forms are tested in
+// tests/skills/contracts-pr-review-followup.test.js.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -424,11 +430,9 @@ test("no file under skills/pr-review holds the old literals 'reviewer invokes', 
   assert.deepStrictEqual(bad, [], bad.join("\n"));
 });
 
-test("no file under skills/pr-review claims that /do runs bkt", () => {
-  // [Scenario: /do bkt claim in the skill text | spec-skills-pr-review.md (2026-10-17 conformance) | FR-195]
-  const hits = sentenceHits("skills/pr-review", (s) => /\/do\b/.test(s) && /\bbkt\b/.test(s) && !NEGATION.test(s));
-  assert.deepStrictEqual(hits, [], "/do bkt claim:\n" + hits.join("\n"));
-});
+// The 2026-10-17 test "no file under skills/pr-review claims that /do runs bkt" is removed: the
+// follow-up withdraws that scenario ("/do bkt claim in the skill text", spec-skills-pr-review.md
+// Change Log 2026-10-22) because the skill text now says that /do runs bkt for a Bitbucket remote.
 
 test("pr-review names no 'bkt pr decline' command and its verdict table never maps a verdict to a decline", () => {
   // [Scenario: Decline is not a verdict | spec-skills-pr-review.md "Bitbucket verdict mapping" | FR-143]
@@ -441,18 +445,21 @@ test("pr-review names no 'bkt pr decline' command and its verdict table never ma
   rows.forEach((r) => assert.ok(!/decline/i.test(r), "decline in the verdict table: " + r));
 });
 
-test("pr-review maps Bitbucket changes-requested to a comment that leaves the PR open, and GitHub to a merge block", () => {
-  // [Scenario: Changes requested on Bitbucket; Changes requested on GitHub | spec-skills-pr-review.md "Bitbucket verdict mapping" | FR-143]
+test("pr-review maps Bitbucket Cloud changes-requested to a comment and then a request-changes call, Data Center to a comment that leaves the PR open, and GitHub to a merge block", () => {
+  // [Scenario: Changes requested on Bitbucket Cloud; Changes requested on Bitbucket Data Center; Changes requested on GitHub
+  //  | spec-skills-pr-review.md "Verdict confirmation gate" (2026-10-22) | FR-143]
   const step4 = joined(section(PRR_SKILL, "### 4. Review Submission (Confirmation Required)"));
-  assert.ok(/On Bitbucket a confirmed `--changes-requested` posts a comment[^.]*`bkt pr comment/.test(step4));
-  assert.ok(/leaves the PR open/.test(step4));
+  assert.ok(/\| Bitbucket Cloud, changes requested \| `bkt pr comment` with the draft, then the `bkt api` request-changes call \|/.test(step4), "Cloud sequence: comment, then the request-changes call");
+  assert.ok(/\| Bitbucket Data Center, changes requested \| `bkt pr comment` with the draft; the PR stays open \|/.test(step4), "Data Center sequence: comment only");
   const row = linesOf(PRR_SKILL).find((l) => /^\| \*\*Changes Requested\*\*/.test(l));
   assert.ok(row, "Changes Requested row missing");
   assert.ok(/GitHub: blocks merge/.test(row), "the 'Blocks merge' claim holds for GitHub only: " + row);
-  assert.ok(/Bitbucket: posts a comment and leaves the PR open/.test(row));
+  assert.ok(/Bitbucket Cloud: posts a comment, then requests changes/.test(row), "Cloud: " + row);
+  assert.ok(/Bitbucket Data Center: posts a comment and leaves the PR open/.test(row), "Data Center: " + row);
   const verdicts = joined(section(PRR_WORKFLOW, "### Changes Requested", false));
   assert.ok(/GitHub: Blocks merge/.test(verdicts));
-  assert.ok(/Bitbucket: posts a comment with the findings and leaves the PR open/.test(verdicts));
+  assert.ok(/Bitbucket Cloud: posts a comment with the findings, then makes the request-changes call/.test(verdicts));
+  assert.ok(/Bitbucket Data Center: posts a comment with the findings and leaves the PR open/.test(verdicts));
 });
 
 test("pr-review confirmation gate names --approve, --changes-requested, --comment, bkt pr approve, and bkt pr comment", () => {
@@ -478,39 +485,44 @@ test("pr-review mentions no override flag", () => {
   });
 });
 
-test("pr-review SKILL.md Workflow Integration: /do fetches and posts with gh for a github.com remote and points other hosts to a direct run", () => {
-  // [Scenario: Workflow Integration describes the GitHub-only /do flow | spec-skills-pr-review.md (2026-10-17) | FR-195]
+test("pr-review SKILL.md Workflow Integration: /do fetches and posts with gh for a github.com remote and with bkt after the host pin for a Bitbucket remote, and names both options for any other host", () => {
+  // [Scenario: Workflow Integration describes both hosts | spec-skills-pr-review.md (2026-10-22; replaces the 2026-10-17 GitHub-only scenario) | FR-195]
   const w = joined(section(PRR_SKILL, "## Workflow Integration"));
   assert.ok(/`\/do` does not call `\/pr-review` in this flow|\/do does not call \/pr-review/.test(w), "no statement that /do calls no /pr-review");
   assert.ok(/\/do fetches/.test(w), "/do is not named as the fetching step");
-  assert.ok(/github\.com/.test(w), "GitHub-only wording missing");
+  assert.ok(/github\.com/.test(w), "github.com is not named");
   assert.ok(/gh pr review/.test(w), "gh posting missing");
   assert.ok(/posts the confirmed draft/.test(w));
-  assert.ok(/(run|runs) `\/pr-review` directly/.test(w), "no direct-run pointer for other hosts");
-  assert.ok(/Bitbucket included/.test(w));
+  assert.ok(/with bkt after the host pin for a Bitbucket remote/.test(w), "bkt after the host pin is not named for a Bitbucket remote");
+  assert.ok(/supports a `github\.com` remote with `gh`, and a `bitbucket\.org` remote or a Data Center remote whose host matches exactly one `bkt` context with `bkt`, after the same host pin/.test(w));
+  assert.ok(/names both options: run `\/pr-review` directly where it supports the host, or set up a `bkt` context for a Data Center host/.test(w), "both options for any other host are not named");
+  assert.ok(!/Bitbucket included/.test(w), "the 1.12.0 Bitbucket-included sentence is still there");
   assert.ok(/The `reviewer` agent only drafts text/.test(w));
 });
 
-test("pr-review review-workflow.md Agent-Assisted Review: /do fetches and posts with gh, github.com only, direct-run pointer for other hosts", () => {
-  // [Scenario: Agent-Assisted Review and Step 4 describe the GitHub-only /do flow | spec-skills-pr-review.md (2026-10-17) | FR-195]
+test("pr-review review-workflow.md Agent-Assisted Review: /do fetches and posts with gh for github.com and with bkt for a Bitbucket remote, with both options for any other host", () => {
+  // [Scenario: Agent-Assisted Review and Step 3 describe both hosts | spec-skills-pr-review.md (2026-10-22) | FR-195]
   const a = joined(section(PRR_WORKFLOW, "### Agent-Assisted Review"));
-  assert.ok(/\/do fetches the PR through Bash with gh, for a github\.com remote/.test(a));
+  assert.ok(/\/do fetches the PR through Bash with gh, for a github\.com remote, and with bkt after the host pin, for a Bitbucket remote/.test(a));
   assert.ok(/\/do posts the confirmed draft with gh pr review/.test(a));
+  assert.ok(/or with bkt pr approve \/ bkt pr comment \(and, on Cloud, the request-changes call\) for Bitbucket/.test(a));
   assert.ok(/no \/pr-review call/.test(a));
-  assert.ok(/(run|runs) `\/pr-review` directly/.test(a));
-  assert.ok(/Bitbucket included/.test(a));
-  assert.ok(/`\/do` runs no Bitbucket command/.test(a));
+  assert.ok(/The flow is the same for both hosts/.test(a));
+  assert.ok(/names both options: run `\/pr-review` directly where it supports the host, or set up a `bkt` context for a Data Center host/.test(a));
+  assert.ok(!/Bitbucket included/.test(a), "the 1.12.0 Bitbucket-included sentence is still there");
+  assert.ok(!/`\/do` runs no Bitbucket command/.test(a), "the section still says /do runs no Bitbucket command");
   assert.ok(/user['’]s confirmation of the draft `\/do` shows is mandatory/.test(a));
 });
 
-test("pr-review review-workflow.md Step 4 shows the /pr-review commands as the direct-run form and names the /do post", () => {
-  // [Scenario: Agent-Assisted Review and Step 4 describe the GitHub-only /do flow | spec-skills-pr-review.md (2026-10-17) | FR-195]
+test("pr-review review-workflow.md Step 4 shows the /pr-review commands as the direct-run form and names the /do post for both hosts", () => {
+  // [Scenario: Agent-Assisted Review and Step 3 describe both hosts | spec-skills-pr-review.md (2026-10-22) | FR-195]
   const s = joined(section(PRR_WORKFLOW, "### Step 4: Confirm, Then Submit Review"));
   assert.ok(/direct-run form of `\/pr-review`/.test(s));
   assert.ok(/for a `github\.com` remote, `\/do` shows the draft once and posts it with `gh pr review/.test(s));
+  assert.ok(/for a Bitbucket remote it does the same with `bkt` after the host pin/.test(s));
   assert.ok(/runs none of these `\/pr-review` commands/.test(s));
-  assert.ok(/(run|runs) `\/pr-review` directly/.test(s));
-  assert.ok(/Bitbucket included/.test(s));
+  assert.ok(/names both options: run `\/pr-review` directly where it supports the host, or set up a `bkt` context for a Data Center host/.test(s));
+  assert.ok(!/Bitbucket included/.test(s), "the 1.12.0 Bitbucket-included sentence is still there");
 });
 
 test("pr-review review-workflow.md says /do runs no /pr-review and keeps the direct run's own confirmation gate", () => {
