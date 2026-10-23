@@ -79,7 +79,7 @@ Creates or updates the target with:
 - Commits with message: `chore: bump version to X.Y.Z`. Under a `--path` below the root, the message is `chore: bump <dir> to X.Y.Z`
 - The message carries no AI attribution: no `Co-Authored-By` line for an AI tool and no "Generated with" line. Human co-authors are fine. The `commit-attribution-guard` hook denies a commit whose message holds such a line. When `attribution.commit` is unset or not `""`, Claude Code's instructions ask you to end the commit message with a Co-Authored-By trailer or a session link. Leave those lines out even then. If your instructions asked for such a line, tell the user once that `/assist-plugin:health` reports this setting and that `{"attribution": {"commit": "", "pr": ""}}` in their Claude Code settings turns it off. Never edit a settings file yourself.
 - Tags with `vX.Y.Z` (or `release-X.Y.Z` if found in existing tags). Under a `--path` below the root, the tag is `<tagdir>-vX.Y.Z`
-- `<dir>` is the path relative to the repository root with a leading `./` and a trailing `/` removed and `\` read as `/`. `<tagdir>` is `<dir>` with every `/` replaced by `-`. A `--path` that resolves to the repository root (`.`, `./`, or the root's own path) counts as no `--path`: the default names and the root tags apply
+- `<dir>` is the `--path` value after it is normalized and validated, and only then named (see "`--path` validation" under Constraints). It is the path relative to the repository root with a leading `./` and a trailing `/` removed and `\` read as `/`. `<tagdir>` is `<dir>` with every `/` replaced by `-`. A `--path` that resolves to the repository root (`.`, `./`, or the root's own path) counts as no `--path`: the default names and the root tags apply
 - Both commit and tag are optional via flags. `--no-commit` creates no tag, even without `--no-tag`
 
 ## Options
@@ -90,7 +90,7 @@ Creates or updates the target with:
 | `minor` | Bump minor version (X.+Y.0) | None |
 | `major` | Bump major version (+X.0.0) | None |
 | `auto` | Auto-detect from commits | None |
-| `--path PATH` | Path to project/subfolder | `.` (root) |
+| `--path PATH` | Directory inside the repository, given as a relative path or an absolute path inside the git root; validated before it is used (see Constraints) | `.` (root) |
 | `--no-tag` | Skip git tag creation | False (creates tag) |
 | `--no-commit` | Skip git commit | False (creates commit) |
 | `--no-changelog` | Skip changelog update | False (updates changelog) |
@@ -113,6 +113,40 @@ See [references/bump-strategy.md](references/bump-strategy.md) for:
 - Creates changelog in project root or `--path` directory, or in the file a pointer-only `CHANGELOG.md` points to
 - Never adds a `Co-Authored-By` trailer or other attribution line for an AI tool to the bump commit, the tag message, or the changelog
 - The bump commit uses the developer's own git identity. Never set an AI identity through `git config user.name`/`user.email`, `--author`, or `-c user.name=` / `-c user.email=`; a drafted command that carries one drops the override and commits with the developer's identity
+
+### `--path` validation
+
+A `--path` value passes three ordered steps before the skill reads a version file or writes, commits, or tags anything. A value that breaks a rule stops the run with the message of that rule (R1 to R8), and nothing is changed. The raw `--path` text never reaches a shell command; only a value that passed checks 1 to 5 reaches one, as `<dir>`.
+
+1. **Normalize.** Take the git root `R` from `git rev-parse --show-toplevel` (after the git-repository check) and treat it as text only. `R` is compared as text here and is never pasted into a command. Then work on the value as text:
+   - Read every `\` as `/`.
+   - Decide from that text, before removing anything, whether the value is absolute: it starts with `/`, or with a drive letter, `:`, and `/`. A lone `/` or `\` is absolute and names the file-system root.
+   - A relative value loses one leading `./` and one trailing `/`. It counts as no `--path` when it is then empty or `.`.
+   - An absolute value loses one trailing `/` only when more than the root part (`/`, or a drive letter, `:`, and `/`) remains, so `/` and `C:/` keep their slash. Then, in order: when it equals `R` it counts as no `--path`; when it starts with `R` followed by `/` the prefix is stripped and the value becomes root-relative (a drive letter compares without case), and it counts as no `--path` when it is then empty or `.` (so `<root>/.` and `<root>//` mean the root); any other absolute value, the file-system root included (unless `R` is that root), stops with R1.
+   - No `--path` means the default names and root tags apply, and steps 2 and 3 are skipped.
+2. **Validate**, in this order, on the text first and then on the file system:
+   1. The value matches `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$` (R2).
+   2. No segment is `..` (R3).
+   3. No segment matches `^\.+$`, so `.` and `...` are refused too (R4).
+   4. No segment starts with `-` (R5).
+   5. No segment starts with `.` or contains `..` (R8), so `.github` and `a..b` are refused. Such a segment would give an invalid git tag name, so the run stops before any file, commit, or tag changes.
+   6. `test -d "$(git rev-parse --show-toplevel)/<dir>"` exits 0 (R6). The operand starts with the absolute root, so it cannot be read as an option and `test` needs no `--`.
+   7. The output of `realpath -- "$(git rev-parse --show-toplevel)/<dir>"` starts with the output of `realpath -- "$(git rev-parse --show-toplevel)"` followed by `/` (R7), so a symlink that leaves the repository is refused. Compare the two printed lines as text.
+   - Both commands read the git root only through the `$(git rev-parse --show-toplevel)` substitution inside double quotes. Never paste the root into a command: a root name that holds a quote, a `$`, a backtick, or a space then cannot break the quoting. The characters of a validated `<dir>` are all literal inside double quotes.
+3. **Name.** `<dir>` is the validated value and `<tagdir>` is `<dir>` with every `/` replaced by `-`.
+
+Only one leading `./` and one trailing `/` are removed, so `././x` fails R4 and `x//` fails R2. Each message names the rule, ends with "nothing was changed", and quotes no raw `--path` text except the validated `<dir>` of R6:
+
+```text
+R1  error: --path is an absolute path outside the git root; nothing was changed
+R2  error: --path may hold only letters, digits, ".", "_", and "-" in segments joined by "/"; nothing was changed
+R3  error: --path has a ".." segment; nothing was changed
+R4  error: --path has a segment made only of dots; nothing was changed
+R5  error: --path has a segment that starts with "-"; nothing was changed
+R6  error: --path names no directory: <dir>; nothing was changed
+R7  error: --path resolves outside the git root; nothing was changed
+R8  error: --path has a segment that starts with "." or contains ".."; nothing was changed
+```
 
 ## Examples
 

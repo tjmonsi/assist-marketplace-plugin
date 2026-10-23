@@ -255,7 +255,9 @@ The commit message and tag message carry no AI attribution: no `Co-Authored-By` 
 
 ## Subproject Bumping
 
-When using `--path ./subproject`:
+When using `--path ./subproject`, the value first passes the validation of FR-209 (normalize, validate, then name), before any version file is detected, read, or written. The steps and the eight stop messages R1 to R8 are under "`--path` validation" in [../SKILL.md](../SKILL.md). The raw `--path` text never reaches a shell command, and a refused value changes nothing.
+
+Then:
 
 1. Searches for version files **within** `./subproject/`
 2. Parses git commits affecting **only** `./subproject/` (git diff + log)
