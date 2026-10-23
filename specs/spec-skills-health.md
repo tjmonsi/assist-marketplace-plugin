@@ -7,9 +7,9 @@
 | **Feature** | Hook health skill: `/health` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, UR-018, UR-055, FR-166, FR-118, FR-206 |
+| **Requirement refs** | BR-007, UR-018, UR-055, FR-104, FR-166, FR-118, FR-206, FR-213 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -414,3 +414,76 @@ Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`referenc
 ### Rework 2: line cite refreshed (no behavior change)
 
 The Node row the Dependencies table cites is `README.md:157`, re-read on 2026-10-22. The `/health` overview stays one of the five places that keep the full `pr-post-ask` gap list (`DECISIONS.md:268-271`); every cite into `skills/health/SKILL.md` was re-read and holds.
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT), release 1.13.1, "voice scripts without em dashes": FR-104 (`:2245-2274`; Status `:2248`), FR-213 (`:3854-3883`; statement `:3856`), FR-181 retired (`:2756`), FR-118 (1.13.1 scenarios `:2525-2533`), and the section 9 build list (`:5581`, which names `skills/health/SKILL.md:17`); `DECISIONS.md:273-276` (2026-10-23), which supersedes `DECISIONS.md:3-6` and `:73-75`. Every change in this entry is PLANNED (1.13.1). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-23 at the 1.13.0 release (commit `50817b5`): `skills/health/SKILL.md:17` says that both prose hooks skip files under the system temp directory, files under `docs/tts/` in the project root and in the session's working directory when that directory is inside the project ("voice scripts may use em dashes as pause marks"), and paths listed in `prose-gate-allowlist.json`.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review.
+- Requirement refs: FR-104 and FR-213 added (the overview states their rule).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description, the paragraph "Resolved source difference (OP-2, built in 1.11.1)": since 1.13.1 the overview says the prose hooks skip only temp-directory and allowlisted paths, and in a separate sentence that files under `docs/tts/` are judged like other prose, with fenced blocks exempt, as FR-104 and FR-213 state; FR-181 is retired.
+- Traceability: the row under Traceability added, below.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Short summary with a fix per finding
+
+**Was:** The statement as in the body. The overview (`skills/health/SKILL.md:17`) also says that both prose hooks skip files under the system temp directory, files under `docs/tts/` in the project root and in the session's working directory when that directory is inside the project (voice scripts may use em dashes as pause marks), and paths listed in `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`.
+
+**Now:** The statement is unchanged. The overview's prose-hook text becomes two sentences. The first says that both prose hooks skip files under the system temp directory and paths listed in `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`, and holds no `docs/tts/`. The second, standing alone, is the required sentence of spec-skills.md (Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose): "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt." The parenthetical "voice scripts may use em dashes as pause marks" goes, and no sentence of the file meets F1 to F4 of that requirement. The rest of the overview, the findings table, and the fix rows are unchanged.
+
+**Reason:** FR-104 drops its `docs/tts/` clause, FR-213 gates `docs/tts/` like any prose file, and the FR-NFR build list names `skills/health/SKILL.md:17` (`docs/requirements/FR-NFR-assist-plugin.md:5581`).
+
+**Requirement refs:** FR-166, FR-104, FR-213, UR-018 | **Status:** PLANNED (1.13.1) for the overview sentence | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:2247-2248`, `:3856`, `:5581`; `skills/health/SKILL.md:17`
+
+##### Scenario: Overview names no docs/tts skip
+
+- **GIVEN** `skills/health/SKILL.md` after the 1.13.1 change
+- **WHEN** a test reads the overview (`:17`)
+- **THEN** it SHALL hold a sentence that names the temp-directory and allowlist exemptions of the prose hooks and holds no `docs/tts/`
+- **AND** it SHALL hold, as its own sentence, one that contains `docs/tts/`, "like other prose", and "fenced", and no sentence that meets F1 to F4 of spec-skills.md (Change Log 2026-10-23, Requirement: Documents describe voice scripts as gated prose)
+
+##### Scenario: Prose-gate disabled after an upgrade
+
+- **GIVEN** the report lists `prose-gate` under disabled guards after the line `    known-safe write was DENIED: <label>` for a `docs/tts/` case (nouns at `hooks/impl/health-check.js:1094`)
+- **WHEN** the skill summarizes
+- **THEN** the entry SHALL use the existing disabled-guard fix row: the guard passes writes unchecked, report the bug with the report output, and run `/assist-plugin:health` again after a plugin update
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Planned conformance (files that change with this entry)
+
+| File and line (1.13.0, read 2026-10-23) | Change | Requirement |
+|---|---|---|
+| `skills/health/SKILL.md:17` | The prose-hook sentence splits in two: the temp-directory and allowlist sentence, with no `docs/tts/`, and the separate required sentence "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt."; the parenthetical "voice scripts may use em dashes as pause marks" goes | FR-104, FR-213, FR-166 |
+
+The self-test case changes behind the report belong to spec-hooks-health-check.md (Change Log 2026-10-23). `skills/health/SKILL.md` is on the LLM surface (`skills/**`), so the change carries `✓ LLM Security Clear` (NFR-011).
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-213, FR-104, FR-166 | Change Log 2026-10-23: Requirement: Short summary with a fix per finding (Scenario: Overview names no docs/tts skip) | Read of `skills/health/SKILL.md:17` after the build; `tests/docs/self-hosted-layout.test.js` per spec-skills.md, Change Log 2026-10-23, Scenario: Hook descriptions name no docs/tts skip |
+
+### Fix pass 1 (2026-10-23)
+
+Review findings applied: Requirement refs gain FR-104; the overview's end state is also checked by the self-hosted layout test that spec-skills.md (Change Log 2026-10-23) specifies.
+
+### Fix pass 2 (2026-10-23)
+
+Review findings applied: the overview's `docs/tts/` sentence uses "like other prose" and stands apart from the temp-directory and allowlist sentence, and the scenario and conformance row check it against the mechanical rules of spec-skills.md (Change Log 2026-10-23).

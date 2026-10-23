@@ -4,14 +4,11 @@ flowchart TD
   B -->|no| NONE["Not judged: no output"]
   B -->|yes| C{"Under the system temp directory?"}
   C -->|yes| NONE
-  C -->|no| R2["Roots for docs/tts: project root (CLAUDE_PROJECT_DIR, else git root of input cwd, else input cwd), plus input cwd when inside the project"]
-  R2 --> D{"Target absolute and inside any ROOT/docs/tts/?"}
-  D -->|yes| NONE
-  D -->|no| E{"Path holds a prose-gate-allowlist.json entry, or the entry is *?"}
+  C -->|no| E{"Path holds a prose-gate-allowlist.json entry, or the entry is *?"}
   E -->|yes| NONE
-  E -->|no| F["Build before and after text pairs"]
+  E -->|no| F["Build before and after text pairs; a docs/tts/ voice script is judged like any prose file (1.13.1)"]
   F --> G["Added lines: after lines with no equal line left in before"]
-  G --> H["Blank exempt regions, scan the tier's rules, count hits on added lines minus hits on removed lines"]
+  G --> H["Blank exempt regions (fenced script blocks of a voice script included), scan the tier's rules, count hits on added lines minus hits on removed lines"]
   H --> I{"Which hook"}
   I -->|"prose-gate, PreToolUse"| J{"Block-tier hits?"}
   J -->|yes| DENY["Deny: hits by family with line, rule id, fix"]

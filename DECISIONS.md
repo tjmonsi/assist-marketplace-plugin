@@ -269,3 +269,23 @@ Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
 
 Decision: clarifies the 2026-10-22 entry on pr-post-ask gaps. The full known-gap list is kept equal in five places: the hook's header comment, the hook spec's Requirement 9, FR-206, the /health overview, and README.md. CLAUDE.md, plugins/assist-plugin/Claude.md, and docs/ARCHITECTURE.md carry a short pointer that the hook is best-effort with known gaps, plus the unverified items, and do not repeat the list.
 Plan: .agent/main-plan/plan-build-post-1-12-0-followups-20261022-1612.md
+
+## 2026-10-23: Voice scripts carry no em dashes
+
+Decision: /voice-script writes no em dash (U+2014) in script text, so its files pass other tools' prose gates (the AtticAI kit's banned-phrase-gate included) without a change to those tools. Pause marks follow each model file: a spaced hyphen where the file says the model handles a dash, else ASCII `...`, commas, or line breaks. An em dash in a user's draft is replaced with the allowed pause mark and the header notes count the swaps; curly quotes in a draft are straightened with a header note. prose-gate and prose-advisor drop the `docs/tts/` skip, so voice scripts are gated like any prose file; this supersedes the 2026-10-12 entry on prose hooks skipping `docs/tts/` and the 2026-10-16 refinement of its roots. `docs/tts/` stays the save folder.
+Plan: .agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md
+
+## 2026-10-23: Voice script pause marks and draft tells
+
+Decision: refines the 2026-10-23 entry on voice scripts without em dashes, after it was found that both assist-plugin's prose hooks and the AtticAI kit's banned-phrase-gate skip fenced blocks, so the kit denies an em dash only in a voice script's header or notes. Full scope kept: no U+2014 anywhere in a saved voice script. The skill enforces it in the fenced script blocks, which stay exempt from the prose hooks under FR-105; prose-gate enforces it in the header and notes. User text the skill copies into the header (title, delivery direction) is normalized the same way as a draft. Pause marks are only those the chosen model file lists: listed pause tags stay allowed (FR-162); Gemini 3.8 TTS uses the double hyphen its file lists; a model whose file lists no dash, Chatterbox-Turbo included, falls back to marks its file permits (no line breaks on Chatterbox-Turbo); a model outside the catalog gets commas and periods only. In a draft, only em dashes (and U+2015) and curly quotes are swapped; other block-tier tells are kept, because the fenced text is exempt, and flagged in the header notes.
+Plan: .agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md
+
+## 2026-10-23: Voice script curly quotes, header dashes, and save retry
+
+Decision: refines the two 2026-10-23 voice-script entries. A saved voice script holds no U+2014, U+2015, or curly quote anywhere, whatever the source of the text (topic, draft, or header). In header prose (title, delivery direction) an em dash becomes a comma or period, never a line break or double hyphen; a voice id or clip path the user types that holds U+2014 is refused and asked again. A model file that names only ordinary punctuation permits commas and periods only, as for a model outside the catalog; ElevenLabs v2 uses a spaced hyphen, its listed hyphen used as a dash. Kept draft tells are flagged in the header notes by tell family and draft line, without repeating their text. When prose-gate denies the save because of header text, the skill fixes the flagged text and retries once on the same path; a second deny prints the script in chat as before.
+Plan: .agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md
+
+## 2026-10-23: Voice script typed values and tag-model pause marks
+
+Decision: refines the 2026-10-23 voice-script entries. A voice id, clip path, or model id the user types is recorded as typed and is refused and asked again when it holds U+2014, U+2015, or a curly quote. Model files that pair pause tags with punctuation guidance (xAI Grok, Fish Audio S2, MiniMax Speech 2.8, Gemini 3.1 TTS Preview) keep their listed tags, and their punctuation pause marks are limited to commas and periods; MiniMax also keeps its listed newline.
+Plan: .agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md

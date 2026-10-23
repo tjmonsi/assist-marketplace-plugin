@@ -1,9 +1,11 @@
 # assist-plugin: Functional and Non-Functional Requirements
 
-**Version:** 1.4
-**Date:** 2026-10-22
+**Version:** 1.5
+**Date:** 2026-10-23
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
+
+Version 1.5 (2026-10-23) records the change for release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `DECISIONS.md:278-281`, "Voice script pause marks and draft tells", by `DECISIONS.md:283-286` ("Voice script curly quotes, header dashes, and save retry"), and by `DECISIONS.md:288-291` ("Voice script typed values and tag-model pause marks"); plan `.agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md`). It is PLANNED (1.13.1): nothing is built yet, and the release is built and committed later. FR-211 to FR-213 are new. FR-181 is retired (Status: Retired (1.13.1); its text stays as the record). FR-104 loses its `docs/tts/` clause. FR-163, FR-118 (self-test cases), NFR-013 (no change to the grant), NFR-019, the section 6 scope line, the section 8 matrix, and the section 9 notes follow. The fenced script blocks of a voice script stay exempt from the prose hooks under FR-105, so `prose-gate` judges only the header and notes of a voice script, and the skill (FR-211) is the only control on the script text. The health self-test holds `docs/tts/` em-dash cases that become `prose-gate` deny cases (the `prose-advisor` flagged case uses an advisory-tier tell), so FR-118 gains scenarios and the files to change are listed in section 9. FR-163, FR-211, FR-212, and FR-213 carry more than one requirement; each sits in its own labeled `**Statement (...)**` line with one uppercase keyword, as the binding-language rule above requires. Where a line below still says the `docs/tts/` skip is Built (1.11.1), that is the released 1.11.1 to 1.13.0 behavior that 1.13.1 removes.
 
 Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless its Status says **PLANNED (1.12.0)**. The 1.12.0 items are the 40 deferred points that the user answered on 2026-10-16 (`DECISIONS.md`, entries dated 2026-10-16 from "OWASP for LLM gate is a named /do gate covering skills/**" on; the FR-177 versus FR-154 Status rule is one of the 40), and the plain fixes named in the brief. A requirement marked "Built (1.11.1); PLANNED (1.12.0): ..." keeps its built behavior and gains the named planned change. Where a requirement text still says 4803a0d, that is the behavior of the 1.11.0 baseline that 1.11.1 replaced; the 22 requirements that were PLANNED (1.11.1) are now Built (checked by reading the 1.11.1 sources, not by running them).
 
@@ -32,8 +34,8 @@ Baseline note (version 1.3): assist-plugin 1.12.0 is released (commit `bb09e29`)
 | Area | Section | Covers | FR range |
 |------|---------|--------|----------|
 | A | 2 | `/do` orchestration, routing, review gates, spec-first flow, agents, terminal blocks | FR-001 to FR-085, FR-187 to FR-192, and FR-199 |
-| B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181, FR-186, and FR-198 |
-| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, and FR-202 to FR-210 (FR-206 is a hook requirement placed with its group) |
+| B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181 (retired), FR-186, and FR-198 |
+| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), and FR-211 to FR-213 |
 
 Section 5 holds the non-functional requirements. Each FR heading is followed by its scenarios. Each scenario is a `#### Scenario:` block in GIVEN/WHEN/THEN form. Source references (`path (section)`) point at the file that documents or implements the behavior, so a reader can verify the requirement.
 
@@ -2242,19 +2244,29 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-104: Prose gate path exemptions
 
-**Statement:** The `prose-gate` hook SHALL NOT judge files under the system temp directory, files under `docs/tts/` relative to the project root or the session's working directory inside it, and paths listed in `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`, where the entry `"*"` exempts every path.
-**Traces to:** UR-016 | **Priority:** Must | **Status:** Built (1.11.1; root resolution from a subdirectory by FR-181)
-**Source:** `hooks/impl/prose-gate.js`; `hooks/lib/prose-diff.js:103-140` (project root and session root, FR-181); `DECISIONS.md` (2026-10-12, Prose hooks skip docs/tts; 2026-10-16, refinement)
+**Statement:** The `prose-gate` hook SHALL NOT judge files under the system temp directory and paths listed in `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`, where the entry `"*"` exempts every path.
+**Traces to:** UR-016, UR-058 | **Priority:** Must | **Status:** Built (1.11.1; root resolution from a subdirectory by FR-181); PLANNED (1.13.1): the `docs/tts/` exemption is removed, so the statement drops the clause "files under `docs/tts/` relative to the project root or the session's working directory inside it"; the rule that `docs/tts/` is judged like other prose moves to FR-213
+**Source:** `hooks/impl/prose-gate.js:8-11` (header comment on the `docs/tts/` skip, edited in 1.13.1); `hooks/lib/prose-diff.js:146` (the `docs/tts/` test, FR-181, removed in 1.13.1, with the `docs/tts/` comments and export lines; `:143-150` keeps the temp-directory and allowlist exemptions) with `:139-141`, `:282-283`, `:290`, and `:433` (the other places that use the `docs/tts/` test), plus `:18-20`, `:26`, and `:103-137` (`projectRoot`, `voiceRoots`, and `isVoiceScript` become dead code); `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23, which supersede `DECISIONS.md:3-6` and `:73-75`)
 
-#### Scenario: Voice script
-- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` with em dashes as pause marks
+#### Scenario: Voice script header with an em dash (changes in 1.13.1)
+- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` whose added header or notes text (outside the fenced script block) holds an em dash
 - **WHEN** the hook evaluates it in a session whose cwd is the project root
+- **THEN** the hook SHALL deny the write, as for any prose file
+
+#### Scenario: Voice script without a tell
+- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` whose added text holds no block-tier tell outside fences
+- **WHEN** the hook evaluates it from a session started in `<project>/src`
 - **THEN** the hook SHALL allow the write
 
-#### Scenario: Voice script from a session started in a subdirectory
-- **GIVEN** a session started in `<project>/src` and a Write to `<project>/docs/tts/voice-intro-20261012-0900.md`
+#### Scenario: Fenced script block stays exempt
+- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` whose only block-tier tell is inside the fenced script block
 - **WHEN** the hook evaluates it
-- **THEN** the hook SHALL allow the write, as the 2026-10-12 and 2026-10-16 decisions require (FR-181)
+- **THEN** the hook SHALL allow the write, under FR-105, and the control on that text SHALL be FR-211
+
+#### Scenario: No built-in docs/tts exemption (1.11.1 behavior retired in 1.13.1)
+- **GIVEN** no entry for the path in `prose-gate-allowlist.json`, a project outside the system temp directory, and a session started in `<project>/src`
+- **WHEN** the hook evaluates a Write to `<project>/src/docs/tts/voice-intro-20261012-0900.md` whose header holds an em dash
+- **THEN** the hook SHALL deny the write, because the hook has no built-in `docs/tts/` exemption (FR-181 retired)
 
 #### Scenario: Other docs path
 - **GIVEN** a Write to `docs/guide.md` with an em dash
@@ -2491,7 +2503,8 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 ### FR-118: Session-start self-test
 
 **Statement:** The health check SHALL, at SessionStart `startup` and `resume`, self-test each guard and filter, `writing-context` included, against fixed allow and deny cases and print a notice only when something is wrong. Built (1.13.0): the fixed cases of the posting ask hook of FR-206 are ask and no-ask cases (14 ask cases and 13 no-ask cases at `hooks/impl/health-check.js:1049-1079`).
-**Traces to:** UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the `writing-context` self-test and the notice ending; Built (1.13.0): the ask-hook clause
+**Traces to:** UR-018 | **Priority:** Must | **Status:** Built (1.11.1); PLANNED (1.12.0): the `writing-context` self-test and the notice ending; Built (1.13.0): the ask-hook clause; PLANNED (1.13.1): the `docs/tts/` self-test cases (scenario below)
+**Source (1.13.1 cases, FR-091, FR-213):** `hooks/impl/health-check.js:41-45`, `:213-281` (`docs/tts/` em-dash writes held as `prose-gate` allow cases, `:271-281`), `:333-349` (`docs/tts/` cases held as `prose-advisor` clean cases, `:348-349`); `tests/hooks/health-check-selftest.test.js:110-146`, `:148-189`, `:192-236`, `:384-399`, and `:418-438` (the corpus sizes at `:426-427` change); `tests/hooks/prose-docs-tts.test.js:137-360`, `:360-370`, `:403-425`, and `:427-450`; `tests/docs/self-hosted-layout.test.js:143-242`
 **Source:** `hooks/impl/health-check.js:802-922` (the self-test list has no `writing-context` entry at 1.11.1), `:1004` (the notice reads `<name> self-test failed (<N> known-prohibited command(s) allowed)`); `hooks/impl/writing-context.js:64-66`; `skills/health/SKILL.md:17` (says `writing-context` has no self-test); the answers to OP-B5a and OP-B5b in `plan-deferred-decisions-20261016-1059.md`
 
 #### Scenario: Writing-context self-test (PLANNED, 1.12.0)
@@ -2508,6 +2521,16 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **GIVEN** a guard, listed in `hooks-disabled.json` or not, whose self-test allows a known-prohibited case and denies no known-safe case
 - **WHEN** the session starts
 - **THEN** the notice SHALL read `<name> self-test failed (<N> known-prohibited command(s) allowed)` followed by `; protection is weak`
+
+#### Scenario: Docs/tts self-test cases after the skip is removed (PLANNED, 1.13.1)
+- **GIVEN** release 1.13.1, where the self-test holds a write to a `docs/tts/` path with an em dash outside a code fence as a `prose-gate` deny case only (an em dash is block-tier, `hooks/lib/prose-rules.js:70`, and `prose-advisor` reads advisory-tier tells only, `hooks/impl/prose-advisor.js:57`), holds a `docs/tts/` write with an advisory-tier tell outside a fence as a `prose-advisor` flagged case (like `hooks/impl/health-check.js:348`), and holds a `docs/tts/` write with no tell as an allow and clean case
+- **WHEN** the session-start self-test runs
+- **THEN** the health check SHALL pass `prose-gate` and `prose-advisor` on every case, and SHALL NOT add either hook to `hooks-disabled.json` (FR-091)
+
+#### Scenario: Stale docs/tts allow case (PLANNED, 1.13.1)
+- **GIVEN** a self-test that still holds a `docs/tts/` em-dash write outside a fence as an allow case after the skip is removed
+- **WHEN** the session-start self-test runs
+- **THEN** `prose-gate` SHALL fail that case, which FR-091 treats as a false deny and answers by disabling the hook, so the case SHALL be changed in the same build
 
 #### Scenario: All pass
 - **GIVEN** every self-test passes
@@ -2728,11 +2751,13 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** `check-fsa-tables.js --check` parses the table
 - **THEN** the script SHALL report the cell and exit 1
 
-### FR-181: Voice-script exemption under the project root and the session directory
+### FR-181: Voice-script exemption under the project root and the session directory (retired in 1.13.1)
+
+**Retired:** Retired (1.13.1), superseded by `DECISIONS.md:273-276` (2026-10-23), which supersedes `DECISIONS.md:3-6` and `:73-75`. The ID stays issued. From release 1.13.1 the `prose-gate` and `prose-advisor` hooks exempt no `docs/tts/` path (FR-104, FR-213). The text and scenarios below record the released 1.11.1 to 1.13.0 behavior and bind nothing in 1.13.1.
 
 **Statement:** The `prose-gate` and `prose-advisor` hooks SHALL exempt `docs/tts/` under the project root, taken from `CLAUDE_PROJECT_DIR`, else the git root found by walking up from the hook's cwd for `.git`, else the hook's cwd, and also under the session's working directory when that directory is inside the project.
-**Traces to:** UR-016 | **Priority:** Must | **Status:** Built (1.11.1)
-**Source:** `DECISIONS.md` (2026-10-16, docs/tts exemption covers the project root and the session directory, refining 2026-10-12, Prose hooks skip docs/tts); `hooks/lib/prose-diff.js:103-140` (project root, session root, `docs/tts/` test; at 4803a0d it resolved against the hook's cwd only); `skills/voice-script/SKILL.md:162` (saves under the session's working directory); `tests/hooks/prose-docs-tts.test.js`
+**Traces to:** UR-016 | **Priority:** Must | **Status:** Built (1.11.1); Retired (1.13.1)
+**Source:** `DECISIONS.md` (2026-10-16, docs/tts exemption covers the project root and the session directory, refining 2026-10-12, Prose hooks skip docs/tts); `hooks/lib/prose-diff.js:103-140` and `:146` (project root, session root, `docs/tts/` test; at 4803a0d it resolved against the hook's cwd only); `skills/voice-script/SKILL.md:162` (saves under the session's working directory); `tests/hooks/prose-docs-tts.test.js`
 
 #### Scenario: Session started in a subdirectory
 - **GIVEN** `CLAUDE_PROJECT_DIR` names the project root and the session started in `<project>/src`
@@ -3661,8 +3686,10 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 ### FR-163: Voice script output
 
 **Statement:** The `/voice-script` skill SHALL save the script to `docs/tts/voice-<slug>-YYYYMMDD-HHmm.md` with a header (model, voice, length, delivery direction, model settings) and a fenced block holding exactly the text to paste.
-**Traces to:** UR-040 | **Priority:** Must | **Status:** Built
-**Source:** `skills/voice-script/SKILL.md`; `DECISIONS.md` (2026-10-12)
+**Statement (header deny, PLANNED 1.13.1):** When `prose-gate` denies the write because the header text holds a block-tier tell, the skill SHALL fix the flagged text and retry the write once on the same path. The cause is a block-tier tell, not an advisor flag.
+**Statement (second deny, PLANNED 1.13.1):** When the retry is denied, the skill SHALL print the script in chat and say the file was not saved (`skills/voice-script/SKILL.md:166`).
+**Traces to:** UR-040 | **Priority:** Must | **Status:** Built; PLANNED (1.13.1): the header gains the notes of FR-212, the script text follows FR-211, and the header-deny retry applies
+**Source:** `skills/voice-script/SKILL.md`; `DECISIONS.md` (2026-10-12; 2026-10-23, `DECISIONS.md:273-276` and `:283-286`, "Voice script curly quotes, header dashes, and save retry")
 
 #### Scenario: Saved file
 - **GIVEN** a finished script
@@ -3678,6 +3705,182 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **GIVEN** the user asks for the script in `notes/voice.md`
 - **WHEN** the skill writes
 - **THEN** Claude Code SHALL ask the user first, because the skill's grant covers `./docs/tts/voice-*.md` only (NFR-013)
+
+#### Scenario: Save folder unchanged by 1.13.1
+- **GIVEN** release 1.13.1, which removes the prose-hook skip for `docs/tts/` (FR-213)
+- **WHEN** the skill saves a script
+- **THEN** the file SHALL still sit under `docs/tts/` with the dated name
+
+#### Scenario: Header passes the prose gate (PLANNED, 1.13.1)
+- **GIVEN** a finished script whose header and notes hold no block-tier tell
+- **WHEN** the skill writes the file
+- **THEN** `prose-gate` SHALL pass the header and notes, and the fenced script block SHALL stay exempt under FR-105, so FR-211 is the only control on the script text
+
+#### Scenario: Header denied by the prose gate (PLANNED, 1.13.1)
+- **GIVEN** a header that holds a block-tier tell, so `prose-gate` denies the write
+- **WHEN** the skill fixes the flagged header text
+- **THEN** the skill SHALL retry the write once on the same path
+
+#### Scenario: Second deny (PLANNED, 1.13.1)
+- **GIVEN** the retry on the same path is denied by `prose-gate` again
+- **WHEN** the skill handles the second deny
+- **THEN** the skill SHALL print the script in chat and say the file was not saved (`skills/voice-script/SKILL.md:166`)
+
+### FR-211: Voice script text holds no em dash
+
+**Statement:** The `/voice-script` skill SHALL write no U+2014, no U+2015, and no curly quote anywhere in a saved voice script, the header, notes, and fenced script blocks included, whatever the text source (topic, draft, or header).
+**Statement (pause marks):** A dash-style pause in the script text is marked with the punctuation that the chosen model's reference file under `skills/voice-script/references/models/` lists, and no other mark SHALL be used.
+**Statement (no listed dash):** A model whose file's only punctuation guidance is ordinary punctuation (listed pause tags not counted), and a model outside the catalog, SHALL get commas and periods only for a dash-style pause.
+**Statement (tag models):** For xAI Grok, Fish Audio S2, MiniMax Speech 2.8, and Gemini 3.1 TTS Preview, which pair pause tags with punctuation guidance, the listed tags stay allowed and the punctuation pause marks SHALL be commas and periods only; MiniMax keeps its listed newline.
+**Traces to:** UR-058, UR-040 | **Priority:** Must | **Status:** PLANNED (1.13.1)
+**Source:** `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23); `skills/voice-script/SKILL.md:150` (the Pauses rule that lets the script text use em dashes and names Chatterbox-Turbo; edited to drop the em dash); `skills/voice-script/references/models/elevenlabs-v2.md:26` (lists an em dash and a hyphen; edited to drop the em dash, so ElevenLabs v2 uses a spaced hyphen); `gemini-3-8-tts.md:28`, `:59` (the double hyphen); `chatterbox-turbo.md:91`, `:93`, `:101-102`, `:108` (no dash, no line break); ordinary-punctuation files: `qwen-audio-3-tts.md:42`, `hexgrad-kokoro.md:38`, `mistral-voxtral.md:39`, `sesame-csm.md:37`, `openai-gpt-audio.md:37`, `deepgram-flux-tts.md:44`, `seed-audio.md:48`, `fish-audio-s1.md:34`, `canopy-orpheus.md:43`; files with their own permitted marks: `elevenlabs-v4-v3.md:66` (`...`), `deepgram-aura-2.md:43` (`...`, comma, period), `microsoft-mai-voice.md:44` (commas, periods, paragraph breaks); tag models: `xai-grok-voice-tts.md:45`, `fish-audio-s2.md:46`, `minimax-speech-2-8.md:48`, `gemini-3-1-tts-preview.md:56`; `skills/voice-script/references/models/*.md` (pause rules per model)
+
+Scope of the pause-mark rule: it covers only the punctuation mark that replaces a dash-style pause. A pause tag that a model file lists stays allowed (FR-162).
+
+#### Scenario: ElevenLabs v2
+- **GIVEN** the chosen model is ElevenLabs v2, whose file lists a hyphen used as a dash
+- **WHEN** the skill writes a script that needs a dash-style pause between two clauses
+- **THEN** the script text SHALL use a spaced hyphen ` - ` at that place and no U+2014
+
+#### Scenario: Model file that lists a spaced hyphen
+- **GIVEN** the chosen model's reference file lists ` - ` as a pause mark
+- **WHEN** the skill writes a script that needs a dash-style pause between two clauses
+- **THEN** the script text SHALL use a spaced hyphen ` - ` at that place
+
+#### Scenario: Ordinary-punctuation model file
+- **GIVEN** the chosen model is one whose file names only ordinary punctuation (Qwen Audio 3, Kokoro, Voxtral, Sesame CSM, OpenAI gpt-audio, Deepgram Flux, Seed Audio, Fish Audio S1, or Orpheus)
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use commas and periods only
+
+#### Scenario: Gemini 3.8 TTS
+- **GIVEN** the chosen model is `google/gemini-3.8-flash-tts` or `google/gemini-3.8-flash-lite-tts`
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use the double hyphen that `gemini-3-8-tts.md` lists
+
+#### Scenario: Model file with its own permitted marks
+- **GIVEN** the chosen model is ElevenLabs v3 or v4 (`...`), Deepgram Aura 2 (`...`, comma, or period), or Microsoft MAI-Voice (commas, periods, or paragraph breaks)
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use only a mark that the model's file permits and no dash
+
+#### Scenario: Tag model
+- **GIVEN** the chosen model is xAI Grok, Fish Audio S2, MiniMax Speech 2.8, or Gemini 3.1 TTS Preview
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use a comma or a period, and the model's listed tags (and MiniMax's listed newline) SHALL stay allowed
+
+#### Scenario: Model file that lists no dash
+- **GIVEN** the chosen model's reference file lists no dash and its only punctuation guidance is ordinary punctuation, listed tags not counted
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use commas and periods only
+
+#### Scenario: Chatterbox-Turbo
+- **GIVEN** the chosen model is Chatterbox-Turbo, whose file lists no dash and no line break as a pause mark
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use a mark that `chatterbox-turbo.md` permits and SHALL NOT use a line break
+
+#### Scenario: Model outside the catalog
+- **GIVEN** the user names a model with no reference file in the catalog
+- **WHEN** the skill writes a dash-style pause
+- **THEN** the script text SHALL use commas and periods only
+
+#### Scenario: Listed pause tag
+- **GIVEN** the chosen model's file lists a pause tag (FR-162)
+- **WHEN** the skill writes a pause that the tag expresses
+- **THEN** the script text SHALL be allowed to use the tag, as FR-162 says
+
+#### Scenario: Whole-file count of U+2014 and curly quotes
+- **GIVEN** a saved voice script
+- **WHEN** a test counts U+2014 characters, U+2015 characters, and curly quotes over the whole saved file, the header, notes, and fenced blocks included
+- **THEN** each count SHALL be 0 (NFR-019), so another tool's prose gate (for example the AtticAI kit's banned-phrase-gate) passes the file with no change to that tool
+
+### FR-212: Voice script draft and header-text normalization
+
+**Statement:** When the user gives a draft, the `/voice-script` skill SHALL replace each em dash (U+2014) and each U+2015 in the draft with the pause mark that FR-211 allows for the chosen model.
+**Traces to:** UR-058, UR-040 | **Priority:** Must | **Status:** PLANNED (1.13.1)
+**Source:** `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23); `skills/voice-script/SKILL.md:87` (the Other answer for a typed model id), `:154` (flag and leave other tells); `skills/voice-script/references/output-template.md:8`, `:15` (header fields that hold user text); `hooks/lib/prose-rules.js:70` (U+2015 beside U+2014)
+
+**Statement (curly quotes):** The skill SHALL straighten each curly quote in the draft to an ASCII quote.
+**Statement (header notes):** The skill SHALL record in the header notes the number of em dashes and U+2015 characters replaced, and, when at least one curly quote was straightened, a note that curly quotes were straightened.
+**Statement (header text):** The skill SHALL replace each em dash and U+2015 in user text that it copies into the header prose (the title and the delivery direction) with a comma or a period, never a line break or a double hyphen.
+**Statement (header quotes):** The skill SHALL straighten each curly quote in that header text.
+**Statement (typed values):** The skill SHALL refuse a typed voice id, clip path, or model id (including one typed through Other) that holds U+2014, U+2015, or a curly quote, and ask for it again.
+**Statement (other tells):** The skill SHALL keep every block-tier tell in a draft other than em dashes, U+2015, and curly quotes unchanged inside the fenced block.
+**Statement (flagging):** The skill SHALL flag each kept tell in the header notes by tell family and draft line, without repeating the tell's text.
+
+#### Scenario: Draft with em dashes
+- **GIVEN** a draft that holds 3 em dashes and a model whose file lists ` - ` (ElevenLabs v2, for example)
+- **WHEN** the skill writes the script
+- **THEN** the script text SHALL hold 0 em dashes and 3 spaced hyphens at those places, and the header notes SHALL state that 3 em dashes were replaced
+
+#### Scenario: Draft with U+2015
+- **GIVEN** a draft that holds one U+2015 character
+- **WHEN** the skill writes the script
+- **THEN** the script text SHALL hold no U+2015, and the header notes SHALL count it among the replaced characters
+
+#### Scenario: Draft with curly quotes
+- **GIVEN** a draft that holds curly double quotes
+- **WHEN** the skill writes the script
+- **THEN** the script text SHALL hold ASCII quotes at those places, and the header notes SHALL say that curly quotes were straightened
+
+#### Scenario: Draft with neither
+- **GIVEN** a draft that holds no em dash, no U+2015, and no curly quote
+- **WHEN** the skill writes the script
+- **THEN** the header notes SHALL state 0 em dashes replaced and SHALL carry no curly-quote note
+
+#### Scenario: Header user text
+- **GIVEN** the user gives a title with an em dash and a delivery direction with curly quotes
+- **WHEN** the skill writes the header
+- **THEN** the header SHALL hold the title with a comma or a period in place of the dash and the delivery direction with ASCII quotes, and the notes SHALL count the dash replaced and note that curly quotes were straightened
+
+#### Scenario: Voice id with an em dash
+- **GIVEN** the user types a voice id or clip path that holds U+2014
+- **WHEN** the skill reads the answer
+- **THEN** the skill SHALL refuse it and ask for the voice id or clip path again
+
+#### Scenario: Model id typed through Other
+- **GIVEN** the user types a model id through Other that holds U+2015 or a curly quote
+- **WHEN** the skill reads the answer
+- **THEN** the skill SHALL refuse it and ask for the model id again
+
+#### Scenario: Typed value with a curly quote
+- **GIVEN** the user types a voice id or clip path that holds a curly quote
+- **WHEN** the skill reads the answer
+- **THEN** the skill SHALL refuse it and ask again, and a clean value SHALL be recorded as typed
+
+#### Scenario: Other tell in a draft
+- **GIVEN** a draft that holds a chatbot-residue phrase on draft line 4
+- **WHEN** the skill writes the script
+- **THEN** the fenced block SHALL keep the phrase unchanged and the header notes SHALL flag a chatbot-residue tell at draft line 4 without repeating the phrase
+
+### FR-213: Voice scripts under the prose hooks, with the writing-standard scope narrowed
+
+**Statement:** The `prose-gate` and `prose-advisor` hooks SHALL judge a file under `docs/tts/` like any other prose file, with fenced blocks exempt under FR-105.
+**Traces to:** UR-016, UR-058 | **Priority:** Must | **Status:** PLANNED (1.13.1)
+**Source:** `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23, which supersede `DECISIONS.md:3-6` and `:73-75`); `hooks/lib/prose-diff.js:146` (the `docs/tts/` test, removed, with the `docs/tts/` comments and export lines; `:143-150` keeps the temp-directory and allowlist exemptions), `:18-20`, `:26`, `:103-137` (`projectRoot`, `voiceRoots`, and `isVoiceScript` become dead code), `:139-141`, `:282-283`, `:290`, `:433`; `hooks/impl/prose-gate.js:8-11`; `hooks/impl/prose-advisor.js:7-9`, `:43-44`; FR-104; FR-105; FR-106; FR-181 (retired)
+
+**Statement (skill scope):** The `/voice-script` skill SHALL apply the `## Report Writing Standard` block to its header text and its chat replies.
+**Statement (script text):** The script text is bound only by FR-211 and FR-212, and the skill SHALL NOT apply the full Report Writing Standard to it.
+
+The rule at `skills/voice-script/SKILL.md:181` that exempts the script text so it may hold em dashes is replaced; the full Report Writing Standard does not apply to script text.
+
+#### Scenario: Header under the standard
+- **GIVEN** a script whose header text the skill is about to save
+- **WHEN** the skill checks the header against the writing standard
+- **THEN** the header SHALL hold no em dash, curly quote, or other block-tier tell, except that a flag note may name a kept tell by tell family and draft line without repeating its text (FR-212)
+
+#### Scenario: Script text not under the full standard
+- **GIVEN** a script whose fenced block holds a phrase that the writing standard would flag but that FR-211 and FR-212 allow
+- **WHEN** the skill checks the script text
+- **THEN** the skill SHALL leave the phrase and SHALL NOT apply the full writing standard to the script text
+
+#### Scenario: Advisor on a voice script header
+- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` whose header adds an advisory-tier tell
+- **WHEN** `prose-advisor` runs
+- **THEN** the advisor SHALL add its advisory note, as for any prose file
+
+#### Scenario: Hook from a worktree session
+- **GIVEN** a session running in `<project>/.claude/worktrees/feature-a` and a Write to its `docs/tts/voice-x.md` with an em dash in the header
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL deny the write
 
 ### FR-164: Clarify flow
 
@@ -5148,7 +5351,7 @@ Every threshold below is copied from the cited source. This document does not cl
 | ID | Requirement | Traces to | Metric |
 |----|-------------|-----------|--------|
 | NFR-018 | Every `## Report Writing Standard` block in `agents/` and `skills/` SHALL equal `rules/writing-standard-compact.md`. | BR-008, FR-123, FR-124 | `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` exits 0 |
-| NFR-019 | Prose that agents and skills write to prose files SHALL contain no em dash, curly quote, chatbot residue, or summary label outside exempt regions. | BR-008, FR-103 | 0 block-tier hits in added text, as `prose-gate` judges it |
+| NFR-019 | Prose that agents and skills write to prose files SHALL contain no em dash, curly quote, chatbot residue, or summary label outside exempt regions. PLANNED (1.13.1): a file under `docs/tts/` has no exempt path, and a saved voice script holds 0 U+2014 characters, 0 U+2015 characters, and 0 curly quotes over the whole file, fenced blocks included (the hooks judge the header and notes only, since fences stay exempt under FR-105; FR-211 controls the script text). | BR-008, FR-103, FR-211, FR-212, FR-213 | 0 block-tier hits in added text, as `prose-gate` judges it; 0 U+2014 characters, 0 U+2015 characters, and 0 curly quotes in a saved voice script, counted over the whole file |
 
 #### Scenario: Block drift
 - **GIVEN** one agent file's standard block was edited by hand
@@ -5227,7 +5430,8 @@ Every threshold below is copied from the cited source. This document does not cl
 - The three 1.11.1 changes, built: FR-126 to FR-129 and FR-180 (drift checks and the write guard lists they read), FR-175 to FR-177 (untrusted-input rules), FR-178 (changelog pointer).
 - Repository self-documentation (FR-174), built: this repository's requirements are in `docs/requirements/`, its specs in `specs/`, and its task plan in `docs/task-plans/`.
 - The document locations of 2026-10-16, built in 1.11.1: FR-182 and FR-183 (`docs/requirements/` output and grant), FR-184 and FR-185 (`docs/task-plans/` output and grant), FR-186 (`task-planner` write bar), FR-187 to FR-192 (SpecGate search, legacy notes, conflict-check path list, chain Writes, no path taken from `DECISIONS.md`, change check against the git root). The folders `docs/requirements/` and `docs/task-plans/` resolve against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory). PLANNED (1.12.0): the Spec step writes `specs/` under the same root (FR-190); the `specs/` search already resolves against it (FR-187, FR-189).
-- The `docs/tts/` exemption under the project root and the session directory (FR-181), built in 1.11.1.
+- Retired (1.13.1): the `docs/tts/` exemption under the project root and the session directory (FR-181), built in 1.11.1 and removed by `DECISIONS.md:273-276`.
+- PLANNED (1.13.1), voice scripts without em dashes: FR-211 (no U+2014, U+2015, or curly quote anywhere in a saved script, pause marks per model file, tag models limited to commas and periods beside their tags), FR-212 (draft and header user text: em dashes and U+2015 replaced and counted, curly quotes straightened, typed voice ids, clip paths, and model ids refused when they hold U+2014, U+2015, or a curly quote, other tells kept and flagged), FR-213 (the prose hooks gate `docs/tts/` with fences exempt; the full writing standard does not apply to script text), with FR-104, FR-118, and FR-163 changed and FR-181 retired.
 - The 1.12.0 changes, PLANNED, from the 40 deferred points answered on 2026-10-16: the named OWASP for LLM gate over `skills/**` (FR-054, FR-061, FR-199, NFR-011); Cleanup chooses the terminal and prints its report (FR-062 to FR-064); the snapshot-file outcome (FR-032); `ask` model row, registry-first routing, no plan file on a first-pass Error, the `general-purpose` body (FR-007, FR-009, FR-010, FR-012); skill rules (FR-136 to FR-139, FR-143, FR-147, FR-148, FR-175 to FR-177, FR-193 to FR-197, FR-200, FR-201, NFR-004, NFR-013, NFR-015, NFR-020); hook rules (FR-088, FR-091, FR-093, FR-094, FR-099, FR-118, FR-198).
 - The follow-up to 1.12.0, built for 1.13.0 (version 1.4), from the user's answers in the version 1.3 elicitation: Bitbucket support in `/pr-review` and the `/do` PR review flow (FR-142 to FR-144, FR-195, FR-202, FR-203); `/pr-review` direct-run hardening (FR-204, FR-205); `/do` PR flow hardening, the posting ask hook, `.agent` symlink checks, and PR file cleanup (FR-206 to FR-208); `/bump --path` validation (FR-209); and the checklist wording (FR-210).
 
@@ -5257,7 +5461,7 @@ Every threshold below is copied from the cited source. This document does not cl
 - Interface: the marketplace manifest follows the Claude Code marketplace schema (`.claude-plugin/marketplace.json`).
 - Interface: `gh` or `bkt` must be installed and authenticated for `/pr-review` (`skills/pr-review/SKILL.md`). Built (1.13.0): `bkt` means avivsinai/bitbucket-cli, targeted at v0.34.0 (released 2026-10-15), whose binary name matches dimo414/bkt (FR-202); bkt has no host flag on PR commands, so the host is pinned by FR-203.
 - Process: the markdown is the source of truth for the state tables and test globs; on drift, edit the JavaScript to match (`scripts/check-fsa-tables.js`).
-- Process: no requirement in this document contradicts a `DECISIONS.md` entry, with one reading to note (the last sentences of this bullet: `DECISIONS.md:135` against FR-112). The entries that bind these requirements are 2026-10-12 (prose hooks, attribution, scoped grants, clarify and voice-script), 2026-10-13 (spec-first, task-planner, protected paths, narrowed hidden-path bar), and 2026-10-14 (self-hosted documents, changelog pointer; Write guard lists live in `rules/assist-plugin-rule.md`). The 2026-10-16 entry "Requirements in docs/requirements/, task plans in docs/task-plans/" corrects the location part of the 2026-10-14 self-hosted-documents entry: requirements go to `docs/requirements/`, task plans to `docs/task-plans/`, specs stay in `specs/`, and older projects keep root-level files in place with a plain note in `DECISIONS.md` (FR-182 to FR-190, FR-174). The second 2026-10-16 entry, "Legacy root documents and the requirements JSON", settles three points: `task-planner` writes only `docs/task-plans/task-plan-*.md` (root-level plans in older projects are read, and a rework writes a new file in `docs/task-plans/`), `requirements-<slug>.json` goes to `docs/requirements/`, and SpecGate also searches the old root patterns and, after plan approval, appends a plain note to `DECISIONS.md`. The 2026-10-16 entry "Legacy location records are notes, not search input" makes that record a note and has SpecGate find root-level documents only through its fixed root patterns, never by paths parsed out of `DECISIONS.md` (FR-187, FR-188, FR-191). The 2026-10-16 entry "docs/requirements/ and docs/task-plans/ resolve against the session's git root" resolves both folders against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory) for SpecGate, the `gather-requirements` and `task-plan` writes, and the `fsa-write-bar` judgement of the `task-planner` path, so a session started in a subdirectory gets a write prompt because the skills' `./` grants are relative to the working directory (FR-182 to FR-187). The 2026-10-16 entry "1.11.1 design points for root notes, change check, and grants" fixes four points: for the root note, `/do` reads only the headings of `DECISIONS.md`, at plan approval just before it appends a "kept at the repository root" note, to skip a duplicate, and the cited-line window of FR-024 is unchanged (FR-188); the change check takes its snapshots and steering-file hashes against the session's git root (FR-192); `gather-requirements` keeps its grant scoped to `docs/requirements/`, so an in-place update of a legacy root-level requirements file asks the user first (FR-183); and with no usable working directory `fsa-write-bar` lets `task-planner` write only a plain relative `docs/task-plans/task-plan-*.md` and denies absolute, `~`, drive-relative, and `..` targets (FR-186). The 2026-10-12 entry on prose hooks fixes the `docs/tts/` exemption relative to the project root, and the 2026-10-16 entry refines it to the project root plus the session's working directory when that directory is inside the project (FR-104, FR-181). Twenty-two entries (counted at `DECISIONS.md:108-216`), eighteen of them dated 2026-10-16 and added on this plan's date after the 1.11.1 sign-off, one more of 2026-10-16 ("doc-cli-guard is best-effort with a listed set of known gaps", `:198`), and three of 2026-10-17 (the sign-off at `:203`, "/do PR review supports GitHub only in 1.12.0" at `:208`, and "/do PR flow hardening after the security gate" at `:213`), bind the 1.12.0 changes: "OWASP for LLM gate is a named /do gate covering skills/**" (FR-054, FR-061, FR-199, NFR-011), "Specs resolve against the session's git root" (FR-187, FR-189, FR-190), "/do PR review relays a draft, then a separate step submits" (FR-195, refined by the entries at `DECISIONS.md:148-151`, `:153-156`, and `:158-161`: the draft ends `Done` and the main conversation fetches and submits), "/bump --path naming and pointer changelogs" (FR-138, FR-139), "skills metadata.json mirrors SKILL.md frontmatter" (FR-193), "A non-plugin --agent main session is a main session" (FR-112), "Documentation CLI guard and injection filter cover PowerShell and launchers" (FR-094, FR-099, FR-198), "/commit runs on Haiku through frontmatter" (FR-196), "The main conversation submits a /do PR review; mmdc reaches root specs" (FR-195, FR-093, FR-199), "/do PR review draft arrives in a Done block; more package runners" (FR-195, FR-198), "LLM gate trigger, branch grant, mmdc root paths, and PR flags" (FR-061, FR-093, FR-195, FR-175 to FR-177, NFR-013), "Read-only program grants are scoped; Bitbucket returned reviews comment" (NFR-013, FR-143), and "LLM gate path anchor, metadata source, PowerShell aliases, writing-context self-test" (FR-061, FR-199, NFR-011, FR-193, FR-099, FR-094, FR-198, FR-118, FR-091), "Auto-loaded files join the LLM gate; mmdc reaches subproject specs" (FR-061, FR-199, NFR-011, FR-054, FR-093), and "One confirmation covers a /do PR review submission" (FR-143, FR-195; its exception is withdrawn by the next entry), "/do fetches PRs by redirect and posts with gh or bkt" (FR-195, FR-143), "doc-cli-guard judges every chained command; PowerShell assignment forms" (FR-094, FR-099, FR-200), and "Shell operators stay denied in documentation CLIs; Bitbucket approvals; test DSNs" (FR-094, FR-195, NFR-015), "doc-cli-guard is best-effort with a listed set of known gaps" (FR-094, FR-198), "Deferred-decision documents signed off for 1.12.0" (this document as a whole), "/do PR review supports GitHub only in 1.12.0" (FR-195; FR-143 as a note), and "/do PR flow hardening after the security gate" (FR-195, FR-094, FR-099). One difference remains between a recorded entry and a requirement: `DECISIONS.md:135` says a call with an `agent_type` but no `agent_id` is a main session, which reads broader than FR-112. FR-112 keeps a main session started with `--agent assist-plugin:<name>` denied, as the heading at `DECISIONS.md:133` ("A non-plugin --agent main session is a main session") and `hooks/impl/fsa-write-bar.js:26-28` say, so the statement "no requirement contradicts a `DECISIONS.md` entry" holds only with that reading.
+- Process: no requirement in this document contradicts a `DECISIONS.md` entry, with one reading to note (the last sentences of this bullet: `DECISIONS.md:135` against FR-112). The entries that bind these requirements are 2026-10-12 (attribution, scoped grants, clarify and voice-script; its prose-hooks entry is superseded for 1.13.1, see below), 2026-10-13 (spec-first, task-planner, protected paths, narrowed hidden-path bar), and 2026-10-14 (self-hosted documents, changelog pointer; Write guard lists live in `rules/assist-plugin-rule.md`). The 2026-10-16 entry "Requirements in docs/requirements/, task plans in docs/task-plans/" corrects the location part of the 2026-10-14 self-hosted-documents entry: requirements go to `docs/requirements/`, task plans to `docs/task-plans/`, specs stay in `specs/`, and older projects keep root-level files in place with a plain note in `DECISIONS.md` (FR-182 to FR-190, FR-174). The second 2026-10-16 entry, "Legacy root documents and the requirements JSON", settles three points: `task-planner` writes only `docs/task-plans/task-plan-*.md` (root-level plans in older projects are read, and a rework writes a new file in `docs/task-plans/`), `requirements-<slug>.json` goes to `docs/requirements/`, and SpecGate also searches the old root patterns and, after plan approval, appends a plain note to `DECISIONS.md`. The 2026-10-16 entry "Legacy location records are notes, not search input" makes that record a note and has SpecGate find root-level documents only through its fixed root patterns, never by paths parsed out of `DECISIONS.md` (FR-187, FR-188, FR-191). The 2026-10-16 entry "docs/requirements/ and docs/task-plans/ resolve against the session's git root" resolves both folders against the git root of the session's working directory (a worktree uses its own root; outside a git repository, the working directory) for SpecGate, the `gather-requirements` and `task-plan` writes, and the `fsa-write-bar` judgement of the `task-planner` path, so a session started in a subdirectory gets a write prompt because the skills' `./` grants are relative to the working directory (FR-182 to FR-187). The 2026-10-16 entry "1.11.1 design points for root notes, change check, and grants" fixes four points: for the root note, `/do` reads only the headings of `DECISIONS.md`, at plan approval just before it appends a "kept at the repository root" note, to skip a duplicate, and the cited-line window of FR-024 is unchanged (FR-188); the change check takes its snapshots and steering-file hashes against the session's git root (FR-192); `gather-requirements` keeps its grant scoped to `docs/requirements/`, so an in-place update of a legacy root-level requirements file asks the user first (FR-183); and with no usable working directory `fsa-write-bar` lets `task-planner` write only a plain relative `docs/task-plans/task-plan-*.md` and denies absolute, `~`, drive-relative, and `..` targets (FR-186). The 2026-10-12 entry on prose hooks fixes the `docs/tts/` exemption relative to the project root, and the 2026-10-16 entry refines it to the project root plus the session's working directory when that directory is inside the project (FR-104, FR-181). Both entries are superseded for release 1.13.1 by the 2026-10-23 entry "Voice scripts carry no em dashes" (`DECISIONS.md:273-276`), which removes the exemption (FR-104, FR-181 retired, FR-211 to FR-213), and the 2026-10-23 entry "Voice script pause marks and draft tells" (`DECISIONS.md:278-281`) refines it (fenced blocks stay exempt under FR-105, pause marks per model file, header text normalized, other draft tells kept and flagged; FR-104, FR-118, FR-211 to FR-213); the entry at `DECISIONS.md:283-286` ("Voice script curly quotes, header dashes, and save retry") adds the whole-file ban on U+2014, U+2015, and curly quotes, the header-prose comma or period, the ordinary-punctuation rule, and the header-deny retry (FR-163, FR-211 to FR-213); and the entry at `DECISIONS.md:288-291` ("Voice script typed values and tag-model pause marks") adds the refusal of typed values and the tag-model pause marks (FR-211, FR-212); no requirement contradicts those entries. Twenty-two entries (counted at `DECISIONS.md:108-216`), eighteen of them dated 2026-10-16 and added on this plan's date after the 1.11.1 sign-off, one more of 2026-10-16 ("doc-cli-guard is best-effort with a listed set of known gaps", `:198`), and three of 2026-10-17 (the sign-off at `:203`, "/do PR review supports GitHub only in 1.12.0" at `:208`, and "/do PR flow hardening after the security gate" at `:213`), bind the 1.12.0 changes: "OWASP for LLM gate is a named /do gate covering skills/**" (FR-054, FR-061, FR-199, NFR-011), "Specs resolve against the session's git root" (FR-187, FR-189, FR-190), "/do PR review relays a draft, then a separate step submits" (FR-195, refined by the entries at `DECISIONS.md:148-151`, `:153-156`, and `:158-161`: the draft ends `Done` and the main conversation fetches and submits), "/bump --path naming and pointer changelogs" (FR-138, FR-139), "skills metadata.json mirrors SKILL.md frontmatter" (FR-193), "A non-plugin --agent main session is a main session" (FR-112), "Documentation CLI guard and injection filter cover PowerShell and launchers" (FR-094, FR-099, FR-198), "/commit runs on Haiku through frontmatter" (FR-196), "The main conversation submits a /do PR review; mmdc reaches root specs" (FR-195, FR-093, FR-199), "/do PR review draft arrives in a Done block; more package runners" (FR-195, FR-198), "LLM gate trigger, branch grant, mmdc root paths, and PR flags" (FR-061, FR-093, FR-195, FR-175 to FR-177, NFR-013), "Read-only program grants are scoped; Bitbucket returned reviews comment" (NFR-013, FR-143), and "LLM gate path anchor, metadata source, PowerShell aliases, writing-context self-test" (FR-061, FR-199, NFR-011, FR-193, FR-099, FR-094, FR-198, FR-118, FR-091), "Auto-loaded files join the LLM gate; mmdc reaches subproject specs" (FR-061, FR-199, NFR-011, FR-054, FR-093), and "One confirmation covers a /do PR review submission" (FR-143, FR-195; its exception is withdrawn by the next entry), "/do fetches PRs by redirect and posts with gh or bkt" (FR-195, FR-143), "doc-cli-guard judges every chained command; PowerShell assignment forms" (FR-094, FR-099, FR-200), and "Shell operators stay denied in documentation CLIs; Bitbucket approvals; test DSNs" (FR-094, FR-195, NFR-015), "doc-cli-guard is best-effort with a listed set of known gaps" (FR-094, FR-198), "Deferred-decision documents signed off for 1.12.0" (this document as a whole), "/do PR review supports GitHub only in 1.12.0" (FR-195; FR-143 as a note), and "/do PR flow hardening after the security gate" (FR-195, FR-094, FR-099). One difference remains between a recorded entry and a requirement: `DECISIONS.md:135` says a call with an `agent_type` but no `agent_id` is a main session, which reads broader than FR-112. FR-112 keeps a main session started with `--agent assist-plugin:<name>` denied, as the heading at `DECISIONS.md:133` ("A non-plugin --agent main session is a main session") and `hooks/impl/fsa-write-bar.js:26-28` say, so the statement "no requirement contradicts a `DECISIONS.md` entry" holds only with that reading.
 
 - Process: two `DECISIONS.md` entries came after the twenty-two counted above. `DECISIONS.md:218-221` (2026-10-17, "code-reviewer and researcher run at effort high") concerns agent effort values, binds none of FR-202 to FR-210, and no requirement here contradicts it. `DECISIONS.md:223-226` (2026-10-22, "PR posting safeguards and Bitbucket in the PR review flows") binds FR-143 (the Cloud request-changes rule replaces `DECISIONS.md:163-166` for Cloud and leaves it in force for Data Center), FR-195 (the Bitbucket flow ends the GitHub-only limit of `DECISIONS.md:208-211`, which that entry supersedes for Bitbucket), FR-203 (host pin), FR-206 (ask hook), FR-207 (symlink checks), FR-208 (cleanup), and FR-209 (`--path`). The entry does not record the direct-run points of FR-204, FR-205, and FR-210. `DECISIONS.md:228-231` (2026-10-22, "Bitbucket request-changes order, hook rejection, and stricter checks") refines `DECISIONS.md:223-226` and binds FR-143 and FR-195 (Cloud order: comment first, no request-changes call when the comment fails; hook-rejection outcomes), FR-206 (ask on a `bkt api` call with a body flag and no method), FR-208 (`pr-<N>.*` and `pr-<N>-*` matching), and FR-209 (no dots-only segment; normalize before validation); section 9 open points 3, 5, 6, 7, and 9 are closed by it. No requirement here contradicts it. `DECISIONS.md:233-236` (2026-10-22, "Each Bitbucket post is its own command; a rejected prompt stops the pair") refines `DECISIONS.md:228-231` and binds FR-143 and FR-195 (each bkt post is its own Bash command with its own hook prompt; a rejected first prompt of a pair runs no second command and records both as declined; on Cloud an allowed comment and a rejected request-changes prompt record the comment as posted and the request as declined; the step is completed and the PR files are removed), FR-206 (one prompt per command), and FR-208 (cleanup after a rejection). No requirement here contradicts it. Version 1.4 adds seven entries of 2026-10-22 (listed through `DECISIONS.md:271`). `DECISIONS.md:238-241` ("bkt api repository flags and unknown options") binds FR-202 and FR-203 (a `bkt api` call names the repository through its relative path and takes no repository flags) and FR-206 (the hook asks on any `bkt api` option it does not recognize). `DECISIONS.md:243-246` ("Follow-up build scope, supersession, and timing method") binds the Status flips of version 1.4 and confirms the NFR-008 and NFR-025 method (median of 20 runs, 110 ms, a SHOULD). `DECISIONS.md:248-251` ("Follow-up documents signed off; step 1 research results applied") binds FR-202, FR-203, and FR-206 (the settled bkt facts and the array-form filters). `DECISIONS.md:253-256` and `DECISIONS.md:258-261` bind FR-209 and FR-139 (rule R8) and FR-206 (closed forms, the known-gap list, the best-effort stance). `DECISIONS.md:263-266` binds FR-208 and FR-144 (cleanup by exact name, no glob), FR-143 and FR-195 (the body-hash check before `bkt pr approve`), FR-209 (R6 is `test -d` with no `--`), and FR-202 (the meaning of "exactly one" for the context lookup). `DECISIONS.md:268-271` binds FR-206 (the full gap list in five places). No requirement here contradicts them.
 
@@ -5273,10 +5477,10 @@ Each row lists the user requirements derived from the business requirement, the 
 | BR-004 | UR-004, UR-006 to UR-009, UR-011 | FR-005, FR-006, FR-007, FR-019 to FR-030, FR-032 to FR-041, FR-043, FR-044, FR-049, FR-050, FR-070 to FR-073, FR-083, FR-151, FR-187 to FR-192 | none | Built; PLANNED (1.12.0) parts: FR-007, FR-032, FR-190 |
 | BR-005 | UR-013, UR-014, UR-034, UR-042, UR-049, UR-053, UR-057 | FR-048, FR-053 to FR-061, FR-077 to FR-082, FR-109, FR-130, FR-147, FR-148, FR-167 to FR-171, FR-193, FR-199, FR-210 | NFR-011, NFR-024 | Built; PLANNED (1.12.0) parts: FR-054, FR-061, FR-147, FR-148, FR-193, FR-199, NFR-011; Built (1.13.0): FR-210 |
 | BR-006 | UR-011, UR-012, UR-019 to UR-021, UR-031, UR-050, UR-054 to UR-056 | FR-022, FR-024, FR-027, FR-031 to FR-033, FR-035, FR-043, FR-044, FR-065, FR-067, FR-071, FR-074, FR-076, FR-085, FR-092 to FR-094, FR-099 to FR-102, FR-108 to FR-114, FR-142 to FR-144, FR-151, FR-175 to FR-177, FR-183, FR-185, FR-186, FR-190, FR-192, FR-195, FR-198, FR-202 to FR-209, FR-086 | NFR-012 to NFR-016 | Built; PLANNED (1.12.0) parts: FR-032, FR-093, FR-094, FR-099, FR-143, FR-175 to FR-177, FR-190, FR-195, FR-198, NFR-013, NFR-015; Built (1.13.0): FR-086 (counts), FR-202 to FR-209 |
-| BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118; Built (1.13.0): FR-086 (11 scripts and 16 commands), FR-091 and FR-118 (ask-hook clause) |
-| BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148 |
+| BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118; Built (1.13.0): FR-086 (11 scripts and 16 commands), FR-091 and FR-118 (ask-hook clause); PLANNED (1.13.1): FR-118 (`docs/tts/` self-test cases) |
+| BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043, UR-058 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 (retired 1.13.1), FR-211, FR-212, FR-213 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148; PLANNED (1.13.1): FR-104 (exemption removed), FR-211, FR-212, FR-213, NFR-019; Retired (1.13.1): FR-181 |
 | BR-009 | UR-015, UR-028 | FR-095 to FR-098, FR-120, FR-135, FR-136, FR-196 | none | Built; PLANNED (1.12.0) parts: FR-136, FR-196 |
-| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209 | none | Built; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
+| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213 | none | Built; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
 | BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194 |
 | BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195, FR-206, FR-207 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195; Built (1.13.0): FR-206, FR-207 |
 | BR-013 | UR-006, UR-035 to UR-038 | FR-005, FR-019, FR-020, FR-028 to FR-030, FR-032 to FR-035, FR-074 to FR-076, FR-078, FR-083 to FR-085, FR-149 to FR-160, FR-179, FR-182 to FR-187, FR-190 to FR-192, FR-197 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-197 |
@@ -5373,7 +5577,8 @@ Version 1.4 closes point 2 in part (the facts the build settled) and restates po
 
 - At 4803a0d, `skills/do/SKILL.md` (SpecGate step 2 and the Decompose chain table), `skills/gather-requirements/SKILL.md` (Output and Write scope), `skills/task-plan/SKILL.md` (Routing and Write scope), `agents/task-planner.md` (Write scope), `agents/intake-reviewer.md` (Conflict check), and `hooks/lib/fsa-paths.js` (`TASK_PLAN_GLOB`) place requirements and task plans at the repository root or the working directory. `DECISIONS.md` (2026-10-16) puts them in `docs/requirements/` and `docs/task-plans/`. FR-182 to FR-190 closed the difference in 1.11.1 (checked by reading the sources on 2026-10-16), apart from the Spec step's `specs/` path (FR-190, PLANNED, 1.12.0).
 - `rules/llm-security-checklist.md` (lines 187 and 316, section "LLM06" and the table "Open Gaps Found in This Audit") says no agent file declares `tools:` and names 12 agent files. All 16 current agent files declare `tools:`. FR-065 and FR-067 follow the agent files.
-- `hooks/lib/prose-diff.js:95-101` resolves the `docs/tts/` exemption against the hook's cwd, while `DECISIONS.md` (2026-10-12) says relative to the project root and the 2026-10-16 entry adds the session's working directory when it is inside the project. The user decided the decision governs; FR-181 closed the difference in 1.11.1 and FR-104 states both. These documents were listed as describing the cwd rule: `CLAUDE.md:96` (and :97 for the advisor), `plugins/assist-plugin/Claude.md:76` (and :77), `README.md:293`, `skills/voice-script/SKILL.md:162`, `skills/health/SKILL.md:17`, and `docs/SPECIFICATION.md:420`. By the coordinator's check, `CLAUDE.md:99-100`, `README.md:296`, `skills/voice-script/SKILL.md:162`, `skills/health/SKILL.md:17`, and `docs/SPECIFICATION.md:420` now name both locations; this pass confirmed by grep that `plugins/assist-plugin/Claude.md:76-77` does too. The note is closed.
+- `hooks/lib/prose-diff.js:95-101` resolves the `docs/tts/` exemption against the hook's cwd, while `DECISIONS.md` (2026-10-12) says relative to the project root and the 2026-10-16 entry adds the session's working directory when it is inside the project. The user decided the decision governs; FR-181 closed the difference in 1.11.1 and FR-104 stated both roots until 1.13.1 (FR-181 now records them). These documents were listed as describing the cwd rule: `CLAUDE.md:96` (and :97 for the advisor), `plugins/assist-plugin/Claude.md:76` (and :77), `README.md:293`, `skills/voice-script/SKILL.md:162`, `skills/health/SKILL.md:17`, and `docs/SPECIFICATION.md:420`. By the coordinator's check, `CLAUDE.md:99-100`, `README.md:296`, `skills/voice-script/SKILL.md:162`, `skills/health/SKILL.md:17`, and `docs/SPECIFICATION.md:420` now name both locations; this pass confirmed by grep that `plugins/assist-plugin/Claude.md:76-77` does too. The note is closed.
+- Version 1.5 (release 1.13.1, PLANNED): `DECISIONS.md:273-276` and `:278-281` remove the `docs/tts/` exemption that the previous bullet describes (FR-104, FR-181 retired, FR-213). These files describe or test the skip and need a change at build time; the spec step lists the edits: `skills/health/SKILL.md:17`; `CLAUDE.md`; `plugins/assist-plugin/Claude.md`; `README.md`; `docs/SPECIFICATION.md`; `skills/voice-script/SKILL.md:150`, `:154`, `:162`, `:166`, `:181`; `skills/voice-script/references/output-template.md:8`, `:15`; `skills/voice-script/references/models/elevenlabs-v2.md:26`; `hooks/impl/prose-gate.js:8-11`; `hooks/impl/prose-advisor.js:7-9`, `:43-44`; `hooks/lib/prose-diff.js:146` (the `docs/tts/` test and its comments and export lines go; `:143-150` keeps the temp-directory and allowlist exemptions), `:139-141`, `:282-283`, `:290`, `:433`; `hooks/impl/health-check.js:41-45`, `:213-281`, `:333-349` (the self-test holds `docs/tts/` em-dash writes as `prose-gate` allow cases at `:271-281` and as `prose-advisor` clean cases at `:348-349`; left as they are, they would fail after the skip goes and FR-091 would disable both prose hooks, see FR-118); `tests/hooks/health-check-selftest.test.js:110-146`, `:148-189`, `:192-236`, `:384-399`, `:418-438` (the corpus sizes at `:426-427` change); `tests/hooks/prose-docs-tts.test.js:137-360`, `:360-370`, `:403-425`, `:427-450`; `tests/docs/self-hosted-layout.test.js:143-242`. The `prose-advisor` self-test case needs an advisory-tier tell outside a fence, because an em dash is block-tier and the advisor reads advisory-tier tells only (FR-118).
 - `plugins/assist-plugin/CHANGELOG.md` stopped at 1.3.0 while the root `CHANGELOG.md` reached 1.11.0. FR-178 removed the difference in 1.11.1: the file is a pointer.
 - `DECISIONS.md:135` says fsa-write-bar treats a call with an `agent_type` but no `agent_id` as the main session, which reads broader than FR-112 and `hooks/impl/fsa-write-bar.js:171-176` (comment `:26-28`). The heading at `DECISIONS.md:133` ("A non-plugin --agent main session is a main session") and the code limit it to a type without the `assist-plugin:` prefix, so a main session started with `--agent assist-plugin:<name>` stays denied (FR-112 scenario). `DECISIONS.md` is append-only, so the entry is not edited; FR-112 follows the heading and the code.
 - Differences that the 2026-10-16 answers settle, still present in the 1.11.1 sources and closed by the 1.12.0 changes: the missing `ask` row in `model-routing.md` (FR-010); the `general-purpose` body (FR-007); the Display and Cleanup split of the terminal state (FR-062 to FR-064); the first-pass Error plan file (FR-012); the snapshot-file outcome (FR-032); the narrow LLM gate glob (FR-061, NFR-011); the nine-caller list in `skills/review-md/SKILL.md:31` (FR-148); the stop rule in `skills/review-md/SKILL.md:35` (FR-147); `skills/bump/SKILL.md:15` and `bump-strategy.md` (FR-137 to FR-139); `skills/pr-review/SKILL.md:207-208` and `pr-detection.md` (FR-143, NFR-015); the `commit` frontmatter and `metadata.json` (FR-193, FR-196); `skills/gather-requirements/SKILL.md:133` (FR-197).
@@ -5404,4 +5609,5 @@ Version 1.4 closes point 2 in part (the facts the build settled) and restates po
 | 1.2 | 2026-10-17 | Toni-Jan Keith Monserrat | Post-sign-off changes from `DECISIONS.md:178-216`: FR-094 (per-part judging, metacharacter rule kept on the whole command, hidden-name assignment, known gaps), FR-099 (PowerShell assignment forms, known gaps), FR-143 (one-confirmation exception withdrawn, bkt forms follow-up), FR-195 (fetch by redirect, `gh` only on `github.com`, posting from `/do`, hardening), FR-198 (`exec`, `sudo`, `eval` wrappers), FR-200 (three answers on a stop), sections 7 and 9 (twenty-two entries through `DECISIONS.md:216`), and URD UC-003 |
 | 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | Four follow-up groups after 1.12.0, PLANNED (follow-up to 1.12.0): new FR-202 to FR-210 (bkt v0.34.0 forms, Bitbucket host pin, direct-run untrusted-data rule and fetch cap, public-posting rule, PR posting ask hook, `.agent` symlink checks, `pr-review` file cleanup, `/bump --path` validation, checklist row 2 wording); changed FR-139, FR-142, FR-143 (citations of `SKILL.md:41`, `:82`, `:203` kept and `:209` corrected to `:208`; Bitbucket Cloud request changes), FR-144 (no fixed body path; bkt `--text`), FR-195 (Bitbucket remotes restored; Status Built (1.12.0) for the GitHub flow), FR-086 (11 scripts and 16 commands after the ask hook; the 15-command scenario marked as holding until FR-206 is built), FR-091 and FR-118 (a guard includes the ask hook; a false ask counts as a false deny), NFR-014, new NFR-025 (ask hook latency), sections 1, 6, 7, 8, and 9; URD UR-054 to UR-057 and UC-003; BRD scope. Documents stay DRAFT until the user signs off. Fix pass 2 (same version): planning-gate findings 1 to 11 applied (FR-203 Cloud base-URL host and both-flow link check, FR-207 Error exception, hook-rejection outcomes per `DECISIONS.md:233-236`, FR-195 pin and setup-step wording, FR-143 Built tags, FR-203 scp-like Data Center form). Fix pass 1 (same version): planning-gate findings 1 to 32 applied (FR-207 plan-file rule, FR-206 self-test and latency, matrix rows, `DECISIONS.md:223-226` citations, FR-203 context rule, FR-208 file names, FR-209 order, open points 5 to 10) |
 | 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | Status after the follow-up build (`DECISIONS.md:243-271`), no new elicitation: PLANNED (follow-up to 1.12.0) set to Built (1.13.0) for FR-086 (11 scripts and 16 commands replace the 10 and 15 counts), FR-091 and FR-118 (ask-hook clauses), FR-139, FR-142 to FR-144, FR-195, FR-202 to FR-210, NFR-014, NFR-025, and the section 8 Status cells; nothing was found unbuilt. FR-206: the unrecognized-`bkt api`-option ask rule and the either-word-list rule, the best-effort stance, the 11-item known-gap list from the hook header comment, the three unverified items, and the closed forms (substitution spans, nested depth, run-time expansion, redirection words). FR-209 and FR-139: rule R8, the `test -d` check without `--`, an empty or `.` stripped absolute value as no `--path`, and the eight stop messages. FR-202 and FR-203: the step 1 results (`bkt api` methods and body, `--method`/`-X`, no repository flags on `bkt api`, version pattern, JSON-quoted `--jq` strings), the array-form filters, and `/do` counting contexts that meet the Match rule. NFR-008 and NFR-025: timing method confirmed, medians from the qa run (57.6, 67.2, 56.1, and 54.4 ms). Section 9: points settled by the build closed or narrowed. Fix pass 1 (same version, `DECISIONS.md:263-271`): FR-208 removes the five PR files by exact name with `rm -f --` after the symlink guard in one command that exits 3 on a symlink (no glob); FR-144 adds the run-folder removal bound to the `mktemp` prefix; FR-143 and FR-195 add the separate body-hash check before `bkt pr approve`; FR-202 clause (f) says "exactly one" for the context lookup means one element that meets the Match rule; FR-206 and the gap list live in five places with a pointer in `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md`; stale line citations corrected; section 9 points 6, 11, and 12 closed. Documents stay DRAFT until the user signs off |
+| 1.5 | 2026-10-23 | Toni-Jan Keith Monserrat | Release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `:278-281`), PLANNED (1.13.1). New FR-211 to FR-213. FR-181 retired (ID kept, Status Retired (1.13.1)). Changed FR-104 (statement keeps the temp-directory and allowlist exemptions; `docs/tts/` clause dropped; header-based scenarios and the fenced-block scenario; source ranges), FR-118 (two `docs/tts/` self-test scenarios and the health-check and test sources, tied to FR-091), FR-163 (Status, Source, and scenarios: save folder, header passes the gate, header denied then one retry), NFR-019 (whole-file count of U+2014 and curly quotes), section 1 table, section 6 scope, section 7 `DECISIONS.md` note, section 8 rows BR-007, BR-008, and BR-010, section 9 (new bullet for the files to change). Fix pass 1 (same version, 12 review findings): fenced script blocks stay exempt under FR-105 and FR-211 is the only control on script text; FR-211 scoped to dash-style pause marks (Gemini 3.8 double hyphen, no-dash models, Chatterbox-Turbo without line breaks, uncatalogued model with commas and periods, pause tags kept); FR-212 covers U+2015, header user text, a conditional curly-quote note, and other tells kept and flagged; FR-213 no longer applies the full writing standard to script text; one uppercase keyword per statement for FR-104, FR-211, FR-212, FR-213. Fix pass 2 (same version, `DECISIONS.md:283-286`, "Voice script curly quotes, header dashes, and save retry"): FR-211 statement forbids U+2014, U+2015, and curly quotes anywhere in a saved script whatever the text source, names ElevenLabs v2 (spaced hyphen), and gives ordinary-punctuation files and uncatalogued models commas and periods only (nine files cited); the whole-file scenario says a test counts; FR-212 header prose gets a comma or period for a dash (never a line break or double hyphen), refuses a typed voice id or clip path with U+2014, and flags kept tells by family and draft line without repeating text; FR-213 header scenario allows that flag form; FR-163 states the header-deny retry (one retry on the same path, second deny prints in chat); FR-118 advisor case uses an advisory-tier tell (an em dash is block-tier, so it stays a `prose-gate` case only); source ranges corrected (`prose-diff.js:146` goes, `:143-150` stays; test ranges added). Fix pass 3 (same version, `DECISIONS.md:288-291`, "Voice script typed values and tag-model pause marks"): FR-212 refuses a typed voice id, clip path, or model id (Other included) that holds U+2014, U+2015, or a curly quote, and its header-text statement is split in two; FR-211 names the seven remaining model files (ElevenLabs v3/v4, Deepgram Aura 2, Microsoft MAI-Voice, and the four tag models xAI Grok, Fish Audio S2, MiniMax Speech 2.8, Gemini 3.1 TTS Preview with commas and periods beside their tags, MiniMax newline kept) and the ordinary-punctuation rule with tags not counted; `DECISIONS.md` entries cited by line range everywhere (`:283-286`, `:288-291` added); `prose-diff.js:18-20`, `:26`, `:103-137` listed as dead code; health-check self-test test ranges `:110-146`, `:192-236`, `:418-438`; NFR-019 adds U+2015 and traces FR-212. Documents stay DRAFT until the user signs off |
 

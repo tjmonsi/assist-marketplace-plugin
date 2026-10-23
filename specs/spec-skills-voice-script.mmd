@@ -1,14 +1,28 @@
 flowchart TD
   S(["/voice-script topic or draft-file"]) --> L["Live list check: one WebFetch of the OpenRouter speech list"]
   L --> M["Ask the model: family, line, id menus, one question per call"]
-  M --> F["Read the chosen model file only"]
+  M --> TM{"Model id typed through Other holds U+2014, U+2015, or a curly quote?"}
+  TM -->|"yes"| RM["Refuse it; ask for the model id again"]
+  RM --> M
+  TM -->|"no"| F["Read the chosen model file only; take the dash-style pause mark that the pause-mark table gives the model"]
   F --> EP{"OpenRouter id with a links.details path that matches its pattern?"}
   EP -->|"yes"| EC["One endpoint WebFetch; warn on zero endpoints"]
   EP -->|"no"| Q["One call: voice, length, delivery, source"]
   EC --> Q
-  Q --> C["Compose from the model file: limits, tags, pauses, delivery"]
-  C --> DT["Run the date command once; check its format"]
+  Q --> TV{"Typed voice id or clip path holds U+2014, U+2015, or a curly quote?"}
+  TV -->|"yes"| RV["Refuse it; ask for it again in chat"]
+  RV --> TV
+  TV -->|"no"| N["Normalize: in a draft, U+2014 and U+2015 become the model's pause mark; in the title and delivery direction, a comma or a period; curly quotes become ASCII quotes; count the swaps; flag kept tells by family and draft line"]
+  N --> C["Compose from the model file: limits, tags, pause marks, delivery"]
+  C --> X{"Whole file holds a U+2014, a U+2015, or a curly quote?"}
+  X -->|"yes"| XF["Replace each one before the write: the model's pause mark in script text, a comma or a period in header prose, an ASCII quote for a curly quote; count the swaps"]
+  XF --> DT
+  X -->|"no"| DT["Run the date command once; check its format"]
   DT --> G["Glob for a name clash; add -2, -3 on a clash"]
-  G --> W{"Write docs/tts/voice-slug-stamp.md allowed?"}
-  W -->|"yes"| R(["Reply: path, model, voice, block count, live check, warnings"])
-  W -->|"no"| P(["Print the script in chat; say it was not saved"])
+  G --> W{"Write docs/tts/voice-slug-stamp.md"}
+  W -->|"written"| R(["Reply: path, model, voice, block count, live check, warnings"])
+  W -->|"user denies the write"| P(["Print the script in chat; say it was not saved"])
+  W -->|"prose-gate denies: block-tier tell in the header or notes"| FX["Fix only the flagged header or notes text"]
+  FX --> W2{"Retry once on the same path"}
+  W2 -->|"written"| R
+  W2 -->|"denied again"| P

@@ -7,9 +7,9 @@
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
 | **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md |
-| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-206, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025 |
+| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025 |
 | **Feature type** | Architecture |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -848,3 +848,92 @@ Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`referenc
 ### Rework 2: line cites refreshed (no behavior change)
 
 The build added the ask branch to `guard()` (`hooks/lib/health.js:452-456`), which moved the later lines of that file, and it moved lines of `hooks/impl/health-check.js`. Re-read on 2026-10-22 and refreshed: Component boundaries (`impl/health-check.js:1307`, `:1428-1435`; the entry-file output row names the ask JSON), Requirement: Filter output (`lib/health.js:476-543`, `:524-526`, `:528-534`), Requirement: Failure path (`:412-447`; the kind table `:414-417`, `:488-491`, `:435-440`, `:511-516`, `:442-447`, `:518-523`, `:528-534`, `:532`, and `impl/health-check.js:1455-1460`, `:1458`; the suffix table `lib/health.js:483` and `impl/health-check.js:1452`), Requirement: Watchdog (`lib/health.js:411`, `:485`; `impl/health-check.js:66`, `:1454`), and Requirement: Disabled hooks pass through (`lib/health.js:418-433`, `:461-474`, `:492-509`).
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT), release 1.13.1, "voice scripts without em dashes": FR-104 (`:2245-2274`; Status `:2248`), FR-181 retired (`:2754-2790`; `:2756`), FR-213 (`:3854-3883`), and FR-088 (statement unchanged); `DECISIONS.md:273-276` (2026-10-23), which supersedes `DECISIONS.md:3-6` and `:73-75`. Every change in this entry is PLANNED (1.13.1). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-23 at the 1.13.0 release (commit `50817b5`): `hooks/lib/prose-diff.js:18-26`, `:47-72`, `:98-150`; `hooks/impl/prose-gate.js:54-66`; `hooks/impl/sa-mermaid-only.js:14-22`; `hooks/lib/git-root.js:1-38`. The prose hooks change itself is specified in spec-hooks-prose-hooks.md (Change Log 2026-10-23).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: FR-104 and FR-213 added (delta rule 7), since they drive the change to FR-088's file-read table.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Sub-feature breakdown, the Prose hooks row: "`prose-gate` and `prose-advisor` (FR-103 to FR-106, FR-213); from 1.13.1 they judge `docs/tts/` like any prose file, and the project-root and session-directory exemption of FR-181, built in 1.11.1, is retired".
+- Topology, the edge into `lib/git-root.js` (the inline diagram under `## Topology`, and `specs/spec-hooks-platform-topology.mmd:15`, updated in this pass): "require: fsa-write-bar, sa-mermaid-only". `sa-mermaid-only` requires the module at `hooks/impl/sa-mermaid-only.js:22` (FR-093, built in 1.12.0), so the edge's "PLANNED 1.12.0" label goes too.
+- The Description sentence on 1.11.1 adding `hooks/lib/git-root.js` for FR-181 and FR-186, OP-B1, and the Change Log 2026-10-16 bullet on the Description stay as history.
+
+### Topology after the change
+
+Source: `specs/spec-hooks-platform-topology.mmd`, updated in this pass. The inline copy in the body keeps the 1.13.0 edge until the fold.
+
+```mermaid
+flowchart LR
+  CC["Claude Code<br/>hook event"] -->|"stdin: hook input JSON"| ENTRY["hooks/NAME.js<br/>ES5 entry file"]
+  ENTRY -->|require| LAUNCH["lib/launch.js<br/>Node 6+ gate"]
+  LAUNCH -->|"require, main()"| IMPL["impl/NAME.js<br/>evaluate(input)"]
+  IMPL -->|"runs inside"| RT["lib/health.js<br/>guard() or transform()"]
+  RT -->|"stdout JSON, exit 0"| CC
+  RT -->|append| HLOG[("hook-health.jsonl<br/>newest 200 lines")]
+  RT -->|read| DIS[("hooks-disabled.json")]
+  IMPL -->|"fsa-log appends"| FLOG[("fsa-log.jsonl<br/>newest 500 lines")]
+  HC["impl/health-check.js<br/>SessionStart and /health"] -->|"self-test evaluate()"| IMPL
+  HC -->|write| DIS
+  HC -->|read| HLOG
+  HC -->|read| FLOG
+  IMPL -->|require| TABLES["lib/fsa-tables.js<br/>lib/fsa-paths.js"]
+  IMPL -->|"require: fsa-write-bar, sa-mermaid-only"| GIT["lib/git-root.js<br/>.git walk, no git process"]
+  GIT -->|"stat .git from the input cwd upward"| PFS[("project file system")]
+  SCRIPTS["scripts/check-fsa-tables.js<br/>scripts/sync-writing-standard.js"] -->|require| TABLES
+  SCRIPTS -->|read| MD["agents, skills, rules<br/>markdown"]
+```
+
+Rendering not attempted: chrome-headless-shell is still not installed (note under Data flow). Render with `mmdc -i specs/spec-hooks-platform-topology.mmd -o specs/spec-hooks-platform-topology.png` once it is.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Guard decision and deny output
+
+**Was:** The statement as in the body, with the rule "Its reads of `CLAUDE_PROJECT_DIR` are replaceable too (`projectDir`, `roots`)" and the file-read row: `prose-gate` | The target file, `prose-gate-allowlist.json` (`hooks/lib/prose-diff.js:47-72` at 1.11.1), and the `.git` walk (`:108-120`) | `readFile`, `allowlist`, `tmpdir`, `projectDir`, `findGitRoot` | Built (1.11.1).
+
+**Now:** The statement is unchanged. The rule reads "Its reads of `CLAUDE_PROJECT_DIR` are replaceable too (`roots`, in `fsa-write-bar`)", and the row reads: `prose-gate` | The target file and `prose-gate-allowlist.json` (`hooks/lib/prose-diff.js:47-72`) | `readFile`, `allowlist`, `tmpdir` | Built; PLANNED (1.13.1): the `.git` walk, the `CLAUDE_PROJECT_DIR` read, and the `projectDir` and `findGitRoot` options leave `prose-gate`. The `fsa-write-bar` and `sa-mermaid-only` rows are unchanged; they keep the `.git` walk of `hooks/lib/git-root.js`.
+
+**Reason:** FR-104 drops its `docs/tts/` clause and FR-181 is retired (`docs/requirements/FR-NFR-assist-plugin.md:2248`, `:2756`), so `prose-gate` no longer looks for a project root (spec-hooks-prose-hooks.md, Change Log 2026-10-23, REMOVED Requirement: Voice-script exemption under the project root and the session directory).
+
+**Requirement refs:** FR-088, FR-104, FR-213 | **Status:** PLANNED (1.13.1) for the row and the rule | **Source:** `hooks/lib/prose-diff.js:18-26`, `:47-72`, `:103-137`; `hooks/impl/prose-gate.js:54-66` (read 2026-10-23)
+
+##### Scenario: Prose-gate reads only the target file and the allowlist
+
+- **GIVEN** `CLAUDE_PROJECT_DIR=/p`, a Write to `/p/docs/tts/a.md` from the input `cwd` `/p/src` whose added text holds an em dash outside any fence, and a test reader that returns null
+- **WHEN** a test calls `prose-gate`'s `evaluate(input, {readFile: <test reader>, allowlist: [], tmpdir: "/t"})`
+- **THEN** `evaluate` SHALL return `deny: true`
+- **AND** it SHALL check no directory for `.git` and read no file except through the reader
+
+The scenarios Positive match, No match, Truthy value that is not true, Reads a test can replace, Git walk replaced in a test, Wording in the rule file, Ask output, Deny wins over ask, and Truthy ask that is not true are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Planned conformance (files that change with this entry)
+
+| File and lines | Change | Requirement |
+|---|---|---|
+| `specs/spec-hooks-platform-topology.mmd:15` | Done in this pass: the edge reads "require: fsa-write-bar, sa-mermaid-only" | FR-093, FR-186 (cross-reference) |
+| Hook code | As spec-hooks-prose-hooks.md, Change Log 2026-10-23, lists | FR-104, FR-213 |
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-088, FR-104 | Change Log 2026-10-23: Requirement: Guard decision and deny output | Scenario Prose-gate reads only the target file and the allowlist, with a stubbed `fs.statSync` that fails the test when called |
+
+### Fix pass 2 (2026-10-23)
+
+Review finding applied: Requirement refs gain FR-104 and FR-213.

@@ -1,11 +1,11 @@
 # assist-plugin: User Requirements Document
 
-**Version:** 1.4
-**Date:** 2026-10-22
+**Version:** 1.5
+**Date:** 2026-10-23
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
 
-Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is **Built** unless marked **PLANNED (1.12.0)**. UR-048, UR-050, UR-051, and UR-052 were PLANNED (1.11.1) and are now Built. UR-054 to UR-057 were added in version 1.3 as PLANNED (follow-up to 1.12.0): Bitbucket PR review, PR review hardening, `/bump --path` validation, and the checklist wording. Version 1.4 sets them to Built (1.13.0) after the follow-up build (`DECISIONS.md:243-271`): the functional requirements that satisfy them (FR-202 to FR-210) were confirmed by reading the built files on 2026-10-22, not by running them, and the version files still read 1.12.0 until the 1.13.0 hand release. UR-053 is new and PLANNED (1.12.0); the 1.12.0 changes to existing behavior sit in the functional requirements (`docs/requirements/FR-NFR-assist-plugin.md`) and do not change the wording of the other user requirements.
+Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Version 1.5 (2026-10-23) adds UR-058 as PLANNED (1.13.1), for release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291`); the functional requirements that satisfy it are FR-211 to FR-213, and no other user requirement changes. Every other requirement is **Built** unless marked **PLANNED (1.12.0)** or **PLANNED (1.13.1)**. UR-048, UR-050, UR-051, and UR-052 were PLANNED (1.11.1) and are now Built. UR-054 to UR-057 were added in version 1.3 as PLANNED (follow-up to 1.12.0): Bitbucket PR review, PR review hardening, `/bump --path` validation, and the checklist wording. Version 1.4 sets them to Built (1.13.0) after the follow-up build (`DECISIONS.md:243-271`): the functional requirements that satisfy them (FR-202 to FR-210) were confirmed by reading the built files on 2026-10-22, not by running them, and the version files still read 1.12.0 until the 1.13.0 hand release. UR-053 is new and PLANNED (1.12.0); the 1.12.0 changes to existing behavior sit in the functional requirements (`docs/requirements/FR-NFR-assist-plugin.md`) and do not change the wording of the other user requirements.
 
 ---
 
@@ -29,7 +29,7 @@ Baseline: assist-plugin 1.11.1 (released, commit 41034c1). Every requirement is 
 Each requirement uses the shall-statement form:
 > The [user/role] shall be able to [accomplish goal] [qualifying condition].
 
-Status is Built unless the row says PLANNED (1.12.0). UR-054 to UR-057 read Built (1.13.0).
+Status is Built unless the row says PLANNED (1.12.0) or PLANNED (1.13.1). UR-054 to UR-057 read Built (1.13.0). UR-058 is PLANNED (1.13.1).
 
 | ID | Requirement | Stakeholder | Traces to | Priority |
 |----|-------------|-------------|-----------|----------|
@@ -90,6 +90,7 @@ Status is Built unless the row says PLANNED (1.12.0). UR-054 to UR-057 read Buil
 | UR-055 | Built (1.13.0): The plugin user shall have pull request text treated as data, posted reviews limited to findings on the diff, a prompt, in every session, before the commands on the posting ask hook's list that post, merge, or close a pull request (a best-effort guardrail with known gaps, FR-206), and the scratch files of a `/do` review written safely and removed afterward. | Plugin user | BR-006 | Must |
 | UR-056 | Built (1.13.0): The plugin user shall have the `--path` value of `/bump` checked before it reaches the commit message and tag, and a value that would give an invalid git tag name refused (FR-209). | Plugin user | BR-010, BR-006 | Must |
 | UR-057 | Built (1.13.0): The plugin maintainer shall be able to read in the LLM security checklist that the pull request confirmation is a written rule and that the skill's Bash runs with no prompt. | Plugin maintainer | BR-005, BR-016 | Should |
+| UR-058 | PLANNED (1.13.1): The plugin user shall be able to paste a `/voice-script` script that holds no U+2014, U+2015, or curly quote anywhere in the saved file, with dash-style pauses marked as the chosen model's reference file lists, so the file passes the prose gates of this plugin and of other tools, and to see in the script's header how many em dashes of a draft or of header text were replaced, whether curly quotes were straightened, and which other writing tells were kept (FR-211 to FR-213). | Plugin user | BR-010, BR-008 | Should |
 
 ## 4. Use case summaries
 
@@ -186,3 +187,4 @@ Status is Built unless the row says PLANNED (1.12.0). UR-054 to UR-057 read Buil
 | 1.2 | 2026-10-17 | Toni-Jan Keith Monserrat | Post-sign-off change: UC-003 now says `/do` fetches the PR by redirect, posts with `gh` only, supports `github.com` remotes only in 1.12.0, and calls no `/pr-review` (`DECISIONS.md:183-216`, FR-195) |
 | 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | UR-054 to UR-057 added (PLANNED, follow-up to 1.12.0): Bitbucket PR review, PR review hardening, `/bump --path` validation, checklist wording. UC-003 notes the Bitbucket flow and hardening (FR-202 to FR-210). Documents stay DRAFT until the user signs off |
 | 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | UR-054 to UR-057 set to Built (1.13.0) after the follow-up build (`DECISIONS.md:243-271`), confirmed by reading the built files. UR-056 adds the refusal of a value that gives an invalid git tag name (rule R8, FR-209). UC-003 marks the Bitbucket flow built, calls the ask hook best-effort with listed known gaps, and adds the declined outcome of a rejected prompt. No new elicitation. Documents stay DRAFT until the user signs off |
+| 1.5 | 2026-10-23 | Toni-Jan Keith Monserrat | UR-058 added (PLANNED, 1.13.1): voice scripts without em dashes, with header notes for replaced em dashes, straightened curly quotes, and kept tells (FR-211 to FR-213, `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291`). Fix pass 1: whole-file scope, header user text, kept tells. Fix pass 3: a typed voice id, clip path, or model id with U+2014, U+2015, or a curly quote is refused (`DECISIONS.md:288-291`). UR-016 and UR-040 unchanged; the `docs/tts/` skip that served UR-016 is retired (FR-181). Documents stay DRAFT until the user signs off |

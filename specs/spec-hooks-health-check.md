@@ -7,9 +7,9 @@
 | **Feature** | Health check: hook self-tests, auto-disable, session notice, health report, attribution settings |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, FR-091, FR-107, FR-118, FR-119, FR-120, FR-206, NFR-007, NFR-009, NFR-016 |
+| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, NFR-007, NFR-009, NFR-016 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -808,3 +808,127 @@ Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`referenc
 ### Rework 2: line cites refreshed (no behavior change)
 
 The planning gate found cites that the build had moved. Re-read on 2026-10-22: the SessionStart entry is `hooks/hooks.json:118-128`; `canPersist` is `hooks/impl/health-check.js:1392`; the `Data directory: NOT SET` line is `:1255`. The Sources of Requirement: Health report (`:1251-1289`, `:1437-1448`), Requirement: Clear the failure log (`:1391`, `:1437-1438`, `:1287`), Requirement: Attribution settings report (`:47-51`, `:1291-1385`, `:1439-1444`), and Requirement: Health check failure handling (`:62`, `:66`, `:1451-1462`) are refreshed the same way, and the Description says so. The report's verb list in Requirement: Health report gains `INJECTED`, `ASKED`, and `NOT ASKED`, the verbs of the folded `writing-context` and `pr-post-ask` self-tests.
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT), release 1.13.1, "voice scripts without em dashes": FR-118 (`:2503-2543`; Status `:2506`, 1.13.1 Source `:2507`, scenarios `:2525-2533`), FR-091 (unchanged; a false deny disables a guard and any miss disables a filter), FR-104 (`:2245-2274`), FR-213 (`:3854-3883`), FR-181 retired (`:2756`), and the section 9 build list (`:5581`); `DECISIONS.md:273-276` and `:283-286` (the `prose-advisor` case in `docs/tts/` uses an advisory-tier tell). Every change in this entry is PLANNED (1.13.1). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-23 at the 1.13.0 release (commit `50817b5`): the prose corpora of `hooks/impl/health-check.js`, `PROSE_GATE_DENY` `:235-268` (31 cases), `PROSE_GATE_ALLOW` `:270-304` (32), `PROSE_ADVISOR_FLAGGED` `:333-345` (10), and `PROSE_ADVISOR_CLEAN` `:347-359` (11), and the helpers `:162-232`, `:306-331`. Counted by reading the arrays.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: FR-104 and FR-213 added (the self-test cases check their 1.13.1 rule); FR-118 and FR-091 are listed.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement: Self-tests: the `prose-gate` and `prose-advisor` rows and the Isolation paragraph take the Now text below. The counts sentence names the corpus lines after the build.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** The statement as in the body. Rows: `prose-gate` | guard | 32 | 31 | `deny === true`; stub file reader, explicit allowlist, temp directory, `projectDir`, and `findGitRoot`. `prose-advisor` | filter | 11 clean | 10 advisory | The advisor returns output. Isolation paragraph: "Isolation, built in 1.11.1 (FR-181, FR-186): every `prose-gate` and `prose-advisor` case carries the keys `projectDir` and `findGitRoot` (`withRoot`, `:177-179`), `diskReader` (`:193-204`) forwards them and throws for a case that lacks them, and the 13 cases of spec-hooks-prose-hooks.md (Requirement: Self-test isolation for the project root) are in the corpora; every task-planner case carries a `cwd` and a `findGitRoot` stub, and the wrapper throws for a case without one (`:1110-1117`)."
+
+**Now:** The statement is unchanged. Rows: `prose-gate` | guard | 24 | 38 | `deny === true`; stub file reader, explicit allowlist, and temp directory. `prose-advisor` | filter | 10 clean | 12 advisory | The advisor returns output. Isolation paragraph: "Isolation: every `prose-gate` and `prose-advisor` case passes an explicit allowlist and a stub file reader, and a case with a relative target passes the fixed temp directory `TTS_TMP`, so no result depends on the session (spec-hooks-prose-hooks.md, Requirement: Self-test isolation for the project root); the prose cases carry no `projectDir` or `findGitRoot` key. Every task-planner case carries a `cwd` and a `findGitRoot` stub, and the wrapper throws for a case without one (FR-186, unchanged)."
+
+**Reason:** FR-118 (scenarios `:2525-2533`): once the `docs/tts/` skip goes, a `docs/tts/` write with an em dash outside a fence is a `prose-gate` deny case only, a `docs/tts/` write with an advisory-tier tell outside a fence is a `prose-advisor` flagged case, and a `docs/tts/` write with no tell is an allow case and a clean case. A `docs/tts/` em-dash case left in the allow corpus would be a false deny, which FR-091 answers by disabling `prose-gate`.
+
+**Requirement refs:** FR-118, FR-091, FR-104, FR-213, UR-018 | **Status:** PLANNED (1.13.1) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:2506-2507`, `:2525-2533`; `hooks/impl/health-check.js:41-45`, `:171-232`, `:262-281`, `:326-349` (read 2026-10-23)
+
+Case changes (lines and labels at 1.13.0). "Kept" in the Label column means the label text stays.
+
+| # | Case at 1.13.0 | Line | From | To | Label after the change | Content |
+|---|---|---|---|---|---|---|
+| 1 | `tts: em dash in docs/tts (relative path)` | `:271` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | Kept | Unchanged: an em dash outside any fence |
+| 2 | `tts: em dash in docs/tts (absolute path)` | `:272` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | Kept | Unchanged |
+| 3 | `tts: em dash in a docs/tts subdirectory` | `:273` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | Kept | Unchanged |
+| 4 | `tts: dot segments that stay inside docs/tts` | `:274` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | Kept | Unchanged |
+| 5 | `tts: notebook markdown cell in docs/tts` | `:275` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | Kept | Unchanged: an em dash in a markdown cell |
+| 6 | `tts: project variable, session in a subdirectory (project root)` | `:277` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | `tts: session in a subdirectory, docs/tts at the root` | Unchanged; the `projectAt` argument goes |
+| 7 | `tts: project variable, session in a subdirectory (relative path above the cwd)` | `:278` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | `tts: session in a subdirectory, relative path above the cwd` | Unchanged; the `projectAt` argument goes |
+| 8 | `tts: project variable, session in a subdirectory (session directory)` | `:279` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | `tts: session in a subdirectory, docs/tts in the session directory` | Unchanged; the `projectAt` argument goes |
+| 9 | `tts: project variable, worktree session (session directory)` | `:280` | `PROSE_GATE_ALLOW` | `PROSE_GATE_DENY` | `tts: worktree session, docs/tts in the worktree` | Unchanged; the `projectAt` argument goes |
+| 10 | `tts: no project variable, git root above the session directory` | `:281` | `PROSE_GATE_ALLOW` | Dropped | none | Without its `gitRootAt` argument it has the target, `cwd`, and content of case 6 |
+| 11 | `tts: advisory tells in docs/tts` | `:348` | `PROSE_ADVISOR_CLEAN` | `PROSE_ADVISOR_FLAGGED` | Kept | Unchanged: an intensifier, an AI-vocabulary word, and an en dash, all advisory tier |
+| 12 | `tts: project variable, session in a subdirectory (session directory)` (advisor) | `:349` | `PROSE_ADVISOR_CLEAN` | `PROSE_ADVISOR_FLAGGED` | `tts: session in a subdirectory, docs/tts in the session directory` | Unchanged (`ADVISOR_TEXT`, `This is very robust.\n`); the `projectAt` argument goes |
+| 13 | New: a `docs/tts/` write with no tell | none | none | `PROSE_GATE_ALLOW` | `tts: docs/tts without a tell` | Target `docs/tts/a.md`, `cwd` `TTS_ROOT`, temp directory `TTS_TMP`, content `Pause here, then go on.\n` |
+| 14 | New: a `docs/tts/` write whose only em dash sits inside a fenced `text` block | none | none | `PROSE_GATE_ALLOW` | `tts: em dash only inside a fenced script block` | Same target, `cwd`, and temp directory; content: a `## Script` heading, then a fenced `text` block holding `Pause here`, an em dash, and `then go on.` |
+| 15 | New: a `docs/tts/` write with no tell | none | none | `PROSE_ADVISOR_CLEAN` | `tts: docs/tts without a tell` | A PostToolUse Write of case 13's target, `cwd`, and content (`tool_response.type` `create`) |
+| 16 | `tts: project variable, session in a subdirectory, session directory has no docs/tts` | `:263` | `PROSE_GATE_DENY` | `PROSE_GATE_DENY` | `tts: session at the root, docs/tts below a subdirectory` | Unchanged; the `projectAt` argument goes |
+| 17 | `tts: project variable, session in another project` | `:264` | `PROSE_GATE_DENY` | `PROSE_GATE_DENY` | `tts: session in another directory, its docs/tts` | Unchanged; the `projectAt` argument goes |
+| 18 | `tts: project variable, other docs path` | `:265` | `PROSE_GATE_DENY` | `PROSE_GATE_DENY` | `tts: session in a subdirectory, other docs path` | Unchanged; the `projectAt` argument goes |
+| 19 | `tts: project variable, no cwd, relative path` | `:266` | `PROSE_GATE_DENY` | Dropped | none | Without its `projectAt` argument it has the target, `cwd`, and content of `tts: no cwd, relative path` (`:242`) |
+| 20 | `tts: relative project variable, no cwd, relative path` | `:267` | `PROSE_GATE_DENY` | Dropped | none | Without its `projectAt` argument it duplicates `:242` too |
+| 21 | `tts: project variable, session at the root, docs/tts below a subdirectory` | `:343` | `PROSE_ADVISOR_FLAGGED` | `PROSE_ADVISOR_FLAGGED` | `tts: session at the root, docs/tts below a subdirectory` | Unchanged; the `projectAt` argument goes |
+| 22 | `tts: project variable, session in another project` (advisor) | `:344` | `PROSE_ADVISOR_FLAGGED` | `PROSE_ADVISOR_FLAGGED` | `tts: session in another directory, its docs/tts` | Unchanged; the `projectAt` argument goes |
+
+Rules:
+- A moved or relabeled case keeps its target, `cwd`, temp directory, and content. No label after the change names a project variable or a git root, or says a `docs/tts/` path is exempt. The `tts:` deny cases at `:236-246` keep their labels and their expected result, deny.
+- Every `projectAt` and `gitRootAt` argument goes (`:263-267`, `:277-281`, `:343-344`, `:349`), and with it the three cases that then duplicate another case (10, 19, 20; settled by `/do` in fix pass 1).
+- No em-dash case joins the advisor corpus: an em dash is block tier (`hooks/lib/prose-rules.js:70`), and `prose-advisor` reads advisory-tier tells only (`hooks/impl/prose-advisor.js:57`).
+- Counts after the change: `prose-gate` 24 allow (32 - 10 + 2) and 38 deny (31 - 2 + 9); `prose-advisor` 10 clean (11 - 2 + 1) and 12 flagged (10 + 2). At a pass the report shows `  prose-gate: PASS (24 allow cases, 38 deny cases)` and `  prose-advisor: PASS (10 clean samples, 12 advisory samples)`, with the nouns of the `GUARDS` entries (`:1094`, `:1102`, unchanged).
+- The header comment `:41-45` keeps the temp-directory and allowlist sentence and the explicit allowlist per case; its `docs/tts/`, `projectDir`, `findGitRoot`, and `CLAUDE_PROJECT_DIR` clauses go. The comments that name FR-181 or the exemption (`:171-173`, `:189-192`, `:213`, `:219`, `:226`, `:262`, `:276`, `:326`, `:342`) go or are reworded.
+- Tests (`docs/requirements/FR-NFR-assist-plugin.md:2507`, `:5581`; read 2026-10-23): `tests/hooks/health-check-selftest.test.js:110-146` (every case carries both keys) and `:192-236` (the wrapper throws for a keyless case) go or invert to the scenario Case without the project-root keys of spec-hooks-prose-hooks.md; `:148-189` (corpus sizes and the 13-case table) take the counts and the case list above; `:384-399` changes, because no allow case holds a `docs/tts/` em dash outside a fence; `:418-438` (HEALTH and HEALTH-PROJ) take the counts 24 and 38, and 10 and 12, at `:426-427`.
+
+##### Scenario: Docs/tts self-test cases after the skip is removed
+
+- **GIVEN** the 1.13.1 corpora with the case changes above, and the hooks without the `docs/tts/` skip
+- **WHEN** the session-start self-test runs
+- **THEN** `prose-gate` and `prose-advisor` SHALL give the expected result on every case, and the health check SHALL NOT add either hook to `hooks-disabled.json` (FR-091)
+
+##### Scenario: Stale docs/tts allow case
+
+- **GIVEN** a build that removes the skip but leaves case 1 in `PROSE_GATE_ALLOW`
+- **WHEN** the session-start self-test runs with `CLAUDE_PLUGIN_DATA` set
+- **THEN** the self-test SHALL record a false deny for case 1, and the health check SHALL add `prose-gate` to `hooks-disabled.json` with the reason `self-test: known-safe write denied (1 case)`
+- **AND** the case SHALL therefore move in the same build as the hook change
+
+##### Scenario: Advisor case in docs/tts uses an advisory tell
+
+- **GIVEN** case 11 in `PROSE_ADVISOR_FLAGGED`
+- **WHEN** the self-test runs `prose-advisor`
+- **THEN** the advisor SHALL return output for the case, and the case SHALL be correct
+
+##### Scenario: Fenced em dash in docs/tts
+
+- **GIVEN** case 14 in `PROSE_GATE_ALLOW`
+- **WHEN** the self-test runs `prose-gate`
+- **THEN** the hook SHALL allow the write, and the case SHALL be correct
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Planned conformance (files that change with this entry)
+
+| File and lines (1.13.0, read 2026-10-23) | Change | Requirement |
+|---|---|---|
+| `hooks/impl/health-check.js:270-281`, `:235-268` | Cases 1 to 9 move from `PROSE_GATE_ALLOW` to `PROSE_GATE_DENY`; case 10 goes; cases 13 and 14 join `PROSE_GATE_ALLOW`; cases 16 to 18 are relabeled; cases 19 and 20 go | FR-118 |
+| `hooks/impl/health-check.js:333-359` | Cases 11 and 12 move from `PROSE_ADVISOR_CLEAN` to `PROSE_ADVISOR_FLAGGED`; case 15 joins `PROSE_ADVISOR_CLEAN`; cases 21 and 22 (`:343-344`) are relabeled | FR-118 |
+| `hooks/impl/health-check.js:171-232`, `:326-329`, and the root arguments at `:263-267`, `:277-281`, `:343-344`, `:349` | The project-root keys, the helpers `NO_GIT_ROOT`, `withRoot`, `gitRootAt`, and `projectAt`, the `roots` argument of `proseIn` and `postIn`, and every call that passes `projectAt` or `gitRootAt` go (spec-hooks-prose-hooks.md, Requirement: Self-test isolation for the project root, Change Log 2026-10-23) | FR-118, FR-091 |
+| `hooks/impl/health-check.js:41-45` and the comments listed under Rules | The header and comment edits of the Rules list | FR-118 |
+| `tests/hooks/health-check-selftest.test.js` | The ranges listed under Rules | FR-118 |
+
+`hooks/impl/health-check.js` is on the LLM surface, so the change carries `✓ LLM Security Clear` (NFR-011).
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-118, FR-104, FR-213 | Change Log 2026-10-23: Requirement: Self-tests | HEALTH report with `prose-gate` 24 and 38 and `prose-advisor` 10 and 12, all PASS and no "case threw"; HEALTH-PROJ under `CLAUDE_PROJECT_DIR=/home/u/app` with the same result |
+| FR-091 | Change Log 2026-10-23: Requirement: Self-tests, scenario Stale docs/tts allow case | A unit run of the self-test with case 1 left in the allow corpus: `prose-gate` gains a `hooks-disabled.json` entry |
+
+### Design choices for sign-off
+
+1. Case 14 (an em dash only inside a fenced block in `docs/tts/`) joins the allow corpus beside case 13. FR-118 asks for an allow case and a clean case with no tell; case 14 makes the self-test cover the fenced exemption that voice scripts rely on (FR-104 scenario Fenced script block stays exempt, `docs/requirements/FR-NFR-assist-plugin.md:2261-2264`; FR-105).
+2. Moved and relabeled cases keep their content; the new label texts in the case table are proposed wording.
+
+### Fix pass 1 (2026-10-23)
+
+Review findings applied: `/do` settled that the three cases that duplicate another once `projectAt` and `gitRootAt` go are dropped (cases 10, 19, and 20), so `prose-gate` has 38 deny cases, not 41; the case table now gives a label after the change for every moved or relabeled case, the unmoved ones that named a project variable included (cases 16 to 18 at `:263-265`, cases 21 and 22 at `:343-344`); the helper-removal row names every root argument (`:263-267`, `:277-281`, `:343-344`, `:349`); Requirement refs gain FR-104 and FR-213.

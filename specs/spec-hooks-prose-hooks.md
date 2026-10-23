@@ -7,9 +7,9 @@
 | **Feature** | Prose hooks: `prose-gate` (block tier) and `prose-advisor` (advisory tier), with the `docs/tts/` exemption under the project root and the session directory |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-003, BR-008, UR-016, FR-103, FR-104, FR-105, FR-106, FR-181, NFR-005, NFR-008, NFR-009, NFR-019 |
+| **Requirement refs** | BR-003, BR-008, UR-016, UR-058, FR-103, FR-104, FR-105, FR-106, FR-181 (removed 2026-10-23), FR-213, NFR-005, NFR-008, NFR-009, NFR-019 |
 | **Feature type** | Functionality |
-| **Status** | Approved |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -603,3 +603,231 @@ This scenario replaces Voice script from a session started in a subdirectory, as
 ### REMOVED Requirements
 
 None.
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT), release 1.13.1, "voice scripts without em dashes": FR-104 (`:2245-2274`; statement `:2247`, Status `:2248`, Source `:2249`), FR-181 retired (`:2754-2790`; retirement note `:2756`, Status `:2759`), FR-213 (`:3854-3883`; statement `:3856`), FR-118 (`:2503-2543`; 1.13.1 scenarios `:2525-2533`), FR-105 (`:2276-2290`, unchanged), NFR-019 (`:5354`), and the section 9 build list (`:5581`); `docs/requirements/URD-assist-plugin.md:93` (UR-058); `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23), which supersede `DECISIONS.md:3-6` and `:73-75`. Every change in this entry is PLANNED (1.13.1). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+Read on 2026-10-23 at the 1.13.0 release (commit `50817b5`): `hooks/lib/prose-diff.js`, `hooks/impl/prose-gate.js`, `hooks/impl/prose-advisor.js`, `hooks/lib/git-root.js`, and the prose corpora of `hooks/impl/health-check.js:162-359`. The `prose-diff.js`, `prose-gate.js`, and `prose-advisor.js` lines that the main body cites hold at 1.13.0; the `health-check.js` lines of the body are 1.11.1 lines and sit about 14 lines lower at 1.13.0 (for example `diskReader` is `:193-204`).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review.
+- Requirement refs: UR-058 and FR-213 added; FR-181 kept with the note "(removed 2026-10-23)".
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Metadata, Feature: "Prose hooks: `prose-gate` (block tier) and `prose-advisor` (advisory tier)"; the clause on the `docs/tts/` exemption goes.
+- Description: both hooks skip temp files and allowlisted paths, and a voice script under `docs/tts/` is judged like other prose (Requirement: Voice scripts judged like other prose files, below). The FR-181 paragraph becomes history: built in 1.11.1, retired in 1.13.1.
+- Required data: the `cwd` row reads "Base for relative target paths when it is a non-empty absolute path"; the `CLAUDE_PROJECT_DIR` and `.git` entries rows go.
+- Preconditions: the "Target is not exempt" row points at Requirement: Path exemptions as built only.
+- Algorithmic steps: the inline flow takes the text of `specs/spec-hooks-prose-hooks-flow.mmd`, updated in this pass (Flow after the change, below). Node R2 and decision D go.
+- Requirement: Path exemptions as built: the matching-rules paragraph keeps the temp-directory and allowlist rules; its `docs/tts/../README.md` example goes.
+- Business rules: RULE-004 reads "A voice script under `docs/tts/` is judged like any prose file; its fenced script blocks are exempt as every fence is" (FR-213, FR-105). RULE-006 goes: the prose hooks no longer look for a git root, and the `.git` walk of `hooks/lib/git-root.js` stays with its other two consumers, `fsa-write-bar` (FR-186, spec-hooks-fsa-write-bar.md) and `sa-mermaid-only` (FR-093, `hooks/impl/sa-mermaid-only.js:22`).
+- Data transformations: the root-resolution row goes.
+- Error handling: the row "Error while looking for `.git`" goes.
+- Performance considerations: the "Root lookup cost" row goes. The self-test row reads the 1.13.1 counts of spec-hooks-health-check.md (Change Log 2026-10-23): 24 allow and 38 deny cases for `prose-gate`, 10 clean and 12 flagged cases for `prose-advisor`.
+- Traceability: the rows under Traceability added, below; the FR-181 row is marked removed.
+
+### Flow after the change
+
+Source: `specs/spec-hooks-prose-hooks-flow.mmd`, updated in this pass. The inline flow in Algorithmic steps keeps the 1.13.0 flow until the fold.
+
+```mermaid
+flowchart TD
+  S(["Write, Edit, MultiEdit, or NotebookEdit"]) --> A["Resolve target: absolute as given, relative against the input cwd only when that cwd is absolute"]
+  A --> B{"Prose file or markdown notebook cell?"}
+  B -->|no| NONE["Not judged: no output"]
+  B -->|yes| C{"Under the system temp directory?"}
+  C -->|yes| NONE
+  C -->|no| E{"Path holds a prose-gate-allowlist.json entry, or the entry is *?"}
+  E -->|yes| NONE
+  E -->|no| F["Build before and after text pairs; a docs/tts/ voice script is judged like any prose file (1.13.1)"]
+  F --> G["Added lines: after lines with no equal line left in before"]
+  G --> H["Blank exempt regions (fenced script blocks of a voice script included), scan the tier's rules, count hits on added lines minus hits on removed lines"]
+  H --> I{"Which hook"}
+  I -->|"prose-gate, PreToolUse"| J{"Block-tier hits?"}
+  J -->|yes| DENY["Deny: hits by family with line, rule id, fix"]
+  J -->|no| NONE
+  I -->|"prose-advisor, PostToolUse"| K{"Advisory-tier hits?"}
+  K -->|yes| ADV["additionalContext: one line per family, 10 lines at most"]
+  K -->|no| NONE
+```
+
+Rendering not attempted: `mmdc` is installed (`which mmdc` found it on 2026-10-23), but it needs chrome-headless-shell, which is not installed (the runs of 2026-10-14, 2026-10-16, and 2026-10-22 failed on it; see spec-hooks-platform.md, note under Data flow). Render with `mmdc -i specs/spec-hooks-prose-hooks-flow.mmd -o specs/spec-hooks-prose-hooks-flow.png` once it is installed.
+
+### ADDED Requirements
+
+#### Requirement: Voice scripts judged like other prose files
+
+Both hooks SHALL judge a Write, Edit, MultiEdit, or NotebookEdit to a prose file under a `docs/tts/` directory like any other prose file, after blanking fenced blocks and the other exempt regions of Requirement: Exempt text regions.
+
+**Requirement refs:** FR-213, FR-104, FR-105, UR-016, UR-058, BR-008, NFR-019 | **Status:** PLANNED (1.13.1) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:3856`, `:2251-2274`, `:3875-3883`; `DECISIONS.md:273-276`, `:278-281`
+
+A voice script that `/voice-script` saves holds a header table, a Notes list, and one fenced `text` block per segment (`skills/voice-script/references/output-template.md:7-32`). The gate therefore judges the header and the notes. The fenced script text is blanked before any rule runs, so neither hook sees it, and the skill's rule that a saved voice script holds no U+2014, U+2015, or curly quote (FR-211, spec-skills-deslop-voice-clarify.md, Change Log 2026-10-23) is the only control on that text (`DECISIONS.md:278-281`). Inline code in the header, such as the model id in backticks, is exempt in the same way. Only added text is judged (Requirement: Added-text extraction), so a voice script saved by 1.11.1 to 1.13.0 with em dashes in its header stays editable: an Edit that adds no new tell passes. The allowlist still exempts any path a user lists in `prose-gate-allowlist.json` (FR-104); the plugin adds no `docs/tts/` entry.
+
+##### Scenario: Voice script header with an em dash
+
+- **GIVEN** a session whose `cwd` is the project root and a Write to `docs/tts/voice-intro-20261012-0900.md` whose header, outside the fenced block, adds an em dash
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL deny the write and list the hit with its line, rule id `em-dash/char`, and fix, as for any prose file
+
+##### Scenario: Voice script without a tell
+
+- **GIVEN** a session started in `<project>/src` and a Write to `<project>/docs/tts/voice-intro-20261012-0900.md` whose added text holds no block-tier tell outside fences
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL allow the write with no output
+
+##### Scenario: Fenced script block stays exempt
+
+- **GIVEN** a Write to `docs/tts/voice-intro-20261012-0900.md` whose only block-tier tell is an em dash inside the fenced `text` block
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL allow the write with no output, under FR-105
+
+##### Scenario: No built-in exemption from a subdirectory session
+
+- **GIVEN** no entry for the path in `prose-gate-allowlist.json`, a project outside the system temp directory, and a session started in `<project>/src`
+- **WHEN** `prose-gate` evaluates a Write to `<project>/src/docs/tts/voice-intro-20261012-0900.md` whose header holds an em dash
+- **THEN** the hook SHALL deny the write
+
+##### Scenario: Worktree session
+
+- **GIVEN** a session running in `<project>/.claude/worktrees/feature-a` and a Write to its `docs/tts/voice-x.md` with an em dash in the header
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL deny the write
+
+##### Scenario: Advisor on a voice script header
+
+- **GIVEN** a PostToolUse Write to `docs/tts/voice-intro-20261012-0900.md` (`tool_response.type` `create`) whose header adds an advisory-tier tell, such as the hedge rule `hedge/should-be-noted`
+- **WHEN** `prose-advisor` runs
+- **THEN** the advisor SHALL add its advisory note, as for any prose file
+
+##### Scenario: Advisory tell only inside the fence
+
+- **GIVEN** the same Write, whose only advisory-tier tell sits inside the fenced `text` block
+- **WHEN** `prose-advisor` runs
+- **THEN** the advisor SHALL emit nothing
+
+### MODIFIED Requirements
+
+#### Requirement: Path exemptions as built
+
+**Was:** (Change Log 2026-10-16) Both hooks SHALL NOT judge a target under the system temp directory (or its resolved real path), a target inside `docs/tts/` under an exempt root that Requirement: Voice-script exemption under the project root and the session directory defines (the project root, and the session directory when it lies inside the project), or a target whose path contains an entry of `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`, where the entry `*` exempts every path.
+
+**Now:** Both hooks SHALL NOT judge a target under the system temp directory (or its resolved real path), or a target whose path contains an entry of `${CLAUDE_PLUGIN_DATA}/prose-gate-allowlist.json`, where the entry `*` exempts every path.
+
+**Reason:** FR-104 drops its `docs/tts/` clause and FR-181 is retired (`docs/requirements/FR-NFR-assist-plugin.md:2248`, `:2756`; `DECISIONS.md:273-276`).
+
+**Requirement refs:** FR-104, UR-016 | **Status:** PLANNED (1.13.1) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:2247-2249`; `hooks/lib/prose-diff.js:143-150` (the temp-directory test `:145` and the allowlist test `:147-149` stay; the voice-script test `:146` goes)
+
+##### Scenario: Voice script from the project root
+
+- **GIVEN** a session whose `cwd` is the project root and a Write to `docs/tts/voice-intro-20261012-0900.md` whose header adds an em dash
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL deny the write
+
+This scenario replaces the body scenario of the same name, which allowed the write.
+
+##### Scenario: Voice script from a session started in a subdirectory
+
+- **GIVEN** `CLAUDE_PROJECT_DIR` is `<project>`, no allowlist entry for the path, a session started in `<project>/src`, and a Write to `<project>/docs/tts/voice-intro-20261012-0900.md` whose header adds an em dash
+- **WHEN** `prose-gate` evaluates it
+- **THEN** the hook SHALL deny the write, because the project root no longer gives an exemption
+
+This scenario replaces the scenario of the same name in the Change Log 2026-10-16, which allowed the write through the project root.
+
+##### Scenario: Listed path stays exempt
+
+- **GIVEN** `prose-gate-allowlist.json` holds `["docs/tts/"]`
+- **WHEN** a Write to `<project>/docs/tts/a.md` adds an em dash to its header
+- **THEN** both hooks SHALL emit nothing, because the allowlist test is unchanged
+
+The scenarios Other docs path, Path that climbs out, and Allowlist entry star are unchanged.
+
+#### Requirement: Self-test isolation for the project root
+
+**Was:** Every prose self-test case in `impl/health-check.js` SHALL carry the two test option keys `projectDir` (a string, or null for unset) and `findGitRoot` (a function that returns a root or null), passed through `diskReader` to the hook, so neither the real `CLAUDE_PROJECT_DIR` nor the real file system changes a case's result.
+
+**Now:** Every prose self-test case in `impl/health-check.js` SHALL give the same result whatever the session's `CLAUDE_PROJECT_DIR`, the `.git` entries above the check's working directory, the real temp directory, and the user's `prose-gate-allowlist.json`.
+
+**Reason:** With FR-181 retired, neither hook reads `CLAUDE_PROJECT_DIR` or walks for `.git`, so the keys `projectDir` and `findGitRoot` have nothing left to replace; the explicit allowlist, stub reader, and temp directory per case still keep a user's setup out of the results, which FR-118 and FR-091 need (a false deny disables the hook).
+
+**Requirement refs:** FR-118, FR-091, FR-104; FR-181 removed 2026-10-23 | **Status:** PLANNED (1.13.1) | **Source:** `hooks/impl/health-check.js:171-232`, `:262-267`, `:276-281`, `:326-329`, `:342-349` (read 2026-10-23)
+
+How the build meets it: the prose cases stop carrying `projectDir` and `findGitRoot`; `diskReader` (`:193-204`) stops requiring and forwarding them and keeps `readFile`, `allowlist`, and `tmpdir`; `NO_GIT_ROOT`, `withRoot`, `gitRootAt`, and `projectAt` (`:171-179`, `:226-232`) go with their callers, and `proseIn` and `postIn` lose their `roots` argument. The fixed temp directory `TTS_TMP` (`:217`) stays: a relative target with no usable `cwd` stays relative, and the temp-directory test resolves it against the check's own working directory (`hooks/lib/prose-diff.js:79-85`, `:145`), which may sit under the real temp directory. The table of 13 FR-181 cases in the body goes; spec-hooks-health-check.md (Change Log 2026-10-23) owns the 1.13.1 case list and counts.
+
+##### Scenario: Real project variable during SessionStart
+
+- **GIVEN** SessionStart runs with `CLAUDE_PROJECT_DIR=/home/u/app`
+- **WHEN** the self-test runs every `prose-gate` and `prose-advisor` case
+- **THEN** every case SHALL give its expected result, and neither hook SHALL be added to `hooks-disabled.json`
+
+##### Scenario: Case without the project-root keys
+
+- **GIVEN** a prose case with neither a `projectDir` nor a `findGitRoot` key
+- **WHEN** the self-test runs it
+- **THEN** the case SHALL run and give its expected result, and the report SHALL NOT list it under "case threw"
+
+This scenario replaces Case built without the keys. The scenario Every prose case carries both keys goes with the keys.
+
+### REMOVED Requirements
+
+#### Requirement: Voice-script exemption under the project root and the session directory
+
+**Reason:** In 1.13.1 `prose-gate` and `prose-advisor` exempt no `docs/tts/` path (FR-104, FR-213), by `DECISIONS.md:273-276`, which supersedes `DECISIONS.md:3-6` and `:73-75`.
+
+**Requirement ref:** FR-181, Status "Built (1.11.1); Retired (1.13.1)" in `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (`:2756`, `:2759`). The ID stays issued, and its text records the 1.11.1 to 1.13.0 behavior.
+
+**Migration:**
+- Code: the planned conformance table below. Both exempt roots, the project-root lookup, and the `.git` walk leave the prose hooks; `hooks/lib/git-root.js` stays for its other two consumers, `fsa-write-bar` (FR-186) and `sa-mermaid-only` (FR-093, `hooks/impl/sa-mermaid-only.js:22`).
+- Callers: `/voice-script` keeps saving under the session's working directory (FR-163), and its header and notes are now gated; spec-skills-deslop-voice-clarify.md (Change Log 2026-10-23) specifies the skill side. The test option keys `projectDir` and `findGitRoot` leave `changes()` and both `evaluate()` functions; a caller that still passes them sees no effect, because `changes()` copies its options and reads only the keys it uses.
+- Existing files: a voice script saved before 1.13.1 stays editable, because only added text is judged (Requirement: Added-text extraction).
+- Tests:
+  - `tests/hooks/prose-docs-tts.test.js:137-360`, `:360-370`, `:403-425`, and `:427-450` assert the exemption and change with it (cited from `docs/requirements/FR-NFR-assist-plugin.md:5581`; not read in this pass).
+  - `tests/docs/self-hosted-layout.test.js:143-242` (read 2026-10-23) asserts that five hook descriptions and `skills/voice-script/SKILL.md` state the two-root exemption; its end state is the scenario Hook descriptions name no docs/tts skip in spec-skills.md, Change Log 2026-10-23.
+  - `tests/hooks/git-root.test.js` keeps its assertions on the walk, which does not change. Its header traces (`:5-8`, `:18`) and the per-test trace comments (`:95-225`, read 2026-10-23) name this removed requirement, its scenarios (No project directory variable, Linked worktree without the variable, Neither available, Unreadable parent directory, Relative target without a usable cwd), RULE-006, FR-181, and FR-104. They move to FR-186 (spec-hooks-fsa-write-bar.md, Requirement: Task-planner write scope in docs/task-plans/, step 1, and its Scenario: Unreadable parent during the walk) and FR-093 (`sa-mermaid-only`, spec-hooks-bash-guards.md); NFR-008 stays on the no-`git`-process test (`:197-206`).
+  - `tests/hooks/health-check-selftest.test.js` changes as spec-hooks-health-check.md (Change Log 2026-10-23) states.
+
+### Planned conformance (files that change with this entry)
+
+The build list at `docs/requirements/FR-NFR-assist-plugin.md:5581` names `prose-diff.js:146`, `:139-141`, `:282-283`, `:290`, and `:433`, and the header comments of both hooks. This table adds the dead code that FR-104's Source names (`:18-20`, `:26`, `:103-137`) and the `projectDir` and `findGitRoot` pass-through that only the skip used, under the settled rule that the code only the skip uses goes with it.
+
+| File and lines (1.13.0, read 2026-10-23) | Change | Requirement |
+|---|---|---|
+| `hooks/lib/prose-diff.js:146` | The `isVoiceScript` call goes; `isExempt` (`:143-150`) keeps the temp-directory test `:145` and the allowlist test `:147-149` | FR-104, FR-213 |
+| `hooks/lib/prose-diff.js:103-137` | `projectRoot`, `voiceRoots`, `isVoiceScript`, and their comments go; `usableDir` (`:98-101`) stays, because `targetPath` uses it (`:157`) | FR-104 |
+| `hooks/lib/prose-diff.js:26` | `require("./git-root.js")` goes | FR-104 |
+| `hooks/lib/prose-diff.js:18-20` | The header no longer names `CLAUDE_PROJECT_DIR` or the `.git` walk; the target file read is the one environment read left | FR-104 |
+| `hooks/lib/prose-diff.js:139-142`, `:280-283` | The comments of `isExempt` and `changes()` drop the `docs/tts/` clause and the `projectDir` and `findGitRoot` options | FR-104 |
+| `hooks/lib/prose-diff.js:290` | `opts.cwd = input.cwd` goes: once `:146` goes, no code reads `opts.cwd` (read through `:301-425`) | FR-104 |
+| `hooks/lib/prose-diff.js:433` | The `isVoiceScript` export goes | FR-104 |
+| `hooks/impl/prose-gate.js:8-11`, `:54-56`, `:64-65` | The header comment drops the `docs/tts/` skip; the `evaluate` comment and the options passed to `diff.changes()` drop `projectDir` and `findGitRoot` | FR-104, FR-213 |
+| `hooks/impl/prose-advisor.js:7-9`, `:40-44`, `:53-54` | The same for the advisor | FR-213 |
+| `hooks/lib/git-root.js:3-5` | The header comment drops the prose-hooks clause and the FR-181 tag and names the two consumers that stay, `fsa-write-bar` (FR-186) and `sa-mermaid-only` (FR-093) | FR-186, FR-093 (cross-reference) |
+| `tests/hooks/git-root.test.js:5-8`, `:18`, `:95-225` | The header and per-test traces move from FR-181, RULE-006, and this spec's removed requirement to FR-186 (spec-hooks-fsa-write-bar.md, Requirement: Task-planner write scope in docs/task-plans/) and FR-093 | FR-186, FR-093 (cross-reference) |
+| `hooks/impl/health-check.js` | As spec-hooks-health-check.md, Change Log 2026-10-23, states | FR-118 |
+
+Every `hooks/` file in this table is on the LLM surface, so the change carries `✓ LLM Security Clear` (NFR-011).
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-213, UR-058 | Change Log 2026-10-23: Requirement: Voice scripts judged like other prose files | Hook tests: a header em dash denied, a fenced em dash allowed, a subdirectory and a worktree session denied, an advisor note on a header tell and none for a fenced one |
+| FR-104 | Change Log 2026-10-23: Requirement: Path exemptions as built | Temp-directory and allowlist cases; the `docs/tts/` deny cases of spec-hooks-health-check.md (Change Log 2026-10-23) |
+| FR-181 | Removed 2026-10-23 (retired in 1.13.1) | No test asserts a `docs/tts/` exemption after the build |
+| FR-118, FR-091 | Change Log 2026-10-23: Requirement: Self-test isolation for the project root | HEALTH and HEALTH-PROJ runs (`tests/hooks/health-check-selftest.test.js:430-438`) pass with no "case threw" and the 1.13.1 counts |
+| NFR-019 | Change Log 2026-10-23: Requirement: Voice scripts judged like other prose files | 0 block-tier hits in the added header and notes text of a saved voice script, as `prose-gate` judges it |
+
+### Design choices for sign-off
+
+1. The per-case keys `projectDir` and `findGitRoot` and the `diskReader` check that requires them go with the exemption, as code that only the skip used; a case without them runs normally (Requirement: Self-test isolation for the project root). The settled decision names this rule for `prose-diff.js`; this entry applies it to `health-check.js` too.
+2. The `projectDir` and `findGitRoot` pass-through in `prose-gate.js` and `prose-advisor.js` goes too, though the FR-NFR build list names only the header comments of those files.
+
+### Fix pass 1 (2026-10-23)
+
+Review findings applied, with no change to the requirements above: `hooks/lib/git-root.js` keeps two consumers, `fsa-write-bar` (FR-186) and `sa-mermaid-only` (FR-093), named in the RULE-006 bullet, the Migration, and the conformance table; `tests/hooks/git-root.test.js` joins the Tests bullet and the table with its traces moved to FR-186 and FR-093; `tests/docs/self-hosted-layout.test.js:143-242` points at its end state in spec-skills.md; the `prose-gate` deny count is 38, after `/do` dropped the three self-test cases that duplicate others once the root arguments go (spec-hooks-health-check.md, Change Log 2026-10-23).
+
+### Fix pass 2 (2026-10-23)
+
+Review finding applied: the per-test trace comments of `tests/hooks/git-root.test.js` (`:95-225`) move to FR-186 and FR-093 with its header traces, as the Tests bullet and the conformance row now say.

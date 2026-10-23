@@ -970,3 +970,13 @@ None.
 | FR-093 | Change Log 2026-10-17: Requirement: Mermaid guard paths, rule 4 | Drive-root scenario |
 | FR-094 | Change Log 2026-10-17: Requirement: Documentation CLI program detection, rule 9; RULE-006 | Review-form scenario |
 | FR-198 | Change Log 2026-10-17: Requirement: Documentation CLI program detection, rules 3 and 8 | Attached-value `sudo` scenario |
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT): FR-181 retired (`:2754-2790`; `:2756`), so the prose hooks stop using the `.git` walk of `hooks/lib/git-root.js` in 1.13.1 (spec-hooks-prose-hooks.md, Change Log 2026-10-23); FR-093 and FR-186 unchanged. `hooks/impl/sa-mermaid-only.js:22` and `hooks/lib/git-root.js:27-36` read on 2026-10-23.
+
+### Correction note (no behavior change)
+
+- Change Log 2026-10-16, Requirement: Mermaid guard paths, rule 3, says "FR-181 and FR-186 use the same walk." That entry is kept as written, as the record of its date. From 1.13.1 the sentence reads: "FR-186 uses the same walk; FR-181 used it from 1.11.1 to 1.13.0 and is retired in 1.13.1." The next fold of this spec takes that wording.
+
+`sa-mermaid-only`, its walk, and every scenario are unchanged, so this entry records no ADDED, MODIFIED, or REMOVED requirement, and the Status stays `Approved` (`skills/spec-from-requirements/references/delta-format.md`, When to use delta: a wording fix with no behavior change is a direct edit).

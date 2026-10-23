@@ -12,7 +12,7 @@ flowchart LR
   HC -->|read| HLOG
   HC -->|read| FLOG
   IMPL -->|require| TABLES["lib/fsa-tables.js<br/>lib/fsa-paths.js"]
-  IMPL -->|"require: prose hooks, fsa-write-bar; PLANNED 1.12.0: sa-mermaid-only"| GIT["lib/git-root.js<br/>.git walk, no git process"]
+  IMPL -->|"require: fsa-write-bar, sa-mermaid-only"| GIT["lib/git-root.js<br/>.git walk, no git process"]
   GIT -->|"stat .git from the input cwd upward"| PFS[("project file system")]
   SCRIPTS["scripts/check-fsa-tables.js<br/>scripts/sync-writing-standard.js"] -->|require| TABLES
   SCRIPTS -->|read| MD["agents, skills, rules<br/>markdown"]

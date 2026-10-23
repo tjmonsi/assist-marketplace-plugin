@@ -7,9 +7,9 @@
 | **Feature** | Area C: skill catalog, shared skill contract, manifests, and repository documents |
 | **Parent feature** | None |
 | **Sub-features** | spec-skills-ask-debug.md, spec-skills-git.md, spec-skills-pr-review.md, spec-skills-docs-review.md, spec-skills-requirements-specs.md, spec-skills-plan-test.md, spec-skills-deslop-voice-clarify.md, spec-skills-health.md, spec-skills-internal.md, spec-skills-manifests-docs.md, spec-skills-untrusted-input.md |
-| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, FR-130, FR-183, FR-185, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019 |
+| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, UR-058, FR-130, FR-183, FR-185, FR-211, FR-213, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019 |
 | **Feature type** | Tooling |
-| **Status** | Approved |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -652,3 +652,148 @@ None.
 - OP-4 now says the `/do` PR review flow covers `github.com` remotes only in 1.12.0. On any other host, Bitbucket included, the step fails with `precondition-failed` and the message to run `/pr-review` directly, and `/do` runs no `bkt` command. Correcting the `bkt` forms everywhere, `/pr-review`'s references included, is a follow-up outside 1.12.0.
 - The Description, the Decided points intro, the baseline note, and the `spec-skills-pr-review.md` sub-feature row name the 2026-10-17 refinement.
 - FR-NFR line cites now match the current file. Since fix pass 1, FR-094 and FR-198 (Area B) gained scenarios and FR-195 was rewritten. Cites in the Area B range moved down 10 lines (FR-181 `:2710` to `:2720`, FR-118 `:2468-2497` to `:2478-2507`). Area C cites before FR-195 moved down 15 (for example FR-136 identity `:2954-2957` to `:2969-2972`, FR-143 `:3168-3197` to `:3183-3212`, FR-147 `:3247-3266` to `:3262-3281`, FR-148 `:3268-3287` to `:3283-3302`, FR-154 `:3371-3400` to `:3386-3415`, FR-175 to FR-177 `:3763`, `:3799`, `:3820` to `:3778`, `:3814`, `:3835`, FR-177 `:3818-3857` to `:3833-3872`, FR-182 legacy `:3910-3913` to `:3925-3928`, FR-183 `:3917` to `:3932` and legacy `:3941-3944` to `:3956-3959`, FR-185 `:3979` to `:3994`, FR-194 `:4043-4062` to `:4058-4077`). In FR-NFR version 1.2, FR-195 is at `:4079-4218`, longer than before, so cites after it sit 35 lines below their fix-pass-1 lines: NFR-004 `:4288` (scenarios `:4297-4305`), NFR-011 `:4345`, NFR-013 `:4347` (scenarios `:4357-4380`), NFR-015 `:4349` (scenarios `:4392-4410`), NFR-020 `:4449` (scenario `:4457-4460`), FR-201 `:4252-4271`, and open question 8 `:4593`. Each was read at its new line. Cites before FR-094 (FR-020 `:393`, FR-061 `:1304-1348`, FR-199 `:1350`) did not move.
+
+## Change Log: 2026-10-23
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.5 (2026-10-23, DRAFT), release 1.13.1, "voice scripts without em dashes": NFR-019 (`:5354`), FR-211 to FR-213 (`:3729-3883`), FR-163 changed (`:3686-3727`), FR-104 changed (`:2245-2274`), FR-181 retired (`:2754-2790`), NFR-013 (`:5268`, no change to the `voice-script` grant), section 6 scope (`:5433-5434`), and the section 9 build list (`:5581`); `docs/requirements/URD-assist-plugin.md:93` (UR-058); `DECISIONS.md:273-276`, `:278-281`, `:283-286`, and `:288-291` (2026-10-23), which supersede `DECISIONS.md:3-6` and `:73-75`. Every change in this entry is PLANNED (1.13.1). This spec received a delta, so its Status returns to `Review` (FR-154).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review.
+- Requirement refs: UR-058, FR-211, and FR-213 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: Area B's range reads "FR-086 to FR-129, FR-180, FR-181 (retired in 1.13.1), FR-186, and FR-198".
+- Decided points, OP-2: superseded for 1.13.1 by `DECISIONS.md:273-276`. The prose hooks exempt no `docs/tts/` path; `/voice-script` keeps saving under the session's working directory, and its saved script holds no U+2014, U+2015, or curly quote (FR-104, FR-211 to FR-213). The text update of 1.13.1 covers `skills/voice-script/SKILL.md:150`, `:154`, `:162`, `:166`, and `:181`, `skills/health/SKILL.md:17`, and the documents in the table below. Reflected in: `spec-skills-deslop-voice-clarify.md` and `spec-skills-health.md` (Change Logs 2026-10-23).
+- Sub-feature breakdown: the `spec-skills-deslop-voice-clarify.md` row reads "(FR-161 to FR-165; PLANNED (1.13.1) FR-211 to FR-213 and a change to FR-163)"; the `spec-skills-health.md` row adds "PLANNED (1.13.1) the overview drops the `docs/tts/` skip".
+- Traceability: the NFR-019 row adds the whole-file count of a saved voice script.
+
+### ADDED Requirements
+
+FR-211 to FR-213 sit in `spec-skills-deslop-voice-clarify.md` (the skill side) and in `spec-hooks-prose-hooks.md` (the hook side of FR-213). This spec adds the document end state they need.
+
+#### Requirement: Documents describe voice scripts as gated prose
+
+Each of the five hook-description files (`CLAUDE.md`, `plugins/assist-plugin/Claude.md`, `README.md`, `plugins/assist-plugin/docs/SPECIFICATION.md`, and `plugins/assist-plugin/skills/health/SKILL.md`) SHALL hold at least one required sentence, and none of the six files (those five and `plugins/assist-plugin/skills/voice-script/SKILL.md`) holds a forbidden sentence, both as the rules below define them.
+
+**Requirement refs:** FR-104, FR-213, FR-211, UR-058, BR-008 | **Status:** PLANNED (1.13.1) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5581` (the documents to change); `tests/docs/self-hosted-layout.test.js:143-242` (read 2026-10-23), which asserts the two-root sentence of 1.11.1 to 1.13.0 in the same six files
+
+Rules (mechanical; every match is without regard to case):
+1. **Sentence.** A sentence is counted as `tests/docs/self-hosted-layout.test.js:149-159` counts it: a line break ends one, and so does `.`, `!`, or `?` followed by white space and a capital letter, a backtick, a star, an opening parenthesis, or an opening bracket.
+2. **Required sentence.** A sentence that contains `docs/tts/`, the phrase "like other prose", and the word "fenced", and is no forbidden sentence. At least one per hook-description file, as the test's "at least one" check (`:185`) counts. It stands as its own sentence: joined to the temp-directory and allowlist skip clause it would contain "skip" and meet F1. Recommended text: "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt."
+3. **Forbidden sentence**, any one of:
+   - **F1:** contains `docs/tts/` and "skip".
+   - **F2:** contains `docs/tts/` and "exempt", and does not contain "fenced". An "exempt" that refers to fenced blocks, in a sentence that holds "fenced", does not count.
+   - **F3:** contains "may use em dashes" or "may hold em dashes", with or without `docs/tts/`. These are the 1.13.0 wordings that allow em dashes as pause marks: "may use em dashes as pause marks" in the `prose-gate` bullet of `CLAUDE.md`, `plugins/assist-plugin/Claude.md:76`, `README.md:307`, `plugins/assist-plugin/docs/SPECIFICATION.md:423`, and `plugins/assist-plugin/skills/health/SKILL.md:17`; "may use em dashes, ellipses, and line breaks as pause marks" at `skills/voice-script/SKILL.md:150`; "may hold em dashes, ellipses, and line breaks as pause marks" at `:181`.
+   - **F4 (the five hook-description files only):** contains `docs/tts/` and either "project root" or a session-directory phrase: "session's working directory" (straight or curly apostrophe), "session working directory", or "session directory", as `PROJECT_ROOT_RE` and `SESSION_DIR_RE` (`:161-164`) define them.
+   - **F5 (`skills/voice-script/SKILL.md` only):** contains "prose-hook exemption".
+4. F4 does not apply to `skills/voice-script/SKILL.md`, whose save-path sentence (`:162`) names `docs/tts/` and the session's working directory and stays.
+5. The phrase "not the git root" stays absent from the five hook-description files (`:175-179`, unchanged).
+
+The 1.13.0 sentences that F1 to F4 catch: the `prose-gate` and `prose-advisor` bullets of `CLAUDE.md` (as loaded into this session) and of `plugins/assist-plugin/Claude.md:76-77`, `README.md:307`, `plugins/assist-plugin/docs/SPECIFICATION.md:423`, and `plugins/assist-plugin/skills/health/SKILL.md:17`; in `skills/voice-script/SKILL.md`, `:150`, `:162` (its second sentence), and `:181`.
+
+##### Scenario: Hook descriptions name no docs/tts skip
+
+- **GIVEN** the six files after the 1.13.1 build
+- **WHEN** a test splits each into sentences by rule 1 and applies F1 to F5
+- **THEN** no sentence SHALL be forbidden
+- **AND** each of the five hook-description files SHALL hold at least one required sentence
+
+##### Scenario: Fenced exemption sentence passes
+
+- **GIVEN** `README.md` holds "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt." as its own sentence
+- **WHEN** the test applies the rules
+- **THEN** the sentence SHALL count as required and SHALL NOT meet F2, because it holds "fenced"
+
+##### Scenario: Required wording joined to the skip clause
+
+- **GIVEN** `README.md` holds "Both per-write hooks skip files under the system temp directory, and files under `docs/tts/` are judged like other prose, with fenced blocks exempt." and no other sentence with `docs/tts/`
+- **WHEN** the test runs
+- **THEN** the sentence SHALL meet F1, and the test SHALL fail and name `README.md`
+
+##### Scenario: Stale two-root sentence
+
+- **GIVEN** a build that leaves the 1.13.0 sentence at `README.md:307`, which says both per-write hooks skip files under `docs/tts/` in the project root and in the session's working directory
+- **WHEN** the test runs
+- **THEN** the sentence SHALL meet F1, F3, and F4, and the test SHALL fail and name `README.md`
+
+##### Scenario: Stale Pauses rule
+
+- **GIVEN** a build that leaves "The script text may use em dashes, ellipses, and line breaks as pause marks" at `skills/voice-script/SKILL.md:150`
+- **WHEN** the test runs
+- **THEN** the sentence SHALL meet F3, and the test SHALL fail and name `skills/voice-script/SKILL.md`
+
+##### Scenario: Voice-script save sentence stays
+
+- **GIVEN** `plugins/assist-plugin/skills/voice-script/SKILL.md` after the build, whose `:162` keeps "Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory" and drops its prose-hook exemption sentence
+- **WHEN** the test applies the rules
+- **THEN** no sentence SHALL meet F1, F2, F3, or F5, and the save-path sentence SHALL pass, because F4 does not apply to this file
+
+### MODIFIED Requirements
+
+#### Requirement: Prose that skills write meets the block tier
+
+**Was:** Prose that a skill writes to a prose file SHALL contain no em dash, curly quote, chatbot residue, or summary label outside the exempt regions.
+
+**Now:** Prose that a skill writes to a prose file SHALL contain no em dash, curly quote, chatbot residue, or summary label outside the exempt regions, where no `docs/tts/` path is exempt and a voice script that `/voice-script` saves holds 0 U+2014, 0 U+2015, and 0 curly quotes over the whole file, fenced blocks included.
+
+**Reason:** NFR-019 (`docs/requirements/FR-NFR-assist-plugin.md:5354`) adds the 1.13.1 clause: the hooks judge the header and notes of a voice script, and the skill (FR-211) controls the fenced script text, which stays exempt from the hooks under FR-105.
+
+**Requirement refs:** NFR-019, FR-211, FR-213, BR-008, UR-058 | **Status:** Built; PLANNED (1.13.1) for the voice-script clause | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5354`; `rules/writing-standard.md:101-110`; Area B FR-103, FR-104, FR-105, FR-213; `spec-skills-deslop-voice-clarify.md` (Change Log 2026-10-23)
+
+##### Scenario: Voice script pause marks
+
+- **GIVEN** a voice script that `/voice-script` saved
+- **WHEN** a test counts U+2014, U+2015, and the curly quotes U+2018, U+2019, U+201C, and U+201D over the whole file
+- **THEN** each count SHALL be 0, the fenced `text` blocks included
+
+This scenario replaces the body scenario of the same name, whose fenced block held em dashes as pause marks.
+
+##### Scenario: Fenced block still exempt from the gate
+
+- **GIVEN** a hand-written `docs/tts/notes.md` whose fenced `text` block holds an em dash and whose other text holds no block-tier tell
+- **WHEN** `prose-gate` evaluates the write
+- **THEN** the write SHALL proceed, because a code fence is an exempt region (FR-105); the zero count of the voice-script clause is the skill's rule (FR-211), not the gate's
+
+##### Scenario: Em dash left in a voice script header
+
+- **GIVEN** a voice-script header whose delivery direction still holds an em dash when the skill writes the file
+- **WHEN** `prose-gate` evaluates the write
+- **THEN** the hook SHALL deny the write, because no `docs/tts/` path is exempt (FR-104, FR-213)
+- **AND** the skill SHALL fix the header and retry once on the same path (FR-163)
+
+The scenarios Clean findings file and Em dash in a finding are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Planned conformance (files that change with this entry)
+
+The child specs list the skill and hook files and their tests. The four repository documents below describe the `docs/tts/` skip and change at build time (`docs/requirements/FR-NFR-assist-plugin.md:5581`). `plugins/assist-plugin/Claude.md`, `README.md`, and `plugins/assist-plugin/docs/SPECIFICATION.md` were read on 2026-10-23 at the lines cited; `CLAUDE.md` is cited as loaded into this session. Each new text must pass rules 1 to 5 of Requirement: Documents describe voice scripts as gated prose; the quoted sentence below is the recommended required sentence.
+
+| File | Change | Requirement |
+|---|---|---|
+| `CLAUDE.md` (the `prose-gate` and `prose-advisor` bullets under "Hooks and writing standard") | In the `prose-gate` bullet, the sentence that names `docs/tts/`, its two roots, and "may use em dashes as pause marks" goes, and the required sentence "Files under `docs/tts/` are judged like other prose, with fenced blocks exempt." takes its place as its own sentence. In the `prose-advisor` bullet, the sentence that compares its `docs/tts/` handling with `prose-gate` goes, or reads "It judges `docs/tts/` as `prose-gate` does." | FR-104, FR-213 |
+| `plugins/assist-plugin/Claude.md:76-77` | The same two edits | FR-104, FR-213 |
+| `README.md:307` | The sentence splits: "Both per-write hooks skip files under the system temp directory." keeps the temp-directory clause without `docs/tts/`; the `docs/tts/`, root, and em-dash clauses go; the required sentence follows as its own sentence. The allowlist sentences after it stay | FR-104, FR-213 |
+| `plugins/assist-plugin/docs/SPECIFICATION.md:423` | The constraint bullet reads "`prose-gate` and `prose-advisor` judge files under `docs/tts/` like other prose, with fenced blocks exempt, so a saved script holds no em dash" (one sentence that holds `docs/tts/`, "like other prose", and "fenced", and no wording that F1 to F4 catch) | FR-104, FR-211, FR-213 |
+| `tests/docs/self-hosted-layout.test.js:143-242` | The FR-181 and OP-2 tests take the end state of Requirement: Documents describe voice scripts as gated prose: rules 1 to 5, with F1 to F5 applied to every sentence of the six files and at least one required sentence in each of the five hook descriptions; the voice-script test at `:203-227` asserts F5 and keeps the save-path sentence; the "not the git root" test at `:175-179` stays; trace comments move from FR-181 to FR-104 and FR-213 | FR-104, FR-213 |
+
+`CLAUDE.md` is an auto-loaded file and on the LLM surface (NFR-011), so its change carries `✓ LLM Security Clear`. `skills/health/SKILL.md` and `skills/voice-script/SKILL.md` change under spec-skills-health.md and spec-skills-deslop-voice-clarify.md (Change Logs 2026-10-23).
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-019, UR-058 | Change Log 2026-10-23: Requirement: Prose that skills write meets the block tier | Whole-file count of U+2014, U+2015, and the four curly quotes in saved voice scripts: 0; `prose-gate` deny of a header em dash |
+| FR-104, FR-213 | Change Log 2026-10-23: Requirement: Documents describe voice scripts as gated prose | `tests/docs/self-hosted-layout.test.js` after the build |
+
+### Fix pass 1 (2026-10-23)
+
+Review findings applied: the ADDED Requirement Documents describe voice scripts as gated prose gives `tests/docs/self-hosted-layout.test.js:143-242` an end state, and the conformance table lists that test; Requirement refs gain FR-211 and FR-213.
+
+### Fix pass 2 (2026-10-23)
+
+Review findings applied: the document requirement now states a mechanical end state (rules 1 to 5: the sentence rule, the required sentence with "like other prose" and "fenced" as its own sentence, and the forbidden sentences F1 to F5, where F3 is defined by the 1.13.0 strings "may use em dashes" and "may hold em dashes" and an "exempt" that refers to fenced blocks does not count), with scenarios for each rule; "like any prose" is no longer accepted; the conformance rows give per-document edits whose text passes the rules, and the `CLAUDE.md` row no longer quotes wording that F1 would catch.
