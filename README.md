@@ -25,14 +25,14 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.12.0
+### assist-plugin v1.13.0
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
 - `ask`: Repo and web Q&A with citations
 - `debug`: Root cause analysis + iterative fixes
-- `bump`: Semantic versioning & changelog generation
-- `pr-review`: GitHub/Bitbucket PR review with auto-detection
+- `bump`: Semantic versioning & changelog generation; `--path PATH` takes a relative path or an absolute path inside the git root and is validated before anything changes
+- `pr-review`: GitHub/Bitbucket PR review with auto-detection; asks for your confirmation before it posts
 - `commit`: Conventional commits
 - `branch`: Git branch management and merged worktree cleanup
 - `map-project`: Repository discovery
@@ -73,6 +73,8 @@ Then use the `/do` orchestrator:
 - GitHub (auto-detect, use `gh` CLI)
 - Bitbucket Cloud (auto-detect, use `bkt` CLI)
 - Bitbucket Server/DC (auto-detect)
+
+The `/do` PR review flow covers `github.com` remotes and Bitbucket Cloud and Data Center remotes through `bkt` (the bkt v0.34.0 command forms). It pins the Bitbucket host to one `bkt` context before any `bkt pr` or `bkt api` call, and a Cloud remote also passes a link check. A direct `/pr-review` run also reviews GitHub Enterprise remotes. If you reject the `pr-post-ask` prompt for a post, the step reports the post as declined, not failed. `/do` removes the PR files it wrote under `.agent/pr-review/` after use and at Cleanup.
 
 ## Token Efficiency
 
@@ -152,7 +154,7 @@ The plugin works without these tools, but agents fall back or skip steps when on
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
 | git | Your OS package manager | `commit`, `branch`, `bump`, `pr-review` | Yes |
-| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/commit-attribution-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/fsa-write-bar.js`, `hooks/fsa-log.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
+| Node.js 6+ and npm | Your OS package manager or nodejs.org | The plugin hooks (`hooks/sa-mermaid-only.js`, `hooks/doc-cli-guard.js`, `hooks/pr-post-ask.js`, `hooks/commit-attribution-guard.js`, `hooks/injection-filter.js`, `hooks/prose-gate.js`, `hooks/prose-advisor.js`, `hooks/writing-context.js`, `hooks/fsa-write-bar.js`, `hooks/fsa-log.js`, `hooks/health-check.js`). Hooks fail open: if `node` is missing or older than 6, or a hook crashes, the command still runs unchecked and you see a warning. See [Hook health](#hook-health) | Yes |
 | uv | Follow the [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/) | Preferred installer and runner for Python tooling (see [Python tooling](#python-tooling-uv-preferred)) | Recommended |
 | Python 3 | Your OS package manager (uv can also fetch Python itself) | Python-based scanners (Semgrep, garak, PyRIT, pip-audit); pip fallback when uv is absent | Recommended |
 
@@ -165,7 +167,7 @@ Every Python command in this plugin shows the uv form first and the pip or pipx 
 
 ### PR platforms
 
-Install only the one you use. Authenticate with `gh auth login` or `bkt auth login` (check with `gh auth status` or `bkt auth status`).
+Install only the one you use. Authenticate with `gh auth login` or `bkt auth login` (check GitHub with `gh auth status`; `bkt auth status` lists contexts but does not test the token). `bkt auth login` creates no context, so for Bitbucket also run `bkt context create <name> --host <host> ... --set-active`; `/pr-review` and the `/do` PR review need exactly one context whose host matches the remote.
 
 | Tool | Install | Used by | Required? |
 |------|---------|---------|-----------|
@@ -256,7 +258,7 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker pwsh promptfo
 
 ## Hook health
 
-The three Bash guards (`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`) and the `prose-gate` block a tool call only when they positively match a prohibited form. Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, the prose hooks, and the FSA hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), subagent reports with terminal-block problems (`fsa-log.jsonl`), disabled guards, and Claude Code's attribution setting (see [Commit attribution](#commit-attribution)). `/assist-plugin:health --clear` empties the failure log after showing it.
+The three Bash guards (`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`) and the `prose-gate` block a tool call only when they positively match a prohibited form. The `pr-post-ask` guard never blocks: it asks first (see [PR posting prompt](#pr-posting-prompt)). Any hook failure (crash, bad input, timeout, `node` missing, Node older than 6, a guard disabled after a failed self-test) lets the command run and shows a one-line warning; hooks never exit with status 2. A SessionStart self-test runs each guard, the injection filter, the prose hooks, and the FSA hooks against fixed allow and deny cases and prints a notice only when something is wrong. Run `/assist-plugin:health` for the full report: Node version, self-test results, recent hook failures (`hook-health.jsonl` in the plugin data directory, no command text), subagent reports with terminal-block problems (`fsa-log.jsonl`), disabled guards, and Claude Code's attribution setting (see [Commit attribution](#commit-attribution)). `/assist-plugin:health --clear` empties the failure log after showing it.
 
 ### Injection filter
 
@@ -284,6 +286,15 @@ Claude Code adds its own Co-Authored-By trailer to commits and a footer to pull 
 Source: https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts
 
 `/assist-plugin:health` reports, read-only, when `attribution.commit` or `attribution.pr` is unset or not `""` in those files. It names the file and key to change and never edits settings.
+
+### PR posting prompt
+
+The `pr-post-ask` hook (PreToolUse on `Bash` and `PowerShell`) asks you before a command that posts to, merges, or closes a pull request runs. It covers every session and every agent, because a hook cannot tell a `/do` post from a direct `/pr-review` post; both flows show the prompt after their own confirmation. It asks and never denies, and it fails open like the other hooks.
+
+- **Asks before:** `gh pr review`, `gh pr merge`, `gh pr comment`, `gh pr close`, `bkt pr approve`, `bkt pr comment`, `bkt pr decline`, `bkt pr close`, `bkt pr merge`, and a `bkt api` call that may write. A `bkt api` call passes only when it shows a read: no body option, no option the hook does not recognize, and the method absent, GET, or HEAD. An unlisted `bkt` option before the subcommand also asks, so the hook sometimes prompts on a read.
+- **Known gaps (best-effort, not a security boundary; a bypass form found later is added to this list):** a program word taken from a variable or an expression (`G=gh; $G pr merge 1`, PowerShell `& (Get-Command gh) pr merge 1`) and PowerShell splatting; `gh api` with any method, `gh pr edit`, `gh pr ready`, `gh pr reopen`, a `gh` alias or extension that expands to a posting command, and `bkt pr` subcommands other than `approve`, `comment`, `decline`, `close`, and `merge`; a command string run by another program (`bash -c`, `sh -c`, `pwsh -Command`, `cmd /c`, `eval`, `Invoke-Expression`, `iex`, `Start-Process`, `xargs`, `find -exec`, `watch`, `npx -c`, `node -e`, a script file, a shell function, a coprocess) and argv wrappers outside the hook's wrapper list (`setsid`, `doas`, `ionice`, `stdbuf --output 0 gh ...`); a posting command inside a command substitution in another program's argument (`echo $(gh pr merge 1)`; a substitution in the program word or in an assignment value before it is judged and asks); a Bash program name in another case (`GH`), `.cmd`, `.bat`, and `.ps1` shims, shell aliases, and renamed or linked binaries; an option with a separate value ahead of the verb that the option lists do not name (`gh --body x pr comment 1`, `gh pr --body x comment 1`, `gh pr -b x comment 1`, `gh pr --body-file f review 1 --approve`, `bkt pr --text x comment 1`); a redirection the shared lexer splits into separate parts (`gh 2>&1 pr merge 1`, `gh >&2 pr merge 1`, `gh &>/dev/null pr merge 1`, `gh >| out pr merge 1`, `bkt 2>&1 pr approve 1`, `gh < <(true) pr merge 1`); a PowerShell array or script block in the verb position (`gh pr @('merge') 1`, `gh pr {merge} 1`) and a PowerShell comment that hides an opening parenthesis; the quoting forms `$"gh"` and `$'g\x68'`, brace expansion (`{gh,pr,merge,1}`), a glob in the program word (`/usr/bin/g[h]`), `(( x = 1 << 2 ))` read as a heredoc so the next line is hidden, and `sudo --user root gh ...`; the PowerShell forms listed for `doc-cli-guard` (typographic quotes, block comments, the dot-source operator, typed, scoped, and compound assignments) and a redirection before the program (`2>/dev/null gh pr merge 1`); a REST request through `curl`, another HTTP client, or an MCP tool.
+- **Unverified gaps:** Claude Code's documentation does not say whether an ask prompts in `bypassPermissions` mode or plan mode, or whether an installed mod can approve a call the hook would prompt for. A deny from another hook beats the ask (documented).
+- **Self-test:** the health check runs the hook as a guard against 27 fixed cases. A known-safe command that asks disables the hook until a later self-test passes; a posting command that does not ask leaves it enabled and reports weak protection.
 
 ### Writing standard hooks
 
@@ -342,6 +353,7 @@ assist-marketplace-plugin/
 │       │   ├── hooks.json (hook registration)
 │       │   ├── sa-mermaid-only.js (entry: restricts solutions-architect Bash to mmdc, .mmd input and .svg, .png, or .pdf output under specs/, as a relative path or an absolute path under the git root)
 │       │   ├── doc-cli-guard.js (entry: guards firecrawl and ctx7 commands)
+│       │   ├── pr-post-ask.js (entry: asks before PR posting commands)
 │       │   ├── commit-attribution-guard.js (entry: denies AI attribution lines in commit messages and PR bodies)
 │       │   ├── injection-filter.js (entry: prompt-injection filter for tool results, subagent prompts, and typed prompts)
 │       │   ├── prose-gate.js (entry: denies added block-tier tells in prose writes)
@@ -350,7 +362,7 @@ assist-marketplace-plugin/
 │       │   ├── fsa-write-bar.js (entry: per-agent write limits and the protected .agent/main-plan/** and DECISIONS.md paths)
 │       │   ├── fsa-log.js (entry: logs and checks subagent terminal blocks, warn mode)
 │       │   ├── health-check.js (entry: SessionStart self-test and /health report)
-│       │   ├── impl/ (guard, injection-filter, prose-hook, FSA-hook, and health-check logic)
+│       │   ├── impl/ (guard, PR posting ask, injection-filter, prose-hook, FSA-hook, and health-check logic)
 │       │   └── lib/ (Node version gate, fail-open runtime, health log, injection-rules.js, prose-rules.js, prose-diff.js, git-root.js, fsa-tables.js, fsa-paths.js, shell-lex.js, shell-program.js, attribution-rules.js)
 │       ├── output-styles/ (terse.md: opt-in `assist-plugin:terse` output style)
 │       ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)

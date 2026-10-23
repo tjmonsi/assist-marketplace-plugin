@@ -2,6 +2,61 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.13.0] - 2026-10-23
+
+### Added
+
+- **`pr-post-ask` hook** (PreToolUse on `Bash` and `PowerShell`): asks before `gh pr review`, `gh pr merge`, `gh pr comment`, and `gh pr close`; before `bkt pr approve`, `comment`, `decline`, `close`, and `merge`; and before a `bkt api` call that may write
+  - It runs in every session and for every agent, and it asks and never denies
+  - It is best-effort string matching and fails open; Claude Code's permission prompts and each skill's own confirmation stay the main control
+  - The known gaps are listed in the `/health` overview and in `README.md`
+  - A 27-case self-test runs in `/health`; a false ask disables the hook like a false deny, and a missed ask is reported as weak protection
+  - Hook counts are now 11 scripts registered as 16 commands
+- **Bitbucket support in the `/do` PR review flow** (Cloud and Data Center)
+  - Host classification from `origin`, and a host pin: the flow refuses when `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR` is set, and the chosen `bkt` context must match the `origin` host
+  - On Cloud, a link check before the fetch: the PR link from `bkt pr view` must match the `origin` workspace and repository (compared without case), or the step fails with `policy-rejection`
+  - Fetch through `bkt` to files, so `/do` does not read the diff text
+  - Each post (approve, comment, the Cloud request-changes call) runs as its own command with its own prompt; a rejected prompt records the post as declined and runs no second command
+  - The flow removes the PR files by exact name after a post or a "do not post" answer, and Cleanup sweeps leftovers; no glob pattern is used
+
+### Changed
+
+- `/pr-review` uses the `bkt` v0.34.0 command forms: a numeric PR id with `--workspace` (Cloud) or `--project` (Data Center) and `--repo`, and `--text` only for comment text
+- `/pr-review` run directly treats the fetched PR text as untrusted data and caps it at 204,800 bytes, read in pages
+- `/pr-review` applies a public-posting rule to drafted text: the posted text holds only findings on the diff
+- `/pr-review` writes its scratch files to a per-run `mktemp` folder, with no fixed `/tmp` path, and removes the files by name and the folder with `rmdir` after checking that the folder path starts with the `mktemp` template prefix
+- On Bitbucket, a body-hash check runs as its own command before `bkt pr approve`, so a changed body file stops the post before the approval
+- `/do` checks every `.agent` write for a symlink. A symlink at the plan file, or at the snapshot folder when the session has no scratchpad, ends the run in `Error(policy-rejection)`. A symlink at the PR-file guard fails only that PR review step. At PR-file cleanup (after a post and at the Cleanup sweep) a symlink removes nothing and changes no terminal.
+- The guard runtime prints an `ask` decision; a `deny` from any guard wins over an `ask`
+- The `/health` check treats a false `ask` on a known-safe case like a false `deny`
+- `rules/llm-security-checklist.md`: row 2 and the LLM05 wording match the new posting rules and the `--text` form
+
+### Fixed
+
+- `/bump --path` validates its value before any change: the path is normalized, validated against rules R1 to R8, and only then used to name the commit and tag. The rules reject a segment that starts with `.` or holds `..`, which gives an invalid git tag name. The git root is never pasted into a command.
+
+### Security
+
+- The posting and path changes above add a prompt before each PR post, validate `/bump --path` before any file, commit, or tag changes, and guard `.agent` writes against symlinks
+- Gate results recorded 2026-10-22 for the build lanes: `✓ OWASP Clear` and `✓ LLM Security Clear`
+- `pr-post-ask` is best-effort like `doc-cli-guard`; the hook header, the hook spec, `README.md`, and `/health` list its known gaps
+
+### Not yet verified
+
+- Manual matrix rows 1 to 13: they need an interactive session, a Bitbucket account, or a real `bkt` binary
+- Rows 14 to 18: the command-level stub checks passed; the skill-driven part has not run
+- The `zsh` run of both cleanup commands: `zsh` is not installed, and the bash runs pass
+- The exact Claude Code rejection text (row 2) and the Bitbucket Cloud link case (row 3)
+- Hook `ask` behavior in `bypassPermissions` and plan mode, and whether an installed mod can approve (row 10)
+- The Node 6 parse of the new hook
+- Mermaid PNG rendering of the changed diagrams (`npx puppeteer browsers install chrome-headless-shell`)
+
+### Known follow-ups
+
+- `skills/pr-review/SKILL.md:118`: the summary row omits the body-hash check
+- `skills/do/references/pr-review-flow.md:291`: the table title says two-command
+- `doc-cli-guard` and `pr-post-ask` remain best-effort, each with its listed gaps
+
 ## [1.12.0] - 2026-10-17
 
 ### Added
