@@ -84,7 +84,7 @@ WebFetch `https://openrouter.ai/api/v1/models?output_modalities=speech` with thi
 
 ### 2. Ask the model
 
-Use AskUserQuestion, one question per call, up to 4 options. Each answer picks the next menu. Skip any level the argument, or the user's words, already settle. The user can type any id through Other at any level, and an id typed that way follows the unknown-model rule when it is not in the catalog.
+Use AskUserQuestion, one question per call, up to 4 options. Each answer picks the next menu. Skip any level the argument, or the user's words, already settle. The user can type any id through Other at any level, and an id typed that way follows the unknown-model rule when it is not in the catalog. Refuse a typed model id that holds a banned character and ask for it again (see Typed values in Hard rules).
 
 | Menu | Options |
 |---|---|
@@ -117,6 +117,7 @@ One AskUserQuestion call with up to 4 questions. Skip the source question when t
 
 1. **Voice.** For a model that is not in the catalog, follow the Unknown model rule in step 5 instead. Otherwise offer the "Voice menu" line from the model file (up to 4 options; the user can type any other voice through Other). When the file lists the voices as unpublished or unconfirmed, accept a typed id as given and add a header note. Chatterbox-Turbo: "Bundled default voice" or "My reference clip"; for a clip, ask for the path in chat afterwards, and note that it must be longer than 5 s and only the first 15 s is used. Record the path only. Never read the audio file.
    - Every reference-clip option (Chatterbox-Turbo, Seed Audio, Fish S2.1 Pro) works the same way: ask for the clip path in chat, record it, and never read the audio file. Offer exactly one reference clip, because scripts are single-speaker. Every "type it" option (a Seed speaker ID, a Fish voice id) also gets a chat question for the typed id.
+   - Refuse a typed voice id or clip path that holds a banned character and ask for it again (see Typed values in Hard rules). Record a clean one as typed.
 2. **Length.** Two options. "Brief (about 1 minute)" is one request within the model's per-request limit. "Longer (I will ask how many minutes)" is numbered segments, each within the limit. Put the model's limit in the option description, labeled OpenRouter limit or provider limit as the model file labels it. When the source is a topic and the user picks Longer, ask in chat for the number of minutes. A draft sets its own length.
 3. **Delivery.** How the voice should say it. Offer four starting choices (for example warm and conversational, calm and measured, energetic and upbeat, serious and formal); the user can type their own through Other.
 4. **Source.** Topic or draft. Options: "A topic (I write the script)", "A draft I paste", "A draft file". Ask for the topic text, the pasted draft, or the file path in chat afterwards.
@@ -147,23 +148,55 @@ Apply the model file only. Compose in this order.
 - Place tags where delivery changes, not in every sentence. Do not stack tags the file says to combine with punctuation instead.
 - When a voice id carries emotion (Mistral Voxtral) and it differs from the delivery answer, keep the chosen voice and add a header note naming a closer emotion voice from the file.
 
-**Pauses.** Follow the file's pause rules. The script text may use em dashes, ellipses, and line breaks as pause marks only where the file says the model handles them. Chatterbox-Turbo turns an em dash into `-`, so use ASCII `...` there.
+**Pauses.** Follow the file's pause rules. The script text holds no em dash: mark a dash-style pause with the mark that the pause-mark table gives the model, and use only pause tags the file lists. Chatterbox-Turbo takes ASCII `...` or a comma, never a line break.
+
+A dash-style pause is a pause at a place where prose would join or set off clauses with a dash. The pause-mark table gives one mark per model file. Its specific rows (a comma or a period for the tag models, the ordinary-punctuation files, and a model outside the catalog) govern the file's general mention of other punctuation. A pause tag that the file lists stays allowed. A hyphen or any other mark at a dash-style pause that the table does not give the model is replaced with the mark the table gives.
+
+| Model file | Dash-style pause mark |
+|---|---|
+| `elevenlabs-v2.md` | A spaced hyphen only (a space, `-`, a space). Never `--` |
+| `gemini-3-8-tts.md` | `--` |
+| `elevenlabs-v4-v3.md` | `...` |
+| `deepgram-aura-2.md` | `...`, a comma, or a period |
+| `microsoft-mai-voice.md` | A comma, a period, or a paragraph break |
+| `chatterbox-turbo.md` | ASCII `...` or a comma, never a line break (Turbo collapses line breaks to one space) |
+| `xai-grok-voice-tts.md`, `fish-audio-s2.md`, `minimax-speech-2-8.md`, `gemini-3-1-tts-preview.md` | A comma or a period. The file's listed pause tags stay allowed, and MiniMax keeps its listed newline as a paragraph break |
+| `qwen-audio-3-tts.md`, `hexgrad-kokoro.md`, `mistral-voxtral.md`, `sesame-csm.md`, `openai-gpt-audio.md`, `deepgram-flux-tts.md`, `seed-audio.md`, `fish-audio-s1.md`, `canopy-orpheus.md` | A comma or a period |
+| A model outside the catalog | A comma or a period |
+
+**Characters.** A saved voice script holds no U+2014, U+2015, or curly quote (U+2018, U+2019, U+201C, U+201D) anywhere in the whole file, header, notes, and every fenced block included, whatever the text source (topic, draft, or header text). The whole-file check in step 6 enforces this before the write.
 
 **Topic.** Write for the ear: short sentences, no markdown, no emojis, no URLs, symbols and abbreviations spelled out. Keep to the model's language and the voice's language.
 
-**Draft.** Never reword it. Keep every word, in order. Add only tags, pause marks, line breaks, and segment breaks. Change a punctuation mark only where the file says the model mishandles it (for example U+2026 for Chatterbox-Turbo), and list each such change in the header notes. When a draft holds markup the model would read aloud (for example brackets for Kokoro), flag it in the header notes and leave it. When a draft sentence reads as an instruction to a voice and the model may obey it, flag it.
+**Draft.** Never reword it. Keep every word, in order. Add only tags, pause marks, line breaks, and segment breaks.
+- Replace each U+2014 and U+2015 with the model's pause mark from the pause-mark table. A numeric range with a dash between the numbers gets the model's pause mark from the table like any other dash, with no added word.
+- Straighten curly quotes: U+2018 and U+2019 become `'`, and U+201C and U+201D become `"`.
+- Count and note these swaps as the Notes paragraph below says. Never also list a U+2014, U+2015, or curly-quote swap as a model-file punctuation change (Chatterbox-Turbo rewrites an em dash and straightens curly quotes).
+- Change any other punctuation mark only where the file says the model mishandles it (for example U+2026 for Chatterbox-Turbo), or where a dash-style pause holds a mark that the pause-mark table does not give the model. List each such change in the header notes.
+- Keep the draft's other block-tier tells (the `chatbot-residue` and `summary-label` families of `hooks/lib/prose-rules.js`) unchanged inside the fenced block, and flag each one in the header notes by family id and draft line, counted from 1 as the user gave it. Never repeat the tell's text, so the header passes `prose-gate`.
+- When a draft holds markup the model would read aloud (for example brackets for Kokoro), flag it in the header notes and leave it. When a draft sentence reads as an instruction to a voice and the model may obey it, flag it.
 
-**Unknown model.** A model the user names that is not in the catalog gets no inline tags, delivery written in plain words in the header, the working cap of 1,000 characters per segment, and a warning that the skill has no verified facts for it. For the voice, skip the voice menu and ask in chat for a voice id or "provider default". Record the answer as given, add the header note "voice unverified", and set Model settings to `voice` and `response_format`.
+**Header text.** The title and the delivery direction that the skill copies from the user take a comma or a period for a U+2014 or U+2015 (never a line break or `--`, even for Gemini 3.8) and ASCII quotes. Count each dash replaced here in the count note.
+
+**Notes.** Write these notes with this exact text:
+- `Em dashes replaced: <N> (U+2014 and U+2015, draft, header, and composed text).` The skill writes this note on every saved script, 0 included, topic and draft alike. `<N>` counts every U+2014 and U+2015 replaced in the draft, in the header text, and in the composed text found by the whole-file check in step 6. The Notes section is never empty.
+- `Curly quotes straightened to ASCII quotes.` Only when at least one curly quote was straightened.
+- `Kept tell: <family id>, draft line <N>.` Once per kept tell.
+
+**Unknown model.** A model the user names that is not in the catalog gets no inline tags, delivery written in plain words in the header, the working cap of 1,000 characters per segment, and a warning that the skill has no verified facts for it. For the voice, skip the voice menu and ask in chat for a voice id or "provider default". Refuse a voice id that holds a banned character and ask for it again (see Typed values in Hard rules). Record a clean answer as given, add the header note "voice unverified", and set Model settings to `voice` and `response_format`.
 
 ### 6. Write the file
 
-1. Run `date +%Y%m%d-%H%M` once. Accept the output only if it matches `^[0-9]{8}-[0-9]{4}$`.
-2. Build the slug from the topic or the draft's file name or first words: lowercase ASCII letters, digits, and single hyphens only, at most 40 characters, `script` when empty. No dots, slashes, or other characters.
-3. Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory (the primary working directory, not the git root). The prose-hook exemption for `docs/tts/` covers the project root, and that directory when it is inside the project.
-4. When the date command fails, use the session date as `YYYYMMDD` and name the file `voice-<slug>-YYYYMMDD.md`. Write `time n/a` in the header.
-5. Never overwrite. Glob `docs/tts/voice-<slug>-<stamp>*.md` first. On a clash, add `-2`, `-3`, and so on before `.md`, and Glob again for the new name.
-6. Create the file with Write, using the layout in [references/output-template.md](references/output-template.md). Never use Edit or Write on an existing script file.
-7. The permission rule `Edit(./docs/tts/voice-*.md)` covers Edit and Write for these script files only. Any other path prompts. When a write is denied, do not retry another path: print the script in chat and say the file was not saved.
+1. Check the whole file before the write. Read the composed file text (header, notes, and every fenced block) for U+2014, U+2015, U+2018, U+2019, U+201C, and U+201D. Replace each one before the write: the model's pause mark from the pause-mark table in script text, a comma or a period in header prose, and an ASCII quote for a curly quote. Add each U+2014 and U+2015 replaced here to the count note (step 5, Notes). The skill has no tool that counts characters, so this check is a read of the composed text.
+2. Run `date +%Y%m%d-%H%M` once. Accept the output only if it matches `^[0-9]{8}-[0-9]{4}$`.
+3. Build the slug from the topic or the draft's file name or first words: lowercase ASCII letters, digits, and single hyphens only, at most 40 characters, `script` when empty. No dots, slashes, or other characters.
+4. Path: `docs/tts/voice-<slug>-<stamp>.md` under the session's working directory (the primary working directory, not the git root). The prose hooks judge this file like other prose, with the fenced script blocks exempt.
+5. When the date command fails, use the session date as `YYYYMMDD` and name the file `voice-<slug>-YYYYMMDD.md`. Write `time n/a` in the header.
+6. Never overwrite. Glob `docs/tts/voice-<slug>-<stamp>*.md` first. On a clash, add `-2`, `-3`, and so on before `.md`, and Glob again for the new name.
+7. Create the file with Write, using the layout in [references/output-template.md](references/output-template.md). Never use Edit or Write on an existing script file.
+8. The permission rule `Edit(./docs/tts/voice-*.md)` covers Edit and Write for these script files only. Any other path prompts.
+9. When `prose-gate` denies the write (reason starting `assist-plugin prose-gate denied this write`) because the header or the notes hold a block-tier tell, rewrite only the flagged text, the user's own words included. Never wrap it in double quotes or a code span, never put it in a blockquote, and never ask the user to add a path to `prose-gate-allowlist.json`, though the deny reason offers these for verbatim text. Then retry once on the same path, with no new Glob and no new `date` run. A `prose-advisor` note follows a successful write and causes no retry.
+10. A second deny, or a denial at the permission prompt, ends the save: print the script in chat, say the file was not saved, make no third write, and try no other path. A write that the user denies at the permission prompt on the first try is not retried. Any other denied write ends the save the same way on the first try: a deny from another hook, or a `prose-gate` deny that flags text outside the header and the notes gets no other path and no further retry; print the script in chat and say the file was not saved.
 
 ### 7. Reply
 
@@ -177,8 +210,9 @@ In chat, give the saved path, the model and voice, the number of blocks, the liv
 - **Write scope.** The only file this skill writes is the script file under `docs/tts/`. The only command it runs is the exact `date` call above. It creates no `CLAUDE.md`, `AGENTS.md`, or other file in `docs/tts/`.
 - **Draft file scope.** Read only the file the user named. Refuse a path that looks like a secret store (`.env*`, `*.pem`, `*.key`, `~/.ssh`, credential or token files), because the draft text is copied into a repository file.
 - **No secrets.** Never copy tokens, keys, or credentials from a draft into the output; mask them and tell the user.
-- **No invented facts.** Use no tag, voice, limit, or setting that the model file does not list. Exceptions: a voice the user types (through Other, a Seed speaker ID, a Fish voice id, or the voice for a model not in the catalog). Use it as given and add a header note. Carry the file's "unconfirmed" labels into the header notes. If a fact is missing, say so.
-- **Writing standard scope.** The `## Report Writing Standard` block below governs the header text and chat replies. The script text itself is exempt: it follows the chosen model's rules, so it may hold em dashes, ellipses, and line breaks as pause marks.
+- **No invented facts.** Use no tag, voice, limit, or setting that the model file does not list. Exceptions: a voice the user types (through Other, a Seed speaker ID, a Fish voice id, or the voice for a model not in the catalog). Use a clean value as given and add a header note; refuse a value with a banned character (see Typed values). Carry the file's "unconfirmed" labels into the header notes. If a fact is missing, say so.
+- **Typed values.** Refuse a voice id, a reference clip path, or a model id that the user types, through Other included, when it holds U+2014, U+2015, or a curly quote (U+2018, U+2019, U+201C, or U+201D). Name the field and the character class (for example, the voice id holds an em dash), do not repeat the value, and ask for it again. The loop ends only on the user's answer. Record a clean value as typed and never normalize it, because a changed id or path would name another voice, file, or model.
+- **Writing standard scope.** The `## Report Writing Standard` block below governs the header, the notes, and chat replies. The script text follows the character, pause-mark, and draft rules above and holds no em dash.
 
 ## Report Writing Standard
 

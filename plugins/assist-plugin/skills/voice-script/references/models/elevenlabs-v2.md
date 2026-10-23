@@ -23,7 +23,8 @@ None. ElevenLabs lists audio tags only for v3, v4, and v4 Turbo [EL5]. On OpenRo
 | Markup | Effect | Use | Source |
 |---|---|---|---|
 | `<break time="1.5s" />` | Natural pause; "The AI can handle pauses of up to 3 seconds"; too many cause instability | only when the user asks (pass-through unconfirmed) | EL4, EL6 |
-| `-`, `--`, or an em dash | Short pause; ElevenLabs says a dash "often works well" but is less consistent than break tags | yes | EL4 |
+| A spaced hyphen (a space, `-`, a space) used as a dash | Short pause; ElevenLabs says a dash "often works well" but is less consistent than break tags | yes | EL4 |
+| `--` | Short pause; ElevenLabs says a dash "often works well" but is less consistent than break tags; the skill does not write it | no | EL4 |
 | `...` | Pause that "usually also adds some hesitation or nervousness" | yes | EL4 |
 | `<phoneme alphabet="cmu-arpabet" ph="...">word</phoneme>` | Pronunciation; Flash v2 and Turbo v2 only, English only | no (pass-through unconfirmed) | EL2, EL6 |
 
