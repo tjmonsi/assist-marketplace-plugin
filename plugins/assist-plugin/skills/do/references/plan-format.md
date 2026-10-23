@@ -160,8 +160,8 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
   - `pending`: not started
   - `in_progress`: dispatched and running
   - `waiting-user`: the agent ended in `NeedsInput`; the orchestrator is asking the user. It also covers the open draft confirmation of a PR review step. A stop returns it to `pending`
-  - `completed`: the agent ended in `Done` and passed its review gate. A PR review step runs no gate: it is `completed` after a successful post or a "do not post" answer
-  - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass. A PR review step is also `failed` on a fetch or post error
+  - `completed`: the agent ended in `Done` and passed its review gate. A PR review step runs no gate: it is `completed` after a post, a post the user declined at the hook prompt, or a "do not post" answer
+  - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass. A PR review step is also `failed` on a fetch, link-check, or post error
   - `skipped`: a step it depends on failed, or the user cancelled at DocSignOff ("Skipped: documents not approved"). An intake review step that fails skips nothing
 - **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)
