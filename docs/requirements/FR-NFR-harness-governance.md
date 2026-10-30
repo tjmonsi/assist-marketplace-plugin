@@ -1,6 +1,6 @@
 ## assist-plugin Harness Governance: Functional and Non-Functional Requirements
 
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-10-30
 **Author:** [Author]
 **Status:** DRAFT
@@ -27,7 +27,7 @@
 | FR-215 | The commit workflow MUST stage only explicitly named paths. | UR-060 | Must | 2.2 |
 | FR-216 | The plugin MUST recommend and check for a push grant limited to the `origin` remote. | UR-060 | Must | 2.3 |
 | FR-217 | The commit workflow MUST run a secret scan on staged changes before it commits. | UR-060 | Must | 2.4 |
-| FR-218 | The revision loop MUST stop at a maximum iteration count and escalate to a human. | UR-061 | Must | 2.5 |
+| FR-218 | The revision loop MUST stop at a maximum of 10 iterations and escalate to a human. | UR-061 | Must | 2.5 |
 | FR-219 | A PostToolUse guardrail MUST deny when an alignment check finds goal hijack in tool output. | UR-062 | Should | 2.6 |
 | FR-220 | The guardrail MUST scan generated code for insecure patterns and deny on a high-confidence, high-severity match. | UR-062 | Should | 2.7 |
 | FR-221 | The governance gates MUST clear only on a parsed command exit code or a CI artifact. | UR-063 | Must | 2.8 |
@@ -114,7 +114,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 **Statement:** The plugin documentation MUST recommend the grant `Bash(git push origin *)` in place of `Bash(git push *)`, and `/assist-plugin:health` MUST report a broader push grant when it reads one.
 **Traces to:** UR-060
 **Priority:** Must
-**Origin:** Gap 3, `llm-security-checklist.md:327`; LLM02 section, `:71-73`. The plugin never edits a settings file (`rules/assist-plugin-rule.md:400`), so the user applies the change to `.claude/settings.local.json` (dependency D-3).
+**Origin:** Gap 3, `llm-security-checklist.md:327`; LLM02 section, `:71-73`. The plugin never edits a settings file (`rules/assist-plugin-rule.md:400`), so the user applies the change to `.claude/settings.local.json` (dependency D-3). The origin-only grant `Bash(git push origin *)` is settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"). The health check and the documentation recommendation ship regardless; gap 3 closes only after the user has applied the grant.
 
 ##### Scenario: Narrow grant passes the check
 
@@ -158,22 +158,22 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.5 FR-218: Revision loop cap and escalation
 
-**Statement:** The revision workflow in `skills/do/references/review-protocol.md` MUST declare a maximum iteration count (default 3, see OQ-2) and MUST escalate to the user when the count is reached without approval.
+**Statement:** The revision workflow in `skills/do/references/review-protocol.md` MUST declare a maximum iteration count of 10, with two consecutive LGTMs as the normal pass, and MUST escalate to the user when the count is reached without approval. At the cap the orchestrator MUST run no further developer or reviewer round and MUST present the unresolved findings with the choices continue, waive, or abort.
 **Traces to:** UR-061
 **Priority:** Must
-**Origin:** Gap 6, `llm-security-checklist.md:330`; LLM10 section, `:285-287` and `:295`.
+**Origin:** Gap 6, `llm-security-checklist.md:330`; LLM10 section, `:285-287` and `:295`. The cap of 10 replaces the roadmap default of 3 and agrees with the review protocol (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"; OQ-2 resolved). At the cap this requirement wins over the review protocol's "Exhausting a gate" step, and a waive is recorded in the plan file by the orchestrator.
 
 ##### Scenario: Approval inside the cap
 
-- **GIVEN** the cap is 3
-- **WHEN** the reviewer approves at iteration 2
+- **GIVEN** the cap is 10
+- **WHEN** the reviewer returns two consecutive LGTMs at iteration 2
 - **THEN** the loop MUST end
 - **AND** no escalation MUST occur
 
 ##### Scenario: Cap reached
 
-- **GIVEN** the cap is 3 and no approval has come
-- **WHEN** iteration 3 ends without approval
+- **GIVEN** the cap is 10 and no approval has come
+- **WHEN** iteration 10 ends without approval
 - **THEN** the orchestrator MUST invoke no further developer or reviewer round
 - **AND** the user MUST receive the unresolved findings with the choices continue, waive, or abort
 
@@ -223,10 +223,10 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.8 FR-221: Evidence-backed gates
 
-**Statement:** The orchestrator MUST record a governance gate (OWASP Clear, LLM Security Clear, Coverage >=70%, Approved for merge) as cleared only with an evidence reference: a parsed command exit code and measured value, or a CI artifact. A sign-off string emitted by a model MUST NOT clear a gate. For judgement-based gates the evidence MUST be a scanner exit code plus a verdict from a reviewer agent other than the producer, with file:line findings (OQ-1).
+**Statement:** The orchestrator MUST record a governance gate (OWASP Clear, LLM Security Clear, Coverage >=70%, Approved for merge) as cleared only with an evidence reference: a parsed command exit code and measured value, or a CI artifact. A sign-off string emitted by a model MUST NOT clear a gate. For judgement-based gates (OWASP Clear, LLM Security Clear, Approved for merge) the evidence MUST be a scanner exit code plus a verdict from a reviewer agent other than the producer, with file:line findings. The required scanner exit code MUST come from the plugin's own scripts (`check-fsa-tables.js`, `sync-writing-standard.js`, the FR-217 pattern/secret scanner, or the health self-tests). An external security scanner is optional additional evidence, and a gate MUST NOT depend on one being installed.
 **Traces to:** UR-063
 **Priority:** Must
-**Origin:** LLM09 section, `llm-security-checklist.md:247-255` and `:266-267`; gates at `rules/assist-plugin-rule.md:95`, `:97`, `:128`, `:268`, `:299`, `:334-336`.
+**Origin:** LLM09 section, `llm-security-checklist.md:247-255` and `:266-267`; gates at `rules/assist-plugin-rule.md:95`, `:97`, `:128`, `:268`, `:299`, `:334-336`. OQ-1 resolved by `DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled". The orchestrator, not the reviewer, writes the gate record; reviewers stay read-only (NFR-027).
 
 ##### Scenario: Coverage gate with evidence
 
@@ -344,21 +344,22 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.14 FR-227: Attribution record
 
-**Statement:** The audit log `audit.jsonl` MUST record, for each access event, the operation, data accessed (path and data-class tag only), agent identity, human authorizer, and timestamp. The subagent log `fsa-log.jsonl`, which is written once per subagent report, MUST add only the agent identity and human authorizer to each report row and MUST NOT hold an operation or data-accessed field.
+**Statement:** The audit log `audit.jsonl` MUST record, for each access event, the operation, data accessed (path and data-class tag only), agent identity, human authorizer, and timestamp. The subagent log `fsa-log.jsonl`, which is written once per subagent report, MUST add only the agent identity and human authorizer to each report row and MUST NOT hold an operation or data-accessed field. The human authorizer is the user who approved the plan, recorded as a reference to that approval (the plan's "Approved" decision or the approval message id) and never as message text (NFR-031). An autonomous action, or one with no user approval, MUST record the authorizer as `none` with a reason.
 **Traces to:** UR-066
 **Priority:** Must
-**Origin:** Roadmap theme 3. `fsa-log.jsonl` holds one row per report with terminal-block fields (`skills/health/SKILL.md:97`), so one row cannot carry a single operation or accessed path; per-access attribution therefore goes to the audit log. Dependencies D-5 and OQ-7 (authorizer under `/do`).
+**Origin:** Roadmap theme 3. `fsa-log.jsonl` holds one row per report with terminal-block fields (`skills/health/SKILL.md:97`), so one row cannot carry a single operation or accessed path; per-access attribution therefore goes to the audit log. The two-file split is ratified as written (D-5, OQ-4 resolved) by `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)". The authorizer under `/do` (OQ-7 resolved) is settled by `DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"; it needs no per-action prompt.
 
 ##### Scenario: Complete record
 
-- **GIVEN** a user-confirmed PR post
+- **GIVEN** a user-confirmed PR post under a plan the user approved
 - **WHEN** the event is logged
 - **THEN** the audit record MUST hold all five fields
+- **AND** the authorizer field MUST hold a reference to the plan approval and MUST NOT hold message text
 - **AND** the `fsa-log.jsonl` row for that report MUST hold identity and authorizer only
 
 ##### Scenario: No human authorizer
 
-- **GIVEN** an autonomous read with no user action
+- **GIVEN** an autonomous read with no user action, or an action with no user approval of the plan
 - **WHEN** the event is logged
 - **THEN** the authorizer field MUST read `none` with a reason
 - **AND** the field MUST NOT be omitted
@@ -553,7 +554,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 **Statement:** A severity policy MUST define CRITICAL, HIGH, MEDIUM, and LOW for this repo, with examples and confidence levels, and MUST be approved by the user (recorded in `DECISIONS.md`) before any rule blocks on severity.
 **Traces to:** UR-071
 **Priority:** Must
-**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional).
+**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional). The policy basis is settled by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-4 basis): four levels aligned to a recognized rubric (OWASP risk rating or CVSS bands) with repo-specific examples drawn from this plugin's hook and LLM-surface risks, a per-finding confidence of High, Medium, or Low, and a SARIF mapping of CRITICAL and HIGH to error, MEDIUM to warning, and LOW to note. The concrete policy text is drafted separately. The user's formal approval, a later `DECISIONS.md` entry, is still pending, so no rule blocks on severity yet and the advisory-baseline-first rule of FR-238 still applies.
 
 ##### Scenario: Policy approved
 
@@ -626,10 +627,10 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.28 FR-241: SARIF output
 
-**Statement:** The reviewer output MUST include a SARIF document (version 2.1.0, estimate) whose result level derives from severity and whose location is file and line, so findings appear in the GitHub Security tab.
+**Statement:** The reviewer output MUST include a SARIF document (version 2.1.0, estimate) whose result level derives from severity and whose location is file and line, so findings appear in the GitHub Security tab. The reviewer returns the SARIF content or the findings, and the `/do` orchestrator MUST write the `.sarif` file. Uploading the file to GitHub is a posting action under the FR-214 confirmation rule.
 **Traces to:** UR-074
 **Priority:** Should
-**Origin:** Roadmap theme 4. Reference: https://www.autorabit.com/blog/github-shifts-left-on-security-with-its-sarif-compatibility/ (vendor blog, directional). The reviewer holds only `Read, Grep, Glob, LSP` (`llm-security-checklist.md:325`), so another component writes the file (dependency D-9, OQ-8). Uploading to GitHub is a posting action and falls under FR-214's confirmation rule where it posts a verdict.
+**Origin:** Roadmap theme 4. Reference: https://www.autorabit.com/blog/github-shifts-left-on-security-with-its-sarif-compatibility/ (vendor blog, directional). The reviewer holds only `Read, Grep, Glob, LSP` (`llm-security-checklist.md:325`), so another component writes the file. The writer is the `/do` orchestrator (D-9, OQ-8 resolved by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); no subagent write path is added to the write bar. Uploading to GitHub is a posting action and falls under FR-214's confirmation rule where it posts a verdict. The result-level mapping is CRITICAL and HIGH to error, MEDIUM to warning, LOW to note (FR-237).
 
 ##### Scenario: Findings become SARIF
 
@@ -646,17 +647,17 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.29 FR-242: Confirmation recording (Theme 1)
 
-**Statement:** A confirmation-recording step MUST write a record of the user's confirmation (PR, verdict, timestamp, and the user message it came from) to a store that only a hook or the orchestrator can write and that the PR-posting guard of FR-214 can read with file reads alone. A subagent and text from a PR, web page, or file MUST NOT create or alter a confirmation record.
+**Statement:** A hook on `UserPromptSubmit`, not the orchestrator, MUST write a record of the user's confirmation (PR, verdict, timestamp, a reference to the user message it came from, and the writer marked `hook`) as JSONL to a store under a path in `.agent/` that FR-245 already protects, and the PR-posting guard of FR-214 MUST read that store with file reads alone. A subagent and text from a PR, web page, or file MUST NOT create or alter a confirmation record.
 **Traces to:** UR-059
 **Priority:** Must
-**Origin:** Gap 2, `llm-security-checklist.md:326`. FR-214 denies on a missing confirmation, so the store is security-relevant: a store any agent can write could be forged by the injected PR text the control defends against. The guard's only I/O is file reads that a test can replace (`rules/assist-plugin-rule.md:409`). The store location and writer are undecided (OQ-10, D-10). The store path is protected from every subagent write under FR-245 (D-2 settled).
+**Origin:** Gap 2, `llm-security-checklist.md:326`. FR-214 denies on a missing confirmation, so the store is security-relevant: a store any agent can write could be forged by the injected PR text the control defends against. The guard's only I/O is file reads that a test can replace (`rules/assist-plugin-rule.md:409`). The writer and form are settled (D-10, OQ-10 resolved) by `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": a hook's output cannot be forged by model text or by PR, web, or file content, the same trust model as the FR-247 purpose-capture hook. The hook ships with an ES5 entry file, a timeout, a self-test corpus (NFR-035), and the D-1 fail-closed behavior for its guarded class. The store path is protected from every subagent write under FR-245 (D-2 settled).
 
 ##### Scenario: User confirmation recorded
 
 - **GIVEN** the orchestrator asked the user to approve PR 42 and the user answered yes in their own message
-- **WHEN** the recording step runs
-- **THEN** the store MUST hold a record for PR 42 and verdict approve with the timestamp
-- **AND** the record MUST name the writer as the orchestrator or a hook
+- **WHEN** the `UserPromptSubmit` hook runs
+- **THEN** the store MUST hold a JSONL record for PR 42 and verdict approve with the timestamp
+- **AND** the record MUST name the writer as `hook`
 
 ##### Scenario: Forged confirmation rejected
 
@@ -719,7 +720,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 **Statement:** These six paths MUST be protected from writes by every subagent: `.claude/settings.json`, `.agent/governance/profile.json`, the confirmation store of FR-242, `.agent/logs/governance/**`, the session purpose record of FR-247, and the rule-mode store (the store that holds the advisory or blocking mode of each check, FR-238). A hook or the orchestrator remains the only writer of the last four. The FR-246 attribution decision adds no new store and no seventh path: the six protected paths are unchanged, and `.agent/governance/profile.json` (path 2) is the trust anchor for the FR-246 receiving-party allowlist.
 **Traces to:** UR-075
 **Priority:** Must
-**Origin:** `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (the first two paths, D-12) and "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (the last four paths, D-2 settled). Adding these paths to the Write guard lists follows those records. The exact store locations for the confirmation store and rule-mode store stay open (OQ-10, D-10).
+**Origin:** `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (the first two paths, D-12) and "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (the last four paths, D-2 settled). Adding these paths to the Write guard lists follows those records. The confirmation store is a hook-written JSONL file under `.agent/` (OQ-10 resolved, D-10; `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"); the exact file name is set at implementation. The rule-mode store location stays open.
 
 ##### Scenario: Subagent write denied
 
@@ -871,19 +872,20 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 | ID | Requirement | Traces to | Metric |
 |----|-------------|-----------|--------|
-| NFR-032 | Audit and subagent logs MUST be retained for at least 12 months, and any rotation MUST keep the chain verifiable across the cut. | BR-019, BR-020 | 12 months (BRD A-1); conflicts with the 500-line cap on `fsa-log.jsonl`, `skills/health/SKILL.md:28` (D-6) |
+| NFR-032 | Audit and subagent logs MUST rotate by size, each new segment MUST carry the prior segment's final chain hash so the hash chain verifies across the cut, and segments MUST be retained for at least 12 months. | BR-019, BR-020 | 12 months (BRD A-1); the rotation size is an estimate until measured against NFR-030 (NFR-033). Replaces the 500-line cap on `fsa-log.jsonl`, `skills/health/SKILL.md:28` (D-6, OQ-3 resolved by `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)") |
 
 ##### Scenario: Rotation keeps the chain
 
-- **GIVEN** the log reaches its rotation size
+- **GIVEN** the log reaches its configured rotation size (an estimate until measured)
 - **WHEN** rotation runs
-- **THEN** the first line of the new file MUST hold the hash of the last line of the old file
+- **THEN** the first line of the new segment MUST hold the hash of the last line of the old segment
+- **AND** chain verification MUST pass across the cut
 
 #### 3.5 Compliance
 
 | ID | Requirement | Traces to | Regulation/Standard |
 |----|-------------|-----------|---------------------|
-| NFR-033 | A compliance control that rests on a vendor blog or an unverified citation MUST be labeled directional, and a control MUST NOT be marked complete before verification against the regulation text. Status: the HIPAA audit control (FR-232) is verified against 45 CFR 164.312(b), which requires mechanisms that record and examine activity, and the control implements that one required technical safeguard, not full HIPAA compliance. The FERPA internal access log (FR-230) carries no 34 CFR 99.32 citation and is general governance support, labeled directional. The FERPA disclosure-recordation control (FR-246) is the only control cited against 34 CFR 99.32; it stays "to verify" until its exception handling is reviewed. The figures "under 50% mitigation" and "18% governance councils" MUST NOT serve as a threshold. | BR-020, BR-021 | 45 CFR 164.312(b) (FR-232, verified); 34 CFR 99.32 (FR-246 only, to verify) |
+| NFR-033 | A compliance control that rests on a vendor blog or an unverified citation MUST be labeled directional, and a control MUST NOT be marked complete before verification against the regulation text. Status: the HIPAA audit control (FR-232) is verified against 45 CFR 164.312(b), which requires mechanisms that record and examine activity, and the control implements that one required technical safeguard, not full HIPAA compliance. The FERPA internal access log (FR-230) carries no 34 CFR 99.32 citation and is general governance support, labeled directional. The FERPA disclosure-recordation control (FR-246) is the only control cited against 34 CFR 99.32; it stays "to verify" until its exception handling is reviewed. The exact log rotation size of NFR-032 is an estimate until measured against the NFR-030 verification-time target. The severity-policy basis (FR-237) is settled, but the concrete policy text is not yet approved, so the severity thresholds stay unapproved and no rule blocks on severity. The figures "under 50% mitigation" and "18% governance councils" MUST NOT serve as a threshold. | BR-020, BR-021 | 45 CFR 164.312(b) (FR-232, verified); 34 CFR 99.32 (FR-246 only, to verify) |
 | NFR-034 | A rule MUST NOT move from advisory to blocking unless its baseline precision is at least 90% (estimate, BRD A-6). | BR-022 | Alert-fatigue control; helpmetest and GitLab blogs (directional) |
 
 ##### Scenario: Unverified FERPA disclosure control (NFR-033)
@@ -940,16 +942,16 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 |----|-----------------|---------|
 | D-1 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): fail-closed on a malformed configuration while a profile is enforced; log-only when the configuration is absent. Exception to the Hook Fail-Open Rule (`rules/assist-plugin-rule.md:404-416`) | NFR-028, FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-246 |
 | D-2 | Settled (`DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection"): the confirmation store, `.agent/logs/governance/**`, the session purpose record, and the rule-mode store are added to the Write guard lists (`rules/assist-plugin-rule.md:420-434`) and protected from every subagent write; any later narrowing of an entry needs the same record first | FR-245, FR-223, FR-224 |
-| D-3 | Narrow `Bash(git push *)` to `Bash(git push origin *)` in `.claude/settings.local.json`; the user applies it because the plugin never edits settings | FR-216 |
-| D-4 | Approve the severity policy | FR-237 |
-| D-5 | Allow the identity and authorizer fields in `fsa-log.jsonl` rows (`skills/health/SKILL.md:97` lists the current fields) and approve `audit.jsonl` as the per-access store holding operation and data-accessed (path and class tag) | FR-226, FR-227, NFR-031 |
-| D-6 | Raise or replace the 500-line cap on `fsa-log.jsonl` for 12-month retention | NFR-032, FR-228 |
-| D-7 | Set the revision-loop cap and reconcile with "max 10" at `rules/assist-plugin-rule.md:338` | FR-218 |
-| D-8 | Choose the evidence for judgement-based gates (OQ-1) | FR-221 |
-| D-9 | Name the component that writes the SARIF file and, if it is a subagent, add its write path to the write bar | FR-241 |
-| D-10 | Choose the confirmation store for FR-242 (location, format, writer). Its protection from subagent writes is settled under D-2 and FR-245 | FR-214, FR-242, FR-245 |
+| D-3 | Settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"): narrow `Bash(git push *)` to `Bash(git push origin *)` in `.claude/settings.local.json`; the user applies it because the plugin never edits settings, and gap 3 closes once applied | FR-216 |
+| D-4 | Basis settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); the user's formal approval of the concrete policy text, a later `DECISIONS.md` entry, is still pending | FR-237 |
+| D-5 | Settled (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"): identity and authorizer fields in `fsa-log.jsonl` rows, and `audit.jsonl` as the per-access store holding operation and data-accessed (path and class tag) | FR-226, FR-227, NFR-031 |
+| D-6 | Settled (same 2026-10-30 entry): size-based rotation replaces the 500-line cap on `fsa-log.jsonl`, with the prior segment's final chain hash carried into each new segment and at least 12 months of retention | NFR-032, FR-228 |
+| D-7 | Settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"): cap of 10 with two consecutive LGTMs as the normal pass; escalation at the cap | FR-218 |
+| D-8 | Settled (`DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"): in-plugin scanner exit code plus a distinct reviewer verdict (OQ-1) | FR-221 |
+| D-9 | Settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"): the `/do` orchestrator writes the SARIF file; no subagent write path is added | FR-241 |
+| D-10 | Settled (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"): a `UserPromptSubmit` hook writes the confirmation store as JSONL under `.agent/`. Its protection from subagent writes is settled under D-2 and FR-245 | FR-214, FR-242, FR-245 |
 | D-11 | Settled (`DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection"): a hook writes the session purpose record from a user-declared purpose; a missing purpose is logged `unstated` and flagged, never denied on that alone (OQ-6 settled) | FR-230, FR-247 |
-| D-12 | Add `.claude/settings.json` and `.agent/governance/profile.json` to the protected paths that every subagent is denied (Write guard lists, `rules/assist-plugin-rule.md:420-434`) | FR-245, FR-231, FR-243 |
+| D-12 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): add `.claude/settings.json` and `.agent/governance/profile.json` to the protected paths that every subagent is denied (Write guard lists, `rules/assist-plugin-rule.md:420-434`) | FR-245, FR-231, FR-243 |
 
 Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when it happens; it is not a standing dependency.
 
@@ -1005,3 +1007,4 @@ Gap traceability:
 | 1.0 | 2026-10-28 | [Author] | Initial draft |
 | 1.1 | 2026-10-28 | [Author] | Align with `DECISIONS.md` 2026-10-28: FR-231 names the two-file configuration; FR-230, FR-232, FR-233, FR-234 read as enforced-by-default with opt-out; NFR-028 records the settled fail-closed and log-only behavior (D-1 settled); FR-243 to FR-245 added for the governed opt-out; D-12 added |
 | 1.2 | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-28 entries on purpose capture and OQ-9: FR-247 added (purpose-capture hook; OQ-11, D-11 settled); FR-230 reframed as an internal log that denies nothing on a missing purpose (OQ-6 settled) and carries no 99.32 citation; FR-246 added (FERPA disclosure recordation, the only 99.32 control); FR-232 verified against 45 CFR 164.312(b) with tightened scope; FR-245 extended to six protected paths (D-2 settled); NFR-033 status updated; UR-076 traced. Also aligns with `DECISIONS.md` 2026-10-30, "FERPA disclosure control denies on missing attribution and is fail-closed": FR-246 gains the deny-on-missing-attribution clause; FR-246 added to the NFR-028 security-critical set. Also aligns with `DECISIONS.md` 2026-10-30, "FR-246 disclosure attribution comes from the payload, validated against a profile.json allowlist" (PN-9 settled; note at 1.2, no version bump): FR-246 states that the receiving party and legitimate interest are payload-declared and parsed by the guard, validated against a `profile.json` allowlist, and denied when missing or off the allowlist; FR-245 states that the six paths are unchanged and `profile.json` is the allowlist's trust anchor |
+| 1.3 | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": NFR-032 states size-based rotation with the prior segment's final chain hash carried across the cut and at least 12 months of retention (D-6, OQ-3 resolved); FR-242 names a `UserPromptSubmit` hook writing JSONL under a path protected by FR-245 (D-10, OQ-10 resolved); FR-227 two-file split ratified (D-5, OQ-4 resolved). "Gap-3 push grant and gap-6 revision-loop cap settled": FR-218 cap raised from 3 to 10 with two consecutive LGTMs as the normal pass and a continue/waive/abort escalation at the cap (D-7, OQ-2 resolved); FR-216 records the settled origin-only grant (D-3). "Judgement-gate evidence and the /do human authorizer settled": FR-221 takes the scanner exit code from the plugin's own scripts, with an external scanner optional (D-8, OQ-1 resolved); FR-227 names the plan approver as the authorizer, `none` with a reason otherwise (OQ-7 resolved). "Severity-policy basis and SARIF writer settled": FR-241 names the `/do` orchestrator as the SARIF writer (D-9, OQ-8 resolved); FR-237 and NFR-033 record the settled severity basis, with formal policy approval still pending (D-4 partial, FR-238 unchanged). Rotation size stays an estimate. No trace changes. Version bumped to 1.3 in lockstep with the BRD, URD, and JSON because the URD open-questions list and BRD A-4 changed |

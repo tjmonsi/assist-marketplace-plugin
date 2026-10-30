@@ -1,6 +1,6 @@
 ## assist-plugin Harness Governance: Business Requirements Document
 
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-10-30
 **Author:** [Author]
 **Status:** DRAFT
@@ -74,7 +74,7 @@
 - A-1: The 12-month retention in NFR-032 covers the upper end of the 6-to-12-month SOC 2 Type II window the roadmap cites.
 - A-2: "Per-agent identity" means a recorded agent type, agent id, and plugin version, not a credential.
 - A-3: SHA-256 is the hash for the audit chain. The roadmap says only "hash chain".
-- A-4: The default revision-loop cap is 3, taken from the example in `llm-security-checklist.md:295`. `rules/assist-plugin-rule.md:338` states "max 10" for code review iterations; the two values need reconciling (OQ-2).
+- A-4: The revision-loop cap is 10 with two consecutive LGTMs as the normal pass, which replaces the earlier default of 3 from `llm-security-checklist.md:295` and agrees with the "max 10" at `rules/assist-plugin-rule.md:338` (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"; OQ-2 resolved).
 - A-5: Advisory baseline lasts 14 days or 20 reviews, whichever comes later. This is an estimate to confirm.
 - A-6: A promotion to blocking needs at least 90% precision over the baseline (estimate).
 - A-7: Added per-write hook cost targets in NFR-029 are estimates anchored to the existing 80 to 110 ms.
@@ -119,3 +119,4 @@
 | 1.0 | 2026-10-28 | [Author] | Initial draft |
 | 1.1 | 2026-10-28 | [Author] | Align with the `DECISIONS.md` 2026-10-28 entry: A-9 flipped to enforced-by-default with opt-out; NFR-028 conflict settled; two-file compliance configuration; governed opt-out |
 | 1.2 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-28 entries on purpose capture and OQ-9: source reliability and scope updated for the verified HIPAA control and the reframed FERPA controls; constraints for hook-written purpose and protected governance paths; A-10 narrowed, A-11 added |
+| 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entry on the revision-loop cap: A-4 states the cap of 10 (OQ-2 resolved) |

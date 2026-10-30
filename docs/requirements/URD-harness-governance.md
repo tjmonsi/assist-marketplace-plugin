@@ -1,6 +1,6 @@
 ## assist-plugin Harness Governance: User Requirements Document
 
-**Version:** 1.2
+**Version:** 1.3
 **Date:** 2026-10-30
 **Author:** [Author]
 **Status:** DRAFT
@@ -97,17 +97,18 @@
 
 ### 7. Open questions
 
-- OQ-1: Which evidence backs judgement-based gates (OWASP Clear, LLM Security Clear)? FR-221 proposes a scanner exit code plus a distinct reviewer-agent verdict with file:line findings. The user must confirm.
-- OQ-2: What is the revision-loop cap? Default 3 (`llm-security-checklist.md:295`); `rules/assist-plugin-rule.md:338` says "max 10" for code review iterations.
-- OQ-3: How does 12-month retention (NFR-032) reconcile with the 500-line cap on `fsa-log.jsonl` (`skills/health/SKILL.md:28`)?
-- OQ-4: `fsa-log.jsonl` holds one row per subagent report (`skills/health/SKILL.md:97`), so FR-227 puts operation and data-accessed (path and class tag only) in `audit.jsonl` and adds only identity and authorizer to `fsa-log.jsonl`. The user must confirm this split.
+- OQ-1: Resolved (`DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"). A judgement-based gate clears on a scanner exit code from the plugin's own scripts plus a distinct reviewer-agent verdict with file:line findings; an external scanner is optional additional evidence (FR-221).
+- OQ-2: Resolved (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"). The cap is 10 with two consecutive LGTMs as the normal pass; at the cap the orchestrator escalates with continue, waive, or abort (FR-218).
+- OQ-3: Resolved (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"). Size-based rotation replaces the 500-line cap on `fsa-log.jsonl`, carries the prior segment's final chain hash into each new segment, and keeps segments at least 12 months; the rotation size is an estimate (NFR-032).
+- OQ-4: Resolved (same 2026-10-30 entry as OQ-3). The two-file split of FR-227 is ratified as written.
 - OQ-5: Settled. Security-critical controls may fail closed on a malformed configuration while a profile is enforced; an absent configuration runs log-only (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"; NFR-028).
 - OQ-6: Settled. An access to a tagged path with no recorded purpose is logged `unstated` and flagged, never denied on the missing purpose alone (`DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection"; FR-230).
-- OQ-7: Who is the human authorizer when an action runs under `/do` with no per-action prompt: the user who approved the plan, or the user message id of the approval?
-- OQ-8: The reviewer holds no write tool. Which component writes the SARIF file (FR-241), and does that need a new write path in `fsa-write-bar`?
+- OQ-7: Resolved (`DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"). The authorizer is the user who approved the plan, recorded as a reference to that approval and never message text; an autonomous or unapproved action records `none` with a reason (FR-227).
+- OQ-8: Resolved (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"). The `/do` orchestrator writes the SARIF file, so no new write path is added to `fsa-write-bar`; uploading to GitHub falls under the FR-214 confirmation rule (FR-241).
 - OQ-9: Resolved (`DECISIONS.md`, 2026-10-28, "OQ-9 resolved; FERPA control reframed, HIPAA scope tightened"). HIPAA: FR-232 is verified against 45 CFR 164.312(b) as one required technical safeguard that records and supports review, not full HIPAA compliance. FERPA: the internal access log (FR-230) is general governance support and does not implement 34 CFR 99.32; FR-246 adds disclosure recordation for outbound education-record data and is the only control cited against 99.32.
-- OQ-10: Where is the PR-verdict confirmation record (FR-242) stored and in what format? It must be readable by a file-read-only guard. Protection from subagent and PR-text writes is settled under FR-245 (D-2); the location and format stay open (D-10).
+- OQ-10: Resolved (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"). A `UserPromptSubmit` hook writes the confirmation store as JSONL under a path in `.agent/` protected under FR-245; the FR-214 guard reads it with file reads alone (FR-242).
 - OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records `unstated` and flags the record (FR-247; `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection").
+- OQ-12: Open. The user's formal approval of the concrete severity-policy text, a later `DECISIONS.md` entry. The policy basis is settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); until the approval exists no rule blocks on severity and the FR-238 advisory baseline applies (FR-237).
 
 ### 8. Glossary
 
@@ -125,3 +126,4 @@
 | 1.0 | 2026-10-28 | [Author] | Initial draft |
 | 1.1 | 2026-10-28 | [Author] | Enforced-by-default assumption; UR-069 reworded; UR-075 added for governed opt-out; OQ-5 settled |
 | 1.2 | 2026-10-30 | [Author] | UR-068 reworded to the user-declared purpose; UR-076 added for FERPA disclosure recordation; OQ-6, OQ-9, OQ-11 resolved; OQ-10 narrowed to location and format |
+| 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entries: OQ-1, OQ-2, OQ-3, OQ-4, OQ-7, OQ-8, OQ-10 resolved; OQ-12 added for the pending formal approval of the severity-policy text |
