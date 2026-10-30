@@ -423,3 +423,23 @@ Token lifetime (FR-242): the per-action token is single-use and also time-expiri
 
 These settle PN-10 and the FR-242 token lifetime and close the Tranche 1 build-time design items. The requirements (FR-242, FR-245) and the task plan (Steps 2, 3, 4 and the Step 2 and Step 3 notes, the PN-10 note, and the Tranche 1 ordering rationale) are synced to these decisions in a follow-up batch.
 Plan: .agent/main-plan/plan-harness-governance-20261028-0759.md
+
+## 2026-10-30: Baseline precision labeller settled (PN-3)
+
+Decision: The user labels each baseline advisory finding true or false, and the baseline report script computes the NFR-034 precision from those user-set labels rather than from an agent's self-judgment. This fixes the labeller that NFR-034 and task-plan Step 32 left open (PN-3); the user-set label field Step 32 plans is confirmed as the mechanism.
+Plan: .agent/main-plan/plan-commit-settle-notes-20261030-1838.md
+
+## 2026-10-30: Secret-scan tool settled as the in-plugin pattern scanner (PN-4)
+
+Decision: The FR-217 scan tool is the in-plugin pattern-scanner script that task-plan Step 6 plans, so the scanner is always present with no external dependency, and its exit code is the in-plugin evidence Step 18 reads for the code Security and OWASP Clear. A project may still substitute an external scanner (for example gitleaks or trufflehog) by replacing the script call and keeping the same three outcomes (clean, findings, cannot-run). This settles PN-4.
+Plan: .agent/main-plan/plan-commit-settle-notes-20261030-1838.md
+
+## 2026-10-30: Second pr-post-ask prompt kept after a recorded confirmation (PN-5)
+
+Decision: The FR-214 confirmation deny guard is additive. `pr-post-ask` stays unchanged and keeps its tested no-deny contract, so after a recorded confirmation the user may still see the `pr-post-ask` prompt (two prompts on a PR review, approve, or decline), accepted as defense in depth. The guard does not suppress `pr-post-ask` and the two hooks are not coupled. This settles PN-5: FR-214's "the deny replaces the current ask" is read as the confirmation guard taking over the deny decision for the posting action, not as removing the `pr-post-ask` prompt.
+Plan: .agent/main-plan/plan-commit-settle-notes-20261030-1838.md
+
+## 2026-10-30: Proposed governance file names and store paths approved (PN-8)
+
+Decision: Every file name marked "(create)" and every store path marked "proposed" in the harness-governance task plan is approved as written and becomes fixed, including the confirmation store directory `.agent/governance/confirmations/` holding `confirmations.jsonl` and `pending.jsonl` (Step 2), the rule-mode store `.agent/governance/rule-modes.json` (Step 32), the SARIF output path (Step 34), and the receiving-party allowlist key name and shape in `profile.json` (Step 30). No seventh FR-245 protected path is added; the six-path count stands. This settles PN-8.
+Plan: .agent/main-plan/plan-commit-settle-notes-20261030-1838.md
