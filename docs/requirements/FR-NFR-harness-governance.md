@@ -64,7 +64,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.1 FR-214: Deny unconfirmed PR verdict
 
-**Statement:** The PR-posting guard MUST deny `gh pr review` and `bkt pr approve` or `decline` for a PR when no recorded user confirmation exists for that PR and that verdict (recording: FR-242). The deny replaces the current ask for these commands; the ask for other posting commands stays.
+**Statement:** The PR-posting guard MUST deny `gh pr review` and `bkt pr approve` or `decline` for a PR when no recorded user confirmation exists for that PR and that verdict (recording: FR-242). The guard is additive: the confirmation guard owns the deny decision for the posting action, and the `pr-post-ask` hook stays unchanged, so its prompt is not removed. After a recorded confirmation the user may still see the `pr-post-ask` prompt, so two prompts may appear; this is accepted as defense in depth. The ask for other posting commands stays.
 **Traces to:** UR-059
 **Priority:** Must
 **Origin:** Gap 2, `plugins/assist-plugin/rules/llm-security-checklist.md:326`; LLM01 section, `:30-37`. Current control: the best-effort, fail-open `pr-post-ask` hook (`rules/assist-plugin-rule.md:409`).
@@ -75,6 +75,14 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 - **WHEN** the session runs `gh pr review 42 --approve`
 - **THEN** the guard MUST allow the command
 - **AND** the log MUST hold the confirmation reference
+- **AND** the `pr-post-ask` hook MAY still prompt the user, because the guard does not replace it
+
+##### Scenario: Additive guard leaves the pr-post-ask prompt in place
+
+- **GIVEN** a recorded confirmation covers "approve PR 42"
+- **WHEN** the session runs `gh pr review 42 --approve`
+- **THEN** the `pr-post-ask` hook MUST remain unchanged and MUST still ask
+- **AND** the confirmation guard MUST NOT suppress that prompt
 
 ##### Scenario: Injected approval is denied
 
@@ -137,7 +145,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.4 FR-217: Secret scan before commit
 
-**Statement:** The commit workflow MUST run a secret scan on the staged changes before creating a commit, and MUST stop with no commit when the scan reports a finding or cannot run.
+**Statement:** The commit workflow MUST run a secret scan on the staged changes before creating a commit, using the in-plugin pattern-scanner script as the default scan tool, and MUST stop with no commit when the scan reports a finding or cannot run. The script ships with the plugin, so the default scan has no external dependency. A project MAY substitute an external scanner (for example gitleaks or trufflehog) by replacing the script call, provided the substitute keeps the same three outcomes: clean, findings, and cannot-run.
 **Traces to:** UR-060
 **Priority:** Must
 **Origin:** Gap 3, `llm-security-checklist.md:327`.
@@ -158,9 +166,9 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 ##### Scenario: Scanner unavailable
 
-- **GIVEN** the scan tool is not installed
+- **GIVEN** the in-plugin pattern-scanner script cannot run, or a substituted external scanner is not installed
 - **WHEN** the commit workflow reaches the commit step
-- **THEN** the workflow MUST stop and tell the user the scan did not run
+- **THEN** the workflow MUST treat the outcome as cannot-run, stop with no commit, and tell the user the scan did not run
 
 #### 2.5 FR-218: Revision loop cap and escalation
 
@@ -913,7 +921,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 | ID | Requirement | Traces to | Regulation/Standard |
 |----|-------------|-----------|---------------------|
 | NFR-033 | A compliance control that rests on a vendor blog or an unverified citation MUST be labeled directional, and a control MUST NOT be marked complete before verification against the regulation text. Status: the HIPAA audit control (FR-232) is verified against 45 CFR 164.312(b), which requires mechanisms that record and examine activity, and the control implements that one required technical safeguard, not full HIPAA compliance. The FERPA internal access log (FR-230) carries no 34 CFR 99.32 citation and is general governance support, labeled directional. The FERPA disclosure-recordation control (FR-246) is the only control cited against 34 CFR 99.32; it stays "to verify" until its exception handling is reviewed. The exact log rotation size of NFR-032 is an estimate until measured against the NFR-030 verification-time target. The severity-policy basis (FR-237) is settled and the user approved the concrete policy text, `severity-policy.md` version `draft-1` (`DECISIONS.md`, "2026-10-30: Severity policy approved"); a rule may block on severity only after the FR-238 advisory baseline. The figures "under 50% mitigation" and "18% governance councils" MUST NOT serve as a threshold. | BR-020, BR-021 | 45 CFR 164.312(b) (FR-232, verified); 34 CFR 99.32 (FR-246 only, to verify) |
-| NFR-034 | A rule MUST NOT move from advisory to blocking unless its baseline precision is at least 90% (estimate, BRD A-6). | BR-022 | Alert-fatigue control; helpmetest and GitLab blogs (directional) |
+| NFR-034 | A rule MUST NOT move from advisory to blocking unless its baseline precision is at least 90% (estimate, BRD A-6). The user labels each baseline advisory finding true or false, and the baseline report computes precision from those user-set labels, not from an agent's self-judgment. | BR-022 | Alert-fatigue control; helpmetest and GitLab blogs (directional) |
 
 ##### Scenario: Unverified FERPA disclosure control (NFR-033)
 
@@ -936,9 +944,16 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 ##### Scenario: Low-precision promotion (NFR-034)
 
-- **GIVEN** a baseline precision of 70%
+- **GIVEN** a baseline precision of 70%, computed from the user's true or false labels on the baseline findings
 - **WHEN** the rule is switched to blocking
 - **THEN** the switch MUST be refused with the precision value
+
+##### Scenario: Agent self-judgment does not set precision (NFR-034)
+
+- **GIVEN** a baseline finding has no user label and an agent judges it true
+- **WHEN** the baseline report computes precision
+- **THEN** the report MUST NOT count the agent's judgment as a label
+- **AND** the report MUST show the finding as unlabelled
 
 ### 4. Scope
 
@@ -1038,3 +1053,4 @@ Gap traceability:
 | 1.3 | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": NFR-032 states size-based rotation with the prior segment's final chain hash carried across the cut and at least 12 months of retention (D-6, OQ-3 resolved); FR-242 names a `UserPromptSubmit` hook writing JSONL under a path protected by FR-245 (D-10, OQ-10 resolved); FR-227 two-file split ratified (D-5, OQ-4 resolved). "Gap-3 push grant and gap-6 revision-loop cap settled": FR-218 cap raised from 3 to 10 with two consecutive LGTMs as the normal pass and a continue/waive/abort escalation at the cap (D-7, OQ-2 resolved); FR-216 records the settled origin-only grant (D-3). "Judgement-gate evidence and the /do human authorizer settled": FR-221 takes the scanner exit code from the plugin's own scripts, with an external scanner optional (D-8, OQ-1 resolved); FR-227 names the plan approver as the authorizer, `none` with a reason otherwise (OQ-7 resolved). "Severity-policy basis and SARIF writer settled": FR-241 names the `/do` orchestrator as the SARIF writer (D-9, OQ-8 resolved); FR-237 and NFR-033 record the settled severity basis, with formal policy approval still pending (D-4 partial, FR-238 unchanged). Rotation size stays an estimate. No trace changes. Version bumped to 1.3 in lockstep with the BRD, URD, and JSON because the URD open-questions list and BRD A-4 changed |
 | 1.3 (note) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)": FR-219 states a rule-based, advisory-first check that does not call a model, with the corrected hook facts (default command-hook timeout 600 seconds, 30 on `UserPromptSubmit`; no documented offline sandbox; `prompt`, `agent`, and `http` hook types can call a model), labeled directional; D-13 added. FR-242 adds the per-action token binding; D-10 notes it. FR-221 and FR-241 already read consistently with the Step 18 and Step 34 decisions and are unchanged. "Push grant scoped per named remote, not origin-only (D-3 refined)": FR-216 recommends one grant per named remote and flags only a wildcard or unscoped grant; D-3 refined. Also closes the severity approval status per `DECISIONS.md`, "2026-10-30: Severity policy approved": D-4 settled, FR-237 Origin records the approval of `severity-policy.md` draft-1, and OQ-12 resolved in the JSON mirror and the URD; NFR-033 states the same approved status. No version bump: the BRD and URD are unchanged |
 | 1.3 (note 2) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "PN-10 pending-action store split and token lifetime settled": FR-242 states the confirmation store as a directory with `confirmations.jsonl` (hook-only, denied to every tool caller) and `pending.jsonl` (main-session `/do` writable, denied to every subagent), the guard reading `confirmations.jsonl` only, and a single-use, time-expiring token with the window an estimate until measured; an expired-or-reused-token scenario and a pending-record-is-not-a-confirmation scenario added. FR-245 notes the directory form, still one of the six paths (no seventh path); D-10 notes the split. No version bump: the BRD and URD are unchanged, since the decision was a build-time plan item the URD never tracked as an open question |
+| 1.3 (note 3) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Baseline precision labeller settled (PN-3)": NFR-034 names the user as the labeller of each baseline advisory finding, with precision computed from those labels, and gains an unlabelled-finding scenario. "Secret-scan tool settled as the in-plugin pattern scanner (PN-4)": FR-217 names the in-plugin pattern-scanner script as the default scan tool, with an external scanner as a later substitute keeping the clean, findings, and cannot-run outcomes; the scanner-unavailable scenario reads to match. "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)": FR-214 states the guard is additive, the `pr-post-ask` hook is unchanged, and two prompts may appear as defense in depth; a scenario added. "Proposed governance file names and store paths approved (PN-8)" is a task-plan naming decision with no requirements change: no FR-245 path added or renamed, the six-path count stands. No version bump: the BRD and URD are unchanged |
