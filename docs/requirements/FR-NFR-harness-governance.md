@@ -25,7 +25,7 @@
 |----|-------------|-----------|----------|---------------------|
 | FR-214 | The PR-posting guard MUST deny a PR verdict command when no recorded user confirmation exists for that PR and verdict. | UR-059 | Must | 2.1 |
 | FR-215 | The commit workflow MUST stage only explicitly named paths. | UR-060 | Must | 2.2 |
-| FR-216 | The plugin MUST recommend and check for a push grant limited to the `origin` remote. | UR-060 | Must | 2.3 |
+| FR-216 | The plugin MUST recommend a push grant scoped to a named remote (more than one allowed) and check for a wildcard or unscoped push grant. | UR-060 | Must | 2.3 |
 | FR-217 | The commit workflow MUST run a secret scan on staged changes before it commits. | UR-060 | Must | 2.4 |
 | FR-218 | The revision loop MUST stop at a maximum of 10 iterations and escalate to a human. | UR-061 | Must | 2.5 |
 | FR-219 | A PostToolUse guardrail MUST deny when an alignment check finds goal hijack in tool output. | UR-062 | Should | 2.6 |
@@ -109,24 +109,30 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 - **THEN** the workflow MUST list the changed paths and ask which to stage
 - **AND** the workflow MUST stage nothing until paths are named
 
-#### 2.3 FR-216: Push grant limited to origin
+#### 2.3 FR-216: Push grant scoped to named remotes
 
-**Statement:** The plugin documentation MUST recommend the grant `Bash(git push origin *)` in place of `Bash(git push *)`, and `/assist-plugin:health` MUST report a broader push grant when it reads one.
+**Statement:** The plugin documentation MUST recommend scoping each push grant to a named remote (for example `Bash(git push origin *)`, and a second grant such as `Bash(git push <mirror-name> *)` for a mirror) in place of `Bash(git push *)`, and `/assist-plugin:health` MUST report a wildcard or unscoped push grant (`Bash(git push *)`, `Bash(git push:*)`) when it reads one. The health check MUST NOT report a push grant that names a specific remote, including a second named remote.
 **Traces to:** UR-060
 **Priority:** Must
-**Origin:** Gap 3, `llm-security-checklist.md:327`; LLM02 section, `:71-73`. The plugin never edits a settings file (`rules/assist-plugin-rule.md:400`), so the user applies the change to `.claude/settings.local.json` (dependency D-3). The origin-only grant `Bash(git push origin *)` is settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"). The health check and the documentation recommendation ship regardless; gap 3 closes only after the user has applied the grant.
+**Origin:** Gap 3, `llm-security-checklist.md:327`; LLM02 section, `:71-73`. The plugin never edits a settings file (`rules/assist-plugin-rule.md:400`), so the user applies the change to `.claude/settings.local.json` or the committed `.claude/settings.json` (dependency D-3). The first grant `Bash(git push origin *)` was settled by `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled". `DECISIONS.md`, 2026-10-30, "Push grant scoped per named remote, not origin-only (D-3 refined)" widens it for a multi-remote workflow: each trusted remote is enumerated by name, and no wildcard auto-approves an arbitrary remote that an injected instruction could add. The health check and the documentation recommendation ship regardless; gap 3 closes only after the user's settings hold named-remote push grants and no wildcard.
 
-##### Scenario: Narrow grant passes the check
+##### Scenario: Named grant passes the check
 
-- **GIVEN** the settings hold `Bash(git push origin *)` and no bare `Bash(git push *)`
+- **GIVEN** the settings hold `Bash(git push origin *)` and no wildcard or unscoped push grant
+- **WHEN** the health check runs
+- **THEN** the report MUST show no push-grant finding
+
+##### Scenario: Second named remote passes the check
+
+- **GIVEN** the settings hold `Bash(git push origin *)` and `Bash(git push mirror *)` and no wildcard or unscoped push grant
 - **WHEN** the health check runs
 - **THEN** the report MUST show no push-grant finding
 
 ##### Scenario: Wildcard grant reported
 
-- **GIVEN** the settings hold `Bash(git push *)`
+- **GIVEN** the settings hold `Bash(git push *)` or `Bash(git push:*)`
 - **WHEN** the health check runs
-- **THEN** the report MUST list the broad push grant
+- **THEN** the report MUST list the wildcard push grant
 - **AND** the report MUST NOT edit the settings file
 
 #### 2.4 FR-217: Secret scan before commit
@@ -179,10 +185,10 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.6 FR-219: Goal-hijack guardrail
 
-**Statement:** A PostToolUse guardrail MUST be able to deny a tool result and halt the next action when an alignment check finds that the result tries to redirect the agent from the user's stated goal.
+**Statement:** A PostToolUse guardrail MUST be able to deny a tool result and halt the next action when an alignment check finds that the result tries to redirect the agent from the user's stated goal. The alignment check MUST be rule-based and run advisory-first under FR-238, and MUST NOT call a model.
 **Traces to:** UR-062
 **Priority:** Should
-**Origin:** Gap in current control: the injection-filter replaces phrasing with a marker and never blocks (`rules/assist-plugin-rule.md:416`). Modeled on the alignment-auditor check in Meta LlamaFirewall (https://arxiv.org/pdf/2505.03574).
+**Origin:** Gap in current control: the injection-filter replaces phrasing with a marker and never blocks (`rules/assist-plugin-rule.md:416`). Modeled on the alignment-auditor check in Meta LlamaFirewall (https://arxiv.org/pdf/2505.03574). The rule-based choice is settled by `DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)" (D-13): the check reads attacker-controlled text (PR, web, tool output), so a model-evaluating hook would itself be a prompt-injection surface. The choice is deliberate, not forced: current Claude Code documentation lists built-in `prompt`, `agent`, and `http` hook types that can call a model, a command hook has no documented offline sandbox, and its default timeout is 600 seconds (30 on `UserPromptSubmit`). These hook facts are directional (from the documentation, https://code.claude.com/docs/en/hooks, not re-verified in this repository). The choice may be revisited after the FR-238 baseline.
 
 ##### Scenario: Hijack denied
 
@@ -554,7 +560,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 **Statement:** A severity policy MUST define CRITICAL, HIGH, MEDIUM, and LOW for this repo, with examples and confidence levels, and MUST be approved by the user (recorded in `DECISIONS.md`) before any rule blocks on severity.
 **Traces to:** UR-071
 **Priority:** Must
-**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional). The policy basis is settled by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-4 basis): four levels aligned to a recognized rubric (OWASP risk rating or CVSS bands) with repo-specific examples drawn from this plugin's hook and LLM-surface risks, a per-finding confidence of High, Medium, or Low, and a SARIF mapping of CRITICAL and HIGH to error, MEDIUM to warning, and LOW to note. The concrete policy text is drafted separately. The user's formal approval, a later `DECISIONS.md` entry, is still pending, so no rule blocks on severity yet and the advisory-baseline-first rule of FR-238 still applies.
+**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional). The policy basis is settled by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-4 basis): four levels aligned to a recognized rubric (OWASP risk rating or CVSS bands) with repo-specific examples drawn from this plugin's hook and LLM-surface risks, a per-finding confidence of High, Medium, or Low, and a SARIF mapping of CRITICAL and HIGH to error, MEDIUM to warning, and LOW to note. The user approved the concrete policy text, `severity-policy.md` version `draft-1`, in `DECISIONS.md`, "2026-10-30: Severity policy approved". A rule may now block on severity, but only after the advisory-baseline-first promotion gate of FR-238.
 
 ##### Scenario: Policy approved
 
@@ -647,17 +653,24 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### 2.29 FR-242: Confirmation recording (Theme 1)
 
-**Statement:** A hook on `UserPromptSubmit`, not the orchestrator, MUST write a record of the user's confirmation (PR, verdict, timestamp, a reference to the user message it came from, and the writer marked `hook`) as JSONL to a store under a path in `.agent/` that FR-245 already protects, and the PR-posting guard of FR-214 MUST read that store with file reads alone. A subagent and text from a PR, web page, or file MUST NOT create or alter a confirmation record.
+**Statement:** A hook on `UserPromptSubmit`, not the orchestrator, MUST write a record of the user's confirmation (PR, verdict, timestamp, a reference to the user message it came from, and the writer marked `hook`) as JSONL to a store under a path in `.agent/` that FR-245 already protects, and the PR-posting guard of FR-214 MUST read that store with file reads alone. A subagent and text from a PR, web page, or file MUST NOT create or alter a confirmation record. The confirmation MUST be bound to its pending action by a per-action token: when `/do` shows the PR and verdict draft, it MUST write a pending-action record (PR, verdict, a short random token, `session_id`) to the store, and the hook MUST write a confirmation only when the user's prompt carries the matching token. An affirmative without the matching token MUST NOT confirm.
 **Traces to:** UR-059
 **Priority:** Must
-**Origin:** Gap 2, `llm-security-checklist.md:326`. FR-214 denies on a missing confirmation, so the store is security-relevant: a store any agent can write could be forged by the injected PR text the control defends against. The guard's only I/O is file reads that a test can replace (`rules/assist-plugin-rule.md:409`). The writer and form are settled (D-10, OQ-10 resolved) by `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": a hook's output cannot be forged by model text or by PR, web, or file content, the same trust model as the FR-247 purpose-capture hook. The hook ships with an ES5 entry file, a timeout, a self-test corpus (NFR-035), and the D-1 fail-closed behavior for its guarded class. The store path is protected from every subagent write under FR-245 (D-2 settled).
+**Origin:** Token binding: `DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)". The hook sees only the prompt text and `session_id` (no documented correlation field; directional, from the hooks documentation, not re-verified in this repository), and a pasted or injected affirmative can look like a typed one, so the token fails closed. Gap 2, `llm-security-checklist.md:326`. FR-214 denies on a missing confirmation, so the store is security-relevant: a store any agent can write could be forged by the injected PR text the control defends against. The guard's only I/O is file reads that a test can replace (`rules/assist-plugin-rule.md:409`). The writer and form are settled (D-10, OQ-10 resolved) by `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": a hook's output cannot be forged by model text or by PR, web, or file content, the same trust model as the FR-247 purpose-capture hook. The hook ships with an ES5 entry file, a timeout, a self-test corpus (NFR-035), and the D-1 fail-closed behavior for its guarded class. The store path is protected from every subagent write under FR-245 (D-2 settled).
 
 ##### Scenario: User confirmation recorded
 
-- **GIVEN** the orchestrator asked the user to approve PR 42 and the user answered yes in their own message
+- **GIVEN** `/do` showed the draft for PR 42 with verdict approve, wrote a pending-action record with token `K7Q2`, and the user answered yes with `K7Q2` in their own message
 - **WHEN** the `UserPromptSubmit` hook runs
 - **THEN** the store MUST hold a JSONL record for PR 42 and verdict approve with the timestamp
 - **AND** the record MUST name the writer as `hook`
+
+##### Scenario: Affirmative without the token rejected
+
+- **GIVEN** `/do` wrote a pending-action record for PR 42 with token `K7Q2`
+- **WHEN** a prompt holds an affirmative such as pasted or injected text without `K7Q2`
+- **THEN** the hook MUST NOT write a confirmation record
+- **AND** the guard of FR-214 MUST still deny the posting command
 
 ##### Scenario: Forged confirmation rejected
 
@@ -885,7 +898,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 | ID | Requirement | Traces to | Regulation/Standard |
 |----|-------------|-----------|---------------------|
-| NFR-033 | A compliance control that rests on a vendor blog or an unverified citation MUST be labeled directional, and a control MUST NOT be marked complete before verification against the regulation text. Status: the HIPAA audit control (FR-232) is verified against 45 CFR 164.312(b), which requires mechanisms that record and examine activity, and the control implements that one required technical safeguard, not full HIPAA compliance. The FERPA internal access log (FR-230) carries no 34 CFR 99.32 citation and is general governance support, labeled directional. The FERPA disclosure-recordation control (FR-246) is the only control cited against 34 CFR 99.32; it stays "to verify" until its exception handling is reviewed. The exact log rotation size of NFR-032 is an estimate until measured against the NFR-030 verification-time target. The severity-policy basis (FR-237) is settled, but the concrete policy text is not yet approved, so the severity thresholds stay unapproved and no rule blocks on severity. The figures "under 50% mitigation" and "18% governance councils" MUST NOT serve as a threshold. | BR-020, BR-021 | 45 CFR 164.312(b) (FR-232, verified); 34 CFR 99.32 (FR-246 only, to verify) |
+| NFR-033 | A compliance control that rests on a vendor blog or an unverified citation MUST be labeled directional, and a control MUST NOT be marked complete before verification against the regulation text. Status: the HIPAA audit control (FR-232) is verified against 45 CFR 164.312(b), which requires mechanisms that record and examine activity, and the control implements that one required technical safeguard, not full HIPAA compliance. The FERPA internal access log (FR-230) carries no 34 CFR 99.32 citation and is general governance support, labeled directional. The FERPA disclosure-recordation control (FR-246) is the only control cited against 34 CFR 99.32; it stays "to verify" until its exception handling is reviewed. The exact log rotation size of NFR-032 is an estimate until measured against the NFR-030 verification-time target. The severity-policy basis (FR-237) is settled and the user approved the concrete policy text, `severity-policy.md` version `draft-1` (`DECISIONS.md`, "2026-10-30: Severity policy approved"); a rule may block on severity only after the FR-238 advisory baseline. The figures "under 50% mitigation" and "18% governance councils" MUST NOT serve as a threshold. | BR-020, BR-021 | 45 CFR 164.312(b) (FR-232, verified); 34 CFR 99.32 (FR-246 only, to verify) |
 | NFR-034 | A rule MUST NOT move from advisory to blocking unless its baseline precision is at least 90% (estimate, BRD A-6). | BR-022 | Alert-fatigue control; helpmetest and GitLab blogs (directional) |
 
 ##### Scenario: Unverified FERPA disclosure control (NFR-033)
@@ -942,16 +955,17 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 |----|-----------------|---------|
 | D-1 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): fail-closed on a malformed configuration while a profile is enforced; log-only when the configuration is absent. Exception to the Hook Fail-Open Rule (`rules/assist-plugin-rule.md:404-416`) | NFR-028, FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-246 |
 | D-2 | Settled (`DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection"): the confirmation store, `.agent/logs/governance/**`, the session purpose record, and the rule-mode store are added to the Write guard lists (`rules/assist-plugin-rule.md:420-434`) and protected from every subagent write; any later narrowing of an entry needs the same record first | FR-245, FR-223, FR-224 |
-| D-3 | Settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"): narrow `Bash(git push *)` to `Bash(git push origin *)` in `.claude/settings.local.json`; the user applies it because the plugin never edits settings, and gap 3 closes once applied | FR-216 |
-| D-4 | Basis settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); the user's formal approval of the concrete policy text, a later `DECISIONS.md` entry, is still pending | FR-237 |
+| D-3 | Settled and refined (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled", then "Push grant scoped per named remote, not origin-only (D-3 refined)"): replace `Bash(git push *)` with one grant per named remote (today `Bash(git push origin *)`; a mirror adds `Bash(git push <mirror-name> *)`) in `.claude/settings.local.json` or `.claude/settings.json`; the health check flags only a wildcard or unscoped grant; the user applies it because the plugin never edits settings, and gap 3 closes once the settings hold named-remote grants and no wildcard | FR-216 |
+| D-4 | Settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled", then "2026-10-30: Severity policy approved"): the basis is settled and the user approved `severity-policy.md` version `draft-1`; a blocking rule still needs the FR-238 advisory baseline first | FR-237 |
 | D-5 | Settled (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"): identity and authorizer fields in `fsa-log.jsonl` rows, and `audit.jsonl` as the per-access store holding operation and data-accessed (path and class tag) | FR-226, FR-227, NFR-031 |
 | D-6 | Settled (same 2026-10-30 entry): size-based rotation replaces the 500-line cap on `fsa-log.jsonl`, with the prior segment's final chain hash carried into each new segment and at least 12 months of retention | NFR-032, FR-228 |
 | D-7 | Settled (`DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled"): cap of 10 with two consecutive LGTMs as the normal pass; escalation at the cap | FR-218 |
 | D-8 | Settled (`DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"): in-plugin scanner exit code plus a distinct reviewer verdict (OQ-1) | FR-221 |
 | D-9 | Settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"): the `/do` orchestrator writes the SARIF file; no subagent write path is added | FR-241 |
-| D-10 | Settled (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"): a `UserPromptSubmit` hook writes the confirmation store as JSONL under `.agent/`. Its protection from subagent writes is settled under D-2 and FR-245 | FR-214, FR-242, FR-245 |
+| D-10 | Settled (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"): a `UserPromptSubmit` hook writes the confirmation store as JSONL under `.agent/`. Its protection from subagent writes is settled under D-2 and FR-245. The confirmation is bound to its pending action by a per-action token (`DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)") | FR-214, FR-242, FR-245 |
 | D-11 | Settled (`DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection"): a hook writes the session purpose record from a user-declared purpose; a missing purpose is logged `unstated` and flagged, never denied on that alone (OQ-6 settled) | FR-230, FR-247 |
 | D-12 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): add `.claude/settings.json` and `.agent/governance/profile.json` to the protected paths that every subagent is denied (Write guard lists, `rules/assist-plugin-rule.md:420-434`) | FR-245, FR-231, FR-243 |
+| D-13 | Settled (`DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", PN-1): the FR-219 alignment check stays rule-based and advisory-first (FR-238), not a model-calling hook, because it reads attacker-controlled text | FR-219 |
 
 Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when it happens; it is not a standing dependency.
 
@@ -1008,3 +1022,4 @@ Gap traceability:
 | 1.1 | 2026-10-28 | [Author] | Align with `DECISIONS.md` 2026-10-28: FR-231 names the two-file configuration; FR-230, FR-232, FR-233, FR-234 read as enforced-by-default with opt-out; NFR-028 records the settled fail-closed and log-only behavior (D-1 settled); FR-243 to FR-245 added for the governed opt-out; D-12 added |
 | 1.2 | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-28 entries on purpose capture and OQ-9: FR-247 added (purpose-capture hook; OQ-11, D-11 settled); FR-230 reframed as an internal log that denies nothing on a missing purpose (OQ-6 settled) and carries no 99.32 citation; FR-246 added (FERPA disclosure recordation, the only 99.32 control); FR-232 verified against 45 CFR 164.312(b) with tightened scope; FR-245 extended to six protected paths (D-2 settled); NFR-033 status updated; UR-076 traced. Also aligns with `DECISIONS.md` 2026-10-30, "FERPA disclosure control denies on missing attribution and is fail-closed": FR-246 gains the deny-on-missing-attribution clause; FR-246 added to the NFR-028 security-critical set. Also aligns with `DECISIONS.md` 2026-10-30, "FR-246 disclosure attribution comes from the payload, validated against a profile.json allowlist" (PN-9 settled; note at 1.2, no version bump): FR-246 states that the receiving party and legitimate interest are payload-declared and parsed by the guard, validated against a `profile.json` allowlist, and denied when missing or off the allowlist; FR-245 states that the six paths are unchanged and `profile.json` is the allowlist's trust anchor |
 | 1.3 | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)": NFR-032 states size-based rotation with the prior segment's final chain hash carried across the cut and at least 12 months of retention (D-6, OQ-3 resolved); FR-242 names a `UserPromptSubmit` hook writing JSONL under a path protected by FR-245 (D-10, OQ-10 resolved); FR-227 two-file split ratified (D-5, OQ-4 resolved). "Gap-3 push grant and gap-6 revision-loop cap settled": FR-218 cap raised from 3 to 10 with two consecutive LGTMs as the normal pass and a continue/waive/abort escalation at the cap (D-7, OQ-2 resolved); FR-216 records the settled origin-only grant (D-3). "Judgement-gate evidence and the /do human authorizer settled": FR-221 takes the scanner exit code from the plugin's own scripts, with an external scanner optional (D-8, OQ-1 resolved); FR-227 names the plan approver as the authorizer, `none` with a reason otherwise (OQ-7 resolved). "Severity-policy basis and SARIF writer settled": FR-241 names the `/do` orchestrator as the SARIF writer (D-9, OQ-8 resolved); FR-237 and NFR-033 record the settled severity basis, with formal policy approval still pending (D-4 partial, FR-238 unchanged). Rotation size stays an estimate. No trace changes. Version bumped to 1.3 in lockstep with the BRD, URD, and JSON because the URD open-questions list and BRD A-4 changed |
+| 1.3 (note) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)": FR-219 states a rule-based, advisory-first check that does not call a model, with the corrected hook facts (default command-hook timeout 600 seconds, 30 on `UserPromptSubmit`; no documented offline sandbox; `prompt`, `agent`, and `http` hook types can call a model), labeled directional; D-13 added. FR-242 adds the per-action token binding; D-10 notes it. FR-221 and FR-241 already read consistently with the Step 18 and Step 34 decisions and are unchanged. "Push grant scoped per named remote, not origin-only (D-3 refined)": FR-216 recommends one grant per named remote and flags only a wildcard or unscoped grant; D-3 refined. Also closes the severity approval status per `DECISIONS.md`, "2026-10-30: Severity policy approved": D-4 settled, FR-237 Origin records the approval of `severity-policy.md` draft-1, and OQ-12 resolved in the JSON mirror and the URD; NFR-033 states the same approved status. No version bump: the BRD and URD are unchanged |

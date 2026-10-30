@@ -108,7 +108,7 @@
 - OQ-9: Resolved (`DECISIONS.md`, 2026-10-28, "OQ-9 resolved; FERPA control reframed, HIPAA scope tightened"). HIPAA: FR-232 is verified against 45 CFR 164.312(b) as one required technical safeguard that records and supports review, not full HIPAA compliance. FERPA: the internal access log (FR-230) is general governance support and does not implement 34 CFR 99.32; FR-246 adds disclosure recordation for outbound education-record data and is the only control cited against 99.32.
 - OQ-10: Resolved (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"). A `UserPromptSubmit` hook writes the confirmation store as JSONL under a path in `.agent/` protected under FR-245; the FR-214 guard reads it with file reads alone (FR-242).
 - OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records `unstated` and flags the record (FR-247; `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection").
-- OQ-12: Open. The user's formal approval of the concrete severity-policy text, a later `DECISIONS.md` entry. The policy basis is settled (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); until the approval exists no rule blocks on severity and the FR-238 advisory baseline applies (FR-237).
+- OQ-12: Resolved (`DECISIONS.md`, "2026-10-30: Severity policy approved"). The user approved `severity-policy.md` version `draft-1`. The policy basis was settled earlier (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); a rule may block on severity only after the FR-238 advisory baseline (FR-237).
 
 ### 8. Glossary
 
@@ -126,4 +126,4 @@
 | 1.0 | 2026-10-28 | [Author] | Initial draft |
 | 1.1 | 2026-10-28 | [Author] | Enforced-by-default assumption; UR-069 reworded; UR-075 added for governed opt-out; OQ-5 settled |
 | 1.2 | 2026-10-30 | [Author] | UR-068 reworded to the user-declared purpose; UR-076 added for FERPA disclosure recordation; OQ-6, OQ-9, OQ-11 resolved; OQ-10 narrowed to location and format |
-| 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entries: OQ-1, OQ-2, OQ-3, OQ-4, OQ-7, OQ-8, OQ-10 resolved; OQ-12 added for the pending formal approval of the severity-policy text |
+| 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entries: OQ-1, OQ-2, OQ-3, OQ-4, OQ-7, OQ-8, OQ-10 resolved; OQ-12 added for the pending formal approval of the severity-policy text, then resolved by `DECISIONS.md`, "2026-10-30: Severity policy approved" (draft-1; no version bump) |
