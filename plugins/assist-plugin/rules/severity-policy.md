@@ -2,9 +2,9 @@
 
 **Purpose:** Define CRITICAL, HIGH, MEDIUM, and LOW for this repo, a per-finding confidence level, the SARIF level mapping, and the rule that decides when a finding blocks.
 
-**Status:** DRAFT, pending the user's D-4 approval. No rule blocks on severity while this status reads DRAFT or the approval entry below does not exist. Traces to FR-237, FR-238, FR-239, FR-240, FR-241 (`docs/requirements/FR-NFR-harness-governance.md`) and NFR-033, NFR-034. Basis settled in `DECISIONS.md` under "2026-10-30: Severity-policy basis and SARIF writer settled".
+**Status:** Approved at version draft-2. The user approved this policy at draft-1 in `DECISIONS.md` under "2026-10-30: Severity policy approved"; reconciling this status line raised the version to draft-2, which the user re-approved in `DECISIONS.md` under a "Severity policy approved" entry naming draft-2. A rule may block on severity, subject to the FR-238 advisory-baseline-first gate. Traces to FR-237, FR-238, FR-239, FR-240, FR-241 (`docs/requirements/FR-NFR-harness-governance.md`) and NFR-033, NFR-034. Basis settled in `DECISIONS.md` under "2026-10-30: Severity-policy basis and SARIF writer settled".
 
-**Policy version:** draft-1
+**Policy version:** draft-2
 
 **Approval entry (exact heading):** The user approves this policy by adding an entry to `DECISIONS.md` whose heading line is exactly
 
@@ -12,7 +12,7 @@
 ## <YYYY-MM-DD>: Severity policy approved
 ```
 
-where `<YYYY-MM-DD>` is the approval date (for example `## 2026-11-02: Severity policy approved`). A check treats the policy as approved only when `DECISIONS.md` holds a line matching `^## [0-9]{4}-[0-9]{2}-[0-9]{2}: Severity policy approved$` and the entry body names `plugins/assist-plugin/rules/severity-policy.md` and the policy version it approves (`draft-1` above). Editing this file after approval raises the version; the old approval then no longer covers it. Approval amendments the user wants (any choice in "Choices and trade-offs") go into the entry body or into a new draft version before the entry is written. Subagents are denied writes to `DECISIONS.md` (`CLAUDE.md`, fsa-write-bar), so only the user or the orchestrator can create the entry.
+where `<YYYY-MM-DD>` is the approval date (for example `## 2026-11-02: Severity policy approved`). A check treats the policy as approved only when `DECISIONS.md` holds a line matching `^## [0-9]{4}-[0-9]{2}-[0-9]{2}: Severity policy approved$` and the entry body names `plugins/assist-plugin/rules/severity-policy.md` and the policy version it approves (`draft-2` above). Editing this file after approval raises the version; the old approval then no longer covers it. Approval amendments the user wants (any choice in "Choices and trade-offs") go into the entry body or into a new draft version before the entry is written. Subagents are denied writes to `DECISIONS.md` (`CLAUDE.md`, fsa-write-bar), so only the user or the orchestrator can create the entry.
 
 **Scope of this file:** Because this file sits under `rules/`, a change to it is on the LLM surface and needs the OWASP for LLM gate (`llm-security-checklist.md:11`).
 
