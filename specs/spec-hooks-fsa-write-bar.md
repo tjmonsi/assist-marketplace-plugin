@@ -7,7 +7,7 @@
 | **Feature** | FSA write bar: per-agent write limits and protected paths |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, UR-075, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, FR-242, FR-245, NFR-008, NFR-009, NFR-031, NFR-036 |
+| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, UR-064, UR-075, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, FR-223, FR-242, FR-245, NFR-008, NFR-009, NFR-028, NFR-031, NFR-036 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -831,3 +831,112 @@ None.
 |---|---|---|
 | FR-245 | Change Log 2026-11-05: Requirement: Confirmation store protected from writes | Subagent and main-session deny cases for both files; read allowed |
 | FR-242 | Change Log 2026-11-05: Requirement: Calls the bar judges | All-callers deny of `confirmations.jsonl`; main-session allow of `pending.jsonl` |
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-223 (section 2.10), FR-245 (section 2.32), NFR-028 (section 3.2), NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 15 (lines 314 to 319); `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2: the governance stores are protected from every subagent write). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). This entry closes gap 2 of `rules/llm-security-checklist.md` together with the Change Log 2026-11-05 Steps (task plan Step 15 marks the gap-2 row closed).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-223 and NFR-028 added. FR-245, UR-075, NFR-031, and NFR-036 are already present from the Change Log 2026-11-05.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Source line of this entry: "Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2)" is superseded by the shipped, gate-approved harness-governance Tranche 2 build that this entry reconciles to; at the next fold the Planned labels of this entry read as built and the Status stays `Review` until then, not `Implemented`.
+- Triggered by: a second row, PreToolUse with matcher `Bash` (the entry task plan Step 15 adds to `hooks/hooks.json`), so the bar also judges a subagent's `Bash` command, not only the four write tools.
+- Algorithmic steps flow (`spec-hooks-fsa-write-bar-flow.mmd` and the copy in this file): a `Bash` branch, taken when the call is a `Bash` tool from a subagent, that extracts each write target from the command through `lib/shell-writes.js` and denies the call when any target is a protected path, before the existing write-tool branches.
+- Required data: `lib/shell-writes.js` (the write-target extractor built on `lib/shell-lex.js` and `lib/shell-program.js`), and the reuse of `protectedRule()` from `hooks/lib/fsa-paths.js` so the `Bash` judge reads the same protected list as the write-tool branches.
+- Requirement: Scope of the bar: the statement moves from "a Bash command that writes a file is not seen" to the MODIFIED form below.
+
+### ADDED Requirements
+
+#### Requirement: Shell write path to protected paths
+
+The `fsa-write-bar` hook SHALL deny a subagent `Bash` command (an `agent_id` present) that writes a protected path through output redirection (`>`, `>>`, `>|`, or `N>`), `tee`, `sed -i`, `cp`, `mv`, or `rm`, extracting the write targets from the command, and SHALL allow a shell read of a protected path (for example `cat DECISIONS.md`). The protected paths it enforces by this route are those on the shared protected list at the time the call is judged: `**/.agent/main-plan/**`, `DECISIONS.md`, `**/.agent/logs/governance/**` (the audit log of Step 11), and the confirmation store `.agent/governance/confirmations/` (Step 2, both `confirmations.jsonl` and `pending.jsonl`). As a later tranche adds the remaining FR-245 paths to that shared list, this route covers them without a change to this requirement, because the `Bash` judge reads `protectedRule()` from `hooks/lib/fsa-paths.js`, the same list the write-tool branches read.
+
+**Requirement refs:** FR-223, FR-245, UR-064, UR-075, NFR-028, NFR-036 | **Status:** Planned (harness-governance Tranche 2) | **Source:** FR-NFR-harness-governance.md v1.3, FR-223 (section 2.10) and FR-245 (section 2.32); task plan Step 15 (`hooks/impl/fsa-write-bar.js` judges `Bash`, `hooks/lib/shell-writes.js` extracts the targets, the `Bash` matcher entry in `hooks/hooks.json`); `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2)
+
+The hook judges each lexed part on its own, as the Bash guards do, so a protected target inside any part of a chained command is denied. FR-223 belongs to the NFR-028 security-critical class: when the `Bash` judge throws, times out, or cannot read its configuration and the classifier assigns the call to the guarded class, the runtime denies through the `failClosedFor(input)` branch of Requirement: Failure path in spec-hooks-platform.md (Change Log 2026-11-05), and a call outside the class still proceeds. The decision is logged to the governance audit log (NFR-026; spec-hooks-audit.md). Known limits, recorded and not closed (FR-NFR-harness-governance.md section 4): a command built from a variable, a command string run by another program, and symlinks are not resolved; PowerShell write verbs (`Set-Content`, `Out-File`, `Move-Item`) are not named by FR-223 and are not covered, a known gap stated in the rule text.
+
+##### Scenario: Shell append to DECISIONS.md
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `echo "approved" >> DECISIONS.md`
+- **THEN** the hook SHALL deny the command
+
+##### Scenario: Shell read allowed
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `cat DECISIONS.md`
+- **THEN** the hook SHALL allow the command, because no write target is extracted
+
+##### Scenario: Shell write to the governance audit log
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `sed -i 's/deny/allow/' .agent/logs/governance/audit.jsonl`, `tee -a .agent/logs/governance/audit.jsonl`, or `rm .agent/logs/governance/audit.jsonl`
+- **THEN** the hook SHALL deny each command, because the write target is under `**/.agent/logs/governance/**`
+
+##### Scenario: Shell write to the confirmation store
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `cp /tmp/forged .agent/governance/confirmations/confirmations.jsonl` or `mv x .agent/governance/confirmations/pending.jsonl`
+- **THEN** the hook SHALL deny each command, because the destination is in the protected confirmation store
+
+##### Scenario: Shell write to an unprotected path
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `echo x >> src/notes.txt`
+- **THEN** the hook SHALL allow the command, because `src/notes.txt` is on no protected list
+
+##### Scenario: Variable-built command not caught
+
+- **GIVEN** a subagent session with an `agent_id` and the command `F=DECISIONS.md; echo x >> "$F"`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL allow it, a recorded known limit, because the write target is built from a variable
+
+### MODIFIED Requirements
+
+#### Requirement: Scope of the bar
+
+**Was:** The hook SHALL judge only the four write tools and the path as written: a Bash command that writes a file is not seen, symlinks and Windows 8.3 short names are not resolved, and the test-glob and `task-plan-*.md` matches are case-sensitive.
+
+**Now:** The hook SHALL judge the four write tools and a subagent `Bash` command that writes a protected path (Requirement: Shell write path to protected paths), and otherwise the path as written: a `Bash` write to an unprotected path, a `Bash` write from the main session, and a PowerShell write verb are not seen, symlinks and Windows 8.3 short names are not resolved, and the test-glob and `task-plan-*.md` matches are case-sensitive.
+
+**Reason:** FR-223 and task plan Step 15 register `fsa-write-bar` on the `Bash` matcher so the write bar covers the shell route to the protected paths; the per-agent write-tool limits (test paths, task-plan scope, chain-agent dot paths) stay on the four write tools only, and PowerShell write verbs stay a known gap.
+
+**Status:** Planned (harness-governance Tranche 2)
+
+##### Scenario: Bash write to a non-protected path by a role-limited agent
+
+- **GIVEN** `assist-plugin:developer-tester` runs a Bash command that writes `src/app.ts`
+- **WHEN** Claude Code dispatches PreToolUse hooks
+- **THEN** the `Bash` branch SHALL allow it (no protected target), and the test-path limit SHALL NOT apply, because that limit judges the four write tools only
+
+##### Scenario: Capitalized test directory
+
+- **GIVEN** `developer` writes `<project>/Tests/a.js`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL allow it, because `Tests` does not match `**/tests/**`
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-223 | Change Log 2026-11-06: Requirement: Shell write path to protected paths | Shell append, shell read, redirection, `tee`, `sed -i`, `cp`, `mv`, and `rm` cases (`tests/hooks/fsa-write-bar-shell.test.js`, task plan Step 20) |
+| FR-245 | Change Log 2026-11-06: Requirement: Shell write path to protected paths | Shell-route deny of `**/.agent/logs/governance/**` and the confirmation store; shell read allowed |
+| NFR-028 | Change Log 2026-11-06: Requirement: Shell write path to protected paths | The `Bash` judge denies its guarded class on an error through `failClosedFor(input)` (spec-hooks-platform.md, Change Log 2026-11-05) |
+| FR-223 (scope) | Change Log 2026-11-06: Requirement: Scope of the bar | A non-protected `Bash` write and a PowerShell write verb pass; a protected `Bash` write is denied |
+
+### Reconciliation to as-built (2026-11-06)
+
+The Step-15 build judges more shell write forms than the ADDED Requirement: Shell write path to protected paths first named, and is stricter than its statement; this note records the built coverage and corrects the known-limits list. It supersedes the six-form list of that requirement's statement and its limits paragraph at the next fold.
+
+- Write forms judged, as fail-closed siblings of `>`, `>>`, `>|`, `N>`, `tee`, `sed -i`, `cp`, `mv`, and `rm`: `unlink`, `rmdir`, `shred`, `truncate`, `touch`, `dd of=`, `install`, `ln`, `curl -o`, `wget -O`, and `perl -i`. The judge recurses into `eval`, `sh -c`, `bash -c`, a heredoc fed to a shell, and command substitution, judging each inner command the same way.
+- Destination into a directory: a `cp` or `mv` whose last argument is a directory is judged against that directory for a single source, for multiple sources, and for the `cp -t DIR` form, so a write of a new file into a protected directory is caught even when the file name is not spelled out in the command.
+- `protectedDirectoryRule`: writing any new file into a protected directory is denied, not only a write of a named protected file. The protected directories are the confirmation-store directory (`.agent/governance/confirmations/`), `**/.agent/main-plan/`, and the governance log directory (`**/.agent/logs/governance/`).
+- `guardedClass` marker scan: the fail-closed-class marker scan decodes `\x`, `\u`, `\U`, and octal escapes before matching, so an escaped protected path still classifies the call into the NFR-028 guarded class.
+- Known limits, recorded and not closed (superseding the limits paragraph of the ADDED requirement): a command built from a variable, a command string run by another program, a script piped into a shell, symlinks (not resolved), PowerShell write verbs (`Set-Content`, `Out-File`, `Move-Item`), the main session (not judged; only a subagent `Bash` call with an `agent_id` is), and a same-command `mkdir DIR && cp ... DIR` time-of-check-to-time-of-use case where the destination directory does not exist at judge time.

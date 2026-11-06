@@ -7,7 +7,7 @@
 | **Feature** | Hook health skill: `/health` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, UR-018, UR-055, FR-104, FR-166, FR-118, FR-206, FR-213 |
+| **Requirement refs** | BR-007, UR-018, UR-055, UR-065, UR-067, FR-104, FR-166, FR-118, FR-206, FR-213, FR-225, FR-228, NFR-027, NFR-030, NFR-035 |
 | **Feature type** | Tooling |
 | **Status** | Review |
 
@@ -487,3 +487,93 @@ Review findings applied: Requirement refs gain FR-104; the overview's end state 
 ### Fix pass 2 (2026-10-23)
 
 Review findings applied: the overview's `docs/tts/` sentence uses "like other prose" and stands apart from the temp-directory and allowlist sentence, and the scenario and conformance row check it against the mechanical rules of spec-skills.md (Change Log 2026-10-23).
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-225 (section 2.12), FR-228 (section 2.15), NFR-030 (section 3.3), NFR-027, NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 14 (the `--verify-audit` mode of `/assist-plugin:health`, lines 307 to 312), Step 12 (the audit log, its privacy rule, and the `audit-log` self-test, lines 293 to 298), Step 13 (first-session and disablement logging, lines 300 to 305), Step 17 (the `gate-evidence` self-test, lines 328 to 333), and Step 19 (the `goal-guard` self-test corpus, lines 348 to 353). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). The chain, its hashing and rotation, and the verification algorithm are specified in spec-hooks-audit.md; the three new hooks' self-test corpora are in spec-hooks-health-check.md; this entry covers only what the `/health` skill runs and tells the user.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review. Requirement refs: UR-065, UR-067, FR-225, FR-228, NFR-027, NFR-030, and NFR-035 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Required data: a `verify-audit` argument row, and a `.agent/logs/governance/audit.jsonl` row (the governance audit log the verify-audit mode walks).
+- The findings table (`skills/health/SKILL.md:36-69`): rows for a failed `audit-log`, `gate-evidence`, or `goal-guard` self-test (each a filter, so a false finding reports weak logging and the hook stays enabled per the filter rule), and a row for a broken audit chain reported by the verify-audit mode.
+- Dependencies, the Tool grants row: the skill's grants allow three command forms (plain, `--clear`, and `--verify-audit`) plus Read, each naming the exact command, not a bare `Bash` (NFR-027).
+
+### ADDED Requirements
+
+#### Requirement: Verify the governance audit chain
+
+The `/health` skill SHALL, when the user asks to verify the audit chain, run `node "${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js" --data-dir "${CLAUDE_PLUGIN_DATA}" --verify-audit`, and SHALL report to the user the count of verified lines when the chain is intact (the command exits 0) or the first line where the chain breaks when it is not (the command exits non-zero), following the chain across rotated segments and flagging any `unidentified` record.
+
+**Requirement refs:** FR-225, NFR-030, NFR-027, UR-065, UR-018 | **Status:** Planned (harness-governance Tranche 2) | **Source:** FR-NFR-harness-governance.md v1.3, FR-225 (section 2.12); task plan Step 14 (`scripts/verify-audit-chain.js`, the `--verify-audit` mode of `hooks/impl/health-check.js`, the `allowed-tools` and `argument-hint` of `skills/health/SKILL.md`, and the `metadata.json` mirror)
+
+The verification runs as a mode of the existing `/assist-plugin:health` skill, not a new skill, so the skill count and the "Keeping counts in sync" list do not change (task plan Step 14, Notes). The `allowed-tools` entry names the exact `--verify-audit` command, not a bare `Bash` (NFR-027), and `skills/health/metadata.json` mirrors the `allowed-tools` and `argument-hint` (`tests/skills/metadata-mirror.test.js`). The algorithm, the 100,000-line time budget, and the rotation handling are in spec-hooks-audit.md (NFR-030).
+
+##### Scenario: Intact chain
+
+- **GIVEN** an unmodified governance audit log of 500 lines across one or more rotated segments
+- **WHEN** the user runs the verify-audit mode
+- **THEN** the skill SHALL report the chain as verified and name the count of verified lines
+
+##### Scenario: Edited line
+
+- **GIVEN** line 7 of the audit log was edited after it was written
+- **WHEN** the user runs the verify-audit mode
+- **THEN** the skill SHALL report the chain as broken and name line 7 as the first break
+
+### MODIFIED Requirements
+
+#### Requirement: Run the health check with the user's flag
+
+**Was:** The `/health` skill SHALL run `node "${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js" --data-dir "${CLAUDE_PLUGIN_DATA}"`, adding `--clear` only when the user passed it. [Body: "The skill's grants allow exactly these two command forms plus Read."]
+
+**Now:** The statement is unchanged for the plain and `--clear` forms. The skill's grants allow exactly three command forms plus Read: the plain form, the `--clear` form, and the `--verify-audit` form (Requirement: Verify the governance audit chain), each named exactly in `allowed-tools` (NFR-027).
+
+**Reason:** FR-225 and task plan Step 14 add the `--verify-audit` mode to the same skill and its exact command to `allowed-tools`.
+
+**Requirement refs:** FR-166, FR-225, UR-018, NFR-027 | **Status:** Planned (harness-governance Tranche 2) for the third form; Built for the first two
+
+The three existing Scenarios (Plain run, Clear requested, Long log without the flag) are unchanged.
+
+#### Requirement: Short summary with a fix per finding
+
+**Was:** The `/health` skill SHALL summarize the status in a few lines and give each finding its fix from the findings table. [The findings table carries rows through `pr-post-ask` and `writing-context`.]
+
+**Now:** The statement is unchanged. The findings table gains a row for each of the three Tranche 2 filters (`audit-log`, `gate-evidence`, `goal-guard`): a failed self-test means the filter stays enabled (a filter is not auto-disabled for a missed log) and its logging is weak, and the fix is to report the bug with the report output. The table also gains a row for a broken audit chain (the verify-audit mode reported a first broken line): the fix names the first broken line and tells the user the log was changed after it was written. The overview describes the governance audit log and its privacy rule: the log holds a rule id, decision, tool name, and a path with its data-class tag, and never command text, file contents, or secret values (NFR-031; task plan Step 12).
+
+**Reason:** NFR-035 ships a self-test for each of `audit-log`, `gate-evidence`, and `goal-guard` reported through `/assist-plugin:health` (task plan Steps 12, 17, 19), and task plan Step 12 adds the governance-audit-log description and its privacy rule to `skills/health/SKILL.md`. FR-228 writes a disablement event to that log, which the verify-audit mode walks.
+
+**Requirement refs:** FR-166, FR-225, FR-228, NFR-031, NFR-035, UR-018 | **Status:** Planned (harness-governance Tranche 2)
+
+##### Scenario: Audit-log self-test fails
+
+- **GIVEN** the report shows the `audit-log` self-test failed
+- **WHEN** the skill summarizes
+- **THEN** the entry SHALL say the hook stays enabled and its logging may be incomplete, and SHALL give the fix: report the bug with the report output
+
+##### Scenario: Broken chain reported in the summary
+
+- **GIVEN** the verify-audit mode reported a first broken line
+- **WHEN** the skill summarizes
+- **THEN** the entry SHALL name the first broken line and say the log was changed after it was written
+
+The other Scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-225, NFR-030 | Change Log 2026-11-06: Requirement: Verify the governance audit chain | `/health --verify-audit` on an intact log reports the verified count; on an edited log names the first broken line (spec-hooks-audit.md verifies the algorithm) |
+| NFR-027 | Change Log 2026-11-06: Requirement: Run the health check with the user's flag | `allowed-tools` names the three exact commands; `metadata.json` mirrors them |
+| FR-228, NFR-035, NFR-031 | Change Log 2026-11-06: Requirement: Short summary with a fix per finding | Findings rows for the three new filters and a broken chain; the overview states the audit log's privacy rule |
+
+### Reconciliation to as-built (2026-11-06)
+
+- `audit-no-root` finding: besides the three logging-filter rows and the broken-chain row above, the findings table gains an `audit-no-root` row. It means a governed action ran with no resolvable project root, so the governance audit log under `.agent/logs/governance/` could not be located and the append was skipped (fail-open, the action proceeds and the skill reports the skip). The fix tells the user to run the governed action within a project that has a resolvable root so the log can be written; no settings or state file changes because of the skill. This supersedes the findings-table wording of the MODIFIED Requirement: Short summary with a fix per finding at the next fold.

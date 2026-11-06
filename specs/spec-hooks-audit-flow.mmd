@@ -1,0 +1,18 @@
+flowchart TD
+  S(["append(record)"]) --> T["Tail-read the last line of the current segment"]
+  T --> H["prev = SHA-256 of that line's exact stored text,<br/>or the genesis value when the segment is empty"]
+  H --> SZ{"Current segment at the rotation size?"}
+  SZ -->|"yes"| ROT["rotate(): start a new segment whose first line's<br/>prev is the old segment's final chain hash"]
+  SZ -->|"no"| LINE
+  ROT --> LINE["Serialize one JSON line: ts, prev, event, payload"]
+  LINE --> W["Single write call (append)"]
+  W --> OK{"Write succeeded?"}
+  OK -->|"yes"| DONE(["Return success"])
+  OK -->|"no"| TRUNC["Truncate the file back to its prior size"]
+  TRUNC --> FAIL(["Return failure;<br/>caller logs it in hook-health.jsonl"])
+
+  V(["verify(path)"]) --> V1["Walk every segment in order"]
+  V1 --> V2["Recompute each line's hash;<br/>carry the final hash across each rotation cut"]
+  V2 --> VB{"Every prev matches, no gap, no reorder?"}
+  VB -->|"yes"| V0(["exit 0; report the verified line count"])
+  VB -->|"no"| VN(["exit non-zero; name the first broken line"])

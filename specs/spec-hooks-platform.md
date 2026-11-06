@@ -6,8 +6,8 @@
 |---|---|
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
-| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md |
-| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-242, FR-246, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-035, NFR-036 |
+| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md, spec-hooks-audit.md, spec-hooks-goal-guard.md |
+| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, UR-062, UR-063, UR-065, UR-067, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-219, FR-220, FR-221, FR-223, FR-224, FR-225, FR-228, FR-231, FR-233, FR-242, FR-245, FR-246, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-029, NFR-030, NFR-032, NFR-035, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
 
@@ -1063,3 +1063,84 @@ None.
 | FR-214, FR-242, NFR-035 | Change Log 2026-11-05: Requirements: Hook registration, Guard decision and deny output, Filter output | `pr-verdict-guard` listed as a guard and `confirmation-record` as a filter; self-test PASS lines for both in the HEALTH report (spec-hooks-health-check.md, Change Log 2026-11-05) |
 | NFR-036 | Change Log 2026-11-05: Requirement: Hook registration | The two new entries sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |
 | FR-217, FR-220, FR-223, FR-231, FR-233, FR-246 | Change Log 2026-11-05: Requirement: Failure path | Named as members of the NFR-028 security-critical class; a guard whose `failClosedFor(input)` assigns a call to the class denies on failure. Each requirement's own behavior is specified in its own spec and is not verified by this entry |
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), FR-221 (section 2.8), FR-224 (section 2.11), FR-225 (section 2.12), FR-228 (section 2.15), FR-223 and FR-245 (sections 2.10 and 2.32), NFR-026 (section 3.2), NFR-029 (section 3.1), NFR-030 (section 3.3), NFR-031, NFR-032 (section 3.4), NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 11 (the `audit-chain.js` library and the `.agent/logs/governance/**` protected glob, task plan lines 286 to 291), Step 12 (the `audit-log` hook and decision logging in every guard, lines 293 to 298), Step 13 (first-session and disablement logging, lines 300 to 305), Step 14 (the chain-verification mode, lines 307 to 312), Step 15 (the `fsa-write-bar` Bash registration, lines 314 to 319), Step 17 (the `gate-evidence` hook, lines 328 to 333), and Step 19 (the `goal-guard` hook, lines 348 to 353). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). The three new hooks' own requirements live in spec-hooks-audit.md (audit log, audit-writer hook, decision logging, chain verification), spec-hooks-goal-guard.md (goal-hijack guardrail), and spec-orchestration-review-gates.md (the gate-evidence semantics); their self-tests are in spec-hooks-health-check.md; this entry carries only the registration, the counts, the filter enumeration, and the NFR-026 reconciliation, parallel to how the Change Log 2026-11-05 added `confirmation-record` and `pr-verdict-guard`.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-062, UR-063, UR-065, UR-067, FR-219, FR-221, FR-224, FR-225, FR-228, FR-245, NFR-029, NFR-030, and NFR-032 added, since this delta traces to them. FR-245 is cited for the `.agent/logs/governance/**` protected glob that Step 11 adds; the write-bar behavior itself is in spec-hooks-fsa-write-bar.md. FR-219, FR-221, FR-224, FR-225, and FR-228 are cited as the hook behaviors registered here; each is specified in full in the owning spec named above. NFR-026 moves from partially addressed (Change Log 2026-11-05) to addressed by reference (see Traceability added).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: "thirteen ES5 entry files" reads sixteen.
+- Components: the `hooks/hooks.json` row registers 16 scripts as 23 command entries; the entry-file row reads 16 entry files; the `hooks/impl/*.js` row reads 15 hook modules besides `health-check`. The shared-logic row gains `audit-chain.js` (Step 11: append, verify, size-based rotation, SHA-256 chain), `shell-writes.js` (Step 15: extract write targets from redirection, `tee`, `sed -i`, `cp`, `mv`, `rm`), `lib/gate-evidence.js` (Step 17: the command allowlist, the `PostToolUseFailure` status parser, and the coverage parsers), and `hijack-rules.js` (Step 19: the rule-based alignment check).
+- A new project-root store, outside `${CLAUDE_PLUGIN_DATA}`: `.agent/logs/governance/audit.jsonl`, the hash-chained governance audit log, appended by the guard runtime (decision records) and the audit-writer hook, size-rotated, protected from every subagent write by `fsa-write-bar` and from shell writes by the Step 15 Bash route. Its schema, genesis value, rotation, and verification are specified in spec-hooks-audit.md; this spec names only the file and its writer.
+- Sub-features (metadata) and Sub-feature breakdown: two new child specs are added, spec-hooks-audit.md (governance audit log: `audit-chain.js`, the `audit-log` hook, decision logging, first-session and disablement logging, chain verification; FR-224, FR-225, FR-228, NFR-026, NFR-030, NFR-032) and spec-hooks-goal-guard.md (goal-hijack guardrail, advisory; FR-219, FR-238). The `gate-evidence` hook has no child spec: its semantics live in spec-orchestration-review-gates.md (Change Log 2026-11-06, Requirement 14).
+- Requirement: Guard decision and deny output, Rules: a new rule that, after a `deny` or `ask` decision, `guard()` in `lib/health.js` appends a decision record (timestamp, agent identity, decision, rule id) to `.agent/logs/governance/audit.jsonl` through `lib/audit-chain.js`, logging fails open (a failed append records the failure in `hook-health.jsonl` and never changes the decision), and the record holds no command text (NFR-031); the deny and ask output are unchanged (spec-hooks-audit.md, Requirement: Decision logging in every guard; task plan Step 12).
+
+### ADDED Requirements
+
+None. The audit log, the audit-writer hook, the decision logging, and the chain-verification command are specified in spec-hooks-audit.md; the goal-hijack guardrail in spec-hooks-goal-guard.md; the gate-evidence semantics in spec-orchestration-review-gates.md; and the three hooks' self-tests in spec-hooks-health-check.md.
+
+### MODIFIED Requirements
+
+#### Requirement: Hook registration
+
+**Was:** (Change Log 2026-11-05) The plugin SHALL register exactly 18 command entries in `hooks/hooks.json`, built from 13 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 16 rows of the registration table, plus row 17 (UserPromptSubmit, no matcher, script `confirmation-record`, no extra argument, timeout 5) and row 18 (PreToolUse, matcher `Bash|PowerShell`, script `pr-verdict-guard`, no extra argument, timeout 5).
+
+**Now:** The plugin SHALL register exactly 23 command entries in `hooks/hooks.json`, built from 16 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 18 rows of the Change Log 2026-11-05 registration, plus row 19 (PostToolUse, matcher `.*`, script `audit-log`, no extra argument, timeout 5), row 20 (PreToolUse, matcher `Bash`, script `fsa-write-bar`, no extra argument, timeout 5), row 21 (PostToolUse, matcher `Bash`, script `gate-evidence`, no extra argument, timeout 5), row 22 (PostToolUseFailure, matcher `Bash`, script `gate-evidence`, no extra argument, timeout 5), and row 23 (PostToolUse, matcher `WebFetch|WebSearch|mcp__.*`, script `goal-guard`, no extra argument, timeout 5).
+
+**Reason:** Task plan Step 12 creates the `audit-log` entry file and adds one entry (line 294); Step 15 adds a second `fsa-write-bar` entry on the `Bash` matcher so the write bar judges subagent shell writes (line 315); Step 17 creates the `gate-evidence` entry file and registers it under both `PostToolUse` and `PostToolUseFailure` on the `Bash` matcher, two entries (line 329); Step 19 creates the `goal-guard` entry file and adds one `PostToolUse` entry on `WebFetch`, `WebSearch`, and `mcp__*` (line 349). That is three new scripts (`audit-log`, `gate-evidence`, `goal-guard`; `fsa-write-bar` is an existing script) and five new command entries: 13 + 3 = 16 scripts and 18 + 5 = 23 entries. The event and matcher of row 19 are proposed wording: the task plan registers `audit-log` in `hooks.json` with a timeout (line 294) and does not fix its event or matcher; `PostToolUse` `.*` follows the `injection-filter` PostToolUse row. The matcher of row 23 is proposed wording: the task plan names the events `WebFetch`, `WebSearch`, and `mcp__*` (line 349) and not the exact matcher string. The timeout 5 is proposed wording that follows every other hook; the task plan requires an explicit `timeout` for each new entry and names no number, and Step 19 asks for an explicit short `timeout` for the NFR-029 budget.
+
+**Requirement refs:** FR-086, FR-219, FR-221, FR-224, FR-228, NFR-007, NFR-029, NFR-035, UR-017, UR-062, UR-063, UR-065, UR-067 | **Status:** Planned (harness-governance Tranche 2) for rows 19 to 23; Built for rows 1 to 16; Planned (harness-governance Tranche 1) for rows 17 and 18
+
+The three new scripts are on the LLM surface (`hooks/`), so the change carries `✓ LLM Security Clear` (NFR-011, NFR-036). The counts in the BRD in-scope list (`docs/requirements/BRD-assist-plugin.md`, section 4) and in FR-086 read 11 scripts and 16 commands today; this spec states the planned 16 and 23 and leaves those documents to their owners. `fsa-write-bar` now appears in two rows (row 6 on `Write|Edit|MultiEdit|NotebookEdit` and row 20 on `Bash`), which keeps the script count unchanged while adding one command entry.
+
+##### Scenario: Registration count after Tranche 2
+
+- **GIVEN** `hooks/hooks.json` after task plan Steps 12, 15, 17, and 19 are built
+- **WHEN** a test counts the entries whose `type` is `command`
+- **THEN** the count SHALL be 23 across 16 scripts, the added scripts being `audit-log`, `gate-evidence`, and `goal-guard`
+- **AND** `gate-evidence` SHALL be registered twice, once for `PostToolUse` and once for `PostToolUseFailure`, each on the `Bash` matcher
+- **AND** `fsa-write-bar` SHALL be registered twice, once on `Write|Edit|MultiEdit|NotebookEdit` and once on `Bash`
+
+##### Scenario: Timeouts with the Tranche 2 hooks
+
+- **GIVEN** the same file
+- **WHEN** a test reads each entry's `timeout`
+- **THEN** every entry SHALL read 5, the five new entries included, except `health-check.js --session-start`, which SHALL read 10
+
+##### Scenario: Count holds until the hooks are built
+
+- **GIVEN** `hooks/hooks.json` before task plan Steps 12, 15, 17, and 19 are built
+- **WHEN** the registration test runs
+- **THEN** the count SHALL be 18 across 13 scripts, as in the Change Log 2026-11-05
+
+The scenarios Documentation guard matcher and Registration drift are unchanged.
+
+#### Requirement: Filter output
+
+**Was:** (Change Log 2026-11-05) The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, and `confirmation-record`.
+
+**Now:** The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, `confirmation-record`, `audit-log`, `gate-evidence`, and `goal-guard`.
+
+**Reason:** Task plan Step 12 (`audit-log`), Step 17 (`gate-evidence`), and Step 19 (`goal-guard`) each add a PostToolUse logging hook that runs through `transform()` in `lib/health.js` and never returns a `deny` decision: `audit-log` appends an access record, `gate-evidence` records a command, exit code, and parsed value, and `goal-guard` records a would-deny event in advisory mode and withholds nothing (FR-238, Tranche 4 promotes it to blocking and is out of scope for this entry). Each writes a side effect (the audit log) and prints nothing or a `logKind`, the same shape as `fsa-log`. Their deny-or-pass behavior, record shapes, and self-tests are in spec-hooks-audit.md, spec-orchestration-review-gates.md, spec-hooks-goal-guard.md, and spec-hooks-health-check.md.
+
+**Requirement refs:** FR-088, FR-089, FR-219, FR-221, FR-224, NFR-026, NFR-035 | **Status:** Planned (harness-governance Tranche 2)
+
+The scenarios Positive result, Null result, and Output that cannot be serialized are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-086 | Change Log 2026-11-06: Requirement: Hook registration | Registration count test on `hooks/hooks.json`: 23 command entries across 16 scripts, with `gate-evidence` on both `PostToolUse` and `PostToolUseFailure`, `fsa-write-bar` on both `Write|Edit|MultiEdit|NotebookEdit` and `Bash`, and every `timeout` as listed (`tests/hooks/hooks-registration.test.js`, task plan Step 20) |
+| FR-219, FR-221, FR-224, FR-228, NFR-035 | Change Log 2026-11-06: Requirements: Hook registration, Filter output | `audit-log`, `gate-evidence`, and `goal-guard` listed as filters and registered; each hook's own behavior and self-test verified in spec-hooks-audit.md, spec-orchestration-review-gates.md, spec-hooks-goal-guard.md, and spec-hooks-health-check.md, not by this entry |
+| NFR-026 | Change Log 2026-11-06: Requirement: Guard decision and deny output (body note) | Addressed by reference: after a deny or ask the runtime appends a decision record with timestamp, agent identity, decision, and rule id to `.agent/logs/governance/audit.jsonl` through `lib/audit-chain.js` (spec-hooks-audit.md, Requirement: Decision logging in every guard; task plan Step 12). This reconciles the partial NFR-026 note of the Change Log 2026-11-05, whose fail-closed deny appended only a `hook-health.jsonl` record |
+| NFR-036 | Change Log 2026-11-06: Requirement: Hook registration | The three new entry files sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |

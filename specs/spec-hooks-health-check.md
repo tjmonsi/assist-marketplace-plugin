@@ -7,7 +7,7 @@
 | **Feature** | Health check: hook self-tests, auto-disable, session notice, health report, attribution settings |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, UR-059, UR-060, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, FR-214, FR-216, FR-242, NFR-007, NFR-009, NFR-016, NFR-035 |
+| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, UR-059, UR-060, UR-062, UR-063, UR-065, UR-067, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, FR-214, FR-216, FR-219, FR-221, FR-224, FR-225, FR-228, FR-242, NFR-007, NFR-009, NFR-016, NFR-026, NFR-027, NFR-030, NFR-032, NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -1031,3 +1031,138 @@ None.
 | FR-216 | Change Log 2026-11-05: Requirement: Push-grant finding | `Bash(git push origin *)` and a second named remote pass; `Bash(git push *)` and `Bash(git push:*)` each reported; no settings file written |
 | NFR-035 | Change Log 2026-11-05: Requirement: Self-tests | HEALTH report with a PASS line for `pr-verdict-guard` (confirmed and unconfirmed cases) and for `confirmation-record` (genuine, forged, tokenless, expired, and reused cases); `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
 | FR-214, FR-242 | Change Log 2026-11-05: Requirement: Self-tests | The self-test corpora of the PR-verdict guard (spec-skills-pr-review.md, Change Log 2026-11-05) and the confirmation-recording hook; a false deny or false allow lists the hook in `hooks-disabled.json` |
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-225 (section 2.12), FR-228 (section 2.15), NFR-026 (section 3.2), NFR-027 (section 3.2), NFR-030 (section 3.3), NFR-032 (section 3.4), NFR-035 (section 3.3); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 12 (the `audit-log` hook and its self-test, lines 293 to 298), Step 13 (first-session and disablement logging, lines 300 to 305), Step 14 (the `--verify-audit` mode of `hooks/impl/health-check.js`, lines 307 to 312), Step 17 (the `gate-evidence` self-test, lines 328 to 333), and Step 19 (the `goal-guard` self-test corpus, lines 348 to 353). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). This entry carries the three new hooks' self-tests, the `--verify-audit` mode, and the session-start disablement append; the audit chain, its hashing, rotation, and verification algorithm are in spec-hooks-audit.md, the `/health` skill side of `--verify-audit` and its `allowed-tools` are in spec-skills-health.md, the three hooks' registration and filter enumeration are in spec-hooks-platform.md (Change Log 2026-11-06), and the goal-hijack guardrail is in spec-hooks-goal-guard.md. The unfolded Change Logs 2026-10-23 (the `prose-gate` and `prose-advisor` rows) and 2026-11-05 (the `pr-verdict-guard` and `confirmation-record` rows) touch other rows of Requirement: Self-tests, so this entry does not overlap them.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review. Requirement refs: UR-062, UR-063, UR-065, UR-067, FR-219, FR-221, FR-224, FR-225, FR-228, NFR-026, NFR-027, NFR-030, and NFR-032 added, since this delta traces to them.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Source line of this entry: "Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2)" is superseded by the shipped, gate-approved harness-governance Tranche 2 build that this entry reconciles to; at the next fold the Planned labels of this entry read as built and the Status stays `Review` until then, not `Implemented`.
+- Description: the health check self-tests fifteen hooks, with the three logging filters `audit-log`, `gate-evidence`, and `goal-guard` named.
+- Description and Algorithmic steps, node B of the flow diagram (inline and `spec-hooks-health-check-flow.mmd`): the hook count reads fifteen. The Change Log 2026-11-05 already stages this count at twelve (adding `pr-verdict-guard` and `confirmation-record`); at the fold it reads fifteen. The `.mmd` source is not edited in this pass; the node text follows at the fold.
+- Triggered by: a "Called by feature" row for `/assist-plugin:health --verify-audit`, with a note that the user-facing skill side is in spec-skills-health.md.
+- Required data: a `--verify-audit` argument, and a `.agent/logs/governance/audit.jsonl` row (the governance audit log the verify-audit mode walks, specified in spec-hooks-audit.md).
+- Requirement: Health report, the mode selection: `--verify-audit` is a third report-mode branch beside the plain report and `--clear`.
+
+### ADDED Requirements
+
+#### Requirement: Verify the governance audit chain
+
+The health check SHALL, with `--verify-audit`, call the chain-verification module (`scripts/verify-audit-chain.js`) on the governance audit log `.agent/logs/governance/audit.jsonl`, print the count of verified lines and exit 0 when the chain is intact, or name the first line where the chain breaks and exit non-zero when it is not, following the chain across rotated segments and flagging any `unidentified` record.
+
+**Requirement refs:** FR-225, NFR-030, NFR-027 | **Status:** Planned (harness-governance Tranche 2) | **Source:** FR-NFR-harness-governance.md v1.3, FR-225 (section 2.12), NFR-030 (section 3.3); task plan Step 14 (`scripts/verify-audit-chain.js`; the `--verify-audit` mode of `hooks/impl/health-check.js`); spec-hooks-audit.md, Requirement: Chain verification (`:171-197`); spec-skills-health.md, Change Log 2026-11-06, Requirement: Verify the governance audit chain
+
+The `--verify-audit` command is the third exact command the `/health` skill's `allowed-tools` names (the plain run and `--clear` are the first two), not a bare `Bash` (NFR-027; spec-skills-health.md). The verification algorithm, the 100,000-line time budget (NFR-030), the rotation handling, and the `unidentified` flag (inert until task plan Step 21 lands, Tranche 3) are in spec-hooks-audit.md; this mode is the entry point `/assist-plugin:health` calls.
+
+##### Scenario: Intact chain
+
+- **GIVEN** an unmodified governance audit log of 500 lines across one or more rotated segments
+- **WHEN** the health check runs with `--verify-audit`
+- **THEN** it SHALL exit 0 and print the count of verified lines
+
+##### Scenario: Broken chain
+
+- **GIVEN** line 7 of the audit log was edited after it was written
+- **WHEN** the health check runs with `--verify-audit`
+- **THEN** it SHALL exit non-zero and name line 7 as the first break
+
+#### Requirement: Disablement logging at session start
+
+The health check SHALL, with `--session-start`, read `hooks-disabled.json` and append one `guard-disabled` event per disabled guard to the governance audit log through `lib/audit-chain.js`, naming the guard and the time, deduplicated to one event per guard per project and suppressed across sessions while the guard stays disabled; re-enabling the guard and disabling it again logs a new event.
+
+**Requirement refs:** FR-228, NFR-026, NFR-032 | **Status:** Planned (harness-governance Tranche 2) | **Source:** FR-NFR-harness-governance.md v1.3, FR-228 (section 2.15); task plan Step 13 (the `--session-start` path reads `hooks-disabled.json` and appends a disablement event; `disabledEntry()` in `hooks/lib/health.js`); spec-hooks-audit.md, Requirement: Logging from the first session and logged disablement (`:150-169`)
+
+The disablement event is written to `.agent/logs/governance/audit.jsonl` through `lib/audit-chain.js`, not to `hook-health.jsonl`; its schema, chaining, and at-least-12-months retention are in spec-hooks-audit.md. This append is distinct from the session-start notice (Requirement: Session-start notice), which prints a `retired-hook guard is disabled` line for a stale entry only: the audit append covers every disabled guard, and the dedup state is kept in `health-state.json`, keyed by guard name as a set of truncated per-project-root hashes, so a guard logged once stays suppressed across later sessions while it remains disabled, and a re-enable then re-disable logs a new event. Accepted best-effort limits, recorded and not defects: a rare concurrent first-recording can append a duplicate (never a suppression), and a guard disabled across more than 100 projects under one timestamp can re-log through roots eviction. Core logging has no opt-in and is not gated by the compliance profile flag (task plan Step 13, Notes).
+
+##### Scenario: Disabled guard logged once
+
+- **GIVEN** a user adds a guard to `hooks-disabled.json`
+- **WHEN** the next session starts
+- **THEN** the audit log SHALL hold a `guard-disabled` event naming the guard and the time
+- **AND** a later session SHALL add no duplicate event for the same guard in the same project while it stays disabled
+
+##### Scenario: Re-enable then re-disable logs a new event
+
+- **GIVEN** a guard that was logged disabled, then removed from `hooks-disabled.json`, then added again
+- **WHEN** a session starts after the guard is disabled again
+- **THEN** the audit log SHALL hold a new `guard-disabled` event for the guard
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** (Change Log 2026-11-05) The health check SHALL, in both modes, run each of the twelve hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list; `pr-verdict-guard` runs as a guard whose unconfirmed-post cases are its deny list and whose confirmed-post cases are its allow list; and `confirmation-record` runs as a filter whose genuine token case must write a record and whose forged, tokenless, expired, and reused cases must write none, each against a stub confirmation store.
+
+**Now:** The health check SHALL, in both modes, run each of the fifteen hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list; `pr-verdict-guard` runs as a guard whose unconfirmed-post cases are its deny list and whose confirmed-post cases are its allow list; `confirmation-record` runs as a filter whose genuine token case must write a record and whose forged, tokenless, expired, and reused cases must write none, each against a stub confirmation store; and `audit-log`, `gate-evidence`, and `goal-guard` each run as a report-only logging filter against a stub audit sink, whose self-test reports weak or missing logging on a false finding and never disables the hook.
+
+**Reason:** NFR-035: each new guard or filter ships a self-test corpus with a known-safe and a known-prohibited case and reports through `/assist-plugin:health`. Task plan Step 12 (the `audit-log` hook self-test), Step 17 (the `gate-evidence` self-test: a success case, a failure case carrying "Exit code 1", and a non-allowlisted command), and Step 19 (the `goal-guard` self-test: a hijack sample and a benign sample) each modify `hooks/impl/health-check.js` and `skills/health/SKILL.md`. spec-hooks-platform.md (Change Log 2026-11-06) lists all three as filters that run through `transform()` and never return a deny; spec-skills-health.md (Change Log 2026-11-06) requires a failed `audit-log`, `gate-evidence`, or `goal-guard` self-test to report weak logging and leave the hook enabled. Each hook is one `GUARDS` entry, so a new hook is self-tested only when this requirement lists it (Requirement: Self-tests, the `pr-post-ask` entry, Change Log 2026-10-22). This Now keeps the Change Log 2026-11-05 statement and adds one clause; the unfolded Change Log 2026-10-23 changes only the `prose-gate` and `prose-advisor` rows and the Isolation paragraph, so the entries do not overlap.
+
+**Requirement refs:** NFR-035, FR-219, FR-221, FR-224, FR-228, NFR-026, UR-018 | **Status:** Planned (harness-governance Tranche 2)
+
+New rows of the self-test table:
+
+| Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
+|---|---|---|---|---|
+| `audit-log` | report-only logging filter | At least 1 no-record case: a `PostToolUse` event the audit-writer turns into no access record | At least 1 record case: a governed tool event, including one whose input carries a secret string; the appended record holds the tool name, path, and data-class tag, and the case throws when the record holds the secret or the command text (NFR-031) | The hook returns an audit record to append; the case carries a stub audit sink and reads no real log |
+| `gate-evidence` | report-only logging filter | At least 1 no-record case: a non-allowlisted `Bash` command | At least 2 record cases: an allowlisted test or coverage command on a `PostToolUse` success event (recorded as exit 0 with the parsed value); the same command on a `PostToolUseFailure` event whose `error` begins "Exit code 1" (recorded as exit 1) | The hook returns a `gate-evidence` record to append; the case carries a stub audit sink and a fixed event payload |
+| `goal-guard` | report-only logging filter | At least 1 benign sample: a tool result that matches no hijack rule and records a pass | At least 1 hijack sample: a tool result that matches a hijack rule and records a would-deny in advisory mode | The hook returns a would-deny record; the case carries a stub rule set and a stub audit sink, and withholds nothing |
+
+Rules:
+- Report-only: each of `audit-log`, `gate-evidence`, and `goal-guard` carries a `reportOnly: true` flag in its `GUARDS` entry, as `writing-context` does. `updateDisabled` never adds a report-only hook to `hooks-disabled.json`, and `buildProblems` gives it no disable suffix (Requirement: Auto-disable and re-enable; Requirement: Session-start notice). A full pass still removes a listed entry, as for every self-tested hook (FR-091). This is the opposite of `confirmation-record`, a filter disabled on any failure because disabling it fails safe; disabling a logging filter would stop the append-only audit trail, the unsafe direction (NFR-032, FR-228), so a false finding reports weak or missing logging and the hook stays enabled.
+- A record case whose appended record holds the secret or the command text throws an `Error` naming the case and the condition, so the report lists it under "case threw", as `writing-context` and `fsa-log` throw on a wrong-content record (NFR-031).
+- The exact case counts, the report nouns, and the PASS-line counts are proposed at the build and counted from the corpus, following the `pr-post-ask` and `confirmation-record` entries. The minimums above are the cases the task plan names (Steps 12, 17, 19); the corpus MAY hold more.
+- `/assist-plugin:health` lists the three hooks with a weak-logging finding row each (spec-skills-health.md, Change Log 2026-11-06), and the build passes `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` and `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` with exit 0 (NFR-035).
+
+##### Scenario: Logging-filter self-tests pass
+
+- **GIVEN** `audit-log`, `gate-evidence`, and `goal-guard` give the expected result on every case
+- **WHEN** the session starts, or the report runs
+- **THEN** the notice SHALL NOT name any of the three, and the report SHALL show a PASS line for each
+
+##### Scenario: Goal-guard misses a hijack sample
+
+- **GIVEN** a defect makes `goal-guard` record no would-deny for its hijack sample, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the finding as weak or missing logging and SHALL NOT add `goal-guard` to `hooks-disabled.json`
+
+##### Scenario: Audit-log record holds a secret
+
+- **GIVEN** a defect makes `audit-log` return a record holding the command text for its record case
+- **WHEN** the self-test runs
+- **THEN** the case SHALL throw, the report SHALL list it under "case threw", and `hooks-disabled.json` SHALL NOT gain `audit-log`
+
+#### Requirement: Auto-disable and re-enable
+
+**Was:** (main body) When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, whose self-test is report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Now:** When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, `audit-log`, `gate-evidence`, or `goal-guard`, whose self-tests are report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Reason:** Task plan Steps 12, 17, and 19 add three `PostToolUse` logging filters that never return a deny (spec-hooks-platform.md, Change Log 2026-11-06, Requirement: Filter output). Disabling a logging filter would stop the append-only audit trail (NFR-032, FR-228), the unsafe direction, so each follows the `writing-context` report-only treatment: a false finding reports weak or missing logging and the hook stays enabled (spec-skills-health.md, Change Log 2026-11-06). `confirmation-record` stays a disabled-on-failure filter, because disabling it fails safe.
+
+**Requirement refs:** FR-091, FR-219, FR-221, FR-224, NFR-032, NFR-035 | **Status:** Planned (harness-governance Tranche 2)
+
+##### Scenario: Logging filter failure never disables it
+
+- **GIVEN** the `gate-evidence` self-test records a `gate-evidence` event for its non-allowlisted command, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the finding as weak logging and SHALL NOT add `gate-evidence` to `hooks-disabled.json`
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-225, NFR-030 | Change Log 2026-11-06: Requirement: Verify the governance audit chain | Intact and edited-line corpora through `--verify-audit`; the algorithm and the 100,000-line budget are verified in spec-hooks-audit.md (`tests/scripts/verify-audit-chain.test.js`, task plan Step 20) |
+| FR-228, NFR-026, NFR-032 | Change Log 2026-11-06: Requirement: Disablement logging at session start | A disabled guard yields one disablement event per session, with no duplicate on a later session (`tests/hooks/audit-log-disablement.test.js`, task plan Step 20) |
+| NFR-035, FR-219, FR-221, FR-224 | Change Log 2026-11-06: Requirement: Self-tests | HEALTH report with a PASS line for `audit-log`, `gate-evidence`, and `goal-guard`; a false finding on any of the three reports weak or missing logging and leaves the hook enabled; `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
+| FR-091 | Change Log 2026-11-06: Requirement: Auto-disable and re-enable | The three logging filters are never added to `hooks-disabled.json`; a full pass removes a hand-added entry |

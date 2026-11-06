@@ -7,7 +7,7 @@
 | **Feature** | `/do` review gates, fix phase, and merge signatures |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, UR-013, UR-014, UR-061, FR-054, FR-055, FR-056, FR-057, FR-058, FR-059, FR-060, FR-061, FR-193, FR-195, FR-199, FR-218, NFR-010, NFR-011, NFR-012, NFR-024, NFR-036 |
+| **Requirement refs** | BR-005, BR-006, UR-013, UR-014, UR-061, UR-063, UR-064, FR-054, FR-055, FR-056, FR-057, FR-058, FR-059, FR-060, FR-061, FR-193, FR-195, FR-199, FR-218, FR-221, FR-222, NFR-010, NFR-011, NFR-012, NFR-024, NFR-026, NFR-036 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -673,3 +673,120 @@ None.
 | FR-218 | Change Log 2026-11-05: Requirement 4 | Two consecutive LGTMs end the gate inside the cap; at 10 iterations the orchestrator runs no further round and escalates with continue, waive, or abort |
 | FR-218, FR-199 | Change Log 2026-11-05: Requirement 13 | OWASP for LLM Gate at 10 iterations without 2 consecutive `approved`: no `code-reviewer` pass, no eleventh round, and the user receives continue, waive, or abort |
 | NFR-036 | Change Log 2026-11-05: Requirement 4 | The review-protocol change carries `✓ LLM Security Clear` before merge |
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-221 (section 2.8), FR-222 (section 2.9), NFR-026 (section 3.2), NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 16 (the `Writer:` field, lines 321 to 326), Step 17 (the `gate-evidence` hook for deterministic gates, lines 328 to 333), and Step 18 (evidence for judgement-based gates and the per-gate scanner mapping, lines 335 to 346); `DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled" (D-8, OQ-1) and "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)" (the fixed per-gate mapping). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). The `gate-evidence` hook registration is in spec-hooks-platform.md (Change Log 2026-11-06); the audit log that holds the evidence records is in spec-hooks-audit.md; the orchestrator-only approval writer and the `Writer:` field are in spec-orchestration.md (Change Log 2026-11-06, FR-222).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review (already in Review from the Change Log 2026-11-05). Requirement refs: UR-063, UR-064, FR-221, FR-222, and NFR-026 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Source line of this entry: "Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2)" is superseded by the shipped, gate-approved harness-governance Tranche 2 build that this entry reconciles to; at the next fold the Planned labels of this entry read as built and the Status stays `Review` until then, not `Implemented`.
+- Signatures table (Business rules): each row gains the note that the orchestrator records the signature only on an evidence reference and never on a model sign-off string; `✓ Coverage >=70%` rests on the `gate-evidence` hook's recorded coverage exit and parsed value, and `✓ OWASP Clear`, `✓ LLM Security Clear`, and `✓ Approved for merge` rest on the in-plugin scanner exits the Requirement 14 table names plus a non-producer reviewer verdict (Requirement 14).
+- Output / Outcome: the Gate result row reads "Iterations, signatures, the evidence reference (command and exit code, or the scanner exit and the reviewer verdict), binding pass if used, and `Writer: orchestrator`".
+- Requirement 9 (Testing Gate), the body paragraph: the `✓ Coverage >=70%` signature rests on the `gate-evidence` hook's recorded coverage exit code and parsed value, not on a qa sign-off string (see MODIFIED Requirement 9 below).
+- RULE-008 gains the clause that the orchestrator records a gate cleared only with an evidence reference, never a model sign-off string (Requirement 14).
+
+### ADDED Requirements
+
+#### Requirement 14: Clear each gate only on recorded evidence
+
+The `/do` orchestrator SHALL record a governance gate (Security/OWASP, Testing/Coverage, Code Review/Approved for merge, OWASP for LLM) as cleared only with an evidence reference, and a sign-off string emitted by a model SHALL NOT clear a gate; with no evidence reference the gate SHALL stay open and the merge check SHALL block. The Pre-Test Code Review gate is not an evidence-required gate: it clears on the verdict of a reviewer other than the producer alone, with no scanner evidence, so the gate-to-scanner mapping table below lists no Pre-Test row and FR-221 does not name it. A deterministic gate (Coverage >=70%) SHALL clear only on a `gate-evidence` hook record holding the command, the parsed exit code, and the measured value, where the hook reads a `PostToolUse` success event as exit 0 and takes the exit status of a `PostToolUseFailure` event from its `error` field. A judgement-based gate (OWASP Clear, LLM Security Clear, Approved for merge) SHALL clear only on the exit code of each in-plugin scanner the gate-to-scanner table names, together with a verdict from a reviewer other than the producer carrying `file:line` findings. The required scanner exits SHALL come from the plugin's own scripts, so a gate SHALL NOT depend on an external scanner being installed. (FR-221, FR-222, NFR-026; task plan Steps 17 and 18; `DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled")
+
+The orchestrator, not the reviewer, writes the gate record, and the record marks `Writer: orchestrator` (FR-222; spec-orchestration.md, Change Log 2026-11-06); reviewers stay read-only (`tools: [Read, Grep, Glob, LSP]`, NFR-027). The `gate-evidence` hook records the command, exit code, and value as a `gate-evidence` event in the governance audit log (spec-hooks-platform.md and spec-hooks-audit.md); the audit log holds the command only when it matches the hook's allowlist, so no free-form command text is stored (NFR-031). A CI artifact is an alternative evidence reference for a deterministic gate; the record holds its identifier, not its contents.
+
+The gate-to-scanner mapping is fixed (task plan Step 18):
+
+| Gate | In-plugin scanner evidence | Plus |
+|---|---|---|
+| OWASP for LLM Clear | `check-fsa-tables.js` and `sync-writing-standard.js` and the health self-tests, with the FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Code Security / OWASP Clear | The FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Coverage >=70% | The test runner's coverage exit (the `gate-evidence` record of Step 17) | The parsed line-coverage value |
+| Approved for merge | The aggregate of those exits | A verdict from a `code-reviewer` other than the producer |
+
+An external scanner (for example semgrep or CodeQL) is optional additional evidence when installed, and a gate never depends on one being present.
+
+##### Scenario: Coverage gate with evidence
+
+- **GIVEN** `npm run test:coverage` exits 0 and the `gate-evidence` hook recorded exit code 0 and parsed line coverage 82
+- **WHEN** the orchestrator evaluates the Testing Gate
+- **THEN** the gate record SHALL hold the command, exit code 0, and value 82, and the gate SHALL read as cleared
+
+##### Scenario: Sign-off string alone
+
+- **GIVEN** an agent emits `✓ Coverage >=70%` and the `gate-evidence` hook recorded no command result
+- **WHEN** the orchestrator evaluates the Testing Gate
+- **THEN** the gate SHALL stay open and the merge check SHALL block
+
+##### Scenario: Judgement gate with scanner exit and non-producer verdict
+
+- **GIVEN** `check-fsa-tables.js`, `sync-writing-standard.js`, and the health self-tests exit 0, the FR-217 scanner exits 0, and a reviewer other than the producer returns an approving verdict with `file:line` findings
+- **WHEN** the orchestrator evaluates the OWASP for LLM Gate
+- **THEN** the gate record SHALL hold the scanner commands and exit codes and the reviewer verdict, and the gate SHALL read as cleared
+
+##### Scenario: Producer verdict does not clear a judgement gate
+
+- **GIVEN** the only approving verdict comes from the agent that produced the artifact
+- **WHEN** the orchestrator evaluates the Security Gate
+- **THEN** the gate SHALL stay open, because the verdict MUST come from a reviewer other than the producer
+
+##### Scenario: No external scanner required
+
+- **GIVEN** no external security scanner is installed and the in-plugin scanners exit 0 with a non-producer reviewer verdict
+- **WHEN** the orchestrator evaluates the OWASP for LLM Gate
+- **THEN** the gate SHALL be able to clear, because it depends on no external scanner
+
+##### Scenario: Pre-Test gate clears on a non-producer verdict
+
+- **GIVEN** a reviewer other than the producer returns an approving Pre-Test Code Review verdict and no scanner is mapped to the gate
+- **WHEN** the orchestrator evaluates the Pre-Test Code Review gate
+- **THEN** the gate SHALL clear on that verdict alone, and no scanner evidence SHALL be required
+
+### MODIFIED Requirements
+
+#### Requirement 9: Approve the Testing Gate only at 70% coverage with passing suites
+
+**Was:** The `qa` agent SHALL return `verdict: approved` for the Testing Gate only when the suites ran, passed, and met 70% coverage for new code, and `returned` otherwise.
+
+**Now:** The `qa` agent SHALL return `verdict: approved` for the Testing Gate only when the suites ran, passed, and met 70% coverage for new code, and `returned` otherwise, and the orchestrator SHALL record `✓ Coverage >=70%` only on the `gate-evidence` hook's recorded coverage exit code and parsed value (Requirement 14), never on the qa verdict string alone.
+
+**Reason:** FR-221 (`DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled"): a deterministic gate clears on a parsed command exit code and measured value, not a sign-off string. `agents/qa.md` and `skills/run-test/SKILL.md` report the command, exit code, and value rather than a bare sign-off (task plan Step 17). The four Scenarios in the main body stay; the coverage value in each is now the `gate-evidence` record's parsed value.
+
+**Requirement refs:** FR-058, FR-221, NFR-024, NFR-026 | **Status:** Planned (harness-governance Tranche 2)
+
+##### Scenario: Coverage reported as evidence
+
+- **GIVEN** suites passed and `gate-evidence` recorded exit 0 with parsed coverage 82
+- **WHEN** the orchestrator reads the Testing Gate outcome
+- **THEN** the gate record SHALL hold the command, exit 0, and value 82, and the signature SHALL be `✓ Coverage >=70%`
+
+##### Scenario: qa string without a record
+
+- **GIVEN** qa reports `verdict: approved` and `gate-evidence` holds no coverage record for the run
+- **WHEN** the orchestrator evaluates the gate
+- **THEN** the gate SHALL stay open and the merge check SHALL block
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-221 | Change Log 2026-11-06: Requirement 14 | Coverage gate clears on a `gate-evidence` record; a model sign-off string alone leaves it open; a judgement gate clears on an in-plugin scanner exit plus a non-producer reviewer verdict; no external scanner required (`tests/skills/contracts-gate-evidence.test.js`, task plan Step 20) |
+| FR-222 | Change Log 2026-11-06: Requirement 14 (gate record) | The gate record marks `Writer: orchestrator`; the producer-self-approval rule is in spec-orchestration.md, Change Log 2026-11-06 |
+| FR-221, NFR-026 | Change Log 2026-11-06: Requirement 9 | `✓ Coverage >=70%` rests on the `gate-evidence` coverage exit and value, recorded to the governance audit log |
+| NFR-036 | Change Log 2026-11-06: Requirement 14 | The review-protocol and agent changes carry `✓ LLM Security Clear` before merge |
+
+### Reconciliation to as-built (2026-11-06)
+
+This note folds Requirement 14 and records the shipped `gate-evidence` behavior. It supersedes the ADDED and MODIFIED wording where it differs, at the next fold.
+
+- Requirement 14 folded: the ADDED Requirement 14 opening no longer lists Pre-Test Code Review among the evidence-required gates, and it now states that Pre-Test clears on a non-producer reviewer verdict alone, with no scanner. The self-superseding MODIFIED Requirement 14 that corrected that opening within this change log is removed, and its Pre-Test scenario moves under the ADDED Requirement 14. The singular "an in-plugin scanner exit code" wording is aligned to "each in-plugin scanner the gate-to-scanner table names".
+- Allowlist scope as shipped: the `gate-evidence` allowlist records the two in-plugin documentation scanners `check-fsa-tables.js` and `sync-writing-standard.js`. The FR-217 pattern and secret scanner and the health self-tests named in the gate-to-scanner mapping are not recorded yet, so the Code Security / OWASP Clear gate and the OWASP for LLM gate stay OPEN (fail-safe) until a later step extends the allowlist; the Coverage gate and the Approved-for-merge aggregate are unaffected.
+- Gate-reader dedupe: the orchestrator dedupes `gate-evidence` records by `tool_use_id` and prefers a failure, so an exit-0 sibling never clears a gate past a failure record for the same `tool_use_id`.
+- Exit-code routing: the `gate-evidence` hook reads a `PostToolUse` success event as exit 0 and takes the failing exit status of a `PostToolUseFailure` event from its `error` field; this routing is verified against the Claude Code hooks documentation, and a live-payload capture of both event shapes is carried as a verification item.

@@ -7,7 +7,7 @@
 | **Feature** | `/do` orchestration: the Communicator state machine, its agents, and its review gates |
 | **Parent feature** | None |
 | **Sub-features** | spec-orchestration-planning.md, spec-orchestration-plan-approval.md, spec-orchestration-spec-first.md, spec-orchestration-dispatch.md, spec-orchestration-review-gates.md, spec-orchestration-terminal-block.md, spec-orchestration-agents.md |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, FR-218, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, UR-064, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, FR-218, FR-222, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
 
@@ -1072,3 +1072,58 @@ None.
 | Requirement | Spec section | Verified by |
 |---|---|---|
 | FR-218 | Change Log 2026-11-05: Requirement: Every loop is bounded | Review gate at the cap escalates to the user; spec-orchestration-review-gates.md, Requirement 4 |
+
+## Change Log: 2026-11-06
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-222 (section 2.9), NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 2 Step 16 (the `Writer:` field and the orchestrator records every verdict, lines 321 to 326), with the deny record needing Steps 12 and 15; `DECISIONS.md`, no new entry (FR-222 rests on the existing "Protected paths cover every subagent" decision of 2026-10-13). Harness-governance Tranche 2 is not built yet, so every change here is Planned (harness-governance Tranche 2). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). The evidence that backs each gate signature (FR-221) is in spec-orchestration-review-gates.md (Change Log 2026-11-06, Requirement 14); this entry covers only who writes approval status.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review. Requirement refs: UR-064 and FR-222 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Components, the Plan file row: the record of each review verdict and approval carries a `Writer:` field that `/do` sets to the orchestrator.
+- Component boundaries, the `/do` to plan file and `DECISIONS.md` row: the row notes that the orchestrator is the writer of approval status, that a producer agent never writes its own artifact's status, and that a hook writes the confirmation store (FR-242), so approval status is written by the orchestrator or a hook, never a producer.
+
+### ADDED Requirements
+
+None. The gate-evidence requirement is in spec-orchestration-review-gates.md; this entry modifies the existing sole-writer requirement.
+
+### MODIFIED Requirements
+
+#### Requirement: Plan and decision records flow only through /do
+
+**Was:** The `/do` skill SHALL be the only writer of the plan file and `DECISIONS.md`, appending a decision to `DECISIONS.md` no earlier than the user's Approve.
+
+**Now:** The `/do` skill SHALL be the only writer of the plan file and `DECISIONS.md`, appending a decision to `DECISIONS.md` no earlier than the user's Approve; the orchestrator SHALL record every review verdict and approval status in the plan file, marking the record `Writer: orchestrator`, and the agent that produced an artifact SHALL NOT write that artifact's approval status. Approval status SHALL be written by the orchestrator or by a hook (the confirmation store of FR-242), never by a producer agent.
+
+**Reason:** FR-222, which rests on the 2026-10-13 decision "Protected paths cover every subagent" (spec-orchestration.md, Design decisions) and the write bar: a producer's Write, Edit, MultiEdit, or NotebookEdit to the plan file is already denied by the `**/.agent/main-plan/**` protected glob (spec-hooks-fsa-write-bar.md), and the shell route is closed by task plan Step 15 (spec-hooks-fsa-write-bar.md, Change Log 2026-11-06). Task plan Step 16 adds the visible `Writer:` field to the plan-format review-outcome and approval lines (`skills/do/references/plan-format.md`) and states in `skills/do/references/review-protocol.md` and `skills/do/SKILL.md` that the orchestrator records every verdict. The plan's "Approved" line is also the reference that the audit log records as the human authorizer (task plan Step 22, Tranche 3, out of scope for this entry).
+
+**Requirement refs:** FR-016, FR-042, FR-222, UR-019, UR-064, BR-012, NFR-036 | **Status:** Planned (harness-governance Tranche 2) for the `Writer:` field and the producer rule; Built for the sole-writer rule
+
+##### Scenario: Orchestrator records the verdict
+
+- **GIVEN** a reviewer returns an approving verdict for a developer's artifact
+- **WHEN** the orchestrator updates the plan file
+- **THEN** the review-outcome record SHALL mark `Writer: orchestrator`
+
+##### Scenario: Producer self-approval blocked
+
+- **GIVEN** a developer agent tries to set its artifact's status to approved by writing the plan file
+- **WHEN** `fsa-write-bar` evaluates the write
+- **THEN** the write SHALL be denied, through the `**/.agent/main-plan/**` protected glob for a write-tool call and through the Step 15 Bash route for a shell command
+- **AND** the deny SHALL be logged (spec-hooks-audit.md)
+
+The scenarios Decision appended at Approve, Subagent write to a record is denied, and Bash write to DECISIONS.md during a chain step are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-222 | Change Log 2026-11-06: Requirement: Plan and decision records flow only through /do | Orchestrator-written review outcome marks `Writer: orchestrator`; a producer write to the plan file is denied by the write bar (`tests/skills/contracts-approval-writer.test.js`, task plan Step 20) |
+| NFR-036 | Change Log 2026-11-06: Requirement: Plan and decision records flow only through /do | The `plan-format.md`, `review-protocol.md`, and `SKILL.md` changes carry `✓ LLM Security Clear` before merge |

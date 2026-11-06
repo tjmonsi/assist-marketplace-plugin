@@ -1,0 +1,8 @@
+flowchart TD
+  S(["PostToolUse: WebFetch, WebSearch, or mcp__*"]) --> R["Run the rule-based alignment check<br/>over the tool result (no model, no network)"]
+  R --> M{"A hijack rule matched?"}
+  M -->|"yes"| WD["Record a would-deny event with a rule id<br/>to the governance audit log"]
+  M -->|"no"| PS["Record a pass to the governance audit log"]
+  WD --> ADV["Advisory mode: withhold nothing;<br/>print no deny"]
+  PS --> ADV
+  ADV --> X(["exit 0; the result reaches the agent unchanged"])
