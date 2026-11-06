@@ -67,10 +67,10 @@ Gate is cleared when:
 1. Reviewer signs: `✓ LGTM #2` (two consecutive approvals), OR
 2. Creator and reviewer reach consensus and reviewer approves
 
-If 10 iterations reached without consensus:
-- Escalate to `code-reviewer` agent
-- `code-reviewer` makes final decision
-- Outcome is binding
+If the one cap of 10 iterations is reached without consensus:
+- Run no further creator or reviewer round, and dispatch no `code-reviewer` pass
+- Escalate to the user with the unresolved findings and the choices continue, waive, or abort (see "Exhausting a gate" in review-protocol.md)
+- The orchestrator records a waive in the plan file
 
 ---
 

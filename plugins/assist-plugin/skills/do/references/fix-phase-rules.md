@@ -106,9 +106,9 @@ If the fixing agent adds unrelated changes:
 1. Fix phase FAILS automatically, regardless of whether the identified items were also correctly fixed
 2. Reviewer rejects the entire fix submission (not just the unrelated portion)
 3. Fix phase re-iterates: fixing agent resubmits with ONLY the identified items addressed
-4. The failed attempt counts toward the gate's iteration limit (max 10, see review-protocol.md)
+4. The failed attempt counts toward the gate's one cap of 10 iterations (see review-protocol.md)
 5. Repeated scope violations (2+ in the same gate) escalate to code-reviewer for review of the fixing agent's output before continuing
-6. A gate that reaches its bound ends as review-protocol.md describes: one code-reviewer pass with a binding verdict, and `returned` fails the step
+6. A gate that reaches the cap of 10 ends as review-protocol.md describes: no further developer or reviewer round, and escalation to the user with continue, waive, or abort
 
 ---
 

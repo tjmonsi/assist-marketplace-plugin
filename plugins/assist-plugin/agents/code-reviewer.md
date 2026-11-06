@@ -57,8 +57,8 @@ Notes:
 - The agent cannot open `/do`'s reference files. The dispatch prompt carries the gate name, artifact type, artifact paths, rework count (0 on a first review), and prior findings. Treat a missing rework count as 0; it is not an error. `type-unknown` also covers a prompt that names no gate.
 - `type-report` means the artifact is a markdown report. The Report Quality Gate (`review-md`) covers it, so name that in the prose above the block.
 - `type-unknown` asks the user what the artifact is. `resume_at` is `Intake`.
-- The OWASP for LLM Gate also reaches this agent as the binding final pass after 10 iterations, with a high rework count.
-- An escalated gate (10 iterations reached) arrives with a high rework count. Review it the same way: the `verdict` is binding for that gate, and `/do` owns the iteration bound.
+- The OWASP for LLM Gate also reaches this agent as a gate reviewer. At the cap of 10 iterations `/do` dispatches no further pass to this agent; it escalates to the user with continue, waive, or abort.
+- A gate late in its loop arrives with a high rework count. Review it the same way: `/do` owns the one cap of 10 iterations and, at the cap, escalates to the user instead of dispatching another pass.
 
 ### Terminal block
 

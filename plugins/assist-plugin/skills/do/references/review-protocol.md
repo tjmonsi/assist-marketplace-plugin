@@ -49,14 +49,14 @@ A step REQUIRES review if:
 
 ## Which gate applies to which artifact
 
-`/do` picks the gate from the artifact type a step produced. Each gate has its own bound.
+`/do` picks the gate from the artifact type a step produced. Every code, planning, and OWASP for LLM gate has one cap of 10 iterations, and two consecutive LGTMs are the normal pass.
 
 | Artifact | Gate | Reviewer | Bound |
 |---|---|---|---|
-| Code (source, config, tests, pipelines) | Pre-Test Code Review Gate, then Security Gate (when code or devops changed), Testing Gate, and Code Review Gate | reviewer or code-reviewer; qa for the Testing Gate | 2 consecutive LGTMs or 10 iterations per gate |
-| Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans; task-planner output counts) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs or 10 iterations |
+| Code (source, config, tests, pipelines) | Pre-Test Code Review Gate, then Security Gate (when code or devops changed), Testing Gate, and Code Review Gate | reviewer or code-reviewer; qa for the Testing Gate | 2 consecutive LGTMs, or escalation to the user at 10 iterations per gate |
+| Planning documents (planner, solutions-architect, requirements-gatherer output, including plans, roadmaps, specs, and task-plans; task-planner output counts) | Planning Document Review Gate | reviewer or code-reviewer | 2 consecutive LGTMs, or escalation to the user at 10 iterations |
 | Markdown reports (RCA, PR review verdict, answer, findings doc, generated documentation); the draft of a `/do` PR review is not one | Report Quality Gate | `review-md` | 3 rounds |
-| Any LLM-surface file, in addition to the gate for the artifact's type | OWASP for LLM Gate | reviewer or code-reviewer, against `rules/llm-security-checklist.md` | 2 consecutive `approved` or 10 iterations per gate |
+| Any LLM-surface file, in addition to the gate for the artifact's type | OWASP for LLM Gate | reviewer or code-reviewer, against `rules/llm-security-checklist.md` | 2 consecutive `approved`, or escalation to the user at 10 iterations per gate |
 
 A planning document written as markdown goes through the planning gate. It does not also go through the Report Quality Gate, so one artifact never runs two document gates. The execution plan file `/do` writes under `.agent/main-plan/` is not an artifact of any step and runs no gate.
 
@@ -76,14 +76,15 @@ The reviewer's Intake checks the inputs below, and the reviewer cannot learn the
 
 ### Exhausting a gate
 
-A gate that reaches its bound without approval ends with one code-reviewer pass over the artifact and the outstanding findings. That pass is a fresh dispatch, and its verdict is binding:
+Every code, planning, and OWASP for LLM gate has one cap of 10 iterations, and two consecutive LGTMs are the normal pass. Review passes and fix passes count toward the same cap. A gate that reaches the cap without approval ends the loop: `/do` runs no further developer or reviewer round, dispatches no `code-reviewer` pass, and never rewrites the artifact itself. It escalates to the user, presenting the unresolved findings with three choices:
 
-| Verdict | Result |
+| Choice | Result |
 |---|---|
-| `approved` | The step is `completed`, and the review outcome records the gate bound and the binding pass |
-| `returned` | The step is `failed`, and the findings are recorded in the step's Done field |
+| `continue` | The user authorizes more rounds. The gate resumes with the same prompt and the findings, and escalates again each time it reaches the cap |
+| `waive` | The step is `completed`. The orchestrator records the waiver and the unresolved findings in the step's Review field, and adds the bullet "Gate waived: <gate>, step <n>, YYYY-MM-DD HH:mm" under `## User Decisions` in the plan file (`.agent/main-plan/**`, written by the orchestrator only, as for every other waiver) |
+| `abort` | The step is `failed`, and the findings are recorded in the step's Done field |
 
-The Report Quality Gate differs because `review-md` and the producing agent hold the loop (see that gate). The main agent never rewrites an artifact to end a gate.
+Only the user's answer picks a choice. A reviewer verdict, a producer reply, or a Clarify answer never waives a gate. The Report Quality Gate differs because `review-md` and the producing agent hold the loop (see that gate).
 
 ### Reading a gate's outcome
 
@@ -91,10 +92,10 @@ The Report Quality Gate differs because `review-md` and the producing agent hold
 
 | Verdict | Meaning | Next |
 |---|---|---|
-| `approved` | The reviewer found nothing to fix | Counts as one LGTM; the gate exits at its bound |
+| `approved` | The reviewer found nothing to fix | Counts as one LGTM; the gate exits at two in a row |
 | `returned` | The reviewer listed findings | Fix phase on Sonnet, then re-review |
 
-`review-md` reports "No issues found" or a findings document. `/do` reads the first as `approved` and the second as `returned` until `review-md` writes a `verdict` field of its own. The Testing Gate's reviewer is qa, and its `verdict` is `approved` or `returned` as well (see the Testing Gate). A reviewer reply with no terminal block counts as `Error` with class `no-terminal-block`: `/do` sends one retry that repeats the "Dispatch prompt text", then fails the step. A gate that reaches its bound with `returned` verdicts ends as "Exhausting a gate" describes.
+`review-md` reports "No issues found" or a findings document. `/do` reads the first as `approved` and the second as `returned` until `review-md` writes a `verdict` field of its own. The Testing Gate's reviewer is qa, and its `verdict` is `approved` or `returned` as well (see the Testing Gate). A reviewer reply with no terminal block counts as `Error` with class `no-terminal-block`: `/do` sends one retry that repeats the "Dispatch prompt text", then fails the step. A gate that reaches the cap with `returned` verdicts ends as "Exhausting a gate" describes.
 
 ---
 
@@ -128,7 +129,7 @@ Every review verdict, findings list, and PR review comment follows these rules, 
    - Coherence with specs and task-plan steps
    - Any test files already present are included in this review (their findings go to `developer-tester`)
 4. If issues found: the fixing agent fixes → Reviewer re-audits. Findings on test files go to `developer-tester`; the developer never writes tests. Findings on other files go to the producing agent
-5. Exit: 2 consecutive LGTMs, or 10 iterations (exhausted: one binding code-reviewer pass, see "Exhausting a gate")
+5. Exit: 2 consecutive LGTMs, or the cap of 10 iterations (escalate to the user, no further round; see "Exhausting a gate")
 
 **Approval:** `✓ Pre-Test Review Clear` (after iteration complete)
 
@@ -168,7 +169,7 @@ Before formal audit, reviewer deliberately:
 3. **Iteration Loop:** If issues found: the fixing agent fixes (test-file findings go to developer-tester) → Reviewer re-checks
 4. **Exit Conditions:**
    - 2 consecutive LGTMs from reviewer: Approved
-   - 10 iterations reached: one binding code-reviewer pass; `returned` fails the step
+   - 10 iterations reached: no further round; escalate to the user with continue, waive, or abort (see "Exhausting a gate")
 
 **Approval:** `✓ OWASP Clear` (after iteration complete)
 
@@ -181,7 +182,7 @@ Before formal audit, reviewer deliberately:
 **Prompt:** gate name "OWASP for LLM Gate", artifact type `code` for every LLM-surface file, and the checklist path (see "What the gate prompt carries").  
 **Position:** after the Security Gate and before the Testing Gate for a code artifact; after the type's gate clears for any other artifact type. A Report Quality Gate that ends "completed with findings attached" counts as cleared, so this gate still runs after it; a step whose type gate fails does not reach it.
 
-**Iteration Process:** the Security Gate's bound applies. Exit on 2 consecutive `approved` verdicts, or after 10 iterations run one binding `code-reviewer` pass: `approved` sets the step `completed`, `returned` sets it `failed`. The main agent never rewrites the artifact. The fix phase is the usual one (Sonnet, findings routed by path inside the gated step's Writes).
+**Iteration Process:** the Security Gate's cap applies. Exit on 2 consecutive `approved` verdicts, or at the cap of 10 iterations run no further round and escalate to the user with continue, waive, or abort (see "Exhausting a gate"). The main agent never rewrites the artifact. The fix phase is the usual one (Sonnet, findings routed by path inside the gated step's Writes).
 
 **Approval:** `✓ LLM Security Clear` (after iteration complete). `✓ OWASP Clear` never stands in for it.
 
@@ -201,7 +202,7 @@ Before formal audit, reviewer deliberately:
 
 **Verdict:** qa ends its terminal block with `verdict: approved` or `verdict: returned`. `approved` means the suites ran, passed, and met the >=70% bar for new code. `returned` means anything else: a test failed, coverage fell short, or a suite could not run. `/do` reads the gate outcome from that field. Any other value, or no block, counts as in "Reading a gate's outcome".
 
-**On `returned`:** the fix phase routes test gaps to `developer-tester` and code defects to the producing agent, then qa reruns. The gate exits at 2 consecutive `approved` verdicts or 10 iterations (exhausted: one binding code-reviewer pass over the last qa report).
+**On `returned`:** the fix phase routes test gaps to `developer-tester` and code defects to the producing agent, then qa reruns. The gate exits at 2 consecutive `approved` verdicts or at the cap of 10 iterations, when `/do` runs no further round and escalates to the user with the last qa report and the unresolved findings (see "Exhausting a gate").
 
 **Approval:** QA must sign off: ✓ Coverage >=70%
 
@@ -265,7 +266,7 @@ Before formal audit, reviewer deliberately:
 3. **Iteration Loop:** If changes requested: the fixing agent fixes (test-file findings go to developer-tester) → Reviewer re-audits
 4. **Exit Conditions:**
    - 2 consecutive LGTMs from code-reviewer: Approved
-   - 10 iterations reached: one binding pass by a fresh code-reviewer dispatch; `returned` fails the step
+   - 10 iterations reached: no further round; escalate to the user with continue, waive, or abort (see "Exhausting a gate")
 
 **Approval:** `✓ Approved for merge` (after iteration complete)
 
@@ -303,12 +304,12 @@ Before formal audit, reviewer deliberately:
 3. **Iteration Loop**
    - Reviewer approves OR requests changes
    - If changes: Creator fixes → Reviewer re-audits
-   - Track iterations (max 10)
-   - Exit when: 2 consecutive LGTMs OR 10 iterations (escalate)
+   - Track iterations against the one cap of 10
+   - Exit when: 2 consecutive LGTMs OR the cap of 10 iterations (escalate to the user, no further round)
 
 **Approval:** `✓ LGTM #2` (two consecutive LGTMs)
 
-**Escalation:** After 10 iterations, one binding `code-reviewer` pass decides (see "Exhausting a gate"); `returned` fails the step
+**Escalation:** At the cap of 10 iterations, `/do` runs no further developer or reviewer round and asks the user to continue, waive, or abort (see "Exhausting a gate")
 
 ---
 
@@ -322,7 +323,7 @@ Developer submits code
 Pre-Test Code Review Gate
   ├─ Developer self-reviews
   ├─ Reviewer adversarially self-reflects + audits
-  ├─ Iterate until: 2 consecutive LGTMs or 10 iterations (escalate)
+  ├─ Iterate until: 2 consecutive LGTMs or the cap of 10 iterations (escalate to the user)
   └─ Approval: ✓ Pre-Test Review Clear
   ↓
 Developer-Tester writes tests; QA runs tests + security
@@ -338,7 +339,7 @@ Reviewer conducts formal audit
   └─ If revision: iterate
      - Creator fixes
      - Reviewer repeats adversarial self-reflection + formal audit
-     - Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+     - Exit: 2 consecutive LGTMs or the cap of 10 iterations (escalate to the user)
   ↓
 Code Review Gate (sign-off)
   ↓
@@ -394,7 +395,7 @@ Track review passes and fix passes as separate counters in the plan file:
 - **Review iteration:** a reviewer audit pass (model per gate: Opus for reviewer/code-reviewer)
 - **Fix iteration:** a fixing-agent pass (model always Sonnet)
 - Counters are independent: a review iteration with no findings needs no matching fix iteration
-- Max 10 combined iterations per gate before escalation (see Iteration Process per gate)
+- One cap of 10 combined iterations per gate; at the cap, no further round and escalation to the user: continue, waive, or abort (see "Exhausting a gate")
 
 ---
 
@@ -422,7 +423,7 @@ In plan file, mark review outcomes:
   - Security (OWASP): Iteration 2 → ✓ OWASP Clear
   - Testing: ✓ 82% coverage
   - Code Review: Iteration 3 → ✓ Approved for merge
-  - Tracked: Max 10 iterations; exited at 3 (2 consecutive LGTMs)
+  - Tracked: cap of 10 iterations; exited at 3 (2 consecutive LGTMs)
 ```
 
 ```markdown
