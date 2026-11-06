@@ -12,6 +12,10 @@
 // Scenarios "Hook failure" and "Health log privacy"), docs/requirements/FR-NFR-assist-plugin.md
 // (FR-206, FR-088, FR-089, NFR-009, NFR-016).
 //
+// Harness-governance Tranche 2 (NFR-026): a deny or ask decision also appends a decision record to the governance
+// audit log. These tests send hook input with no cwd, so there is no project root and the runtime notes one
+// "audit-no-root" record in hook-health.jsonl. That note is not a failure record; the decision itself is unchanged.
+//
 // Traceability format: [Scenario title | spec section | requirement ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -219,12 +223,16 @@ test("[Scenario: Ask output (no deny key) | " + PLATFORM + " Guard decision and 
   assert.strictEqual(res.stdout.trim(), ASK_PREFIX + '"only ask"}}');
 });
 
-test("[Rule: the ask path writes no hook-health.jsonl record | " + PLATFORM + " Guard decision and deny output (Change Log 2026-10-22) | FR-206 NFR-009] after an ask the data folder holds no health log", () => {
+test("[Rule: the ask path writes no failure record in hook-health.jsonl | " + PLATFORM + " Guard decision and deny output (Change Log 2026-10-22) | FR-206 NFR-009 NFR-026] after an ask the health log holds no failure record; the cwd-less input adds only the audit-no-root note", () => {
   const dataDir = tempDir("pr-post-ask-data-");
   const res = runStub(OK_INPUT, dataDir, { result: '{"deny": false, "ask": true, "reason": "r"}' });
   assertExitZero(res);
   assert.ok(res.stdout.indexOf('"permissionDecision":"ask"') !== -1, "the ask JSON was printed");
-  assert.deepStrictEqual(logLines(dataDir), [], "an ask is a decision, not a failure");
+  assert.deepStrictEqual(
+    logLines(dataDir).map((l) => JSON.parse(l).kind),
+    ["audit-no-root"],
+    "an ask is a decision, not a failure; the only record is the audit-no-root note"
+  );
 });
 
 test("[Scenario: Ask output (CLAUDE_PLUGIN_DATA unset) | " + PLATFORM + " Guard decision and deny output (Change Log 2026-10-22) | FR-206 NFR-009] the ask JSON prints when the data folder is unset", () => {
@@ -352,7 +360,11 @@ test("[Scenario: Merge asks (runtime) | " + SPEC + " Requirement 4 and 7 | FR-20
   assert.strictEqual(typeof out.hookSpecificOutput.permissionDecisionReason, "string");
   assert.ok(out.hookSpecificOutput.permissionDecisionReason.indexOf("gh pr merge") !== -1, out.hookSpecificOutput.permissionDecisionReason);
   assert.ok(res.stdout.indexOf('"permissionDecision":"deny"') === -1, "the call is never denied");
-  assert.deepStrictEqual(logLines(dataDir), [], "an ask writes no health-log record");
+  assert.deepStrictEqual(
+    logLines(dataDir).map((l) => JSON.parse(l).kind),
+    ["audit-no-root"],
+    "an ask writes no failure record; the cwd-less input adds only the audit-no-root note"
+  );
 });
 
 test("[Scenario: Subagent call (runtime) | " + SPEC + " Requirement 1 | FR-206] a subagent of another plugin gets the same ask JSON", () => {

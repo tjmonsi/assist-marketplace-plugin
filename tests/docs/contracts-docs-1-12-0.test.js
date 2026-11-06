@@ -14,6 +14,9 @@
 // specs/spec-orchestration-review-gates.md (FR-061), and
 // docs/requirements/FR-NFR-assist-plugin.md (version 1.2).
 //
+// Harness-governance Tranche 2: the Hook Fail-Open Rule now also names goal-guard as a hook whose failed
+// self-test is reported only (FR-219, NFR-035); the test for that line reads the current rule text.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -218,16 +221,17 @@ test("Hook Fail-Open Rule calls evaluate(input) a decision function, not pure", 
   assert.ok(!/\bpure\b/i.test(joined(rule)), "the Hook Fail-Open Rule still calls a guard pure");
 });
 
-test("Hook Fail-Open Rule names the three filters and says a failed writing-context self-test is reported only", () => {
+test("Hook Fail-Open Rule names the auto-disabled filters and says a failed writing-context or goal-guard self-test is reported only", () => {
   // [Scenario: Writing-context failure never disables it; Entry for a hook without a self-test; Listed guard that now only misses a deny
   //  | spec-hooks-platform.md / spec-hooks-health-check.md | FR-091 | FR-118]
+  // Tranche 2 (FR-219, NFR-035): the report-only sentence names goal-guard beside writing-context.
   const rule = section(RULE, "## Hook Fail-Open Rule");
   const line = rule.find((l) => l.indexOf("- A guard whose self-test denies a known-safe command") === 0);
   assert.ok(line, "the auto-disable requirement is missing");
   assert.ok(/a filter \(`injection-filter`, `prose-advisor`, `fsa-log`\) whose self-test fails in any way/.test(line));
   assert.ok(/stays listed until a later self-test passes every case/.test(line));
   assert.ok(/a guard that only misses a known-prohibited command keeps its state/.test(line));
-  assert.ok(/a failed `writing-context` self-test is reported only/.test(line));
+  assert.ok(/a failed `writing-context` or `goal-guard` self-test is reported only/.test(line));
   assert.ok(line.indexOf("`/assist-plugin:health`") !== -1);
 });
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box tests for the hook registration file, release 1.12.0 plus the pr-post-ask follow-up and the
-// harness-governance Tranche 1 hooks (plugins/assist-plugin/hooks/hooks.json).
+// harness-governance Tranche 1 and Tranche 2 hooks (plugins/assist-plugin/hooks/hooks.json).
 //
 // Sources: specs/spec-hooks-platform.md (Requirement: Hook registration, registration table
 // and Scenarios "Registration count" and "Timeouts"; Change Log 2026-10-16, Requirement: Hook
@@ -12,11 +12,14 @@
 // Harness governance Tranche 1: docs/requirements/FR-NFR-harness-governance.md (FR-214 PR verdict guard,
 // FR-242 confirmation-recording hook, NFR-035 timeout and ES5 entry); docs/task-plans/task-plan-harness-governance-20261028-0759.md,
 // Steps 3 and 4.
+// Harness governance Tranche 2: spec-hooks-platform.md (Change Log 2026-11-06); FR-223 (fsa-write-bar on Bash),
+// FR-224 (audit-log), FR-221 (gate-evidence on PostToolUse and PostToolUseFailure), FR-219 (goal-guard); task plan
+// Steps 12, 15, 17, and 19.
 //
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
-// The registration table after Tranche 1 (18 command entries from 13 scripts; rows 17 and 18 are new):
+// The registration table after Tranche 2 (23 command entries from 16 scripts; rows 19 to 23 are new):
 //   event        matcher                                   script                    timeout
 //   PreToolUse   Bash                                      sa-mermaid-only           5
 //   PreToolUse   Bash|PowerShell                           doc-cli-guard             5
@@ -26,10 +29,15 @@
 //   PreToolUse   Agent                                     injection-filter          5
 //   PreToolUse   Write|Edit|MultiEdit|NotebookEdit         prose-gate                5
 //   PreToolUse   Write|Edit|MultiEdit|NotebookEdit         fsa-write-bar             5
+//   PreToolUse   Bash                                      fsa-write-bar             5   (row 19, the shell write path)
 //   PostToolUse  .*                                        injection-filter          5
+//   PostToolUse  .*                                        audit-log                 5   (row 20)
+//   PostToolUse  Bash                                      gate-evidence             5   (row 21)
+//   PostToolUse  WebFetch|WebSearch|mcp__.*                goal-guard                5   (row 22)
 //   PostToolUse  Write|Edit|MultiEdit|NotebookEdit         prose-advisor             5
 //   PostToolUse  Agent                                     fsa-log                   5
 //   PostToolUse  SubagentHandback                          fsa-log                   5
+//   PostToolUseFailure  Bash                               gate-evidence             5   (row 23)
 //   UserPromptSubmit  (none)                               injection-filter          5
 //   UserPromptSubmit  (none)                               confirmation-record       5   (row 18)
 //   SessionStart startup|resume                            health-check --session-start  10
@@ -37,8 +45,8 @@
 //   SubagentStart .*                                       writing-context           5
 //   SubagentStop .*                                        fsa-log                   5
 //
-// The Scenario "Count holds until the hook is built" (15 entries from 10 scripts) and the 16-entry
-// count of the pr-post-ask follow-up no longer apply and have no test.
+// The Scenario "Count holds until the hook is built" (15 entries from 10 scripts), the 16-entry
+// count of the pr-post-ask follow-up, and the 18-entry count of Tranche 1 no longer apply and have no test.
 //
 // Run: node --test tests/hooks/hooks-registration.test.js
 
@@ -90,10 +98,15 @@ const EXPECTED = [
   ["PreToolUse", "Agent", "injection-filter", null, 5],
   ["PreToolUse", WRITE_TOOLS, "prose-gate", null, 5],
   ["PreToolUse", WRITE_TOOLS, "fsa-write-bar", null, 5],
+  ["PreToolUse", "Bash", "fsa-write-bar", null, 5],
   ["PostToolUse", ".*", "injection-filter", null, 5],
+  ["PostToolUse", ".*", "audit-log", null, 5],
+  ["PostToolUse", "Bash", "gate-evidence", null, 5],
+  ["PostToolUse", "WebFetch|WebSearch|mcp__.*", "goal-guard", null, 5],
   ["PostToolUse", WRITE_TOOLS, "prose-advisor", null, 5],
   ["PostToolUse", "Agent", "fsa-log", null, 5],
   ["PostToolUse", "SubagentHandback", "fsa-log", null, 5],
+  ["PostToolUseFailure", "Bash", "gate-evidence", null, 5],
   ["UserPromptSubmit", null, "injection-filter", null, 5],
   ["UserPromptSubmit", null, "confirmation-record", null, 5],
   ["SessionStart", "startup|resume", "health-check", "--session-start", 10],
@@ -270,22 +283,25 @@ test("[FR-242 | FR-245] no hook is registered for the confirmation store under a
 // Count, scripts, timeouts
 // ---------------------------------------------------------------------------
 
-test("hooks.json parses and holds exactly 18 entries whose type is command", () => {
-  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; two entries added by harness-governance Tranche 1 | FR-214 FR-242]
-  assert.strictEqual(COMMANDS.length, 18);
-  assert.strictEqual(ALL.length, 18, "no entry of another type");
+test("hooks.json parses and holds exactly 23 entries whose type is command", () => {
+  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; two entries added by harness-governance Tranche 1 | FR-214 FR-242; five entries added by Tranche 2 | FR-219 FR-221 FR-223 FR-224]
+  assert.strictEqual(COMMANDS.length, 23);
+  assert.strictEqual(ALL.length, 23, "no entry of another type");
 });
 
-test("the 18 entries are built from 13 scripts", () => {
-  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 | FR-214 FR-242]
+test("the 23 entries are built from 16 scripts", () => {
+  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 | FR-214 FR-242; Tranche 2 | FR-219 FR-221 FR-224]
   const names = Array.from(new Set(COMMANDS.map((e) => e.script))).sort();
-  assert.strictEqual(names.length, 13);
+  assert.strictEqual(names.length, 16);
   assert.deepStrictEqual(names, [
+    "audit-log",
     "commit-attribution-guard",
     "confirmation-record",
     "doc-cli-guard",
     "fsa-log",
     "fsa-write-bar",
+    "gate-evidence",
+    "goal-guard",
     "health-check",
     "injection-filter",
     "pr-post-ask",
@@ -326,10 +342,10 @@ test("every timeout is 5, pr-post-ask, pr-verdict-guard, and confirmation-record
   assert.strictEqual(health[0].args, "--session-start");
 });
 
-test("the file matches the 18-row registration table (event, matcher, script, argument, timeout)", () => {
-  // [Scenario: Registration count after the ask hook (every row as in the registration table) | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 rows 17 and 18 | FR-214 FR-242]
+test("the file matches the 23-row registration table (event, matcher, script, argument, timeout)", () => {
+  // [Scenario: Registration count after the ask hook (every row as in the registration table) | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 rows 17 and 18 | FR-214 FR-242; Tranche 2 rows 19 to 23 | FR-219 FR-221 FR-223 FR-224]
   const actual = COMMANDS.map((e) => key([e.event, e.matcher, e.script, e.args, e.timeout])).sort();
   const expected = EXPECTED.map(key).sort();
-  assert.strictEqual(EXPECTED.length, 18);
+  assert.strictEqual(EXPECTED.length, 23);
   assert.deepStrictEqual(actual, expected);
 });

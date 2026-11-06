@@ -5,7 +5,7 @@
 // rules/llm-security-checklist.md, the Hook Fail-Open Rule wording of rules/assist-plugin-rule.md,
 // the pr-post-ask bullets of CLAUDE.md and plugins/assist-plugin/Claude.md, the README section "PR
 // posting prompt" and its Bitbucket sign-in lines, docs/SPECIFICATION.md, docs/ARCHITECTURE.md,
-// docs/TOKEN_OPTIMIZATION.md, and the 13-script, 18-command counts in hooks/hooks.json, FR-086,
+// docs/TOKEN_OPTIMIZATION.md, and the 16-script, 23-command counts in hooks/hooks.json, FR-086,
 // and the BRD scope list.
 //
 // Sources: specs/spec-skills-pr-review.md (Requirement "LLM checklist states the direct-run PR
@@ -18,15 +18,16 @@
 //     confirmation gate; LLM05 names the --text="$(cat -- ...)" form and no --message-file.
 //   - The Hook Fail-Open Rule has the ask clause.
 //   - CLAUDE.md and Claude.md carry a pr-post-ask bullet (best-effort, known gaps, fails open, deny
-//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 13 scripts registered as 18
+//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 16 scripts registered as 23
 //     commands. README says bkt auth status lists contexts but does not test the token, exactly one
 //     context whose host matches the remote, and a pin before any bkt pr or bkt api call.
 //     SPECIFICATION.md says "may ask". The README known-gap list holds the 11 items of the header
 //     comment of hooks/impl/pr-post-ask.js and names no bkt api gap.
-//   - FR-086 (Statement line) and the BRD scope list read 13 hook scripts and 18 commands (the
+//   - FR-086 (Statement line) and the BRD scope list read 16 hook scripts and 23 commands (the
 //     posting ask hook built for 1.13.0, then the confirmation record hook and the PR verdict guard
-//     of harness-governance Tranche 1). The Unverified sentence reads "and whether an installed mod
-//     can approve a call the hook would prompt for".
+//     of harness-governance Tranche 1, then the audit log writer, the gate evidence recorder, and the
+//     goal guard of Tranche 2 with a second fsa-write-bar registration). The Unverified sentence reads
+//     "and whether an installed mod can approve a call the hook would prompt for".
 // Harness governance Tranche 1 (docs/requirements/FR-NFR-harness-governance.md, FR-214, FR-242,
 // FR-245, NFR-028; docs/task-plans/task-plan-harness-governance-20261028-0759.md, Steps 2, 3, and 4):
 //   - "## Write guard lists" holds two more Protected globs, the confirmation store files
@@ -34,6 +35,11 @@
 //   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md is qualified: "All hooks fail open
 //     except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail
 //     closed for their guarded class after reading input."
+// Harness governance Tranche 2 (FR-223, FR-224, FR-245, FR-214, FR-242; task plan Steps 11, 15, and 20):
+//   - "## Write guard lists" holds a fourth Protected glob, `**/.agent/logs/governance/**`, the governance
+//     audit log.
+//   - Open-gap row 2 of the checklist is closed for the verdict posts by the hook-enforced confirmation
+//     (pr-verdict-guard, the confirmation-record hook, and the write bar), with the remaining limits stated.
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -179,24 +185,28 @@ function row2() {
   return row;
 }
 
-test("checklist open-gap row 2 keeps severity High and category LLM01", () => {
-  // [A19 | Row 2 wording | spec-skills-pr-review.md "LLM checklist states the direct-run PR gap" | FR-210]
+test("checklist open-gap row 2 keeps category LLM01 and reads Closed (was High) after the hook-enforced confirmation", () => {
+  // [A19 | Row 2 wording | spec-skills-pr-review.md "LLM checklist states the direct-run PR gap" | FR-210; Tranche 2 | FR-214 FR-242 FR-223 FR-245]
   const row = row2();
-  assert.strictEqual(row[1], "High");
+  assert.strictEqual(row[1], "Closed (was High)");
   assert.strictEqual(row[2], "LLM01");
 });
 
-test("checklist open-gap row 2 says the confirmation is a written rule only and unscoped Bash runs with no prompt", () => {
-  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210, NFR-013]
+test("checklist open-gap row 2 says PR text reaches a session with unscoped Bash and no prompt, and the verdict posts are closed by a hook-enforced confirmation", () => {
+  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210, NFR-013; Tranche 2 | FR-214, FR-242, FR-223, FR-245]
   const t = squash(row2()[3]);
   assertHas(t, "In a direct `/pr-review` run, attacker-controlled PR text reaches a session that can run the posting commands", "row 2");
-  assertHas(t, "The confirmation before a verdict is a written rule only", "row 2");
   assertHas(t, "the skill holds unscoped Bash (an NFR-013 exception) that runs with no prompt", "row 2");
+  assertHas(t, "Closed for the verdict posts by a hook-enforced confirmation", "row 2");
+  assertHas(t, "`pr-verdict-guard` denies `gh pr review` with a verdict flag and `bkt pr approve` or `decline` unless `confirmations.jsonl` holds a recorded confirmation for that PR and verdict (FR-214)", "row 2");
+  assertHas(t, "only the `UserPromptSubmit` confirmation hook writes that record, from the per-action token in the user's own message (FR-242)", "row 2");
+  assertHas(t, "`fsa-write-bar` denies a write of it by a write tool from every caller and by a subagent standard shell write", "row 2");
 });
 
-test("checklist open-gap row 2 does not describe the confirmation as a control that holds on its own", () => {
-  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210]
+test("checklist open-gap row 2 no longer describes the confirmation as a written rule only, and claims no confirmation gate", () => {
+  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210; Tranche 2: the confirmation is now enforced by a hook]
   const t = row2()[3];
+  assertLacks(t, /written rule only/i, "row 2");
   assertLacks(t, /confirmation gate/i, "row 2");
   assertLacks(t, /behind the/i, "row 2");
   assertLacks(CHECKLIST, "behind the confirmation gate", "llm-security-checklist.md");
@@ -205,20 +215,22 @@ test("checklist open-gap row 2 does not describe the confirmation as a control t
 test("checklist open-gap row 2 names pr-post-ask as a best-effort, fail-open control with listed gaps", () => {
   // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210, FR-206]
   const t = squash(row2()[3]);
-  assertHas(t, "The `pr-post-ask` hook asks before `gh pr review`, `merge`, `comment`, and `close`, `bkt pr approve`, `comment`, `decline`, `close`, and `merge`, and a `bkt api` call that may write", "row 2");
-  assertHas(t, "best-effort, fail-open control that does not rely on the model", "row 2");
-  assertHas(t, "known gaps that FR-206 lists", "row 2");
+  assertHas(t, "`pr-post-ask` still asks before `gh pr merge`, `close`, `comment`, and the other posting commands, as a best-effort, fail-open control with the known gaps that FR-206 lists", "row 2");
 });
 
-test("checklist open-gap row 2 keeps the /do sentence and states the three facts in order", () => {
-  // [A19 | Under /do | spec-skills-pr-review.md | FR-210]
+test("checklist open-gap row 2 states the remaining limits and keeps the /do sentence, in order", () => {
+  // [A19 | Under /do | spec-skills-pr-review.md | FR-210; Tranche 2 | FR-223]
   const t = squash(row2()[3]);
+  assertHas(t, "Remaining limits, not part of the closure:", "row 2");
+  assertHas(t, "the guard does not read a verdict post built from a variable or run by another program", "row 2");
+  assertHas(t, "`gh pr merge`, `close`, and `comment` keep the ask only", "row 2");
   assertHas(t, "Under `/do` the PR text goes to a file only the read-only `reviewer` reads, and `/do` posts only after the user confirms", "row 2");
-  const a = t.indexOf("written rule only");
-  const b = t.indexOf("unscoped Bash");
-  const c = t.indexOf("pr-post-ask");
-  const d = t.indexOf("Under `/do`");
-  assert.ok(a >= 0 && a < b && b < c && c < d, "row 2 must state the written rule, the unscoped Bash, the hook, then the /do sentence");
+  const a = t.indexOf("unscoped Bash");
+  const b = t.indexOf("`pr-verdict-guard` denies");
+  const c = t.indexOf("`pr-post-ask` still asks");
+  const d = t.indexOf("Remaining limits");
+  const e = t.indexOf("Under `/do`");
+  assert.ok(a >= 0 && a < b && b < c && c < d && d < e, "row 2 must state the unscoped Bash, the verdict guard, the ask hook, the remaining limits, then the /do sentence");
 });
 
 test("checklist changes no other open-gap row: nine rows with the same severity and category", () => {
@@ -226,7 +238,7 @@ test("checklist changes no other open-gap row: nine rows with the same severity 
   const got = gapRows().map((cells) => [cells[0], cells[1], cells[2]]);
   assert.deepStrictEqual(got, [
     ["1", "Closed (was High)", "LLM06"],
-    ["2", "High", "LLM01"],
+    ["2", "Closed (was High)", "LLM01"],
     ["3", "High", "LLM02"],
     ["4", "Medium", "LLM09"],
     ["5", "Medium", "LLM09"],
@@ -239,16 +251,18 @@ test("checklist changes no other open-gap row: nine rows with the same severity 
   assertHas(gapRows().find((c) => c[0] === "7")[3], "No confirmation gate on writes to auto-loaded `CLAUDE.md` / `rules/` files", "row 7");
 });
 
-test("checklist LLM01 pr-review bullet no longer claims a confirmation gate", () => {
-  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210; approved change: the :35 line states a written rule only]
+test("checklist LLM01 pr-review bullet states the hook-enforced confirmation and claims no confirmation gate", () => {
+  // [A19 | Row 2 wording | spec-skills-pr-review.md | FR-210; approved change: the bullet states the hook-enforced confirmation; Tranche 2 | FR-214, FR-223, FR-245]
   const text = squash(joined(section(CHECKLIST, "## LLM01: Prompt Injection")));
   const s = text.indexOf("- `skills/pr-review/SKILL.md`:");
   const e = text.indexOf("- `agents/researcher.md`:");
   assert.ok(s >= 0 && e > s, "the pr-review bullet of LLM01 is missing");
   const bullet = text.slice(s, e);
-  assertHas(bullet, "the confirmation before a verdict is a written rule only", "LLM01 pr-review bullet");
-  assertHas(bullet, "the best-effort, fail-open `pr-post-ask` hook asks before the posting command", "LLM01 pr-review bullet");
+  assertHas(bullet, "The `pr-verdict-guard` hook denies the verdict post unless `confirmations.jsonl` holds a hook-recorded confirmation for that PR and verdict", "LLM01 pr-review bullet");
+  assertHas(bullet, "`fsa-write-bar` denies a write-tool call to it from every caller and such a subagent shell write to it (FR-223, FR-245)", "LLM01 pr-review bullet");
+  assertHas(bullet, "The best-effort, fail-open `pr-post-ask` hook still asks before the other posting commands", "LLM01 pr-review bullet");
   assertHas(bullet, "Under `/do` the PR text goes to a scratch file that only the read-only `reviewer` reads, and `/do` posts only after the user confirms", "LLM01 pr-review bullet");
+  assertLacks(bullet, /written rule only/i, "LLM01 pr-review bullet");
   assertLacks(bullet, /confirmation gate/i, "LLM01 pr-review bullet");
   assertLacks(bullet, /behind the/i, "LLM01 pr-review bullet");
 });
@@ -293,8 +307,8 @@ test("Hook Fail-Open Rule auto-disable line keeps its start and treats an ask on
   assertHas(line, "`/assist-plugin:health` shows the state", "rule line");
 });
 
-test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected globs hold the plan files and the two confirmation-store files", () => {
-  // [A6 | (## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186; Tranche 1 | FR-242, FR-245: the store directory .agent/governance/confirmations/ holds confirmations.jsonl (denied to every caller) and pending.jsonl (denied to every subagent)]
+test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected globs hold the plan files, the two confirmation-store files, and the governance audit log", () => {
+  // [A6 | (## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186; Tranche 1 | FR-242, FR-245: the store directory .agent/governance/confirmations/ holds confirmations.jsonl (denied to every caller) and pending.jsonl (denied to every subagent); Tranche 2 | FR-224, FR-245: **/.agent/logs/governance/** is the audit log]
   const guard = joined(section(RULE, "## Write guard lists"));
   assert.ok(guard.length > 0, "## Write guard lists is missing");
   const firstColumn = (heading) => section(guard, heading)
@@ -305,6 +319,7 @@ test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected 
     "`**/.agent/main-plan/**`",
     "`**/.agent/governance/confirmations/confirmations.jsonl`",
     "`**/.agent/governance/confirmations/pending.jsonl`",
+    "`**/.agent/logs/governance/**`",
   ]);
   assert.deepStrictEqual(firstColumn("### Protected files"), ["`DECISIONS.md`"]);
   assert.deepStrictEqual(firstColumn("### Auto-loaded names"), ["`CLAUDE.md`", "`CLAUDE.local.md`", "`AGENTS.md`"]);
@@ -322,6 +337,15 @@ test("[FR-242 | FR-245] the Write guard lists describe confirmations.jsonl as de
   assertHas(confirmations, "written only by the `UserPromptSubmit` confirmation hook", "confirmations.jsonl row");
   assertHas(confirmations, "every caller, the main session included", "confirmations.jsonl row");
   assertHas(pending, "no subagent writes it, the main session may", "pending.jsonl row");
+});
+
+test("[FR-224 | FR-245] the Write guard lists describe the governance audit log glob as the hash-chained audit log that no subagent writes", () => {
+  const rows = section(RULE, "### Protected globs").filter((l) => l.trim().charAt(0) === "|").slice(2);
+  const audit = rows.find((l) => l.indexOf("`**/.agent/logs/governance/**`") !== -1);
+  assert.ok(audit, "the governance audit log row exists");
+  assertHas(audit, "The governance audit log", "audit log row");
+  assertHas(audit, "hash-chained", "audit log row");
+  assertHas(audit, "no subagent writes it", "audit log row");
 });
 
 // ---------------------------------------------------------------------------
@@ -363,14 +387,17 @@ function counts() {
   return { commands: all.length, scripts: Object.keys(scripts).length, names: Object.keys(scripts).sort() };
 }
 
-test("hooks.json registers 18 commands from 13 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
-  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007; Tranche 1 adds confirmation-record and pr-verdict-guard | FR-214, FR-242]
+test("hooks.json registers 23 commands from 16 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
+  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007; Tranche 1 adds confirmation-record and pr-verdict-guard | FR-214, FR-242; Tranche 2 adds audit-log, gate-evidence, goal-guard, and a second fsa-write-bar registration | FR-219, FR-221, FR-223, FR-224]
   const c = counts();
-  assert.strictEqual(c.commands, 18);
-  assert.strictEqual(c.scripts, 13);
+  assert.strictEqual(c.commands, 23);
+  assert.strictEqual(c.scripts, 16);
   assert.ok(c.names.indexOf("pr-post-ask") !== -1);
   assert.ok(c.names.indexOf("pr-verdict-guard") !== -1);
   assert.ok(c.names.indexOf("confirmation-record") !== -1);
+  assert.ok(c.names.indexOf("audit-log") !== -1);
+  assert.ok(c.names.indexOf("gate-evidence") !== -1);
+  assert.ok(c.names.indexOf("goal-guard") !== -1);
   const all = entries();
   const ask = all.filter((e) => e.script === "pr-post-ask");
   assert.strictEqual(ask.length, 1, "pr-post-ask must be registered once");
@@ -393,12 +420,14 @@ test("TOKEN_OPTIMIZATION.md states the hooks.json counts and names pr-post-ask.j
   const c = counts();
   assert.strictEqual(m[1], String(c.scripts));
   assert.strictEqual(m[2], String(c.commands));
-  assert.strictEqual(m[1] + "/" + m[2], "13/18");
+  assert.strictEqual(m[1] + "/" + m[2], "16/23");
   assertHas(text, "`pr-post-ask.js` asks, and never denies, before a `gh` or `bkt` command that posts to, merges, or closes a pull request", "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b10 scripts\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b11 scripts\b/, "TOKEN_OPTIMIZATION.md");
+  assertLacks(text, /\b13 scripts registered\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b15 commands\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b16 commands\b/, "TOKEN_OPTIMIZATION.md");
+  assertLacks(text, /\b18 commands\b/, "TOKEN_OPTIMIZATION.md");
 });
 
 function frBlock(heading) {
@@ -415,31 +444,34 @@ function frBlock(heading) {
   return lines.slice(at, end);
 }
 
-test("FR-086 Statement reads 13 hook scripts as 18 commands (posting ask hook built for 1.13.0, two Tranche 1 hooks added) and agrees with hooks.json", () => {
-  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242]
+test("FR-086 Statement reads 16 hook scripts as 23 commands (posting ask hook built for 1.13.0, two Tranche 1 hooks and three Tranche 2 hooks added) and agrees with hooks.json", () => {
+  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-223, FR-224]
   const block = frBlock("### FR-086");
   const statement = block.find((l) => l.indexOf("**Statement:**") === 0);
   assert.ok(statement, "FR-086 has no Statement line");
   const c = counts();
   const want = c.scripts + " hook scripts as " + c.commands + " commands";
-  assert.strictEqual(want, "13 hook scripts as 18 commands");
+  assert.strictEqual(want, "16 hook scripts as 23 commands");
   assertHas(statement, "The plugin SHALL register " + want + " in `hooks/hooks.json`", "FR-086 Statement");
   assertHas(statement, "built for 1.13.0", "FR-086 Statement");
   assertHas(statement, "Tranche 1 added two more scripts with one command each (`hooks/confirmation-record.js` and `hooks/pr-verdict-guard.js`)", "FR-086 Statement");
+  assertHas(statement, "Tranche 2 added three more scripts (`hooks/audit-log.js`, `hooks/gate-evidence.js`, and `hooks/goal-guard.js`) and a second `fsa-write-bar` registration on `Bash`, for 5 more commands", "FR-086 Statement");
   assertLacks(statement, "PLANNED", "FR-086 Statement");
-  assertHas(joined(block), "the count SHALL be 18 across 13 scripts, the added scripts being the posting ask hook, the confirmation record hook, and the PR verdict guard, and the BRD scope list SHALL state 13 scripts and 18 commands", "FR-086 scenario");
+  assertHas(joined(block), "the count SHALL be 23 across 16 scripts, the added scripts being the audit log writer, the gate evidence recorder, and the goal guard", "FR-086 Tranche 2 scenario");
+  assertHas(joined(block), "the BRD scope list SHALL state 16 scripts and 23 commands", "FR-086 Tranche 2 scenario");
 });
 
-test("BRD scope list reads 13 hook scripts (18 hook commands), the posting ask hook built in 1.13.0 and two Tranche 1 hooks added", () => {
-  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242]
+test("BRD scope list reads 16 hook scripts (23 hook commands), the posting ask hook built in 1.13.0 and two Tranche 1 and three Tranche 2 hooks added", () => {
+  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-224]
   const line = linesOf(readRepo("docs/requirements/BRD-assist-plugin.md")).find((l) => l.indexOf("hook scripts") !== -1 && l.indexOf("`hooks/hooks.json`") !== -1);
   assert.ok(line, "no hook scripts line in the BRD scope list");
   const c = counts();
   const want = "The " + c.scripts + " hook scripts (" + c.commands + " hook commands) in `hooks/hooks.json`";
-  assert.strictEqual(want, "The 13 hook scripts (18 hook commands) in `hooks/hooks.json`");
+  assert.strictEqual(want, "The 16 hook scripts (23 hook commands) in `hooks/hooks.json`");
   assertHas(line, want, "BRD scope list");
   assertHas(line, "Built, 1.13.0", "BRD scope list");
   assertHas(line, "Tranche 1 added the confirmation record hook and the PR verdict guard", "BRD scope list");
+  assertHas(line, "Tranche 2 added the audit log writer, the gate evidence recorder, and the goal guard", "BRD scope list");
   assertLacks(line, "PLANNED", "BRD scope list");
 });
 

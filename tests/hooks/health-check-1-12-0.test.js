@@ -26,6 +26,11 @@
 // pr-verdict-guard and the filter confirmation-record added. Their exact case counts are counted
 // from the corpus at the build, so the test asserts the minimums of the spec table (pr-verdict-guard:
 // at least 1 allow and 2 deny cases; confirmation-record: at least 3 no-record and 1 record cases).
+// Harness governance Tranche 2 (specs/spec-hooks-health-check.md, Change Log 2026-11-06, Requirement:
+// Self-tests, NFR-035, FR-219, FR-221, FR-223, FR-224): the GUARDS list names fifteen hooks, with the
+// report-only logging filters audit-log, gate-evidence, and goal-guard added; the fsa-write-bar corpus holds
+// 80 allow and 148 deny cases for the shell write path (including the multi-source cp and mv into a protected
+// directory). The report-only set is writing-context plus those three.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -242,7 +247,8 @@ function slashes(p) {
 // Corpus sizes
 // ---------------------------------------------------------------------------
 
-// prose-gate and prose-advisor take the 1.13.1 sizes (Change Log 2026-10-23); the rest are unchanged.
+// prose-gate and prose-advisor take the 1.13.1 sizes (Change Log 2026-10-23); fsa-write-bar takes the Tranche 2 size
+// (Change Log 2026-11-06, the shell write path, with the multi-source cp and mv cases); the rest are unchanged.
 const SIZES = [
   ["doc-cli-guard", 16, 23],
   ["sa-mermaid-only", 16, 28],
@@ -251,18 +257,24 @@ const SIZES = [
   ["commit-attribution-guard", 17, 22],
   ["prose-gate", 24, 38],
   ["prose-advisor", 10, 12],
-  ["fsa-write-bar", 51, 106],
+  ["fsa-write-bar", 80, 148],
 ];
 
-test("[Scenario: All pass (twelve self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-22, and 2026-11-05) | FR-118 FR-206 FR-214 FR-242 NFR-035] GUARDS lists the twelve hooks, the ten of 1.13.1 plus pr-verdict-guard and confirmation-record", () => {
+// The report-only logging filters of harness-governance Tranche 2, with writing-context the report-only set.
+const REPORT_ONLY = ["audit-log", "gate-evidence", "goal-guard", "writing-context"];
+
+test("[Scenario: All pass (fifteen self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-22, 2026-11-05, and 2026-11-06) | FR-118 FR-206 FR-214 FR-242 FR-219 FR-221 FR-224 NFR-035] GUARDS lists the fifteen hooks, the twelve of Tranche 1 plus audit-log, gate-evidence, and goal-guard", () => {
   const names = hc.GUARDS.map((g) => g.name).sort();
-  assert.strictEqual(names.length, 12);
+  assert.strictEqual(names.length, 15);
   assert.deepStrictEqual(names, [
+    "audit-log",
     "commit-attribution-guard",
     "confirmation-record",
     "doc-cli-guard",
     "fsa-log",
     "fsa-write-bar",
+    "gate-evidence",
+    "goal-guard",
     "injection-filter",
     "pr-post-ask",
     "pr-verdict-guard",
@@ -286,9 +298,19 @@ test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-05) 
   assert.ok(record.deny.length >= 1, "at least one record case");
 });
 
+test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-06) | FR-219 FR-221 FR-224 NFR-035] audit-log, gate-evidence, and goal-guard are report-only logging filters, each with at least 1 no-record and 1 record case", () => {
+  ["audit-log", "gate-evidence", "goal-guard"].forEach((name) => {
+    const g = guard(name);
+    assert.strictEqual(g.filter, true, name + " is listed as a filter");
+    assert.strictEqual(g.reportOnly, true, name + " is report-only");
+    assert.ok(g.allow.length >= 1, name + ": at least one no-record case");
+    assert.ok(g.deny.length >= 1, name + ": at least one record case");
+  });
+});
+
 SIZES.forEach((row) => {
   const name = row[0], allowCount = row[1], denyCount = row[2];
-  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-16, 2026-10-17, and 2026-10-23) | FR-118 FR-093 FR-094 FR-099 FR-104 FR-213] " + name + " has " + allowCount + " allow and " + denyCount + " deny cases", () => {
+  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-16, 2026-10-17, 2026-10-23, and 2026-11-06) | FR-118 FR-093 FR-094 FR-099 FR-104 FR-213 FR-223] " + name + " has " + allowCount + " allow and " + denyCount + " deny cases", () => {
     const g = guard(name);
     assert.strictEqual(g.allow.length, allowCount, name + " allow corpus");
     assert.strictEqual(g.deny.length, denyCount, name + " deny corpus");
@@ -308,9 +330,11 @@ test("[Requirement: Self-tests, writing-context cases | " + SPEC + " (Change Log
   assert.strictEqual(g.deny.length, hc.WRITING_CONTEXT_CONTEXT.length);
 });
 
-test("[Requirement: Self-tests, writing-context row | " + SPEC + " (Change Log 2026-10-16) | FR-118 FR-091] the writing-context entry is report-only", () => {
-  assert.strictEqual(guard("writing-context").reportOnly, true);
-  hc.GUARDS.filter((g) => g.name !== "writing-context").forEach((g) => {
+test("[Requirement: Self-tests, report-only rows | " + SPEC + " (Change Log 2026-10-16 and 2026-11-06) | FR-118 FR-091 NFR-035] the report-only entries are writing-context, audit-log, gate-evidence, and goal-guard, and no other", () => {
+  REPORT_ONLY.forEach((name) => {
+    assert.strictEqual(guard(name).reportOnly, true, name + " must be report-only");
+  });
+  hc.GUARDS.filter((g) => REPORT_ONLY.indexOf(g.name) === -1).forEach((g) => {
     assert.notStrictEqual(g.reportOnly, true, g.name + " must not be report-only");
   });
 });
@@ -511,7 +535,7 @@ test("[Scenario: Writing-context case throws | " + SPEC + " Self-tests (Change L
 // writing-context: the report line and the installed standard (real tree)
 // ---------------------------------------------------------------------------
 
-test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Change Log 2026-10-16 and 2026-10-23) | FR-118 FR-104 FR-213] the report line reads writing-context: PASS (3 silent cases, 3 context cases) and every hook passes with its corpus sizes", () => {
+test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-23, and 2026-11-06) | FR-118 FR-104 FR-213] the report line reads writing-context: PASS (3 silent cases, 3 context cases) and every hook passes with its corpus sizes", () => {
   const dataDir = tempDir("hc-1-12-0-data-");
   const res = runHealth(PLUGIN, [], { CLAUDE_PLUGIN_DATA: dataDir });
   assert.strictEqual(res.status, 0, res.stderr);
@@ -529,6 +553,10 @@ test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Cha
   // The Tranche 1 hooks (Change Log 2026-11-05): one PASS line each.
   assert.ok(/^\s+pr-verdict-guard: PASS \(/m.test(out), "pr-verdict-guard line:\n" + out);
   assert.ok(/^\s+confirmation-record: PASS \(/m.test(out), "confirmation-record line:\n" + out);
+  // The Tranche 2 logging filters (Change Log 2026-11-06): one PASS line each.
+  ["audit-log", "gate-evidence", "goal-guard"].forEach((name) => {
+    assert.ok(new RegExp("^\\s+" + name + ": PASS \\(", "m").test(out), name + " line:\n" + out);
+  });
 });
 
 // ---------------------------------------------------------------------------

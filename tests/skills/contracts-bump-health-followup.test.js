@@ -4,7 +4,9 @@
 // 1.12.0 (task plan steps 13, 16, and 25): the /bump --path validation (three ordered steps, the
 // eight stop messages R1 to R8, the shell-safe commands for R6 and R7) and the /health overview
 // and findings rows for the pr-post-ask guard. Updated for harness-governance Tranche 1 (the
-// pr-verdict-guard and confirmation-record rows of the /health overview and findings table).
+// pr-verdict-guard and confirmation-record rows of the /health overview and findings table) and for
+// Tranche 2 (the overview names the audit-log hook and a second fail-closed exception, the Bash route
+// of fsa-write-bar).
 //
 // Sources: specs/spec-skills-git.md (Change Log 2026-10-22: ADDED Requirement "--path value
 // validated before it names anything", MODIFIED Requirement "Bump commit and tag"),
@@ -27,6 +29,10 @@
 //     names the `confirmation-record` hook.
 //   - The findings table holds four pr-verdict-guard rows and four confirmation-record rows next to
 //     the two pr-post-ask rows. Only the two pr-post-ask self-test rows start with `pr-post-ask`.
+// Harness governance Tranche 2 (FR-223, FR-224, NFR-028, NFR-035; the same task plan, Steps 12 and 15;
+// specs/spec-skills-health.md Change Log 2026-11-06):
+//   - The overview names the `audit-log` hook after the `confirmation-record` hook, and says all hooks fail
+//     open except two cases: `pr-verdict-guard` and the `Bash` route of `fsa-write-bar`.
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -704,12 +710,13 @@ test("health SKILL.md overview names pr-post-ask and pr-verdict-guard among the 
   assert.ok(/the PreToolUse guards \(`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `pr-post-ask`, `pr-verdict-guard`, `prose-gate`, `fsa-write-bar`\)/.test(o));
 });
 
-test("health SKILL.md overview names the confirmation-record hook and the one fail-closed exception", () => {
-  // [FR-242 | FR-214 | NFR-028 | NFR-035 | spec-hooks-health-check.md Change Log 2026-11-05]
+test("health SKILL.md overview names the confirmation-record and audit-log hooks and the two fail-closed exceptions", () => {
+  // [FR-242 | FR-214 | NFR-028 | NFR-035 | spec-hooks-health-check.md Change Log 2026-11-05; Tranche 2 | FR-223 | FR-224: the audit-log hook and the Bash route of fsa-write-bar]
   const o = squash(overview());
-  assertHas(o, "`writing-context`, and the `confirmation-record` hook", "overview hook list");
-  assertHas(o, "All of them fail open except one case", "overview");
-  assertHas(o, "The exception is `pr-verdict-guard`, which fails closed for a command that looks like a PR verdict post", "overview");
+  assertHas(o, "`writing-context`, and the `confirmation-record` hook, plus the `audit-log` hook", "overview hook list");
+  assertHas(o, "All of them fail open except two cases", "overview");
+  assertHas(o, "The exceptions are `pr-verdict-guard`, which fails closed for a command that looks like a PR verdict post", "overview");
+  assertHas(o, "and the `Bash` route of `fsa-write-bar`, which fails closed for a subagent command that names a protected path", "overview");
 });
 
 test("health SKILL.md overview lists the commands pr-post-ask asks before and says every session", () => {

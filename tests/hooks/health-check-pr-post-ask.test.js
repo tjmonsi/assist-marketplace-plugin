@@ -17,6 +17,11 @@
 // Self-tests, NFR-035, FR-214, FR-242): GUARDS lists twelve hooks, the ten of 1.13.1 plus the guard
 // pr-verdict-guard and the filter confirmation-record. The pr-post-ask hook (impl/pr-post-ask.js) is
 // unchanged by Tranche 1, so its 13 no-ask and 14 ask cases and its report line stay as they were.
+// Harness governance Tranche 2 (specs/spec-hooks-health-check.md, Change Log 2026-11-06, Requirement:
+// Self-tests, NFR-035, FR-219, FR-221, FR-224, FR-223): GUARDS lists fifteen hooks, the twelve of Tranche 1 plus the
+// report-only filters audit-log, gate-evidence, and goal-guard. The fsa-write-bar corpus grows to 80 allow and 148 deny
+// cases for the shell write path (including the multi-source cp and mv into a protected directory). The pr-post-ask
+// corpus is unchanged.
 //
 // Traceability format: [Scenario title | spec section | requirement ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -258,11 +263,14 @@ function keysOf(rows) {
 // The GUARDS entry
 // ---------------------------------------------------------------------------
 
-test("[Scenario: Ask-hook self-test passes (twelve hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22 and 2026-11-05) | FR-118 FR-206 NFR-035] GUARDS lists twelve hooks, the nine of 1.12.0, pr-post-ask, and the Tranche 1 pr-verdict-guard and confirmation-record", () => {
-  assert.strictEqual(hc.GUARDS.length, 12);
+test("[Scenario: Ask-hook self-test passes (fifteen hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22, 2026-11-05, and 2026-11-06) | FR-118 FR-206 NFR-035] GUARDS lists fifteen hooks, the nine of 1.12.0, pr-post-ask, the Tranche 1 pr-verdict-guard and confirmation-record, and the Tranche 2 audit-log, gate-evidence, and goal-guard", () => {
+  assert.strictEqual(hc.GUARDS.length, 15);
   assert.ok(hc.GUARDS.some((g) => g.name === NAME));
   assert.ok(hc.GUARDS.some((g) => g.name === "pr-verdict-guard"));
   assert.ok(hc.GUARDS.some((g) => g.name === "confirmation-record"));
+  assert.ok(hc.GUARDS.some((g) => g.name === "audit-log"));
+  assert.ok(hc.GUARDS.some((g) => g.name === "gate-evidence"));
+  assert.ok(hc.GUARDS.some((g) => g.name === "goal-guard"));
 });
 
 test("[Requirement: Self-tests, GUARDS entry | " + SPEC + " (Change Log 2026-10-22) | FR-118 FR-206] the pr-post-ask entry holds 13 allow cases and 14 deny cases", () => {
@@ -371,7 +379,7 @@ test("[Requirement: Self-tests, header comment | " + SPEC + " (Change Log 2026-1
 });
 
 // ---------------------------------------------------------------------------
-// The other hooks keep their corpus sizes (the prose rows take the 1.13.1 sizes)
+// The other hooks keep their corpus sizes (the prose rows take the 1.13.1 sizes; fsa-write-bar takes the Tranche 2 size)
 // ---------------------------------------------------------------------------
 
 [
@@ -382,9 +390,9 @@ test("[Requirement: Self-tests, header comment | " + SPEC + " (Change Log 2026-1
   ["commit-attribution-guard", 17, 22],
   ["prose-gate", 24, 38],
   ["prose-advisor", 10, 12],
-  ["fsa-write-bar", 51, 106],
+  ["fsa-write-bar", 80, 148],
 ].forEach((row) => {
-  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-22 and 2026-10-23) | FR-118 FR-104 FR-213] " + row[0] + " has " + row[1] + " allow and " + row[2] + " deny cases", () => {
+  test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-22, 2026-10-23, and 2026-11-06) | FR-118 FR-104 FR-213 FR-223] " + row[0] + " has " + row[1] + " allow and " + row[2] + " deny cases", () => {
     const g = guard(row[0]);
     assert.strictEqual(g.allow.length, row[1]);
     assert.strictEqual(g.deny.length, row[2]);
