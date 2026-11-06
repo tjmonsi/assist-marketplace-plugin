@@ -38,6 +38,10 @@ function suffixFor(hook) {
   if (hook === "fsa-write-bar") return "this write was not checked";
   if (hook === "fsa-log") return "this subagent report was not checked";
   if (hook === "confirmation-record") return "your confirmation was not recorded";
+  if (hook === "purpose-capture") return "your session purpose was not recorded";
+  if (hook === "data-access-log") return "your access was not logged";
+  if (hook === "phi-outbound-guard") return "this outbound call was not checked for PHI";
+  if (hook === "ferpa-disclosure-guard") return "this outbound call was not checked for education-record data";
   return "this command was not checked";
 }
 

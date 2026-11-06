@@ -75,6 +75,31 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/data-access-log.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/phi-outbound-guard.js\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/ferpa-disclosure-guard.js\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -171,6 +196,15 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/confirmation-record.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/purpose-capture.js\"",
             "timeout": 5
           }
         ]
