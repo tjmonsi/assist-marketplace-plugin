@@ -17,6 +17,11 @@
 //   1  the chain is broken: the first broken line is named with its segment, its line in the segment, and the reason
 //   2  cannot verify: the project root is unknown or a segment is unreadable
 //
+// [FR-232] The output also flags `unidentified` records: a record whose agent_type is "unidentified" (lib/identity.js: an
+// action with no agent id that is not the main session, or a subagent whose type is missing or unusable). verify() checks
+// the chain only, so this script reads the segments once more and counts those records. The count is a flag for review, not
+// a break: it changes no exit code, and the output names no record value (NFR-031).
+//
 // Known limit (NFR-030). The chain runs backward: a line is confirmed by the line after it. The final retained line has
 // no successor, and trailing lines removed from the end leave a shorter chain that still verifies. Neither is
 // detectable without a head anchor kept outside the log, which is deferred; the output says so when the chain is intact.
@@ -26,6 +31,7 @@
 // No dependencies; ES2015 syntax only.
 "use strict";
 
+const fs = require("fs");
 const path = require("path");
 
 const auditChain = require(path.join(__dirname, "..", "hooks", "lib", "audit-chain.js"));
@@ -34,6 +40,10 @@ const { findGitRoot } = require(path.join(__dirname, "..", "hooks", "lib", "git-
 const EXIT_INTACT = 0;
 const EXIT_BROKEN = 1;
 const EXIT_CANNOT_VERIFY = 2;
+
+// [FR-232] The agent_type value lib/identity.js gives an actor it cannot establish.
+const UNIDENTIFIED = "unidentified";
+const SEGMENT_PATTERN = /^audit(-\d{6,})?\.jsonl$/;
 
 const LOG_PATH = auditChain.LOG_DIR.split(path.sep).join("/") + "/" + auditChain.CURRENT_FILE;
 
@@ -53,12 +63,46 @@ function plural(count, word) {
   return count + " " + word + (count === 1 ? "" : "s");
 }
 
-// Counts the `unidentified` records when verify() reports them (a number or a list). The flag stays inert until the
-// per-agent identity of a later step lands; this only passes it through.
+// Counts the `unidentified` records when verify() or check() reports them (a number or a list).
 function unidentifiedCount(result) {
   const value = result && result.unidentified;
   if (Array.isArray(value)) return value.length;
   return typeof value === "number" && value > 0 ? value : 0;
+}
+
+// [FR-232] True for a log line that parses to a record whose agent_type is "unidentified". The substring test skips the
+// parse for the common line. A line that is not JSON is not counted; verify() reports it as a break.
+function isUnidentified(line) {
+  if (line.indexOf(UNIDENTIFIED) === -1) return false;
+  try {
+    const record = JSON.parse(line);
+    return record !== null && typeof record === "object" && record.agent_type === UNIDENTIFIED;
+  } catch (err) {
+    return false;
+  }
+}
+
+// [FR-232] The number of `unidentified` records in every segment under `base`. Reads the segments only; a segment that
+// cannot be read is skipped here because verify() already reports it.
+function scanUnidentified(base) {
+  const dir = path.join(base, auditChain.LOG_DIR);
+  let names;
+  try {
+    names = fs.readdirSync(dir).filter((name) => SEGMENT_PATTERN.test(name));
+  } catch (err) {
+    return 0;
+  }
+  let count = 0;
+  names.forEach((name) => {
+    try {
+      fs.readFileSync(path.join(dir, name), "utf8").split("\n").forEach((line) => {
+        if (line.length > 0 && isUnidentified(line)) count++;
+      });
+    } catch (err) {
+      // verify() names an unreadable segment; the flag count skips it.
+    }
+  });
+  return count;
 }
 
 // Turns a verify() result into {code, lines}. Pure: no output, no file access.
@@ -79,7 +123,7 @@ function describe(result) {
       out.push("Audit chain intact: " + plural(result.lines, "line") + " verified across " + plural(result.segments, "segment") + ".");
       out.push(CAVEAT);
     }
-    if (flagged > 0) out.push("Unidentified records: " + flagged + ".");
+    if (flagged > 0) out.push("Unidentified records: " + flagged + " (agent_type unidentified; review them).");
     return { code: EXIT_INTACT, lines: out };
   }
   const brk = result.firstBreak || {};
@@ -94,7 +138,7 @@ function describe(result) {
   } else {
     out.push("The log was changed after it was written. Do not edit it; report the break.");
   }
-  if (flagged > 0) out.push("Unidentified records before the break: " + flagged + ".");
+  if (flagged > 0) out.push("Unidentified records: " + flagged + ".");
   return { code: EXIT_BROKEN, lines: out };
 }
 
@@ -109,7 +153,9 @@ function check(root) {
   try {
     const base = typeof root === "string" && root.length > 0 ? path.resolve(root) : defaultRoot();
     if (!base) return { code: EXIT_CANNOT_VERIFY, lines: ["Cannot verify the audit chain: the project root is unknown."] };
-    return describe(auditChain.verify(null, { root: base }));
+    const result = auditChain.verify(null, { root: base });
+    if (result && typeof result === "object" && !result.error) result.unidentified = scanUnidentified(base);
+    return describe(result);
   } catch (err) {
     const code = err && typeof err.code === "string" ? err.code : "unknown";
     return { code: EXIT_CANNOT_VERIFY, lines: ["Cannot verify the audit chain: the verifier failed (" + code + ")."] };
