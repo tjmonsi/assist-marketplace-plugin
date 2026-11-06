@@ -287,6 +287,16 @@ Source: https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts
 
 `/assist-plugin:health` reports, read-only, when `attribution.commit` or `attribution.pr` is unset or not `""` in those files. It names the file and key to change and never edits settings.
 
+#### Push grants
+
+Scope each git push grant to a named remote instead of the wildcard `Bash(git push *)`, which auto-approves a push to any remote, including one an injected instruction names. In `.claude/settings.local.json` or the committed `.claude/settings.json`, add one grant per trusted remote under `permissions.allow`:
+
+```json
+{"permissions": {"allow": ["Bash(git push origin *)", "Bash(git push <mirror-name> *)"]}}
+```
+
+Replace `<mirror-name>` with the name of a second remote, or leave that grant out when you have one remote. `/assist-plugin:health` reports, read-only, a wildcard or unscoped push grant (`Bash(git push *)`, `Bash(git push:*)`, or a broader entry) in the user, project, and local settings files, and never a grant that names a remote. The plugin does not apply the grants or edit settings; you apply them.
+
 ### PR posting prompt
 
 The `pr-post-ask` hook (PreToolUse on `Bash` and `PowerShell`) asks you before a command that posts to, merges, or closes a pull request runs. It covers every session and every agent, because a hook cannot tell a `/do` post from a direct `/pr-review` post; both flows show the prompt after their own confirmation. It asks and never denies, and it fails open like the other hooks.

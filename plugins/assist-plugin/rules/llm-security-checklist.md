@@ -66,11 +66,17 @@ review comments posted to third-party platforms, or outbound web requests.
 
 **assist-plugin attack surface:**
 
-- `skills/commit/SKILL.md` workflow step 1 is `git add .`: stages everything, including `.env`,
-  keyfiles, and local credential material.
+- `skills/commit/SKILL.md` workflow step 1 stages only the paths the user names, with
+  `git add -- <named paths>`, and never runs `git add .`, `git add -A`, or `git add --all`. Step 2
+  runs a secret scan over the staged changes and stops on a finding or a scanner failure, so no
+  commit follows.
 - `.claude/settings.local.json` pre-approves `Bash(git add *)` **and** `Bash(git push *)` with
-  wildcards. Combined with the above, an agent can stage a secret and push it to a remote with no
-  permission prompt. The `git push *` wildcard also permits pushing to an arbitrary remote URL.
+  wildcards. A staged secret that passes the scan could still be pushed with no permission prompt,
+  and the `git push *` wildcard also permits pushing to an arbitrary remote URL.
+  Recommendation: scope each push grant to a named remote, `Bash(git push origin *)` and, for a mirror,
+  `Bash(git push <mirror-name> *)`, in place of `Bash(git push *)`. More than one named remote is fine;
+  no wildcard grant should remain. `/assist-plugin:health` reports a wildcard or unscoped push grant,
+  read-only. The user applies the grants; the plugin never edits a settings file.
 - `agents/researcher.md` `WebFetch` is an outbound channel: a secret read from the repo can be
   exfiltrated in a URL query string.
 - `skills/pr-review/SKILL.md` posts model-generated text to GitHub/Bitbucket, where anything the
@@ -80,9 +86,10 @@ review comments posted to third-party platforms, or outbound web requests.
 
 **Verification:**
 
-- [ ] No skill instructs a blanket `git add .` / `git add -A`; staging is explicit or scoped.
-- [ ] `.gitignore` covers `.env*`, credential, and key patterns, and secret-scanning runs before any
-      commit step.
+- [ ] No skill instructs a blanket `git add .` / `git add -A` / `git add --all`; `commit` stages only
+      named paths with `git add -- <named paths>`.
+- [ ] `.gitignore` covers `.env*`, credential, and key patterns, and the `commit` pre-commit secret
+      scan runs on the staged changes before any commit is created.
 - [ ] `settings.local.json` permission entries are narrowed: `Bash(git push origin *)` rather than
       `Bash(git push *)`; no wildcard that permits an arbitrary remote.
 - [ ] Skills that post to external platforms (`pr-review`) state that only review findings are
@@ -282,9 +289,9 @@ terminates.
 
 **assist-plugin attack surface:**
 
-- `skills/do/references/review-protocol.md` Revision Workflow step 5 is "**Repeat:** Until approval"
-  with **no maximum iteration count**, so a developer/reviewer disagreement loop can run indefinitely,
-  and both agents are Opus-tier.
+- `skills/do/references/review-protocol.md` caps each code, planning, and OWASP for LLM gate at 10
+  iterations (two consecutive LGTMs are the normal pass). At the cap `/do` runs no further developer
+  or reviewer round and escalates to the user with continue, waive, or abort (FR-218).
 - `effort: xhigh` is set on `do`, `reviewer`, `planner`, `solutions-architect`. Four of the
   most-invoked paths run at the highest reasoning budget.
 - `skills/do/SKILL.md` Step 5 supports parallel background agents with no concurrency cap.
@@ -292,8 +299,8 @@ terminates.
 
 **Verification:**
 
-- [ ] The revision loop declares a maximum iteration count (e.g. 3) and an escalation-to-human path
-      when exhausted.
+- [ ] The revision loop declares a maximum iteration count (10, per FR-218 and `review-protocol.md`)
+      and an escalation-to-human path (continue, waive, or abort) when exhausted.
 - [ ] Model tier and `effort` per agent are justified against the routing table in
       `skills/do/references/model-routing.md`; no silent upgrade to Opus/xhigh.
 - [ ] Parallel background agent count is bounded.
@@ -324,10 +331,10 @@ Pre-existing issues in the current tree, ordered by severity. Each should become
 |---|----------|----------|-----|
 | 1 | Closed (was High) | LLM06 | All 16 agent files declare `tools:`; `reviewer` and `code-reviewer` hold `Read, Grep, Glob, LSP` and `explore` holds `Read, Grep, Glob`, matching the documented restrictions. The LLM06 verification items stay as the check |
 | 2 | High | LLM01 | In a direct `/pr-review` run, attacker-controlled PR text reaches a session that can run the posting commands. The confirmation before a verdict is a written rule only, and the skill holds unscoped Bash (an NFR-013 exception) that runs with no prompt. The `pr-post-ask` hook asks before `gh pr review`, `merge`, `comment`, and `close`, `bkt pr approve`, `comment`, `decline`, `close`, and `merge`, and a `bkt api` call that may write; it is a best-effort, fail-open control that does not rely on the model, with the known gaps that FR-206 lists. Under `/do` the PR text goes to a file only the read-only `reviewer` reads, and `/do` posts only after the user confirms |
-| 3 | High | LLM02 | `git add .` in `commit` combined with pre-approved `Bash(git add *)` + `Bash(git push *)` wildcards allows unprompted secret commit and push to an arbitrary remote |
+| 3 | High | LLM02 | Open, pending one user action. Shipped: `commit` stages only named paths and scans staged changes for secrets before committing, and `/assist-plugin:health` reports a wildcard or unscoped push grant. Remaining: the pre-approved `Bash(git push *)` wildcard allows an unprompted push to an arbitrary remote. The user must apply named-remote push grants in their own settings (`Bash(git push origin *)`, plus `Bash(git push <mirror-name> *)` for a mirror); the plugin never edits settings. Gap 3 closes only after the settings hold named-remote grants and no wildcard |
 | 4 | Medium | LLM09 | Governance gates pass on a model-emitted string; `fsa-write-bar` denies subagents `Write` and `Edit` calls to `.agent/main-plan/**` and `DECISIONS.md`, but Bash writes are not covered |
 | 5 | Medium | LLM09 | Fast-track rule can be read to exempt `agents/`/`skills/` markdown from security review |
-| 6 | Medium | LLM10 | Revision loop "Repeat: Until approval" has no iteration cap, at Opus tier |
+| 6 | Closed (was Medium) | LLM10 | The revision loop now caps each gate at 10 iterations (FR-218) and escalates to the user with continue, waive, or abort at the cap. The LLM10 verification item stays as the check |
 | 7 | Medium | LLM04 | No confirmation gate on writes to auto-loaded `CLAUDE.md` / `rules/` files |
 | 8 | Low | LLM03 | `Bash(claude plugin *)` pre-approved; `gh`/`bkt`/`git` invoked without presence checks |
 | 9 | Low | LLM05 | All skills grant bare `Bash` rather than scoped command families |
