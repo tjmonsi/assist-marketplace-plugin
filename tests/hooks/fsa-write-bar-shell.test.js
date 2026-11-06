@@ -11,12 +11,17 @@
 // (Change Log 2026-11-06, Scenario Producer self-approval blocked), and docs/requirements/FR-NFR-harness-governance.md
 // v1.3 (FR-223, FR-245, FR-222, UR-064, UR-075, NFR-028, NFR-036). Task plan: docs/task-plans/task-plan-harness-
 // governance-20261028-0759.md, Steps 15 and 20.
+// Harness governance Tranche 3 (FR-245, FR-231, FR-247, UR-075; rules/assist-plugin-rule.md "## Write guard lists",
+// Protected globs): the protected set also holds `.claude/settings.json`, `.agent/governance/profile.json`, and
+// `.agent/governance/session-purpose.json`. A subagent shell write of any of them is denied; a read is allowed.
 //
 // Traceability format: [AC-N | spec file | FR/NFR ids | UR/BR ids]. The spec has no SPEC-NNN id, so it is cited by
 // file name. AC-N is the position of the Scenario inside Requirement: Shell write path to protected paths:
 //   AC-1 Shell append to DECISIONS.md, AC-2 Shell read allowed, AC-3 Shell write to the governance audit log,
 //   AC-4 Shell write to the confirmation store, AC-5 Shell write to an unprotected path, AC-6 Variable-built command
 //   not caught.
+// The Tranche 3 cases extend AC-1 (a protected path written from a subagent shell), AC-2 (a read), and AC-5 (an
+// unprotected near-miss path), and cite FR-245, which names the settings file, the profile, and the session purpose record.
 //
 // Contract used:
 //   evaluate(input, options) returns an object whose `deny` field is the boolean true to deny; any other result allows.
@@ -24,7 +29,8 @@
 //   a stub. A call with a non-empty agent_id is a subagent call; a call with no agent_id is the main session.
 //   The Bash route judges a subagent Bash command: it denies a command that writes a protected path through
 //   redirection (>, >>, >|, N>), tee, sed -i, cp, mv, or rm, and allows a read. Protected: **/.agent/main-plan/**,
-//   DECISIONS.md, **/.agent/logs/governance/**, and the confirmation store .agent/governance/confirmations/ (both files).
+//   DECISIONS.md, **/.agent/logs/governance/**, the confirmation store .agent/governance/confirmations/ (both files),
+//   **/.claude/settings.json, **/.agent/governance/profile.json, and **/.agent/governance/session-purpose.json.
 //   Each lexed part of a chained command is judged on its own. The route covers the main session never.
 //   NFR-028: when the Bash judge fails on a command that names a protected path, the runtime denies (exit 0, deny JSON);
 //   a call outside that class proceeds.
@@ -50,13 +56,20 @@ const shellWrites = require(path.join(PLUGIN, "hooks", "lib", "shell-writes.js")
 
 const R = "/assist-selftest/project";
 
+// The Tranche 3 protected paths: the project settings file, the governance profile, and the session purpose record.
+const TRANCHE3_PROTECTED = [
+  ".claude/settings.json",
+  ".agent/governance/profile.json",
+  ".agent/governance/session-purpose.json",
+];
+
 const PROTECTED = [
   "DECISIONS.md",
   ".agent/main-plan/plan-x.md",
   ".agent/logs/governance/audit.jsonl",
   ".agent/governance/confirmations/confirmations.jsonl",
   ".agent/governance/confirmations/pending.jsonl",
-];
+].concat(TRANCHE3_PROTECTED);
 
 const SUBAGENT_TYPES = [
   "assist-plugin:developer",
@@ -194,6 +207,84 @@ SUBAGENT_TYPES.forEach((agentType) => {
 test("[AC-1 | spec-hooks-fsa-write-bar | FR-222 | UR-064] producer self-approval is blocked on the shell route: a developer appends an approval line to the plan file", () => {
   // spec-orchestration.md Scenario "Producer self-approval blocked", through the Step 15 Bash route.
   assertDenied('echo "- Approved: 2026-11-06 10:00 Writer: developer" >> .agent/main-plan/plan-x.md', sub("assist-plugin:developer"));
+});
+
+// ---------------------------------------------------------------------------
+// Tranche 3: the settings file, the governance profile, and the session purpose record
+// ---------------------------------------------------------------------------
+
+TRANCHE3_PROTECTED.forEach((target) => {
+  SUBAGENT_TYPES.forEach((agentType) => {
+    test("[AC-1 | spec-hooks-fsa-write-bar | FR-245 | FR-223 | UR-075] every kind of subagent is denied a shell redirection into " + target + ": " + agentType, () => {
+      assertDenied("echo x > " + target, sub(agentType));
+    });
+  });
+
+  test("[AC-1 | spec-hooks-fsa-write-bar | FR-245 | FR-223] " + target + " is found as an absolute path, behind a chain, and through a dot-dot segment", () => {
+    assertDenied("echo x >> " + R + "/" + target);
+    assertDenied("ls && rm " + target);
+    assertDenied("echo x > src/../" + target);
+  });
+
+  test("[AC-1 | spec-hooks-fsa-write-bar | FR-245 | FR-223] " + target + " is found inside bash -c", () => {
+    assertDenied("bash -c 'echo x > " + target + "'");
+  });
+
+  test("[AC-2 | spec-hooks-fsa-write-bar | FR-245 | FR-223] a subagent may read " + target, () => {
+    assertAllowed("cat " + target);
+    assertAllowed("grep -n x " + target);
+    assertAllowed("head -5 " + target);
+    assertAllowed("jq . " + target);
+    assertAllowed("wc -l < " + target);
+  });
+
+  test("[AC-2 | spec-hooks-fsa-write-bar | FR-245 | FR-223] a read of " + target + " sent to an unprotected file is allowed, and cp with it as the source is allowed", () => {
+    assertAllowed("cat " + target + " > /tmp/out.txt");
+    assertAllowed("cp " + target + " /tmp/backup.json");
+  });
+
+  test("[Requirement: Scope of the bar | spec-hooks-fsa-write-bar | FR-223 | FR-245] the main session is not judged on the shell route: redirection into " + target, () => {
+    assertAllowed("echo x > " + target, MAIN);
+  });
+});
+
+[
+  ["a mv of the settings file away", "mv .claude/settings.json /tmp/settings.bak"],
+  ["a mv of the profile away", "mv .agent/governance/profile.json /tmp/profile.bak"],
+  ["a mv of the session purpose record away", "mv .agent/governance/session-purpose.json /tmp/purpose.bak"],
+].forEach((row) => {
+  test("[AC-3 | spec-hooks-fsa-write-bar | FR-223 | FR-245] a move removes its source, so a protected source is a write: " + row[0], () => {
+    assertDenied(row[1]);
+  });
+});
+
+[
+  ["a name beside the settings file", "echo x > .claude/settings.local.json"],
+  ["a name that only resembles the profile", "echo x > profile.json"],
+  ["a sibling of the profile in the governance folder", "echo x > .agent/governance/other.json"],
+  ["a sibling of the session purpose record", "echo x > .agent/governance/session-purpose.txt"],
+].forEach((row) => {
+  test("[AC-5 | spec-hooks-fsa-write-bar | FR-223 | FR-245] a command that writes no protected path is allowed: " + row[0], () => {
+    assertAllowed(row[1]);
+  });
+});
+
+test("[AC-1 | spec-hooks-fsa-write-bar | FR-245 | FR-223] the command entry denies a subagent shell write to each Tranche 3 protected path with the deny JSON and exit 0", () => {
+  TRANCHE3_PROTECTED.forEach((target) => {
+    const root = fx.tempRoot("shell-entry-");
+    const res = fx.runHook("fsa-write-bar", {
+      hook_event_name: "PreToolUse",
+      session_id: "sess-1",
+      tool_name: "Bash",
+      tool_input: { command: "tee -a " + target },
+      cwd: root,
+      agent_id: "agent-general-1",
+      agent_type: "general-purpose",
+    });
+    assert.strictEqual(res.status, 0, res.stderr);
+    const out = JSON.parse(res.stdout);
+    assert.strictEqual(out.hookSpecificOutput.permissionDecision, "deny", target);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -438,6 +529,9 @@ test("[AC-6 | spec-hooks-fsa-write-bar | FR-223 | FR-245] known limit, not claim
   "tee -a .agent/logs/governance/audit.jsonl",
   "cp /tmp/forged .agent/governance/confirmations/confirmations.jsonl",
   "mv x .agent/governance/confirmations/pending.jsonl",
+  "echo x > .claude/settings.json",
+  "sed -i 's/a/b/' .agent/governance/profile.json",
+  "tee -a .agent/governance/session-purpose.json",
 ].forEach((command) => {
   test("[AC-1 | spec-hooks-fsa-write-bar | NFR-028 | FR-223] guardedClass puts a subagent Bash command that names a protected path in the guarded class: " + command, () => {
     assert.strictEqual(bar.guardedClass(bash(command, SUB)), true);
@@ -554,6 +648,19 @@ test("[AC-1 | spec-hooks-fsa-write-bar | NFR-028 | FR-223] fail closed applies t
     "tee -a .agent/logs/governance/audit.jsonl",
     "cp /tmp/forged .agent/governance/confirmations/confirmations.jsonl",
     "sed -i s/a/b/ .agent/main-plan/plan-x.md",
+  ].forEach((command) => {
+    const res = fx.runWithShellFault(entryDoc(root, command, SUB));
+    assert.strictEqual(res.status, 0, res.stderr);
+    assert.strictEqual(entryDecision(res).permissionDecision, "deny", command);
+  });
+});
+
+test("[AC-1 | spec-hooks-fsa-write-bar | NFR-028 | FR-223 | FR-245] fail closed applies to the settings file, the governance profile, and the session purpose record too", () => {
+  const root = fx.tempRoot("shell-fault-");
+  [
+    "echo x > .claude/settings.json",
+    "sed -i s/a/b/ .agent/governance/profile.json",
+    "tee -a .agent/governance/session-purpose.json",
   ].forEach((command) => {
     const res = fx.runWithShellFault(entryDoc(root, command, SUB));
     assert.strictEqual(res.status, 0, res.stderr);

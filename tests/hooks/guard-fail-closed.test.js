@@ -331,3 +331,244 @@ test("[NFR-028 | FR-214 | 3.2 | Fail-closed on error] when the confirmation read
   assertExitZero(res);
   assert.ok(!isDenyOutput(res), res.stdout);
 });
+
+// ---------------------------------------------------------------------------
+// The real FERPA disclosure guard is a security-critical guard (FR-246, harness-governance Tranche 3, Step 27b)
+//
+// Sources: specs/spec-hooks-compliance.md, "Requirement: FERPA disclosure recordation"; docs/requirements/
+// FR-NFR-harness-governance.md section 2.33 (FR-246) and section 3.2 (NFR-028); plugins/assist-plugin/rules/
+// assist-plugin-rule.md, "Outbound data guards" (the guarded class is a WebFetch call and a gh/bkt pr post command; an
+// error, timeout, or unreadable configuration after the input was parsed denies a covered call; ls and every other
+// call still pass; an absent profile.json is log-only; a malformed profile.json under an enforced profile denies until
+// fixed; the hook prints the deny JSON and exits 0). The guard implementation is not read.
+//
+// Traceability format: [FR-246 | 2.33 | NFR-028 | spec-hooks-compliance | Scenario or rule]. The spec has no SPEC-NNN id,
+// so it is cited by file name.
+//
+// Fault injection: a preload script (node --require) makes the FERPA settings reader of lib/data-class.js throw. It
+// edits no repository file. Each project is a temp directory with a .git directory and a profile.json.
+// ---------------------------------------------------------------------------
+
+const FERPA_ENTRY = path.join(PLUGIN, "hooks", "ferpa-disclosure-guard.js");
+
+const FERPA_PROFILE = {
+  student_record_patterns: [{ name: "sid", pattern: "\\bS\\d{8}\\b" }],
+  ferpa_receiving_parties: ["district-registrar", "state-education-agency"],
+  ferpa_exceptions: [{ party: "parent-guardian", exception: "99.32(d)(1)" }],
+  data_classes: { "student-record": ["records/**"] },
+};
+
+const FERPA_PAYLOAD_MARKER = "FERPA-PAYLOAD-MARKER-91ac";
+const FERPA_COMPLETE_TEXT = FERPA_PAYLOAD_MARKER + " grade report for S12345678\nReceiving-Party: district-registrar\nLegitimate-Interest: accreditation-review";
+const FERPA_NO_DECLARATION_TEXT = FERPA_PAYLOAD_MARKER + " grade report for S12345678";
+
+// Makes the FERPA settings reader of lib/data-class.js throw whenever it is called.
+const BREAK_FERPA_SETTINGS_PRELOAD = [
+  '"use strict";',
+  'const Module = require("module");',
+  "const originalLoad = Module._load;",
+  "Module._load = function (request) {",
+  "  const loaded = originalLoad.apply(this, arguments);",
+  "  if (/data-class(\\.js)?$/.test(String(request)) && loaded && typeof loaded.ferpaSettings === \"function\" && !loaded.__ferpaBroken) {",
+  '    loaded.ferpaSettings = function () { throw new Error("fault: ferpa settings reader failed"); };',
+  "    loaded.__ferpaBroken = true;",
+  "  }",
+  "  return loaded;",
+  "};",
+  "",
+].join("\n");
+
+let ferpaPreloadFile = null;
+
+function ferpaPreload() {
+  if (!ferpaPreloadFile) {
+    ferpaPreloadFile = path.join(tempDir("guard-fail-closed-ferpa-preload-"), "break-ferpa-settings.js");
+    fs.writeFileSync(ferpaPreloadFile, BREAK_FERPA_SETTINGS_PRELOAD);
+  }
+  return ferpaPreloadFile;
+}
+
+// A project root with a .git directory. profile: an object or string for profile.json, or null for an absent file.
+function ferpaRoot(profile) {
+  const root = fs.realpathSync(tempDir("guard-fail-closed-ferpa-root-"));
+  fs.mkdirSync(path.join(root, ".git"));
+  if (profile !== null) {
+    const dir = path.join(root, ".agent", "governance");
+    fs.mkdirSync(dir, { recursive: true });
+    const text = profile === undefined ? JSON.stringify(FERPA_PROFILE) : typeof profile === "string" ? profile : JSON.stringify(profile);
+    fs.writeFileSync(path.join(dir, "profile.json"), text);
+  }
+  return root;
+}
+
+function ferpaInput(root, tool, toolInput) {
+  return JSON.stringify({ hook_event_name: "PreToolUse", tool_name: tool, tool_input: toolInput, cwd: root, session_id: "s-ferpa-fc-1" });
+}
+
+function ferpaWebFetch(root, text) {
+  return ferpaInput(root, "WebFetch", { url: "https://sis.example.test/export", prompt: text });
+}
+
+function ferpaBashPost(root, text, tool) {
+  return ferpaInput(root, tool || "Bash", { command: "gh pr comment 42 --body '" + text + "'" });
+}
+
+// options: {fault: boolean, dataDir: string | null (unset)}.
+function runFerpa(stdin, root, options) {
+  const opts = options || {};
+  const env = { CLAUDE_CONFIG_DIR: tempDir("guard-fail-closed-ferpa-claude-") };
+  if (opts.dataDir !== null) env.CLAUDE_PLUGIN_DATA = opts.dataDir || tempDir("guard-fail-closed-data-");
+  const nodeArgs = opts.fault ? ["--require", ferpaPreload()] : [];
+  return childProcess.spawnSync(process.execPath, nodeArgs.concat([FERPA_ENTRY]), {
+    cwd: root || tempDir("guard-fail-closed-cwd-"),
+    env: cleanEnv(env),
+    input: stdin,
+    encoding: "utf8",
+    timeout: 30000,
+  });
+}
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance | Disclosure recorded] baseline: with a valid profile.json and a complete allowlisted disclosure the real guard allows the call", () => {
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root);
+  assertExitZero(res);
+  assert.ok(!isDenyOutput(res), res.stdout);
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] when the FERPA settings reader fails, the real guard denies a WebFetch it would have allowed, and exits 0", () => {
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root, { fault: true });
+  assertExitZero(res);
+  assert.ok(isDenyOutput(res), "expected a deny when the reader fails, got: " + res.stdout);
+  const doc = JSON.parse(res.stdout);
+  assert.strictEqual(doc.hookSpecificOutput.hookEventName, "PreToolUse");
+  assert.ok(String(doc.hookSpecificOutput.permissionDecisionReason).length > 0, "a reason is given");
+});
+
+[
+  ["gh pr comment", "Bash", (text) => "gh pr comment 42 --body '" + text + "'"],
+  ["gh pr comment (PowerShell)", "PowerShell", (text) => "gh pr comment 42 --body '" + text + "'"],
+  ["gh pr edit", "Bash", (text) => "gh pr edit 42 --body '" + text + "'"],
+  ["gh pr review --comment", "Bash", (text) => "gh pr review 42 --comment --body '" + text + "'"],
+  ["bkt pr comment", "Bash", (text) => "bkt pr comment 42 --text '" + text + "'"],
+].forEach((row) => {
+  test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] when the FERPA settings reader fails, the real guard denies `" + row[0] + "` (a PR post in the guarded class)", () => {
+    const root = ferpaRoot();
+    const stdin = ferpaInput(root, row[1], { command: row[2](FERPA_COMPLETE_TEXT) });
+    const res = runFerpa(stdin, root, { fault: true });
+    assertExitZero(res);
+    assert.ok(isDenyOutput(res), "expected a deny when the reader fails, got: " + res.stdout);
+  });
+});
+
+test("[FR-246 | 2.33 | NFR-028 | NFR-031 | spec-hooks-compliance] the fail-closed denial repeats no payload text", () => {
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root, { fault: true });
+  assertExitZero(res);
+  assert.ok(isDenyOutput(res));
+  assert.ok(res.stdout.indexOf(FERPA_PAYLOAD_MARKER) === -1, "the deny output echoes the payload: " + res.stdout);
+  assert.ok(res.stdout.indexOf("S12345678") === -1, "the deny output echoes the student id: " + res.stdout);
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] with CLAUDE_PLUGIN_DATA unset the covered call is still denied when the reader fails, and the hook exits 0", () => {
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root, { fault: true, dataDir: null });
+  assertExitZero(res);
+  assert.ok(isDenyOutput(res), res.stdout);
+});
+
+["ls", "git status", "gh pr view 42", "echo hello", "npm test"].forEach((command) => {
+  test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] when the FERPA settings reader fails, `" + command + "` (outside the guarded class) still proceeds with exit 0", () => {
+    const root = ferpaRoot();
+    const res = runFerpa(ferpaInput(root, "Bash", { command: command }), root, { fault: true });
+    assertExitZero(res);
+    assert.ok(!isDenyOutput(res), "outside the class must not be denied: " + res.stdout);
+  });
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] when the FERPA settings reader fails, a Read call still proceeds", () => {
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaInput(root, "Read", { file_path: path.join(root, "README.md") }), root, { fault: true });
+  assertExitZero(res);
+  assert.ok(!isDenyOutput(res), res.stdout);
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] malformed stdin proceeds (no parsed input to classify) with exit 0, even when the reader would fail", () => {
+  ["this is not json", "", "{", "[1,2,3", "null"].forEach((stdin) => {
+    const res = runFerpa(stdin, ferpaRoot(), { fault: true });
+    assertExitZero(res);
+    assert.ok(!isDenyOutput(res), "stdin " + JSON.stringify(stdin) + " gave: " + res.stdout);
+  });
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] the FERPA guard listed in hooks-disabled.json still proceeds", () => {
+  const dataDir = tempDir("guard-fail-closed-data-");
+  fs.writeFileSync(
+    path.join(dataDir, "hooks-disabled.json"),
+    JSON.stringify({ "ferpa-disclosure-guard": { reason: "test fixture", ts: "2026-11-05T00:00:00.000Z" } })
+  );
+  const root = ferpaRoot();
+  const res = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root, { fault: true, dataDir: dataDir });
+  assertExitZero(res);
+  assert.ok(!isDenyOutput(res), res.stdout);
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] an absent profile.json runs log-only: a student-looking payload with no declaration is not denied", () => {
+  const root = ferpaRoot(null);
+  assert.ok(!fs.existsSync(path.join(root, ".agent", "governance", "profile.json")));
+  const web = runFerpa(ferpaWebFetch(root, FERPA_NO_DECLARATION_TEXT), root);
+  const post = runFerpa(ferpaBashPost(root, FERPA_NO_DECLARATION_TEXT), root);
+  assertExitZero(web);
+  assertExitZero(post);
+  assert.ok(!isDenyOutput(web), web.stdout);
+  assert.ok(!isDenyOutput(post), post.stdout);
+});
+
+[
+  ["text that is not JSON", "{ not json"],
+  ["an empty file", ""],
+  ["a JSON array", "[]"],
+  ["data_classes of the wrong shape", { data_classes: 5 }],
+  ["an allowlist that is not a list", { ferpa_receiving_parties: "district-registrar" }],
+].forEach((row) => {
+  test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] a malformed profile.json (" + row[0] + ") under an enforced FERPA profile denies a covered call and still lets `ls` pass", () => {
+    const root = ferpaRoot(row[1]);
+    const web = runFerpa(ferpaWebFetch(root, FERPA_COMPLETE_TEXT), root);
+    const post = runFerpa(ferpaBashPost(root, FERPA_COMPLETE_TEXT), root);
+    const ls = runFerpa(ferpaInput(root, "Bash", { command: "ls" }), root);
+    assertExitZero(web);
+    assertExitZero(post);
+    assertExitZero(ls);
+    assert.ok(isDenyOutput(web), "WebFetch should be denied: " + web.stdout);
+    assert.ok(isDenyOutput(post), "gh pr comment should be denied: " + post.stdout);
+    assert.ok(!isDenyOutput(ls), "ls must still proceed: " + ls.stdout);
+  });
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] the denial for a malformed profile.json holds until the file is fixed, then the call passes", () => {
+  const root = ferpaRoot("{ not json");
+  const stdin = ferpaWebFetch(root, FERPA_COMPLETE_TEXT);
+  assert.ok(isDenyOutput(runFerpa(stdin, root)), "denied while malformed");
+  fs.writeFileSync(path.join(root, ".agent", "governance", "profile.json"), JSON.stringify(FERPA_PROFILE));
+  const fixed = runFerpa(stdin, root);
+  assertExitZero(fixed);
+  assert.ok(!isDenyOutput(fixed), "allowed once fixed: " + fixed.stdout);
+});
+
+test("[FR-246 | 2.33 | NFR-028 | spec-hooks-compliance] the FERPA guard never exits non-zero on any path above (exit status table)", () => {
+  const root = ferpaRoot();
+  const cases = [
+    ["fault, WebFetch", ferpaWebFetch(root, FERPA_COMPLETE_TEXT), { fault: true }],
+    ["fault, gh pr comment", ferpaBashPost(root, FERPA_COMPLETE_TEXT), { fault: true }],
+    ["fault, ls", ferpaInput(root, "Bash", { command: "ls" }), { fault: true }],
+    ["fault, bad stdin", "nope", { fault: true }],
+    ["no fault, complete disclosure", ferpaWebFetch(root, FERPA_COMPLETE_TEXT), {}],
+    ["no fault, missing interest", ferpaWebFetch(root, FERPA_NO_DECLARATION_TEXT), {}],
+    ["no fault, bad stdin", "nope", {}],
+    ["no fault, data dir unset", ferpaWebFetch(root, FERPA_COMPLETE_TEXT), { dataDir: null }],
+  ];
+  cases.forEach((c) => {
+    const res = runFerpa(c[1], root, c[2]);
+    assert.strictEqual(res.status, 0, c[0] + ": exit status " + res.status + "; stderr: " + res.stderr);
+  });
+});

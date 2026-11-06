@@ -4,9 +4,10 @@
 // 1.12.0 (task plan steps 13, 16, and 25): the /bump --path validation (three ordered steps, the
 // eight stop messages R1 to R8, the shell-safe commands for R6 and R7) and the /health overview
 // and findings rows for the pr-post-ask guard. Updated for harness-governance Tranche 1 (the
-// pr-verdict-guard and confirmation-record rows of the /health overview and findings table) and for
+// pr-verdict-guard and confirmation-record rows of the /health overview and findings table), for
 // Tranche 2 (the overview names the audit-log hook and a second fail-closed exception, the Bash route
-// of fsa-write-bar).
+// of fsa-write-bar), and for Tranche 3 (the overview names the purpose-capture hook and the phi-outbound-guard
+// and ferpa-disclosure-guard exceptions, so it says all hooks fail open except four cases).
 //
 // Sources: specs/spec-skills-git.md (Change Log 2026-10-22: ADDED Requirement "--path value
 // validated before it names anything", MODIFIED Requirement "Bump commit and tag"),
@@ -33,6 +34,11 @@
 // specs/spec-skills-health.md Change Log 2026-11-06):
 //   - The overview names the `audit-log` hook after the `confirmation-record` hook, and says all hooks fail
 //     open except two cases: `pr-verdict-guard` and the `Bash` route of `fsa-write-bar`.
+// Harness governance Tranche 3 (FR-233, FR-246, FR-247, NFR-028, NFR-035; specs/spec-skills-health.md Change Log
+// 2026-11-06 (Tranche 3)):
+//   - The overview names the `purpose-capture` hook after the `confirmation-record` hook, and says all hooks fail
+//     open except four cases: `pr-verdict-guard`, the `Bash` route of `fsa-write-bar`, and the pair
+//     `phi-outbound-guard` and `ferpa-disclosure-guard`.
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -675,12 +681,22 @@ function verdictPart() {
   return o.slice(s, e);
 }
 
-// The part of the overview about confirmation-record (FR-242).
+// The part of the overview about confirmation-record (FR-242). Tranche 3 adds the purpose-capture passage after it,
+// so the passage ends where the purpose-capture hook begins.
 function recordPart() {
   const o = overview();
   const s = o.indexOf("The `confirmation-record` hook runs on `UserPromptSubmit`");
-  const e = o.indexOf("`writing-context` adds the compact writing standard");
+  const e = o.indexOf("The `purpose-capture` hook runs on `UserPromptSubmit`");
   assert.ok(s >= 0 && e > s, "the confirmation-record passage is missing from the overview");
+  return o.slice(s, e);
+}
+
+// The part of the overview about purpose-capture (FR-247).
+function purposePart() {
+  const o = overview();
+  const s = o.indexOf("The `purpose-capture` hook runs on `UserPromptSubmit`");
+  const e = o.indexOf("`writing-context` adds the compact writing standard");
+  assert.ok(s >= 0 && e > s, "the purpose-capture passage is missing from the overview");
   return o.slice(s, e);
 }
 
@@ -710,13 +726,14 @@ test("health SKILL.md overview names pr-post-ask and pr-verdict-guard among the 
   assert.ok(/the PreToolUse guards \(`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `pr-post-ask`, `pr-verdict-guard`, `prose-gate`, `fsa-write-bar`\)/.test(o));
 });
 
-test("health SKILL.md overview names the confirmation-record and audit-log hooks and the two fail-closed exceptions", () => {
-  // [FR-242 | FR-214 | NFR-028 | NFR-035 | spec-hooks-health-check.md Change Log 2026-11-05; Tranche 2 | FR-223 | FR-224: the audit-log hook and the Bash route of fsa-write-bar]
+test("health SKILL.md overview names the confirmation-record, purpose-capture, and audit-log hooks and the four fail-closed cases", () => {
+  // [FR-242 | FR-214 | NFR-028 | NFR-035 | spec-hooks-health-check.md Change Log 2026-11-05; Tranche 2 | FR-223 | FR-224: the audit-log hook and the Bash route of fsa-write-bar; Tranche 3 | FR-233 | FR-246 | FR-247: the purpose-capture hook and the phi-outbound-guard and ferpa-disclosure-guard exceptions]
   const o = squash(overview());
-  assertHas(o, "`writing-context`, and the `confirmation-record` hook, plus the `audit-log` hook", "overview hook list");
-  assertHas(o, "All of them fail open except two cases", "overview");
+  assertHas(o, "`writing-context`, the `confirmation-record` hook, and the `purpose-capture` hook, plus the `audit-log` hook", "overview hook list");
+  assertHas(o, "All of them fail open except four cases", "overview");
   assertHas(o, "The exceptions are `pr-verdict-guard`, which fails closed for a command that looks like a PR verdict post", "overview");
-  assertHas(o, "and the `Bash` route of `fsa-write-bar`, which fails closed for a subagent command that names a protected path", "overview");
+  assertHas(o, "the `Bash` route of `fsa-write-bar`, which fails closed for a subagent command that names a protected path", "overview");
+  assertHas(o, "and `phi-outbound-guard` and `ferpa-disclosure-guard`, which fail closed for a `WebFetch` call or a `gh pr` or `bkt pr` post command", "overview");
 });
 
 test("health SKILL.md overview lists the commands pr-post-ask asks before and says every session", () => {
@@ -820,6 +837,25 @@ test("health SKILL.md overview: confirmation-record self-test has a genuine case
   const t = squash(recordPart());
   assertHas(t, "four fixed cases: one genuine confirmation that must record, and a forged-text case, an affirmative-without-token case, and an expired-token case that must not", "confirmation-record");
   assertHas(t, "a record for a case that must not record, or a missed genuine record, disables the hook, which then writes nothing", "confirmation-record");
+});
+
+// ---------------------------------------------------------------------------
+// /health: purpose-capture overview (Tranche 3 | FR-247, NFR-035)
+// ---------------------------------------------------------------------------
+
+test("[FR-247] health SKILL.md overview: purpose-capture records a Purpose: first line of the user's own message in the session purpose record", () => {
+  // The record holds the purpose, the writer, the session id, and a timestamp, never the rest of the prompt.
+  const t = squash(purposePart());
+  assertHas(t, "writes the session purpose record `.agent/governance/session-purpose.json` when the first non-blank line of your own message starts with `Purpose:`", "purpose-capture");
+  assertHas(t, "A `Purpose:` line in a quote line, a code fence, pasted text below your first line, a tool result, or model output records nothing, and no tool can write the file", "purpose-capture");
+  assertHas(t, "a missing purpose never denies an access", "purpose-capture");
+  assertHas(t, "It never blocks or changes the message", "purpose-capture");
+});
+
+test("[FR-247 | NFR-035] health SKILL.md overview: purpose-capture self-test has a declared case and five no-record cases, and a bad result disables the hook", () => {
+  const t = squash(purposePart());
+  assertHas(t, "six fixed cases: one declared purpose that must record, and five forged or undeclared cases that must not", "purpose-capture");
+  assertHas(t, "a record for a case that must not record, or a missed declared purpose, disables the hook, which then writes nothing", "purpose-capture");
 });
 
 function findingsRows() {

@@ -5,7 +5,7 @@
 // rules/llm-security-checklist.md, the Hook Fail-Open Rule wording of rules/assist-plugin-rule.md,
 // the pr-post-ask bullets of CLAUDE.md and plugins/assist-plugin/Claude.md, the README section "PR
 // posting prompt" and its Bitbucket sign-in lines, docs/SPECIFICATION.md, docs/ARCHITECTURE.md,
-// docs/TOKEN_OPTIMIZATION.md, and the 16-script, 23-command counts in hooks/hooks.json, FR-086,
+// docs/TOKEN_OPTIMIZATION.md, and the 20-script, 27-command counts in hooks/hooks.json, FR-086,
 // and the BRD scope list.
 //
 // Sources: specs/spec-skills-pr-review.md (Requirement "LLM checklist states the direct-run PR
@@ -18,28 +18,33 @@
 //     confirmation gate; LLM05 names the --text="$(cat -- ...)" form and no --message-file.
 //   - The Hook Fail-Open Rule has the ask clause.
 //   - CLAUDE.md and Claude.md carry a pr-post-ask bullet (best-effort, known gaps, fails open, deny
-//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 16 scripts registered as 23
+//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 20 scripts registered as 27
 //     commands. README says bkt auth status lists contexts but does not test the token, exactly one
 //     context whose host matches the remote, and a pin before any bkt pr or bkt api call.
 //     SPECIFICATION.md says "may ask". The README known-gap list holds the 11 items of the header
 //     comment of hooks/impl/pr-post-ask.js and names no bkt api gap.
-//   - FR-086 (Statement line) and the BRD scope list read 16 hook scripts and 23 commands (the
+//   - FR-086 (Statement line) and the BRD scope list read 20 hook scripts and 27 commands (the
 //     posting ask hook built for 1.13.0, then the confirmation record hook and the PR verdict guard
 //     of harness-governance Tranche 1, then the audit log writer, the gate evidence recorder, and the
-//     goal guard of Tranche 2 with a second fsa-write-bar registration). The Unverified sentence reads
-//     "and whether an installed mod can approve a call the hook would prompt for".
+//     goal guard of Tranche 2 with a second fsa-write-bar registration, then the purpose capture hook,
+//     the data access log, the PHI outbound guard, and the FERPA disclosure guard of Tranche 3). The
+//     Unverified sentence reads "and whether an installed mod can approve a call the hook would prompt for".
 // Harness governance Tranche 1 (docs/requirements/FR-NFR-harness-governance.md, FR-214, FR-242,
 // FR-245, NFR-028; docs/task-plans/task-plan-harness-governance-20261028-0759.md, Steps 2, 3, and 4):
 //   - "## Write guard lists" holds two more Protected globs, the confirmation store files
 //     `**/.agent/governance/confirmations/confirmations.jsonl` and `.../pending.jsonl`.
-//   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md is qualified: "All hooks fail open
-//     except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail
-//     closed for their guarded class after reading input."
+//   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md is qualified with the security-critical
+//     guards (the NFR-028 class), which fail closed for their guarded class after reading input.
 // Harness governance Tranche 2 (FR-223, FR-224, FR-245, FR-214, FR-242; task plan Steps 11, 15, and 20):
 //   - "## Write guard lists" holds a fourth Protected glob, `**/.agent/logs/governance/**`, the governance
 //     audit log.
 //   - Open-gap row 2 of the checklist is closed for the verdict posts by the hook-enforced confirmation
 //     (pr-verdict-guard, the confirmation-record hook, and the write bar), with the remaining limits stated.
+// Harness governance Tranche 3 (FR-086, FR-231, FR-233, FR-245, FR-246, FR-247, NFR-028):
+//   - "## Write guard lists" holds seven Protected globs, the fifth to seventh being `**/.claude/settings.json`,
+//     `**/.agent/governance/profile.json`, and `**/.agent/governance/session-purpose.json`.
+//   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md names three guards in the NFR-028 class:
+//     pr-verdict-guard, phi-outbound-guard, and ferpa-disclosure-guard.
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -307,8 +312,8 @@ test("Hook Fail-Open Rule auto-disable line keeps its start and treats an ask on
   assertHas(line, "`/assist-plugin:health` shows the state", "rule line");
 });
 
-test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected globs hold the plan files, the two confirmation-store files, and the governance audit log", () => {
-  // [A6 | (## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186; Tranche 1 | FR-242, FR-245: the store directory .agent/governance/confirmations/ holds confirmations.jsonl (denied to every caller) and pending.jsonl (denied to every subagent); Tranche 2 | FR-224, FR-245: **/.agent/logs/governance/** is the audit log]
+test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected globs hold the plan files, the two confirmation-store files, the governance audit log, the project settings file, the governance profile, and the session purpose record", () => {
+  // [A6 | (## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186; Tranche 1 | FR-242, FR-245: the store directory .agent/governance/confirmations/ holds confirmations.jsonl (denied to every caller) and pending.jsonl (denied to every subagent); Tranche 2 | FR-224, FR-245: **/.agent/logs/governance/** is the audit log; Tranche 3 | FR-245, FR-231, FR-247: **/.claude/settings.json, **/.agent/governance/profile.json, and **/.agent/governance/session-purpose.json]
   const guard = joined(section(RULE, "## Write guard lists"));
   assert.ok(guard.length > 0, "## Write guard lists is missing");
   const firstColumn = (heading) => section(guard, heading)
@@ -320,6 +325,9 @@ test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected 
     "`**/.agent/governance/confirmations/confirmations.jsonl`",
     "`**/.agent/governance/confirmations/pending.jsonl`",
     "`**/.agent/logs/governance/**`",
+    "`**/.claude/settings.json`",
+    "`**/.agent/governance/profile.json`",
+    "`**/.agent/governance/session-purpose.json`",
   ]);
   assert.deepStrictEqual(firstColumn("### Protected files"), ["`DECISIONS.md`"]);
   assert.deepStrictEqual(firstColumn("### Auto-loaded names"), ["`CLAUDE.md`", "`CLAUDE.local.md`", "`AGENTS.md`"]);
@@ -346,6 +354,22 @@ test("[FR-224 | FR-245] the Write guard lists describe the governance audit log 
   assertHas(audit, "The governance audit log", "audit log row");
   assertHas(audit, "hash-chained", "audit log row");
   assertHas(audit, "no subagent writes it", "audit log row");
+});
+
+test("[FR-245 | FR-231 | FR-247] the Write guard lists describe the settings file and the governance profile as written by no subagent, and the session purpose record as written only by the purpose-capture hook", () => {
+  const rows = section(RULE, "### Protected globs").filter((l) => l.trim().charAt(0) === "|").slice(2);
+  const settings = rows.find((l) => l.indexOf("`**/.claude/settings.json`") !== -1);
+  const profile = rows.find((l) => l.indexOf("`**/.agent/governance/profile.json`") !== -1);
+  const purpose = rows.find((l) => l.indexOf("`**/.agent/governance/session-purpose.json`") !== -1);
+  assert.ok(settings && profile && purpose, "the settings, profile, and session purpose rows exist");
+  assertHas(settings, "The committed project settings file", "settings.json row");
+  assertHas(settings, "no subagent writes it", "settings.json row");
+  assertHas(profile, "The governance profile data file", "profile.json row");
+  assertHas(profile, "no subagent writes it", "profile.json row");
+  assertHas(profile, "A subagent may read it", "profile.json row");
+  assertHas(purpose, "written only by the `UserPromptSubmit` purpose-capture hook", "session-purpose.json row");
+  assertHas(purpose, "every caller, the main session included", "session-purpose.json row");
+  assertHas(purpose, "A subagent may read it", "session-purpose.json row");
 });
 
 // ---------------------------------------------------------------------------
@@ -387,17 +411,21 @@ function counts() {
   return { commands: all.length, scripts: Object.keys(scripts).length, names: Object.keys(scripts).sort() };
 }
 
-test("hooks.json registers 23 commands from 16 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
-  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007; Tranche 1 adds confirmation-record and pr-verdict-guard | FR-214, FR-242; Tranche 2 adds audit-log, gate-evidence, goal-guard, and a second fsa-write-bar registration | FR-219, FR-221, FR-223, FR-224]
+test("hooks.json registers 27 commands from 20 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
+  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007; Tranche 1 adds confirmation-record and pr-verdict-guard | FR-214, FR-242; Tranche 2 adds audit-log, gate-evidence, goal-guard, and a second fsa-write-bar registration | FR-219, FR-221, FR-223, FR-224; Tranche 3 adds purpose-capture, data-access-log, phi-outbound-guard, and ferpa-disclosure-guard | FR-230, FR-233, FR-246, FR-247]
   const c = counts();
-  assert.strictEqual(c.commands, 23);
-  assert.strictEqual(c.scripts, 16);
+  assert.strictEqual(c.commands, 27);
+  assert.strictEqual(c.scripts, 20);
   assert.ok(c.names.indexOf("pr-post-ask") !== -1);
   assert.ok(c.names.indexOf("pr-verdict-guard") !== -1);
   assert.ok(c.names.indexOf("confirmation-record") !== -1);
   assert.ok(c.names.indexOf("audit-log") !== -1);
   assert.ok(c.names.indexOf("gate-evidence") !== -1);
   assert.ok(c.names.indexOf("goal-guard") !== -1);
+  assert.ok(c.names.indexOf("purpose-capture") !== -1);
+  assert.ok(c.names.indexOf("data-access-log") !== -1);
+  assert.ok(c.names.indexOf("phi-outbound-guard") !== -1);
+  assert.ok(c.names.indexOf("ferpa-disclosure-guard") !== -1);
   const all = entries();
   const ask = all.filter((e) => e.script === "pr-post-ask");
   assert.strictEqual(ask.length, 1, "pr-post-ask must be registered once");
@@ -420,8 +448,12 @@ test("TOKEN_OPTIMIZATION.md states the hooks.json counts and names pr-post-ask.j
   const c = counts();
   assert.strictEqual(m[1], String(c.scripts));
   assert.strictEqual(m[2], String(c.commands));
-  assert.strictEqual(m[1] + "/" + m[2], "16/23");
+  assert.strictEqual(m[1] + "/" + m[2], "20/27");
   assertHas(text, "`pr-post-ask.js` asks, and never denies, before a `gh` or `bkt` command that posts to, merges, or closes a pull request", "TOKEN_OPTIMIZATION.md");
+  assertHas(text, "`phi-outbound-guard.js` denies a `WebFetch` call or a `gh pr` or `bkt pr` post whose payload matches a PHI pattern", "TOKEN_OPTIMIZATION.md");
+  assertHas(text, "`ferpa-disclosure-guard.js` requires a declared receiving party on the allowlist", "TOKEN_OPTIMIZATION.md");
+  assertHas(text, "`purpose-capture.js` records a `Purpose:` line typed as the first line of a user message as the session purpose", "TOKEN_OPTIMIZATION.md");
+  assertHas(text, "`data-access-log.js` appends one record to the audit log for each tool call that touches a path tagged student-record or PHI, and never denies", "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b10 scripts\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b11 scripts\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b13 scripts registered\b/, "TOKEN_OPTIMIZATION.md");
@@ -444,34 +476,40 @@ function frBlock(heading) {
   return lines.slice(at, end);
 }
 
-test("FR-086 Statement reads 16 hook scripts as 23 commands (posting ask hook built for 1.13.0, two Tranche 1 hooks and three Tranche 2 hooks added) and agrees with hooks.json", () => {
-  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-223, FR-224]
+test("FR-086 Statement reads 20 hook scripts as 27 commands (posting ask hook built for 1.13.0, two Tranche 1 hooks, three Tranche 2 hooks, and four Tranche 3 hooks added) and agrees with hooks.json", () => {
+  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-223, FR-224; Tranche 3 | FR-230, FR-233, FR-246, FR-247]
   const block = frBlock("### FR-086");
   const statement = block.find((l) => l.indexOf("**Statement:**") === 0);
   assert.ok(statement, "FR-086 has no Statement line");
   const c = counts();
   const want = c.scripts + " hook scripts as " + c.commands + " commands";
-  assert.strictEqual(want, "16 hook scripts as 23 commands");
+  assert.strictEqual(want, "20 hook scripts as 27 commands");
   assertHas(statement, "The plugin SHALL register " + want + " in `hooks/hooks.json`", "FR-086 Statement");
   assertHas(statement, "built for 1.13.0", "FR-086 Statement");
   assertHas(statement, "Tranche 1 added two more scripts with one command each (`hooks/confirmation-record.js` and `hooks/pr-verdict-guard.js`)", "FR-086 Statement");
   assertHas(statement, "Tranche 2 added three more scripts (`hooks/audit-log.js`, `hooks/gate-evidence.js`, and `hooks/goal-guard.js`) and a second `fsa-write-bar` registration on `Bash`, for 5 more commands", "FR-086 Statement");
+  assertHas(statement, "Tranche 3 added four more scripts with one command each (`hooks/purpose-capture.js` on `UserPromptSubmit`, `hooks/data-access-log.js` on `PreToolUse` for the read and write tools, and `hooks/phi-outbound-guard.js` and `hooks/ferpa-disclosure-guard.js`, each on `PreToolUse` for `WebFetch|Bash|PowerShell`)", "FR-086 Statement");
+  assertHas(statement, "the health check self-tests 19 of the 20 scripts (every script except `health-check`)", "FR-086 Statement");
   assertLacks(statement, "PLANNED", "FR-086 Statement");
   assertHas(joined(block), "the count SHALL be 23 across 16 scripts, the added scripts being the audit log writer, the gate evidence recorder, and the goal guard", "FR-086 Tranche 2 scenario");
   assertHas(joined(block), "the BRD scope list SHALL state 16 scripts and 23 commands", "FR-086 Tranche 2 scenario");
+  assertHas(joined(block), "the count SHALL be 27 across 20 scripts, the added scripts being the purpose capture hook, the data access log, the PHI outbound guard, and the FERPA disclosure guard", "FR-086 Tranche 3 scenario");
+  assertHas(joined(block), "the BRD scope list SHALL state 20 scripts and 27 commands", "FR-086 Tranche 3 scenario");
+  assertHas(joined(block), "the health check SHALL self-test 19 hooks, every script except `health-check`", "FR-086 Tranche 3 scenario");
 });
 
-test("BRD scope list reads 16 hook scripts (23 hook commands), the posting ask hook built in 1.13.0 and two Tranche 1 and three Tranche 2 hooks added", () => {
-  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-224]
+test("BRD scope list reads 20 hook scripts (27 hook commands), the posting ask hook built in 1.13.0 and two Tranche 1, three Tranche 2, and four Tranche 3 hooks added", () => {
+  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242; Tranche 2 | FR-219, FR-221, FR-224; Tranche 3 | FR-230, FR-233, FR-246, FR-247]
   const line = linesOf(readRepo("docs/requirements/BRD-assist-plugin.md")).find((l) => l.indexOf("hook scripts") !== -1 && l.indexOf("`hooks/hooks.json`") !== -1);
   assert.ok(line, "no hook scripts line in the BRD scope list");
   const c = counts();
   const want = "The " + c.scripts + " hook scripts (" + c.commands + " hook commands) in `hooks/hooks.json`";
-  assert.strictEqual(want, "The 16 hook scripts (23 hook commands) in `hooks/hooks.json`");
+  assert.strictEqual(want, "The 20 hook scripts (27 hook commands) in `hooks/hooks.json`");
   assertHas(line, want, "BRD scope list");
   assertHas(line, "Built, 1.13.0", "BRD scope list");
   assertHas(line, "Tranche 1 added the confirmation record hook and the PR verdict guard", "BRD scope list");
   assertHas(line, "Tranche 2 added the audit log writer, the gate evidence recorder, and the goal guard", "BRD scope list");
+  assertHas(line, "Tranche 3 added the purpose capture hook, the data access log, the PHI outbound guard, and the FERPA disclosure guard", "BRD scope list");
   assertLacks(line, "PLANNED", "BRD scope list");
 });
 
@@ -497,7 +535,7 @@ function askBullet(text, who) {
 }
 
 const FAIL_OPEN_BULLET =
-  "- All hooks fail open except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail closed for their guarded class after reading input.";
+  "- All hooks fail open except the security-critical guards (the NFR-028 class: pr-verdict-guard, phi-outbound-guard, and ferpa-disclosure-guard), which fail closed for their guarded class after reading input.";
 
 [["CLAUDE.md", CLAUDE], ["plugins/assist-plugin/Claude.md", PLUGIN_CLAUDE]].forEach((pair) => {
   test(pair[0] + " has a pr-post-ask bullet after doc-cli-guard", () => {
@@ -525,8 +563,8 @@ const FAIL_OPEN_BULLET =
     assertHas(t.slice(at), "and whether an installed mod can approve a call the hook would prompt for", pair[0]);
   });
 
-  test(pair[0] + " qualifies 'All hooks fail open' with the security-critical exception and keeps the /bump row hint equal to the bump argument-hint", () => {
-    // [A9 | (existing bullets kept; /bump hint unchanged) | spec-hooks-platform.md; spec-skills-git.md | FR-086, FR-138; Tranche 1 | NFR-028: the exception for the security-critical guard class]
+  test(pair[0] + " qualifies 'All hooks fail open' with the three-guard security-critical exception and keeps the /bump row hint equal to the bump argument-hint", () => {
+    // [A9 | (existing bullets kept; /bump hint unchanged) | spec-hooks-platform.md; spec-skills-git.md | FR-086, FR-138; Tranche 1 | NFR-028: the exception for the security-critical guard class; Tranche 3 | FR-233, FR-246, NFR-028: pr-verdict-guard, phi-outbound-guard, and ferpa-disclosure-guard]
     assertHas(pair[1], FAIL_OPEN_BULLET, pair[0]);
     assertHas(pair[1], "`rules/assist-plugin-rule.md`", pair[0]);
     assertHas(pair[1], "Hook Fail-Open Rule", pair[0]);

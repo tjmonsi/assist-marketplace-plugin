@@ -31,6 +31,12 @@
 // report-only logging filters audit-log, gate-evidence, and goal-guard added; the fsa-write-bar corpus holds
 // 80 allow and 148 deny cases for the shell write path (including the multi-source cp and mv into a protected
 // directory). The report-only set is writing-context plus those three.
+// Harness governance Tranche 3 (specs/spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3), Requirement:
+// Self-tests, NFR-035, FR-230, FR-233, FR-246, FR-247, FR-086): the GUARDS list names nineteen hooks, every
+// script except health-check, with the guards phi-outbound-guard and ferpa-disclosure-guard, the filter
+// purpose-capture, and the report-only logging filter data-access-log added. The report-only set is
+// writing-context, audit-log, data-access-log, gate-evidence, and goal-guard. Their exact case counts are counted
+// from the corpus at the build, so the tests assert minimums only.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -260,26 +266,30 @@ const SIZES = [
   ["fsa-write-bar", 80, 148],
 ];
 
-// The report-only logging filters of harness-governance Tranche 2, with writing-context the report-only set.
-const REPORT_ONLY = ["audit-log", "gate-evidence", "goal-guard", "writing-context"];
+// The report-only set: writing-context and the four logging filters (audit-log, data-access-log, gate-evidence, goal-guard).
+const REPORT_ONLY = ["audit-log", "data-access-log", "gate-evidence", "goal-guard", "writing-context"];
 
-test("[Scenario: All pass (fifteen self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-22, 2026-11-05, and 2026-11-06) | FR-118 FR-206 FR-214 FR-242 FR-219 FR-221 FR-224 NFR-035] GUARDS lists the fifteen hooks, the twelve of Tranche 1 plus audit-log, gate-evidence, and goal-guard", () => {
+test("[Scenario: All pass (nineteen self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-22, 2026-11-05, and 2026-11-06 (Tranche 2 and Tranche 3)) | FR-118 FR-206 FR-214 FR-242 FR-219 FR-221 FR-224 FR-230 FR-233 FR-246 FR-247 FR-086 NFR-035] GUARDS lists the nineteen hooks, every script except health-check", () => {
   const names = hc.GUARDS.map((g) => g.name).sort();
-  assert.strictEqual(names.length, 15);
+  assert.strictEqual(names.length, 19);
   assert.deepStrictEqual(names, [
     "audit-log",
     "commit-attribution-guard",
     "confirmation-record",
+    "data-access-log",
     "doc-cli-guard",
+    "ferpa-disclosure-guard",
     "fsa-log",
     "fsa-write-bar",
     "gate-evidence",
     "goal-guard",
     "injection-filter",
+    "phi-outbound-guard",
     "pr-post-ask",
     "pr-verdict-guard",
     "prose-advisor",
     "prose-gate",
+    "purpose-capture",
     "sa-mermaid-only",
     "writing-context",
   ]);
@@ -308,6 +318,32 @@ test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-06) 
   });
 });
 
+test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-06 (Tranche 3)) | FR-230 NFR-035] data-access-log is a report-only logging filter with at least 1 no-record and 1 record case", () => {
+  const g = guard("data-access-log");
+  assert.strictEqual(g.filter, true, "data-access-log is listed as a filter");
+  assert.strictEqual(g.reportOnly, true, "data-access-log is report-only");
+  assert.ok(g.allow.length >= 1, "at least one no-record case");
+  assert.ok(g.deny.length >= 1, "at least one record case");
+});
+
+test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-06 (Tranche 3)) | FR-233 FR-246 NFR-028 NFR-035] phi-outbound-guard and ferpa-disclosure-guard are guards (no filter flag, not report-only), each with at least 1 allow and 1 deny case", () => {
+  ["phi-outbound-guard", "ferpa-disclosure-guard"].forEach((name) => {
+    const g = guard(name);
+    assert.ok(!g.filter, name + " is a guard, not a filter");
+    assert.notStrictEqual(g.reportOnly, true, name + " has no reportOnly flag");
+    assert.ok(g.allow.length >= 1, name + ": at least one allow case");
+    assert.ok(g.deny.length >= 1, name + ": at least one deny case");
+  });
+});
+
+test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-06 (Tranche 3)) | FR-247 NFR-035] purpose-capture is a filter that is not report-only, with at least 1 no-record and 1 record case", () => {
+  const g = guard("purpose-capture");
+  assert.strictEqual(g.filter, true, "purpose-capture is listed as a filter");
+  assert.notStrictEqual(g.reportOnly, true, "purpose-capture is not report-only");
+  assert.ok(g.allow.length >= 1, "at least one no-record case");
+  assert.ok(g.deny.length >= 1, "at least one record case");
+});
+
 SIZES.forEach((row) => {
   const name = row[0], allowCount = row[1], denyCount = row[2];
   test("[Requirement: Self-tests, corpus sizes | " + SPEC + " (Change Log 2026-10-16, 2026-10-17, 2026-10-23, and 2026-11-06) | FR-118 FR-093 FR-094 FR-099 FR-104 FR-213 FR-223] " + name + " has " + allowCount + " allow and " + denyCount + " deny cases", () => {
@@ -330,7 +366,8 @@ test("[Requirement: Self-tests, writing-context cases | " + SPEC + " (Change Log
   assert.strictEqual(g.deny.length, hc.WRITING_CONTEXT_CONTEXT.length);
 });
 
-test("[Requirement: Self-tests, report-only rows | " + SPEC + " (Change Log 2026-10-16 and 2026-11-06) | FR-118 FR-091 NFR-035] the report-only entries are writing-context, audit-log, gate-evidence, and goal-guard, and no other", () => {
+test("[Requirement: Self-tests, report-only rows | " + SPEC + " (Change Log 2026-10-16, 2026-11-06, and 2026-11-06 (Tranche 3)) | FR-118 FR-091 FR-230 NFR-035] the report-only entries are writing-context, audit-log, data-access-log, gate-evidence, and goal-guard, and no other", () => {
+  assert.strictEqual(REPORT_ONLY.length, 5);
   REPORT_ONLY.forEach((name) => {
     assert.strictEqual(guard(name).reportOnly, true, name + " must be report-only");
   });
@@ -555,6 +592,10 @@ test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Cha
   assert.ok(/^\s+confirmation-record: PASS \(/m.test(out), "confirmation-record line:\n" + out);
   // The Tranche 2 logging filters (Change Log 2026-11-06): one PASS line each.
   ["audit-log", "gate-evidence", "goal-guard"].forEach((name) => {
+    assert.ok(new RegExp("^\\s+" + name + ": PASS \\(", "m").test(out), name + " line:\n" + out);
+  });
+  // The Tranche 3 hooks (Change Log 2026-11-06 (Tranche 3)): one PASS line each.
+  ["data-access-log", "phi-outbound-guard", "ferpa-disclosure-guard", "purpose-capture"].forEach((name) => {
     assert.ok(new RegExp("^\\s+" + name + ": PASS \\(", "m").test(out), name + " line:\n" + out);
   });
 });
