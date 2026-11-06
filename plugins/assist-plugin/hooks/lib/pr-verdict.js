@@ -20,6 +20,12 @@
 // (bash -c, eval, xargs), an option ahead of the verb that takes a separate value this parser does not list, a
 // program word taken from a variable, a command substitution ($( ) or backticks, which the lexer keeps inside one word),
 // shell aliases, and a REST call. Pure: no I/O.
+//
+// postPayloads() is a second, wider walk for the PHI outbound guard (FR-233) and the FERPA disclosure guard: it returns, for
+// every gh pr and bkt pr command, the verb and the text it sends (--body, -b, --body-file, -F, and the bkt text options),
+// not only a verdict. It reads no file; the caller reads a file source. The sh -c string and eval argument of a part are
+// walked too (two levels). A source the parser cannot read (a word expanded at run time, stdin from a pipe) sets
+// `expanded`, and the caller then judges the whole command text.
 "use strict";
 
 const shellProgram = require("./shell-program.js");
@@ -58,12 +64,15 @@ function redirectionLength(word) {
 //   positionals     the words that are no option, no option value, and no redirection ("--" ends the options)
 //   flags           the options that take no value, by name; a short cluster such as -ar is split into -a and -r
 //   values          the value of each valueOptions option, by name as written; null when the value is expanded at run time
+//   occurrences     every valueOptions option in order as {name, value} with the value as written (an expanded value
+//                   included); an option with no value word is left out
 //   expandedOption  true when an option word that is no value holds $ or a backtick (it can supply a flag)
 // An option in valueOptions takes the next word unless its word holds "="; in a short cluster the first value letter
 // takes the rest of the word, or the next word.
 function readWords(args, valueOptions) {
-  const out = { positionals: [], flags: [], values: {}, expandedOption: false };
+  const out = { positionals: [], flags: [], values: {}, occurrences: [], expandedOption: false };
   const setValue = (name, value) => {
+    if (value !== undefined) out.occurrences.push({ name, value });
     out.values[name] = value === undefined || isExpanded(value) ? null : value;
   };
   let i = 0;
@@ -182,4 +191,111 @@ function parse(command, powershell) {
   return targets;
 }
 
-module.exports = { parse };
+// ---- Outbound payloads (FR-233) -------------------------------------------------------------------------------------
+
+const MAX_NESTING = 2;
+const SHELLS = new Set(["sh", "bash", "zsh", "dash", "ksh"]);
+// The title is part of what a PR post sends: -t/--title on gh pr create and edit, -t/--subject on gh pr merge (confirmed in the
+// gh help). They are read for the payload only; GH_VALUE_OPTIONS stays as it is, so parse() output does not change. No gh pr verb
+// that uses -t for a flag exists, so every verb reads them as text options.
+const GH_PAYLOAD_VALUE_OPTIONS = new Set(Array.from(GH_VALUE_OPTIONS).concat(["-t", "--title", "--subject"]));
+const GH_CLOSE_VALUE_OPTIONS = new Set(Array.from(GH_PAYLOAD_VALUE_OPTIONS).concat(["-c", "--comment"]));
+const GH_TEXT_OPTIONS = new Set(["-b", "--body", "-t", "--title", "--subject", "-c", "--comment"]);
+const GH_FILE_OPTIONS = new Set(["-F", "--body-file"]);
+const BKT_TEXT_OPTIONS = new Set(["-b", "--body", "--text", "--description", "--title"]);
+const BKT_FILE_OPTIONS = new Set(["-F", "--body-file", "--text-file", "--file"]);
+const BKT_PAYLOAD_VALUE_OPTIONS = new Set(Array.from(BKT_VALUE_OPTIONS).concat(Array.from(BKT_TEXT_OPTIONS), Array.from(BKT_FILE_OPTIONS)));
+
+// The parts of a command as {words, heredocs}; PowerShell parts are lexed again after the leading assignment is removed.
+function segmentsOf(command, powershell) {
+  return lex(command, powershell, true).map((segment) => {
+    if (!powershell) return { words: segment.words, heredocs: segment.heredocs };
+    let words = [];
+    lex(shellProgram.stripAssignment(segment.raw), true).forEach((again) => {
+      words = words.concat(again.words);
+    });
+    return { words, heredocs: segment.heredocs };
+  });
+}
+
+// The script a shell runs: the string after -c in "bash -c '...'" (also -lc, -ec), or the arguments of eval. Null otherwise.
+function nestedScript(program, args) {
+  if (program === "eval") return args.length > 0 ? args.join(" ") : null;
+  if (!SHELLS.has(program)) return null;
+  for (let i = 0; i < args.length; i++) {
+    if (/^-[a-z]*c$/.test(args[i])) return args[i + 1] === undefined ? null : args[i + 1];
+    if (args[i].charAt(0) !== "-") return null;
+  }
+  return null;
+}
+
+// {sources, expanded} of one parsed option list. Each source is {kind: "text", value} (the text as written, a command
+// substitution included), {kind: "file", path} (a path as written), or {kind: "stdin", value} (the heredoc text fed to a
+// "-" file). `expanded` is true when a payload cannot be read from the command text: a value or option word expanded at run
+// time, or stdin from a pipe.
+function readSources(read, textOptions, fileOptions, heredocs) {
+  const sources = [];
+  let expanded = read.expandedOption || read.positionals.some(isExpanded);
+  read.occurrences.forEach((occurrence) => {
+    const isText = textOptions.has(occurrence.name);
+    if (!isText && !fileOptions.has(occurrence.name)) return;
+    if (isExpanded(occurrence.value)) expanded = true;
+    if (isText) {
+      sources.push({ kind: "text", value: occurrence.value });
+    } else if (occurrence.value === "-") {
+      if (heredocs.length === 0) expanded = true;
+      sources.push({ kind: "stdin", value: heredocs.join("\n") });
+    } else {
+      sources.push({ kind: "file", path: occurrence.value });
+    }
+  });
+  return { sources, expanded };
+}
+
+// The payload of one gh command, or null when it is no gh pr command. args are the words after the gh program word.
+function ghPayload(args, heredocs) {
+  let read = readWords(args, GH_PAYLOAD_VALUE_OPTIONS);
+  if (read.positionals[0] !== "pr") return null;
+  const verb = typeof read.positionals[1] === "string" ? read.positionals[1] : null;
+  // gh pr close takes its comment in -c/--comment; in gh pr review those are the verdict flag, so only close reads them as text.
+  if (verb === "close") read = readWords(args, GH_CLOSE_VALUE_OPTIONS);
+  return Object.assign({ family: "gh", verb }, readSources(read, GH_TEXT_OPTIONS, GH_FILE_OPTIONS, heredocs));
+}
+
+// The payload of one bkt command, or null when it is no bkt pr command. args are the words after the bkt program word.
+function bktPayload(args, heredocs) {
+  const read = readWords(args, BKT_PAYLOAD_VALUE_OPTIONS);
+  if (read.positionals[0] !== "pr") return null;
+  const verb = typeof read.positionals[1] === "string" ? read.positionals[1] : null;
+  return Object.assign({ family: "bkt", verb }, readSources(read, BKT_TEXT_OPTIONS, BKT_FILE_OPTIONS, heredocs));
+}
+
+function collectPayloads(command, powershell, depth, found) {
+  const options = { runners: true, powershell, keywords: shellProgram.KEYWORDS, wrappers: shellProgram.EXTRA_WRAPPERS };
+  segmentsOf(command, powershell).forEach((segment) => {
+    const at = shellProgram.findProgram(segment.words, options).index;
+    if (at === -1) return;
+    const program = shellProgram.programName(segment.words[at], { powershell });
+    const args = segment.words.slice(at + 1);
+    let payload = null;
+    if (program === "gh") payload = ghPayload(args, segment.heredocs);
+    else if (program === "bkt") payload = bktPayload(args, segment.heredocs);
+    if (payload !== null) {
+      found.push(payload);
+      return;
+    }
+    const script = depth < MAX_NESTING ? nestedScript(program, args) : null;
+    if (script !== null) collectPayloads(script, false, depth + 1, found);
+  });
+}
+
+// [FR-233] Every gh pr and bkt pr command in `command`, in order, as {family, verb, sources, expanded}. `verb` is the word
+// after pr (null when none); a command with no body has no sources. Returns [] for a command that holds no gh pr or bkt pr.
+// Nothing is read from disk and nothing throws for an unreadable command.
+function postPayloads(command, powershell) {
+  const found = [];
+  collectPayloads(String(command), Boolean(powershell), 0, found);
+  return found;
+}
+
+module.exports = { parse, postPayloads };
