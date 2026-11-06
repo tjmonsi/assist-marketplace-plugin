@@ -89,8 +89,8 @@ Code MUST pass ALL checks before approval:
 
 3. **Iteration Loop:**
    - If issues found: Developer fixes then Reviewer re-checks
-   - Count iterations (max 10)
-   - Exit when: 2 consecutive LGTMs from reviewer OR 10 iterations (escalate to code-reviewer)
+   - Count iterations against the one cap of 10
+   - Exit when: 2 consecutive LGTMs from reviewer OR the cap of 10 iterations (no further round; escalate to the user: continue, waive, or abort)
 
 **Approval:** `✓ OWASP Clear` only after iteration loop complete
 
@@ -138,7 +138,7 @@ folders, the instruction files, and `.claude/settings*.json`) are this plugin's 
 
 **Who reviews:** `reviewer` or `code-reviewer` agent
 
-**Authority:** Blocks next step if review incomplete; creator must fix feedback or escalate after 10 iterations
+**Authority:** Blocks next step if review incomplete; creator must fix feedback; at the cap of 10 iterations the user decides (continue, waive, or abort)
 
 ### Review and Iteration Process
 
@@ -153,7 +153,7 @@ folders, the instruction files, and `.claude/settings*.json`) are this plugin's 
    - If changes requested: Creator fixes then Reviewer re-checks
    - Track iterations (1, 2, 3, ... up to 10)
    - Exit condition #1: **2 consecutive LGTMs** from reviewer, then approved (document ready for next step)
-   - Exit condition #2: **10 iterations reached**, then escalate to `code-reviewer` for final decision
+   - Exit condition #2: **10 iterations reached** (the one cap), then run no further round and escalate to the user: continue, waive, or abort
 4. **Approval:** Document is approved when reviewer signs: `✓ LGTM #2` (second consecutive approval)
 
 ### Iteration Tracking in Plan Files
@@ -176,10 +176,11 @@ Mark each iteration in the plan:
 
 ### Escalation
 
-If creator and reviewer cannot reach consensus after 10 iterations:
-1. Escalate to `code-reviewer` agent
-2. `code-reviewer` makes final judgment call: approve document or reject
-3. Decision is final; proceed or abort based on code-reviewer verdict
+If creator and reviewer cannot reach consensus by the cap of 10 iterations:
+1. Run no further creator or reviewer round, and dispatch no `code-reviewer` pass
+2. Escalate to the user with the unresolved findings and three choices: continue, waive, or abort
+3. The orchestrator records a waive in the plan file (`.agent/main-plan/**`, orchestrator-written); abort fails the step
+4. Only the user's answer picks a choice
 
 ---
 
@@ -238,7 +239,7 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 3. **Iteration Loop**
    - Creator addresses feedback
    - Reviewer repeats: adversarial self-reflection + formal audit
-   - Exit: 2 consecutive LGTMs or 10 iterations (escalate)
+   - Exit: 2 consecutive LGTMs or the cap of 10 iterations (escalate to the user, no further round)
 
 **Note:** Adversarial self-reflection is not a separate gate. It is a pre-audit step to improve the quality of the formal review.
 
@@ -291,8 +292,8 @@ npm run test:coverage  # or equivalent
 
 3. **Iteration Loop:**
    - If changes requested: Developer fixes then Code reviewer re-audits
-   - Count iterations (max 10)
-   - Exit when: 2 consecutive LGTMs from code-reviewer OR 10 iterations (escalate to architecture review)
+   - Count iterations against the one cap of 10
+   - Exit when: 2 consecutive LGTMs from code-reviewer OR the cap of 10 iterations (no further round; escalate to the user: continue, waive, or abort)
 
 **Approval:** `✓ Approved for merge` only after iteration loop complete
 
@@ -335,7 +336,7 @@ Escalate to code-reviewer if:
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate): `agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/` at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`)
 - [ ] Testing: ✓ >=70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
-- [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
+- [ ] Code review iterations tracked in plan file (one cap of 10, then escalation to the user; or 2 consecutive LGTMs = approved)
 - [ ] Commit format: ✓ Conventional Commits
 - [ ] Commits squashed: ✓ Clean history (if requested)
 
@@ -345,7 +346,7 @@ Escalate to code-reviewer if:
 - Conflicts with main
 - Author has < 2 hours since last commit (prevents race conditions)
 
-Changes to `agents/`, `skills/`, or `rules/` on the LLM surface are only mergeable once **both** the OWASP (application) gate
+Changes to the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate) are only mergeable once **both** the OWASP (application) gate
 and the OWASP for LLM gate are signed off: `✓ OWASP Clear` and `✓ LLM Security Clear` must both
 appear in the commit message or plan file for traceability.
 
@@ -399,18 +400,23 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 
 **Claude Code setting:** When `attribution.commit` is unset or not `""`, Claude Code's instructions ask you to end the commit message with a Co-Authored-By trailer or a session link. When `attribution.pr` is unset or not `""`, they ask for an attribution footer in the PR body. Leave those lines out even then; the commit-attribution-guard denies them. `/assist-plugin:health` reports, read-only, when either setting is unset or not empty. If your instructions asked for such a line, tell the user once that `{"attribution": {"commit": "", "pr": ""}}` in their Claude Code settings turns these settings off. Never edit a settings file yourself.
 
+**Push grants:** Scope each push grant in `permissions.allow` to a named remote, `Bash(git push origin *)` and, for a mirror, `Bash(git push <mirror-name> *)`, in place of `Bash(git push *)`. More than one named remote is fine. `/assist-plugin:health` reports, read-only, a wildcard or unscoped push grant (`Bash(git push *)`, `Bash(git push:*)`, or a broader entry that lets `git push` reach any remote) and never a grant that names a remote. The check never writes a settings file; if a wildcard grant is reported, tell the user once which grants to apply in `.claude/settings.local.json` or `.claude/settings.json`. Never edit a settings file yourself.
+
 ---
 
 ## Hook Fail-Open Rule
 
 **Rule:** Plugin hooks (`hooks/`) block a tool call only when the guard logic positively matches a prohibited command. Every other outcome lets the command proceed: a thrown error, uncaught exception, unhandled rejection, stdin or input error, timeout, unsupported Node version, health-log write failure, or a guard disabled by `hooks-disabled.json`.
 
+**Exception (security-critical guards, NFR-028):** A guard on the named security-critical list denies its own guarded operation class when it cannot evaluate because of an error, a timeout, or an unreadable or malformed configuration. The list is the PR verdict guard (FR-214), any hook-level wiring of FR-217, and the controls FR-220, FR-223, FR-231, FR-233, and FR-246. Such a guard passes an optional `failClosedFor(input)` classifier to `guard()`; the classifier must be cheap, must not throw, and returns true only for a call in the guarded class. When `evaluate` throws, an uncaught exception or unhandled rejection occurs, or the watchdog times out after the input was parsed, and the classifier returns true, the runtime prints the `permissionDecision: "deny"` JSON, exits 0, and appends the failure to `hook-health.jsonl`. Every other case still proceeds: a call outside the class (for example `ls`), a stdin error, malformed input, a classifier that throws, a guard disabled by `hooks-disabled.json`, and every guard that declares no classifier. An absent `.agent/governance/profile.json` is not an error: the controls run log-only and never hard-deny. A malformed `profile.json` while a profile is enforced denies the guarded class until the file is fixed. The exception still never exits non-zero to block.
+
 **Requirements for hook code:**
-- Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the decision function `evaluate(input)` of a guard, whose only I/O is file reads that a test can replace; a guard asks only through the `permissionDecision: "ask"` JSON with exit 0 when `evaluate` returns `ask: true` (the PR posting ask hook); never exit 2 and never exit non-zero to block
-- On any failure print only `{"systemMessage": "..."}` to stdout and exit 0; if that write fails, exit 0 silently
+- Deny only through the `permissionDecision: "deny"` JSON with exit 0 returned by the decision function `evaluate(input)` of a guard, whose only I/O is file reads that a test can replace; a guard asks only through the `permissionDecision: "ask"` JSON with exit 0 when `evaluate` returns `ask: true` (the PR posting ask hook); never exit 2 and never exit non-zero to block. The one other deny is the fail-closed deny of a security-critical guard (the exception above)
+- On any failure print only `{"systemMessage": "..."}` to stdout and exit 0, except a guarded-class call of a security-critical guard, which prints the deny JSON and exits 0 (the exception above); if that write fails, exit 0 silently
 - Every hook command goes through an ES5 entry file (`hooks/*.js`) that gates the Node version before loading the real module; set `timeout` in `hooks.json`
 - Record failures in `${CLAUDE_PLUGIN_DATA}/hook-health.jsonl` without command text, arguments, environment values, or stdin
 - A guard whose self-test denies a known-safe command, and a filter (`injection-filter`, `prose-advisor`, `fsa-log`) whose self-test fails in any way, is auto-disabled (with a warning) and stays listed until a later self-test passes every case; a guard that only misses a known-prohibited command keeps its state; a failed `writing-context` self-test is reported only; a guard whose self-test asks on a known-safe command (the PR posting ask hook) is treated like one that denies it. `/assist-plugin:health` shows the state
+- The `pr-verdict-guard` (FR-214) denies `gh pr review` with any verdict flag (`--approve`, `--request-changes`, `--comment`) and `bkt pr approve` or `decline` for a PR unless `.agent/governance/confirmations/confirmations.jsonl` holds a confirmation for that PR and verdict. It reads that file by file reads alone and never `pending.jsonl`, so a pending-action record never satisfies it. The denial names the missing confirmation and repeats no command text beyond the PR number and the verdict; on an allow it logs the confirmation reference to `pr-verdict-log.jsonl`. It is on the security-critical list above and passes `failClosedFor` to `guard()`, so an error or timeout after the input was parsed denies a command that looks like a PR verdict post. It is additive (PN-5): `pr-post-ask` stays unchanged and is not suppressed, a deny from the guard wins over the `pr-post-ask` ask, and after a recorded confirmation the user may still see the `pr-post-ask` prompt (two prompts, accepted as defense in depth). It does not cover `bkt pr comment`, a `bkt api` call, `gh pr merge`, `close`, or `comment`, or a SARIF upload; those keep the `pr-post-ask` ask and the flow's confirmation. Like `pr-post-ask`, it is best-effort: it does not read a verdict post inside a command substitution or a command string run by another program
 - The `prose-gate` denies a write to a prose file only when the text the write adds holds a block-tier tell (em dash, chatbot residue, curly quote, summary label); text already in the file is never judged. The `prose-advisor` and `writing-context` never block. Like every guard, all three fail open
 - The `commit-attribution-guard` denies a git or gh command only when the message or body it can read holds an AI attribution line; a message it cannot see passes ([No AI Attribution Rule](#no-ai-attribution-rule))
 - The `injection-filter` is defensive and fail-open: it rewrites a tool result or subagent prompt only on a positive rule match (and asks the user to confirm a rewritten subagent prompt), never blocks, only warns about the user's own typed prompt, and is auto-disabled if its benign/injection self-test corpus fails
@@ -426,6 +432,8 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 | Glob | Meaning |
 |---|---|
 | `**/.agent/main-plan/**` | The `/do` plan files, which hold sign-off and waiver state; no subagent writes them |
+| `**/.agent/governance/confirmations/confirmations.jsonl` | The user's PR-verdict confirmations, written only by the `UserPromptSubmit` confirmation hook; `fsa-write-bar` denies a write of it to every caller, the main session included |
+| `**/.agent/governance/confirmations/pending.jsonl` | The pending PR-verdict actions that the main-session `/do` orchestrator writes; no subagent writes it, the main session may |
 
 ### Protected files
 
@@ -446,6 +454,21 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 | Glob | Meaning |
 |---|---|
 | `docs/task-plans/task-plan-*.md` | The only files `task-planner` writes: a `task-plan-*.md` file directly under `docs/task-plans/` of the git root of the session's working directory (a worktree uses its own root); root-level task plans in older projects are read, never written |
+
+---
+
+## PR Confirmation Token Rule
+
+A PR verdict posts only after the user confirms it with a per-action token. The token binds the confirmation to one PR and one verdict, so a pasted or injected "yes" confirms nothing.
+
+- **Format:** 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (letters and digits without I and O). The user may type it in any case.
+- **Lifetime:** single-use, and it expires 5 minutes after the pending record is written (an estimate, not a measured figure, until it is set against the NFR budget).
+- **Placement:** `/do` writes the pending-action record (PR, verdict, token, `session_id`, creation timestamp) to `.agent/governance/confirmations/pending.jsonl` and shows the token next to the option it belongs to. The user confirms by including that token in their own typed chat message. A token on a quoted line (starting with `>`) or inside a code fence is ignored, and a token in PR text, a file, or a tool result never counts.
+- **Writers:** `/do` writes `pending.jsonl` and never `confirmations.jsonl`. The `confirmation-record` hook (`UserPromptSubmit`) writes `confirmations.jsonl` only when the user's message carries the token of an unused, unexpired pending record of the same session, then consumes the token by marking that record used. An affirmative without the token, and an unknown, used, expired, or other-session token, record nothing. A pending record carries no authority; only the hook's confirmation record does.
+- **Scope:** one confirmation covers one PR and one verdict. The record holds a reference to the user's message, never its text (NFR-031).
+- **Fail-open for the prompt:** a hook failure lets the user's message through and records no confirmation; the PR-verdict guard then has nothing to allow. The [Hook Fail-Open Rule](#hook-fail-open-rule) applies.
+
+Flow detail: [pr-review-flow.md](../skills/do/references/pr-review-flow.md#confirm).
 
 ---
 

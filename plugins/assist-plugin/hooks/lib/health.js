@@ -9,6 +9,11 @@
 //   - Every failure (thrown error, uncaught exception, unhandled rejection, stdin error,
 //     malformed input, timeout, unsupported Node, disable flag) lets the command proceed:
 //     print only {"systemMessage": ...} on stdout, exit 0. If writing fails, exit 0 silently.
+//   - [NFR-028] Exception: a guard that passes a failClosedFor(input) classifier to guard() denies its own guarded
+//     call class when evaluate throws, an uncaught exception, an unhandled rejection, or a timeout occurs after
+//     the input was parsed. The deny is the same PreToolUse JSON with exit 0 (never a non-zero exit). A call the
+//     classifier does not assign to the class, an input that could not be read or parsed, and a disabled guard
+//     still proceed.
 //   - transform() runs a PostToolUse / PreToolUse / UserPromptSubmit filter. It emits output only when the
 //     filter positively returns {stdout}; every failure path above prints nothing or a systemMessage and exits 0.
 //   - The health log (${CLAUDE_PLUGIN_DATA}/hook-health.jsonl) holds {ts, hook, node, kind, message}.
@@ -313,24 +318,50 @@ function warn(text) {
   writeStdout(JSON.stringify({ systemMessage: text }));
 }
 
-// Record the failure, warn, and exit 0 so the command proceeds. Never throws, never exits non-zero.
+// Evaluates an optional classifier without letting it throw or hang the failure path. Returns true only when the
+// classifier positively returns true; a missing classifier, a throw, or any other value means "not in the class".
+function inGuardedClass(classify) {
+  if (typeof classify !== "function") return false;
+  try {
+    return classify() === true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// [NFR-028] Record the failure, warn, and exit 0 so the command proceeds. Never throws, never exits non-zero.
 // detail must be a fixed string from our own code (never user input); err is described, not copied.
-// options: {suffix: sentence tail for the warning}
+// options: {suffix: sentence tail for the warning,
+//           failClosedNow: function returning true when the failing call belongs to a security-critical guarded
+//           class (NFR-028); the call is then denied with permissionDecision "deny" and exit 0 instead of proceeding}
 function failOpen(hook, kind, detail, err, options) {
   if (finished) return;
   finished = true;
   options = options || {};
   var message = sanitize((detail || "") + (err ? (detail ? ": " : "") + describeError(err) : ""));
+  var closed = inGuardedClass(options.failClosedNow);
   try {
     appendLog({
       ts: new Date().toISOString(),
       hook: hook,
       node: nodeVersion(),
       kind: kind,
-      message: message
+      message: closed ? sanitize("fail-closed" + (message ? ": " + message : "")) : message
     });
   } catch (logError) {
     // health-log write failure must not change the outcome
+  }
+  if (closed) {
+    writeStdout(
+      JSON.stringify(
+        denyOutput(
+          "assist-plugin " + hook + " guard failed (" + kind + (message ? ": " + message : "") + "); this call is in the guard's " +
+            "security-critical class and is denied until the guard works. Run /assist-plugin:health for details."
+        )
+      )
+    );
+    exitZero();
+    return;
   }
   var suffix = options.suffix || DEFAULT_SUFFIX;
   warn("assist-plugin " + hook + " hook failed (" + kind + (message ? ": " + message : "") + "); " + suffix);
@@ -406,9 +437,26 @@ function askOutput(reason) {
 // The command is blocked only when evaluate positively returns deny === true; deny wins over ask. The user is asked
 // only when evaluate positively returns ask === true (and deny is not true). Only pr-post-ask returns ask: true;
 // every other guard is unchanged. The ask path writes no hook-health record: it is a decision, not a failure.
-function guard(name, evaluate) {
-  installHandlers(name);
-  startWatchdog(name, WATCHDOG_MS);
+//
+// [NFR-028] options.failClosedFor(input) is an optional classifier for a security-critical guard. It must be cheap,
+// must not throw, and returns true when the call belongs to the guard's guarded class. When evaluate throws, an
+// uncaught exception, an unhandled rejection, or a timeout occurs after the input was parsed, and the classifier
+// returns true, the call is denied (deny JSON, exit 0) and the failure is logged; any other call proceeds as before.
+// An absent configuration file is not an error: the guard's evaluate decides log-only behavior itself. A classifier
+// that throws counts as "not in the class". Stdin errors, malformed input, and a disabled guard still proceed.
+function guard(name, evaluate, options) {
+  var failClosedFor = options && typeof options.failClosedFor === "function" ? options.failClosedFor : null;
+  var parsed = false;
+  var parsedInput = null;
+  var failure = {
+    failClosedNow: failClosedFor
+      ? function () {
+          return parsed && failClosedFor(parsedInput) === true;
+        }
+      : null
+  };
+  installHandlers(name, failure);
+  startWatchdog(name, WATCHDOG_MS, failure);
   readStdin(function (stdinError, raw) {
     if (finished) return;
     if (stdinError) {
@@ -438,11 +486,13 @@ function guard(name, evaluate) {
       failOpen(name, "malformed-input", "hook input is not valid JSON", null);
       return;
     }
+    parsedInput = input;
+    parsed = true;
     var decision;
     try {
       decision = evaluate(input);
     } catch (evalError) {
-      failOpen(name, "exception", "guard logic failed", evalError);
+      failOpen(name, "exception", "guard logic failed", evalError, failure);
       return;
     }
     if (decision && decision.deny === true) {
