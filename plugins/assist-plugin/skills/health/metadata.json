@@ -5,7 +5,8 @@
   "allowed-tools": [
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\")",
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\" --clear)",
+    "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\" --verify-audit)",
     "Read"
   ],
-  "argument-hint": "[--clear]"
+  "argument-hint": "[--clear | --verify-audit]"
 }
