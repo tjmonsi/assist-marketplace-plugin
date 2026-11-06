@@ -432,19 +432,18 @@ function readStdin(callback) {
 // noted in hook-health.jsonl (a code or a fixed phrase, never a record value) and never changes a guard decision or
 // blocks a tool call.
 //
-// The record is plain data only: event, decision, rule_id, tool, path, data_class, agent_type, agent_id. It never holds
-// a command, a prompt, file contents, or a secret (audit-chain.js refuses such a record and writes nothing). The
-// agent identity is read from the raw hook input; lib/identity.js (task plan Step 21) replaces that later.
+// The record is plain data only: event, decision, rule_id, tool, path, data_class, agent_type, agent_id (and, for an
+// attributed access event, operation, authorizer, authorizer_reason). It never holds a command, a prompt, file contents,
+// or a secret (audit-chain.js refuses such a record and writes nothing). The agent identity comes from lib/identity.js
+// [FR-226], the data-class tag from lib/data-class.js [FR-231], and the human authorizer from lib/authorizer.js
+// [FR-227]; none comes from the raw hook input.
 
 var AUDIT_LOCK_TIMEOUT_MS = 500;
 var AUDIT_DECISION_EVENT = "guard-decision";
 var AUDIT_UNTAGGED = "untagged";
-var AUDIT_MAIN_AGENT = "main";
 var AUDIT_PATH_KEYS = ["file_path", "notebook_path", "path"];
 var AUDIT_TOOL_PATTERN = /^[A-Za-z][A-Za-z0-9_.:-]{0,79}$/;
 var AUDIT_RULE_PATTERN = /^[a-z][a-z0-9._-]{0,63}$/;
-var AUDIT_AGENT_TYPE_PATTERN = /^[A-Za-z0-9:_-]{1,60}$/;
-var AUDIT_AGENT_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
 var AUDIT_CODE_PATTERN = /^[A-Za-z0-9_-]{1,30}$/;
 
 // Logs a health event unless the newest entry is the same event, so a persistent audit failure (a read-only disk) adds
@@ -481,27 +480,60 @@ function auditRelative(root, file) {
   return relative.split(path.sep).join("/");
 }
 
-// The audit fields of a hook input, only the ones present and well-formed: tool, path with its data_class tag,
-// agent_type, agent_id. A call with neither agent field is the main session. Every data class is "untagged" until
-// task plan Step 23 adds the classifier. Never holds command text, a prompt, or file contents.
+// [FR-226] The agent identity fields of a record, from lib/identity.js: agent_type (always set: the subagent's type,
+// "main-session", or "unidentified"), agent_id for a subagent, and plugin_version. The helper is loaded here, not at the top, because
+// this module must parse on any Node version and a load failure is caught like any other; the fallback keeps the
+// identity from ever being blank.
+function auditIdentity(input) {
+  try {
+    return require("./identity.js").fields(input);
+  } catch (err) {
+    return { agent_type: "unidentified", plugin_version: "unknown" };
+  }
+}
+
+// [FR-231] The data-class tag of a path, from lib/data-class.js: "student-record", "PHI", "none", or "untagged" when the
+// class cannot be known (no project root, or a malformed profile.json). Loaded here for the same reason as the identity
+// helper; a load failure reads as "untagged".
+function auditDataClass(root, file) {
+  try {
+    return require("./data-class.js").classify(file, { root: root });
+  } catch (err) {
+    return AUDIT_UNTAGGED;
+  }
+}
+
+// [FR-227] The human-authorizer fields of a record, from lib/authorizer.js: {authorizer, authorizer_reason?}. The field
+// is never omitted: a failure to load the resolver reads as "none" with the reason "unresolved". `root` is the project
+// root of the record (null leaves the resolver to read it from the input's cwd).
+function auditAuthorizer(input, root) {
+  try {
+    return require("./authorizer.js").fields(input, root ? { root: root } : undefined);
+  } catch (err) {
+    return { authorizer: "none", authorizer_reason: "unresolved" };
+  }
+}
+
+// The audit fields of a hook input, only the ones present and well-formed: tool, path with its data_class tag from
+// auditDataClass, and the agent identity (agent_type, agent_id, plugin_version) from auditIdentity. Never holds command text, a prompt,
+// or file contents.
 function auditFields(input, root) {
   var fields = {};
-  if (!input || typeof input !== "object") return fields;
+  if (!input || typeof input !== "object") return auditIdentity(input);
   if (typeof input.tool_name === "string" && AUDIT_TOOL_PATTERN.test(input.tool_name)) fields.tool = input.tool_name;
   var toolInput = input.tool_input && typeof input.tool_input === "object" ? input.tool_input : {};
   for (var i = 0; i < AUDIT_PATH_KEYS.length; i++) {
     var file = toolInput[AUDIT_PATH_KEYS[i]];
     if (typeof file === "string" && file.length > 0) {
       fields.path = auditRelative(root, file);
-      fields.data_class = AUDIT_UNTAGGED;
+      fields.data_class = auditDataClass(root, file);
       break;
     }
   }
-  var type = typeof input.agent_type === "string" && AUDIT_AGENT_TYPE_PATTERN.test(input.agent_type) ? input.agent_type : null;
-  var id = typeof input.agent_id === "string" && AUDIT_AGENT_ID_PATTERN.test(input.agent_id) ? input.agent_id : null;
-  if (type) fields.agent_type = type;
-  else if (!id) fields.agent_type = AUDIT_MAIN_AGENT;
-  if (id) fields.agent_id = id;
+  var identity = auditIdentity(input);
+  Object.keys(identity).forEach(function (key) {
+    fields[key] = identity[key];
+  });
   return fields;
 }
 
@@ -513,14 +545,37 @@ function auditNote(hook, entry) {
 }
 
 // The record without its path, for the one retry when the path (a long name, a control character, a secret-shaped name)
-// is what the privacy check refused. The audit trail then keeps the access and says the path was withheld.
+// is what the privacy check refused. The audit trail then keeps the access and says the path was withheld. An attributed
+// access event (it has an `operation`) keeps its data_class tag, which the schema requires and which holds no path text.
 function withoutPath(record) {
   var copy = {};
   Object.keys(record).forEach(function (key) {
-    if (key !== "path" && key !== "data_class") copy[key] = record[key];
+    if (key !== "path" && (key !== "data_class" || record.operation !== undefined)) copy[key] = record[key];
   });
   copy.path_withheld = true;
   return copy;
+}
+
+// [FR-227|NFR-031] Builds an attributed access record through audit-chain.js attribute(): the operation, the path and
+// data_class tag, the agent identity, and the human authorizer (the timestamp is added at append). `parts` carries the
+// fields of auditFields and auditAuthorizer plus `event` and `operation`; attribute() copies only the schema fields, so
+// anything else in `parts` (the tool name, say) is for the caller to add back. When the privacy check refuses the path
+// (a long name, a control character, a secret-shaped name) the record is built once more without it and marked
+// path_withheld, as auditAppend does for a record it appends. Throws an AuditError for any other refusal.
+function auditAttribute(parts) {
+  var chain = require("./audit-chain.js");
+  try {
+    return chain.attribute(parts);
+  } catch (err) {
+    if (!err || err.name !== "AuditError" || parts.path === undefined || !/record\.path/.test(String(err.message))) throw err;
+    var rest = {};
+    Object.keys(parts).forEach(function (key) {
+      if (key !== "path") rest[key] = parts[key];
+    });
+    var record = chain.attribute(rest);
+    record.path_withheld = true;
+    return record;
+  }
 }
 
 // Appends one record to the governance audit log under `root`. Returns true when the line was written. Never throws.
@@ -902,6 +957,8 @@ module.exports = {
   exitZero: exitZero,
   auditRoot: auditRoot,
   auditFields: auditFields,
+  auditAuthorizer: auditAuthorizer,
+  auditAttribute: auditAttribute,
   auditAppend: auditAppend,
   logDecision: logDecision,
   projectRoot: projectRoot,
