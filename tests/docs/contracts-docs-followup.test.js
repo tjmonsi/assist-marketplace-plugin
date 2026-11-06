@@ -5,7 +5,7 @@
 // rules/llm-security-checklist.md, the Hook Fail-Open Rule wording of rules/assist-plugin-rule.md,
 // the pr-post-ask bullets of CLAUDE.md and plugins/assist-plugin/Claude.md, the README section "PR
 // posting prompt" and its Bitbucket sign-in lines, docs/SPECIFICATION.md, docs/ARCHITECTURE.md,
-// docs/TOKEN_OPTIMIZATION.md, and the 11-script, 16-command counts in hooks/hooks.json, FR-086,
+// docs/TOKEN_OPTIMIZATION.md, and the 13-script, 18-command counts in hooks/hooks.json, FR-086,
 // and the BRD scope list.
 //
 // Sources: specs/spec-skills-pr-review.md (Requirement "LLM checklist states the direct-run PR
@@ -16,16 +16,24 @@
 // DECISIONS.md (2026-10-22):
 //   - Row 2 of the open-gap table follows the FR-210 wording; the LLM01 bullet no longer claims a
 //     confirmation gate; LLM05 names the --text="$(cat -- ...)" form and no --message-file.
-//   - The Hook Fail-Open Rule has the ask clause; "## Write guard lists" is unchanged.
+//   - The Hook Fail-Open Rule has the ask clause.
 //   - CLAUDE.md and Claude.md carry a pr-post-ask bullet (best-effort, known gaps, fails open, deny
-//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 11 scripts registered as 16
+//     beats ask, unverified modes). TOKEN_OPTIMIZATION.md reads 13 scripts registered as 18
 //     commands. README says bkt auth status lists contexts but does not test the token, exactly one
 //     context whose host matches the remote, and a pin before any bkt pr or bkt api call.
 //     SPECIFICATION.md says "may ask". The README known-gap list holds the 11 items of the header
 //     comment of hooks/impl/pr-post-ask.js and names no bkt api gap.
-//   - FR-086 (Statement line) and the BRD scope list read 11 hook scripts and 16 commands, built
-//     for 1.13.0 (the requirements fold flipped them from PLANNED to Built). The Unverified
-//     sentence reads "and whether an installed mod can approve a call the hook would prompt for".
+//   - FR-086 (Statement line) and the BRD scope list read 13 hook scripts and 18 commands (the
+//     posting ask hook built for 1.13.0, then the confirmation record hook and the PR verdict guard
+//     of harness-governance Tranche 1). The Unverified sentence reads "and whether an installed mod
+//     can approve a call the hook would prompt for".
+// Harness governance Tranche 1 (docs/requirements/FR-NFR-harness-governance.md, FR-214, FR-242,
+// FR-245, NFR-028; docs/task-plans/task-plan-harness-governance-20261028-0759.md, Steps 2, 3, and 4):
+//   - "## Write guard lists" holds two more Protected globs, the confirmation store files
+//     `**/.agent/governance/confirmations/confirmations.jsonl` and `.../pending.jsonl`.
+//   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md is qualified: "All hooks fail open
+//     except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail
+//     closed for their guarded class after reading input."
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -222,7 +230,7 @@ test("checklist changes no other open-gap row: nine rows with the same severity 
     ["3", "High", "LLM02"],
     ["4", "Medium", "LLM09"],
     ["5", "Medium", "LLM09"],
-    ["6", "Medium", "LLM10"],
+    ["6", "Closed (was Medium)", "LLM10"],
     ["7", "Medium", "LLM04"],
     ["8", "Low", "LLM03"],
     ["9", "Low", "LLM05"],
@@ -285,20 +293,35 @@ test("Hook Fail-Open Rule auto-disable line keeps its start and treats an ask on
   assertHas(line, "`/assist-plugin:health` shows the state", "rule line");
 });
 
-test("assist-plugin-rule.md leaves '## Write guard lists' unchanged: four tables with their rows", () => {
-  // [A6 | (Do not edit ## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186]
+test("assist-plugin-rule.md '## Write guard lists' keeps four tables; Protected globs hold the plan files and the two confirmation-store files", () => {
+  // [A6 | (## Write guard lists) | spec-hooks-platform.md Planned conformance | FR-088, FR-186; Tranche 1 | FR-242, FR-245: the store directory .agent/governance/confirmations/ holds confirmations.jsonl (denied to every caller) and pending.jsonl (denied to every subagent)]
   const guard = joined(section(RULE, "## Write guard lists"));
   assert.ok(guard.length > 0, "## Write guard lists is missing");
   const firstColumn = (heading) => section(guard, heading)
     .filter((l) => l.trim().charAt(0) === "|")
     .slice(2)
     .map((l) => splitRow(l)[0]);
-  assert.deepStrictEqual(firstColumn("### Protected globs"), ["`**/.agent/main-plan/**`"]);
+  assert.deepStrictEqual(firstColumn("### Protected globs"), [
+    "`**/.agent/main-plan/**`",
+    "`**/.agent/governance/confirmations/confirmations.jsonl`",
+    "`**/.agent/governance/confirmations/pending.jsonl`",
+  ]);
   assert.deepStrictEqual(firstColumn("### Protected files"), ["`DECISIONS.md`"]);
   assert.deepStrictEqual(firstColumn("### Auto-loaded names"), ["`CLAUDE.md`", "`CLAUDE.local.md`", "`AGENTS.md`"]);
   assert.deepStrictEqual(firstColumn("### Task-plan glob"), ["`docs/task-plans/task-plan-*.md`"]);
   assertHas(squash(guard), "`node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exits 1 while the code differs", "Write guard lists intro");
   assertLacks(guard, "pr-post-ask", "Write guard lists");
+});
+
+test("[FR-242 | FR-245] the Write guard lists describe confirmations.jsonl as denied to every caller and pending.jsonl as written by the main session only", () => {
+  // The meaning column states the two different write rules of the confirmation store.
+  const rows = section(RULE, "### Protected globs").filter((l) => l.trim().charAt(0) === "|").slice(2);
+  const confirmations = rows.find((l) => l.indexOf("confirmations/confirmations.jsonl") !== -1);
+  const pending = rows.find((l) => l.indexOf("confirmations/pending.jsonl") !== -1);
+  assert.ok(confirmations && pending, "both confirmation-store rows exist");
+  assertHas(confirmations, "written only by the `UserPromptSubmit` confirmation hook", "confirmations.jsonl row");
+  assertHas(confirmations, "every caller, the main session included", "confirmations.jsonl row");
+  assertHas(pending, "no subagent writes it, the main session may", "pending.jsonl row");
 });
 
 // ---------------------------------------------------------------------------
@@ -340,12 +363,14 @@ function counts() {
   return { commands: all.length, scripts: Object.keys(scripts).length, names: Object.keys(scripts).sort() };
 }
 
-test("hooks.json registers 16 commands from 11 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
-  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007]
+test("hooks.json registers 18 commands from 13 scripts with pr-post-ask in the Bash|PowerShell group after doc-cli-guard", () => {
+  // [A9 | Registration count after the ask hook; Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" | FR-086, FR-206, NFR-007; Tranche 1 adds confirmation-record and pr-verdict-guard | FR-214, FR-242]
   const c = counts();
-  assert.strictEqual(c.commands, 16);
-  assert.strictEqual(c.scripts, 11);
+  assert.strictEqual(c.commands, 18);
+  assert.strictEqual(c.scripts, 13);
   assert.ok(c.names.indexOf("pr-post-ask") !== -1);
+  assert.ok(c.names.indexOf("pr-verdict-guard") !== -1);
+  assert.ok(c.names.indexOf("confirmation-record") !== -1);
   const all = entries();
   const ask = all.filter((e) => e.script === "pr-post-ask");
   assert.strictEqual(ask.length, 1, "pr-post-ask must be registered once");
@@ -368,10 +393,12 @@ test("TOKEN_OPTIMIZATION.md states the hooks.json counts and names pr-post-ask.j
   const c = counts();
   assert.strictEqual(m[1], String(c.scripts));
   assert.strictEqual(m[2], String(c.commands));
-  assert.strictEqual(m[1] + "/" + m[2], "11/16");
+  assert.strictEqual(m[1] + "/" + m[2], "13/18");
   assertHas(text, "`pr-post-ask.js` asks, and never denies, before a `gh` or `bkt` command that posts to, merges, or closes a pull request", "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b10 scripts\b/, "TOKEN_OPTIMIZATION.md");
+  assertLacks(text, /\b11 scripts\b/, "TOKEN_OPTIMIZATION.md");
   assertLacks(text, /\b15 commands\b/, "TOKEN_OPTIMIZATION.md");
+  assertLacks(text, /\b16 commands\b/, "TOKEN_OPTIMIZATION.md");
 });
 
 function frBlock(heading) {
@@ -388,29 +415,31 @@ function frBlock(heading) {
   return lines.slice(at, end);
 }
 
-test("FR-086 Statement reads 11 hook scripts as 16 commands (built for 1.13.0) and agrees with hooks.json", () => {
-  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086]
+test("FR-086 Statement reads 13 hook scripts as 18 commands (posting ask hook built for 1.13.0, two Tranche 1 hooks added) and agrees with hooks.json", () => {
+  // [A9 | Registration count after the ask hook; Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242]
   const block = frBlock("### FR-086");
   const statement = block.find((l) => l.indexOf("**Statement:**") === 0);
   assert.ok(statement, "FR-086 has no Statement line");
   const c = counts();
   const want = c.scripts + " hook scripts as " + c.commands + " commands";
-  assert.strictEqual(want, "11 hook scripts as 16 commands");
+  assert.strictEqual(want, "13 hook scripts as 18 commands");
   assertHas(statement, "The plugin SHALL register " + want + " in `hooks/hooks.json`", "FR-086 Statement");
   assertHas(statement, "built for 1.13.0", "FR-086 Statement");
+  assertHas(statement, "Tranche 1 added two more scripts with one command each (`hooks/confirmation-record.js` and `hooks/pr-verdict-guard.js`)", "FR-086 Statement");
   assertLacks(statement, "PLANNED", "FR-086 Statement");
-  assertHas(joined(block), "the count SHALL be 16 across 11 scripts, the added script being the posting ask hook, and the BRD scope list SHALL state 11 scripts and 16 commands", "FR-086 scenario");
+  assertHas(joined(block), "the count SHALL be 18 across 13 scripts, the added scripts being the posting ask hook, the confirmation record hook, and the PR verdict guard, and the BRD scope list SHALL state 13 scripts and 18 commands", "FR-086 scenario");
 });
 
-test("BRD scope list reads 11 hook scripts (16 hook commands), built in 1.13.0", () => {
-  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086]
+test("BRD scope list reads 13 hook scripts (18 hook commands), the posting ask hook built in 1.13.0 and two Tranche 1 hooks added", () => {
+  // [A9 | Count in the BRD scope list | spec-hooks-platform.md "Hook registration" | FR-086; Tranche 1 | FR-214, FR-242]
   const line = linesOf(readRepo("docs/requirements/BRD-assist-plugin.md")).find((l) => l.indexOf("hook scripts") !== -1 && l.indexOf("`hooks/hooks.json`") !== -1);
   assert.ok(line, "no hook scripts line in the BRD scope list");
   const c = counts();
   const want = "The " + c.scripts + " hook scripts (" + c.commands + " hook commands) in `hooks/hooks.json`";
-  assert.strictEqual(want, "The 11 hook scripts (16 hook commands) in `hooks/hooks.json`");
+  assert.strictEqual(want, "The 13 hook scripts (18 hook commands) in `hooks/hooks.json`");
   assertHas(line, want, "BRD scope list");
   assertHas(line, "Built, 1.13.0", "BRD scope list");
+  assertHas(line, "Tranche 1 added the confirmation record hook and the PR verdict guard", "BRD scope list");
   assertLacks(line, "PLANNED", "BRD scope list");
 });
 
@@ -434,6 +463,9 @@ function askBullet(text, who) {
   assert.ok(at >= 0, who + " has no '- **pr-post-ask**' bullet");
   return { at: at, line: lines[at], lines: lines };
 }
+
+const FAIL_OPEN_BULLET =
+  "- All hooks fail open except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail closed for their guarded class after reading input.";
 
 [["CLAUDE.md", CLAUDE], ["plugins/assist-plugin/Claude.md", PLUGIN_CLAUDE]].forEach((pair) => {
   test(pair[0] + " has a pr-post-ask bullet after doc-cli-guard", () => {
@@ -461,13 +493,29 @@ function askBullet(text, who) {
     assertHas(t.slice(at), "and whether an installed mod can approve a call the hook would prompt for", pair[0]);
   });
 
-  test(pair[0] + " keeps 'All hooks fail open' and the /bump row hint equal to the bump argument-hint", () => {
-    // [A9 | (existing bullets kept; /bump hint unchanged) | spec-hooks-platform.md; spec-skills-git.md | FR-086, FR-138]
-    assertHas(pair[1], "- All hooks fail open.", pair[0]);
+  test(pair[0] + " qualifies 'All hooks fail open' with the security-critical exception and keeps the /bump row hint equal to the bump argument-hint", () => {
+    // [A9 | (existing bullets kept; /bump hint unchanged) | spec-hooks-platform.md; spec-skills-git.md | FR-086, FR-138; Tranche 1 | NFR-028: the exception for the security-critical guard class]
+    assertHas(pair[1], FAIL_OPEN_BULLET, pair[0]);
+    assertHas(pair[1], "`rules/assist-plugin-rule.md`", pair[0]);
+    assertHas(pair[1], "Hook Fail-Open Rule", pair[0]);
+    assertHas(pair[1], "The per-write hooks cost about 80 to 110 ms per write.", pair[0]);
+    // The unqualified bullet is gone: no line is exactly "- All hooks fail open."
+    assert.ok(!linesOf(pair[1]).some((l) => l.trim() === "- All hooks fail open."), pair[0] + " still holds the unqualified bullet");
     const hint = skillHint("bump");
     assert.strictEqual(catalogHint(pair[1], "bump"), hint);
     assertHas(hint, "[--path PATH]", "bump argument-hint");
   });
+});
+
+test("CLAUDE.md lists the pr-verdict-guard bullet right after the pr-post-ask bullet (additive guard, FR-214)", () => {
+  // [FR-214 | PN-5 | Step 4: CLAUDE.md hooks list]
+  const b = askBullet(CLAUDE, "CLAUDE.md");
+  const next = b.lines[b.at + 1];
+  assert.ok(next.indexOf("- **pr-verdict-guard** ") === 0, "the bullet after pr-post-ask is not the pr-verdict-guard bullet: " + next.slice(0, 60));
+  assertHas(next, "`.agent/governance/confirmations/confirmations.jsonl`", "pr-verdict-guard bullet");
+  assertHas(next, "never `pending.jsonl`", "pr-verdict-guard bullet");
+  assertHas(next, "Security-critical: fails closed", "pr-verdict-guard bullet");
+  assertHas(next, "Additive: `pr-post-ask` is unchanged", "pr-verdict-guard bullet");
 });
 
 test("CLAUDE.md and Claude.md carry the same pr-post-ask bullet", () => {

@@ -5,7 +5,7 @@
 // plugins/assist-plugin/hooks/health-check.js), plus the guard test options of
 // specs/spec-hooks-platform.md (Requirement: Guard decision and deny output).
 //
-// Sources: specs/spec-hooks-health-check.md (Change Log 2026-10-16 and 2026-10-17: Requirement:
+// Sources: specs/spec-hooks-health-check.md (Change Log 2016-10-16 and 2026-10-17: Requirement:
 // Self-tests, Auto-disable and re-enable, Session-start notice, with every Scenario cited by
 // title below), specs/spec-hooks-writing-context.md (Change Log 2026-10-16, Requirement:
 // Self-test coverage), specs/spec-hooks-platform.md (Change Log 2026-10-16, Requirement: Guard
@@ -21,6 +21,11 @@
 // Self-tests, FR-118): the prose corpora hold prose-gate 24 allow and 38 deny cases and
 // prose-advisor 10 clean and 12 flagged cases, because the docs/tts/ skip is gone. The other
 // corpus sizes are unchanged.
+// Harness governance Tranche 1 (specs/spec-hooks-health-check.md, Change Log 2026-11-05, Requirement:
+// Self-tests, NFR-035, FR-214, FR-242): the GUARDS list names twelve hooks, with the guard
+// pr-verdict-guard and the filter confirmation-record added. Their exact case counts are counted
+// from the corpus at the build, so the test asserts the minimums of the spec table (pr-verdict-guard:
+// at least 1 allow and 2 deny cases; confirmation-record: at least 3 no-record and 1 record cases).
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -249,20 +254,36 @@ const SIZES = [
   ["fsa-write-bar", 51, 106],
 ];
 
-test("[Scenario: All pass (ten self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16 and 2026-10-22) | FR-118 FR-206] GUARDS lists the ten hooks, the nine of 1.12.0 and pr-post-ask", () => {
+test("[Scenario: All pass (twelve self-tested hooks) | " + SPEC + " Self-tests (Change Log 2026-10-16, 2026-10-22, and 2026-11-05) | FR-118 FR-206 FR-214 FR-242 NFR-035] GUARDS lists the twelve hooks, the ten of 1.13.1 plus pr-verdict-guard and confirmation-record", () => {
   const names = hc.GUARDS.map((g) => g.name).sort();
+  assert.strictEqual(names.length, 12);
   assert.deepStrictEqual(names, [
     "commit-attribution-guard",
+    "confirmation-record",
     "doc-cli-guard",
     "fsa-log",
     "fsa-write-bar",
     "injection-filter",
     "pr-post-ask",
+    "pr-verdict-guard",
     "prose-advisor",
     "prose-gate",
     "sa-mermaid-only",
     "writing-context",
   ]);
+});
+
+test("[Requirement: Self-tests, new rows | " + SPEC + " (Change Log 2026-11-05) | FR-214 FR-242 NFR-035] pr-verdict-guard is a guard with at least 1 allow and 2 deny cases; confirmation-record is a filter with at least 3 no-record and 1 record cases", () => {
+  const verdict = guard("pr-verdict-guard");
+  assert.ok(!verdict.filter, "pr-verdict-guard is a guard, not a filter");
+  assert.notStrictEqual(verdict.reportOnly, true, "pr-verdict-guard has no reportOnly flag");
+  assert.ok(verdict.allow.length >= 1, "at least one confirmed case");
+  assert.ok(verdict.deny.length >= 2, "at least two unconfirmed cases");
+  const record = guard("confirmation-record");
+  assert.strictEqual(record.filter, true, "confirmation-record is listed as a filter");
+  assert.notStrictEqual(record.reportOnly, true, "confirmation-record is not report-only");
+  assert.ok(record.allow.length >= 3, "at least three no-record cases");
+  assert.ok(record.deny.length >= 1, "at least one record case");
 });
 
 SIZES.forEach((row) => {
@@ -505,6 +526,9 @@ test("[Scenario: Writing-context self-test passes | " + SPEC + " Self-tests (Cha
     const re = new RegExp("^\\s+" + row[0] + ": PASS \\(" + row[1] + " [^,]+, " + row[2] + " [^)]+\\)", "m");
     assert.ok(re.test(out), row[0] + " line with " + row[1] + " and " + row[2] + " cases:\n" + out);
   });
+  // The Tranche 1 hooks (Change Log 2026-11-05): one PASS line each.
+  assert.ok(/^\s+pr-verdict-guard: PASS \(/m.test(out), "pr-verdict-guard line:\n" + out);
+  assert.ok(/^\s+confirmation-record: PASS \(/m.test(out), "confirmation-record line:\n" + out);
 });
 
 // ---------------------------------------------------------------------------

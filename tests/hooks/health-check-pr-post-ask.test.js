@@ -13,6 +13,10 @@
 // Release 1.13.1 (specs/spec-hooks-health-check.md, Change Log 2026-10-23, Requirement:
 // Self-tests, FR-118): the prose corpora of the other hooks hold prose-gate 24 allow and 38 deny
 // cases and prose-advisor 10 clean and 12 flagged cases; the pr-post-ask corpus is unchanged.
+// Harness governance Tranche 1 (specs/spec-hooks-health-check.md, Change Log 2026-11-05, Requirement:
+// Self-tests, NFR-035, FR-214, FR-242): GUARDS lists twelve hooks, the ten of 1.13.1 plus the guard
+// pr-verdict-guard and the filter confirmation-record. The pr-post-ask hook (impl/pr-post-ask.js) is
+// unchanged by Tranche 1, so its 13 no-ask and 14 ask cases and its report line stay as they were.
 //
 // Traceability format: [Scenario title | spec section | requirement ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -254,9 +258,11 @@ function keysOf(rows) {
 // The GUARDS entry
 // ---------------------------------------------------------------------------
 
-test("[Scenario: Ask-hook self-test passes (ten hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22) | FR-118 FR-206] GUARDS lists ten hooks, the nine of 1.12.0 and pr-post-ask", () => {
-  assert.strictEqual(hc.GUARDS.length, 10);
+test("[Scenario: Ask-hook self-test passes (twelve hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22 and 2026-11-05) | FR-118 FR-206 NFR-035] GUARDS lists twelve hooks, the nine of 1.12.0, pr-post-ask, and the Tranche 1 pr-verdict-guard and confirmation-record", () => {
+  assert.strictEqual(hc.GUARDS.length, 12);
   assert.ok(hc.GUARDS.some((g) => g.name === NAME));
+  assert.ok(hc.GUARDS.some((g) => g.name === "pr-verdict-guard"));
+  assert.ok(hc.GUARDS.some((g) => g.name === "confirmation-record"));
 });
 
 test("[Requirement: Self-tests, GUARDS entry | " + SPEC + " (Change Log 2026-10-22) | FR-118 FR-206] the pr-post-ask entry holds 13 allow cases and 14 deny cases", () => {

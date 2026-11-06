@@ -20,6 +20,14 @@
 // context on every bkt command. The new Bitbucket flow, the symlink guards, and the cleanup are
 // tested in tests/skills/contracts-do-followup.test.js.
 //
+// Harness governance Tranche 1, Step 8 (docs/requirements/FR-NFR-harness-governance.md, FR-218;
+// docs/task-plans/task-plan-harness-governance-20261028-0759.md): the cap of 10 iterations ends in an
+// escalation to the user (continue, waive, or abort) with no further developer or reviewer round and no
+// binding code-reviewer pass. The three assertions that held the old "one binding code-reviewer pass" rule
+// (the OWASP for LLM Gate section of review-protocol.md, the /do Review gates clause, and the
+// code-reviewer.md sentence) now assert the escalation wording. The cap itself is tested in
+// tests/skills/contracts-revision-cap.test.js.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -411,7 +419,7 @@ test("review-protocol.md: '### OWASP for LLM Gate' sits after the Security Gate 
 
 test("review-protocol.md OWASP for LLM Gate: path set, reviewers, bound, signature, and position", () => {
   // [Scenario: LLM-surface change; Clean LLM-surface change; Checklist finding; OWASP for LLM Gate exhausted
-  //  | spec-orchestration-review-gates.md Requirement 13 | FR-199 | FR-054 | NFR-011]
+  //  | spec-orchestration-review-gates.md Requirement 13 | FR-199 | FR-054 | NFR-011; FR-218: the cap ends in an escalation to the user, not a binding code-reviewer pass]
   const g = joined(section(PROTOCOL, "### OWASP for LLM Gate"));
   ["`agents/`", "`skills/` at any depth", "`metadata.json` included", "`rules/`", "`hooks/`", "`plugins/<name>/`", "`.claude/`", "`CLAUDE.md`", "`CLAUDE.local.md`", "`AGENTS.md`", "`.claude/settings*.json`"].forEach((s) => {
     assert.ok(g.indexOf(s) !== -1, "path set lacks " + s);
@@ -419,7 +427,8 @@ test("review-protocol.md OWASP for LLM Gate: path set, reviewers, bound, signatu
   assert.ok(/`src\/hooks\/` is not on the surface/.test(g));
   assert.ok(/reviewer or code-reviewer, auditing against `rules\/llm-security-checklist\.md`/.test(g));
   assert.ok(/2 consecutive `approved` verdicts/.test(g) && /10 iterations/.test(g));
-  assert.ok(/one binding `code-reviewer` pass: `approved` sets the step `completed`, `returned` sets it `failed`/.test(g));
+  assert.ok(/at the cap of 10 iterations run no further round and escalate to the user with continue, waive, or abort \(see "Exhausting a gate"\)/.test(g), "the cap ends in an escalation to the user");
+  assert.ok(!/binding/.test(g), "the replaced 'one binding `code-reviewer` pass' rule is gone");
   assert.ok(g.indexOf("`✓ LLM Security Clear`") !== -1, "signature missing");
   assert.ok(/`✓ OWASP Clear` never stands in for it/.test(g));
   assert.ok(/after the Security Gate and before the Testing Gate for a code artifact/.test(g));
@@ -450,7 +459,7 @@ test("review-protocol.md Fast-Track exclusion holds the NFR-011 path set with sr
 });
 
 test("/do Review gates: the OWASP for LLM Gate clause, signature, path set, and checklist path", () => {
-  // [Scenario: Gate dispatch; LLM gate prompt; Plugin path anchor; Skill metadata file | spec-orchestration-review-gates.md Requirement 13 | FR-199 | FR-061 | NFR-011]
+  // [Scenario: Gate dispatch; LLM gate prompt; Plugin path anchor; Skill metadata file | spec-orchestration-review-gates.md Requirement 13 | FR-199 | FR-061 | NFR-011; FR-218: a gate at its cap escalates to the user]
   const g = joined(section(DO, "### Review gates"));
   assert.ok(/also run the OWASP for LLM Gate, in addition to the type['’]s gate/.test(g));
   ["`agents/`", "`skills/` at any depth (`metadata.json` included)", "`rules/`", "`hooks/`", "`plugins/<name>/`", "`.claude/`", "`CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth", "`.claude/settings*.json`"].forEach((s) => {
@@ -461,7 +470,12 @@ test("/do Review gates: the OWASP for LLM Gate clause, signature, path set, and 
   assert.ok(g.indexOf("`<base>/../../rules/llm-security-checklist.md`") !== -1, "SKILL.md lacks the checklist path");
   assert.ok(/names `code` for every LLM-surface file/.test(g));
   assert.ok(g.indexOf('"OWASP for LLM Gate"') !== -1, "the gate name is not quoted in the prompt list");
-  assert.ok(/OWASP for LLM Gate included\) ends with one code-reviewer pass/.test(g), "the exhausted-gate rule does not name the LLM gate");
+  assert.ok(
+    /A gate that reaches its cap of 10 iterations without approval \(the OWASP for LLM Gate included\) runs no further developer or reviewer round and dispatches no code-reviewer pass/.test(g),
+    "the exhausted-gate rule does not name the LLM gate"
+  );
+  assert.ok(/`\/do` escalates to the user with the unresolved findings and the choices continue, waive, or abort/.test(g), "the exhausted-gate rule does not escalate");
+  assert.ok(!/ends with one code-reviewer pass/.test(g), "the replaced 'ends with one code-reviewer pass' rule is gone");
 });
 
 test("/do Loops row names the OWASP for LLM gate", () => {
@@ -481,12 +495,14 @@ test("fix-phase-rules.md and the registry rows name the OWASP for LLM gate", () 
 });
 
 test("reviewer.md and code-reviewer.md name the OWASP for LLM Gate with artifact type code and the checklist path", () => {
-  // [Scenario: LLM gate prompt; OWASP for LLM Gate exhausted | spec-orchestration-agents.md (AGNT:644-661) | FR-199 | FR-054]
+  // [Scenario: LLM gate prompt; OWASP for LLM Gate exhausted | spec-orchestration-agents.md (AGNT:644-661) | FR-199 | FR-054; FR-218: code-reviewer is not dispatched again at the cap]
   ["agents/reviewer.md", "agents/code-reviewer.md"].forEach((rel) => {
     const t = read(rel);
     assert.ok(/OWASP for LLM Gate \(artifact type `code`; audit against `rules\/llm-security-checklist\.md` at the absolute path the gate prompt gives\)/.test(t), rel + ": gate clause");
   });
-  assert.ok(/The OWASP for LLM Gate also reaches this agent as the binding final pass after 10 iterations/.test(read("agents/code-reviewer.md")));
+  const reviewer = read("agents/code-reviewer.md");
+  assert.ok(/The OWASP for LLM Gate also reaches this agent as a gate reviewer\. At the cap of 10 iterations `\/do` dispatches no further pass to this agent; it escalates to the user with continue, waive, or abort/.test(reviewer));
+  assert.ok(!/as the binding final pass/.test(reviewer), "the replaced 'binding final pass' rule is gone");
   assert.ok(/`reviewer` covers the Pre-Test, Security, Planning Document, and OWASP for LLM gates/.test(read("agents/reviewer.md")));
 });
 

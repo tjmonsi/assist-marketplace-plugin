@@ -14,6 +14,9 @@
 // specs/spec-orchestration-spec-first.md (FR-187, FR-188, FR-190, FR-191),
 // specs/spec-orchestration-chain-signoff.md (FR-192, FR-190), and
 // docs/requirements/FR-NFR-assist-plugin.md.
+// Harness governance Tranche 1: the Protected globs table also holds the two files of the confirmation
+// store (docs/requirements/FR-NFR-harness-governance.md, FR-242 and FR-245;
+// docs/task-plans/task-plan-harness-governance-20261028-0759.md, Step 2).
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -501,12 +504,24 @@ test("rule file values equal the code lists in hooks/lib/fsa-paths.js", () => {
   });
 });
 
-test("rule file binding strings: protected glob, protected file, auto-loaded names, and the task-plan glob", () => {
-  // [Scenario: Tables present | same requirement | FR-180 | FR-186]
-  assert.deepStrictEqual(values(guardTable("### Protected globs"), "globs"), ["**/.agent/main-plan/**"]);
+test("rule file binding strings: protected globs (plan files and the two confirmation-store files), protected file, auto-loaded names, and the task-plan glob", () => {
+  // [Scenario: Tables present | same requirement | FR-180 | FR-186; Tranche 1 | FR-242 | FR-245: the confirmation store directory .agent/governance/confirmations/ holds confirmations.jsonl and pending.jsonl]
+  assert.deepStrictEqual(values(guardTable("### Protected globs"), "globs"), [
+    "**/.agent/main-plan/**",
+    "**/.agent/governance/confirmations/confirmations.jsonl",
+    "**/.agent/governance/confirmations/pending.jsonl",
+  ]);
   assert.deepStrictEqual(values(guardTable("### Protected files"), "files"), ["DECISIONS.md"]);
   assert.deepStrictEqual(values(guardTable("### Auto-loaded names"), "names").slice().sort(), ["AGENTS.md", "CLAUDE.local.md", "CLAUDE.md"]);
   assert.deepStrictEqual(values(guardTable("### Task-plan glob"), "glob"), ["docs/task-plans/task-plan-*.md"]);
+});
+
+test("fsa-paths.js protected globs hold the two confirmation-store files next to the plan files", () => {
+  // [FR-242 | FR-245 | 2.29 Pending record is not a confirmation | 2.32 Evidence and toggle stores denied]
+  assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/main-plan/**") !== -1);
+  assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/confirmations/confirmations.jsonl") !== -1);
+  assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/confirmations/pending.jsonl") !== -1);
+  assert.strictEqual(fsaPaths.PROTECTED_GLOBS.length, 3);
 });
 
 test("task-planner.md holds a one-row table under '## Write scope' whose first cell is the single code span of the glob", () => {

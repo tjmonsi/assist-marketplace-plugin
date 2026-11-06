@@ -3,7 +3,8 @@
 // Contract and executed tests for the /bump and /health skill text after the follow-up to release
 // 1.12.0 (task plan steps 13, 16, and 25): the /bump --path validation (three ordered steps, the
 // eight stop messages R1 to R8, the shell-safe commands for R6 and R7) and the /health overview
-// and findings rows for the pr-post-ask guard.
+// and findings rows for the pr-post-ask guard. Updated for harness-governance Tranche 1 (the
+// pr-verdict-guard and confirmation-record rows of the /health overview and findings table).
 //
 // Sources: specs/spec-skills-git.md (Change Log 2026-10-22: ADDED Requirement "--path value
 // validated before it names anything", MODIFIED Requirement "Bump commit and tag"),
@@ -19,6 +20,13 @@
 //     hooks/impl/pr-post-ask.js, says the hook is best-effort and that later-found forms are added,
 //     lists no bkt api gap, says a deny from another hook beats the ask, states the prompt behavior
 //     by mode, and names three unverified items.
+// Harness governance Tranche 1 (docs/requirements/FR-NFR-harness-governance.md, FR-214, FR-242,
+// NFR-028, NFR-035; docs/task-plans/task-plan-harness-governance-20261028-0759.md, Steps 3 and 4;
+// specs/spec-hooks-health-check.md Change Log 2026-11-05):
+//   - The overview names `pr-verdict-guard` among the PreToolUse guards, after `pr-post-ask`, and
+//     names the `confirmation-record` hook.
+//   - The findings table holds four pr-verdict-guard rows and four confirmation-record rows next to
+//     the two pr-post-ask rows. Only the two pr-post-ask self-test rows start with `pr-post-ask`.
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -642,12 +650,31 @@ function overview() {
   return line;
 }
 
-// The part of the overview about pr-post-ask.
+// The part of the overview about pr-post-ask. Harness governance Tranche 1 adds the pr-verdict-guard
+// and confirmation-record passages after it, so the passage ends where the pr-verdict-guard begins.
 function askPart() {
   const o = overview();
   const s = o.indexOf("The `pr-post-ask` guard asks the user before");
-  const e = o.indexOf("`writing-context` adds the compact writing standard");
+  const e = o.indexOf("The `pr-verdict-guard` denies `gh pr review`");
   assert.ok(s >= 0 && e > s, "the pr-post-ask passage is missing from the overview");
+  return o.slice(s, e);
+}
+
+// The part of the overview about pr-verdict-guard (FR-214).
+function verdictPart() {
+  const o = overview();
+  const s = o.indexOf("The `pr-verdict-guard` denies `gh pr review`");
+  const e = o.indexOf("The `confirmation-record` hook runs on `UserPromptSubmit`");
+  assert.ok(s >= 0 && e > s, "the pr-verdict-guard passage is missing from the overview");
+  return o.slice(s, e);
+}
+
+// The part of the overview about confirmation-record (FR-242).
+function recordPart() {
+  const o = overview();
+  const s = o.indexOf("The `confirmation-record` hook runs on `UserPromptSubmit`");
+  const e = o.indexOf("`writing-context` adds the compact writing standard");
+  assert.ok(s >= 0 && e > s, "the confirmation-record passage is missing from the overview");
   return o.slice(s, e);
 }
 
@@ -671,10 +698,18 @@ test("pr-post-ask header comment holds the 11 known gaps and each key form", () 
   assert.ok(items.join(" ").indexOf("bkt api") === -1, "the header lists a bkt api gap");
 });
 
-test("health SKILL.md overview names pr-post-ask among the PreToolUse guards", () => {
-  // [A11 | Overview lists the hook and its gaps | spec-skills-health.md | FR-206, FR-166]
+test("health SKILL.md overview names pr-post-ask and pr-verdict-guard among the PreToolUse guards, in that order", () => {
+  // [A11 | Overview lists the hook and its gaps | spec-skills-health.md | FR-206, FR-166; Tranche 1 | FR-214, NFR-035]
   const o = overview();
-  assert.ok(/the PreToolUse guards \(`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `pr-post-ask`, `prose-gate`, `fsa-write-bar`\)/.test(o));
+  assert.ok(/the PreToolUse guards \(`sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `pr-post-ask`, `pr-verdict-guard`, `prose-gate`, `fsa-write-bar`\)/.test(o));
+});
+
+test("health SKILL.md overview names the confirmation-record hook and the one fail-closed exception", () => {
+  // [FR-242 | FR-214 | NFR-028 | NFR-035 | spec-hooks-health-check.md Change Log 2026-11-05]
+  const o = squash(overview());
+  assertHas(o, "`writing-context`, and the `confirmation-record` hook", "overview hook list");
+  assertHas(o, "All of them fail open except one case", "overview");
+  assertHas(o, "The exception is `pr-verdict-guard`, which fails closed for a command that looks like a PR verdict post", "overview");
 });
 
 test("health SKILL.md overview lists the commands pr-post-ask asks before and says every session", () => {
@@ -733,11 +768,61 @@ test("health SKILL.md names three unverified items: bypassPermissions mode, plan
   assertHas(tail, "whether an installed mod can approve a call the hook would prompt for", "unverified");
 });
 
-function findingsRow(needle) {
-  const rows = section(HEALTH, "## Findings and fixes")
+// ---------------------------------------------------------------------------
+// /health: pr-verdict-guard and confirmation-record overview (Tranche 1 | FR-214, FR-242, NFR-028, NFR-035)
+// ---------------------------------------------------------------------------
+
+test("health SKILL.md overview: pr-verdict-guard denies the verdict commands unless confirmations.jsonl holds the PR and verdict", () => {
+  // [FR-214 | 2.1 Injected approval is denied; Confirmation for a different verdict does not carry over]
+  const t = squash(verdictPart());
+  assertHas(t, "denies `gh pr review` with any verdict flag (`--approve`, `--request-changes`, `--comment`) and `bkt pr approve` or `bkt pr decline` for a PR when `confirmations.jsonl` holds no recorded confirmation for that PR and verdict", "verdict guard");
+  assertHas(t, "It reads `confirmations.jsonl` only and never `pending.jsonl`, so a pending-action record alone does not satisfy it", "verdict guard");
+});
+
+test("health SKILL.md overview: pr-verdict-guard is additive, so pr-post-ask is unchanged and two prompts may appear", () => {
+  // [FR-214 | 2.1 Additive guard leaves the pr-post-ask prompt in place | PN-5]
+  const t = squash(verdictPart());
+  assertHas(t, "It is additive: `pr-post-ask` is unchanged, a deny from the guard wins over that ask, and after a recorded confirmation the `pr-post-ask` prompt may still appear (two prompts)", "verdict guard");
+});
+
+test("health SKILL.md overview: pr-verdict-guard fails closed after its input was read, and fails open before that point", () => {
+  // [NFR-028 | 3.2 Fail-closed on error | rules/assist-plugin-rule.md Hook Fail-Open Rule exception]
+  const t = squash(verdictPart());
+  assertHas(t, "If the guard fails after its input was read (an error, or a timeout), it denies a command that looks like a PR verdict post and logs the failure", "verdict guard");
+  assertHas(t, "a failure before that point (an unsupported Node, a module that does not load, unreadable input) and a disabled guard let the command run with a warning", "verdict guard");
+});
+
+test("health SKILL.md overview: pr-verdict-guard names the commands it does not cover and logs the confirmation reference only", () => {
+  // [FR-214 | NFR-031 | Step 4: do not widen to the pr-post-ask known gaps or a SARIF upload]
+  const t = squash(verdictPart());
+  assertHas(t, "It does not cover `bkt pr comment`, a `bkt api` call, `gh pr merge`, `close`, or `comment`, or a SARIF upload", "verdict guard");
+  assertHas(t, "On an allow it appends the confirmation reference to `${CLAUDE_PLUGIN_DATA}/pr-verdict-log.jsonl`", "verdict guard");
+  assertHas(t, "Its self-test runs fixed cases against a stub store, so no real store is read or written", "verdict guard");
+});
+
+test("health SKILL.md overview: confirmation-record matches the typed token to an unused, unexpired pending record of the same session", () => {
+  // [FR-242 | 2.29 User confirmation recorded; Affirmative without the token rejected; Expired or reused token rejected]
+  const t = squash(recordPart());
+  assertHas(t, "It reads only the message the user typed, finds the per-action token in it, matches the token to an unused, unexpired pending-action record of the same session in `pending.jsonl`, and only then writes a record to `confirmations.jsonl` and marks the token used", "confirmation-record");
+  assertHas(t, "An affirmative with no token, text in a quote line or code fence, an expired or reused token, and a token of another session write no record", "confirmation-record");
+  assertHas(t, "It never blocks or changes the message", "confirmation-record");
+});
+
+test("health SKILL.md overview: confirmation-record self-test has a genuine case and three no-record cases, and a bad result disables the hook", () => {
+  // [NFR-035 | FR-242 | spec-hooks-health-check.md Change Log 2026-11-05 Requirement: Self-tests]
+  const t = squash(recordPart());
+  assertHas(t, "four fixed cases: one genuine confirmation that must record, and a forged-text case, an affirmative-without-token case, and an expired-token case that must not", "confirmation-record");
+  assertHas(t, "a record for a case that must not record, or a missed genuine record, disables the hook, which then writes nothing", "confirmation-record");
+});
+
+function findingsRows() {
+  return section(HEALTH, "## Findings and fixes")
     .filter((l) => l.trim().charAt(0) === "|")
     .map(splitRow);
-  const row = rows.find((cells) => cells[0].indexOf("`pr-post-ask` self-test FAIL") !== -1 && cells[0].indexOf(needle) !== -1);
+}
+
+function findingsRow(needle) {
+  const row = findingsRows().find((cells) => cells[0].indexOf("`pr-post-ask` self-test FAIL") !== -1 && cells[0].indexOf(needle) !== -1);
   assert.ok(row, "no findings row for pr-post-ask with " + needle);
   assert.strictEqual(row.length, 3, "a findings row has three cells: finding, meaning, fix");
   return row;
@@ -762,10 +847,50 @@ test("health SKILL.md findings row: pr-post-ask known posting command was NOT AS
   assertHas(squash(row[2]), "Report the bug with the report output", "fix");
 });
 
-test("health SKILL.md has exactly two pr-post-ask findings rows", () => {
+test("health SKILL.md has exactly two pr-post-ask findings rows (rows whose finding cell starts with the pr-post-ask self-test)", () => {
   // [A11 | Ask hook disabled by a false ask; Ask hook misses a posting command | spec-skills-health.md | FR-206]
-  const rows = section(HEALTH, "## Findings and fixes").filter((l) => l.trim().charAt(0) === "|" && l.indexOf("`pr-post-ask`") !== -1);
+  // Rows of the Tranche 1 hooks mention `pr-post-ask` in their meaning cell (the guard is additive), so only the finding cell counts.
+  const rows = findingsRows().filter((cells) => cells[0].indexOf("`pr-post-ask`") !== -1);
   assert.strictEqual(rows.length, 2);
+  rows.forEach((cells) => assert.ok(/^`pr-post-ask` self-test FAIL/.test(cells[0]), "unexpected pr-post-ask row: " + cells[0]));
+});
+
+test("[FR-214 | NFR-035] health SKILL.md has four pr-verdict-guard findings rows: two self-test failures, a denial the user expects to pass, and a fail-closed denial", () => {
+  const rows = findingsRows().filter((cells) => cells[0].indexOf("`pr-verdict-guard`") !== -1);
+  assert.strictEqual(rows.length, 4, "pr-verdict-guard rows: " + rows.map((r) => r[0]).join(" | "));
+  const byStart = (re) => rows.find((cells) => re.test(cells[0]));
+  const falseDeny = byStart(/self-test FAIL, "known-safe or confirmed command was DENIED"/);
+  const falseAllow = byStart(/self-test FAIL, "unconfirmed verdict post was ALLOWED"/);
+  const unexpected = byStart(/denies a post you expect to pass/);
+  const failed = byStart(/denial "guard failed"/);
+  assert.ok(falseDeny && falseAllow && unexpected && failed, "all four finding rows are present");
+  rows.forEach((cells) => assert.strictEqual(cells.length, 3, "three cells: finding, meaning, fix"));
+  assertHas(squash(falseDeny[1]), "auto-disabled", "false deny meaning");
+  assertHas(squash(falseDeny[1]), "only the `pr-post-ask` prompt and the flow's own confirmation apply", "false deny meaning");
+  assertHas(squash(falseAllow[1]), "stays enabled but protection is weak", "false allow meaning");
+  assertHas(squash(unexpected[1]), "`.agent/governance/confirmations/confirmations.jsonl`", "unexpected denial meaning");
+  assertHas(squash(unexpected[1]), "A pending-action record does not count", "unexpected denial meaning");
+  assertHas(squash(unexpected[2]), "Do not edit the store", "unexpected denial fix");
+  assertHas(squash(failed[0]), "`fail-closed` entry in `hook-health.jsonl`", "fail-closed finding");
+  assertHas(squash(failed[1]), "so the command was denied", "fail-closed meaning");
+  assertHas(squash(failed[2]), "it holds no command text", "fail-closed fix");
+});
+
+test("[FR-242 | NFR-035] health SKILL.md has four confirmation-record findings rows: two self-test failures and two log outcomes", () => {
+  const rows = findingsRows().filter((cells) => cells[0].indexOf("`confirmation-record`") !== -1);
+  assert.strictEqual(rows.length, 4, "confirmation-record rows: " + rows.map((r) => r[0]).join(" | "));
+  rows.forEach((cells) => assert.strictEqual(cells.length, 3, "three cells: finding, meaning, fix"));
+  const recorded = rows.find((cells) => cells[0].indexOf("forged or unbound case was RECORDED") !== -1);
+  const missed = rows.find((cells) => cells[0].indexOf("genuine case was NOT RECORDED") !== -1);
+  const writeFailed = rows.find((cells) => cells[0].indexOf("log kind `write-failed`") !== -1);
+  const consumeFailed = rows.find((cells) => cells[0].indexOf("log kind `consume-failed`") !== -1);
+  assert.ok(recorded && missed && writeFailed && consumeFailed, "all four finding rows are present");
+  assertHas(squash(recorded[1]), "auto-disabled", "forged case meaning");
+  assertHas(squash(recorded[1]), "a PR verdict post stays blocked by the posting guard", "forged case meaning");
+  assertHas(squash(recorded[2]), "it lists case labels, not message text", "forged case fix");
+  assertHas(squash(missed[1]), "put the token or message text in the record", "missed genuine meaning");
+  assertHas(squash(writeFailed[1]), "no confirmation exists and the post stays blocked", "write-failed meaning");
+  assertHas(squash(consumeFailed[1]), "so it may confirm again until it expires", "consume-failed meaning");
 });
 
 test("health SKILL.md frontmatter description needs no change and still names guard self-tests", () => {
