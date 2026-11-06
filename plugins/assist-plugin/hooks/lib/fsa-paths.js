@@ -40,9 +40,14 @@ const TASK_PLAN_GLOB = "docs/task-plans/task-plan-*.md";
 const CONFIRMATIONS_GLOB = "**/.agent/governance/confirmations/confirmations.jsonl";
 const PENDING_GLOB = "**/.agent/governance/confirmations/pending.jsonl";
 
-// Paths no subagent may write: the /do plan files (they hold sign-off and waiver state), the confirmation store, and
-// the decision log. Only the user, through the main conversation, changes the plan files and the decision log.
-const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB];
+// [FR-245] The governance audit store (lib/audit-chain.js): audit.jsonl, its rotated segments, and its lock file, all
+// below one directory. The audit hook and the guard runtime write it with fs, so the tool-level deny of fsa-write-bar
+// does not stop them; no subagent may write it.
+const AUDIT_GLOB = "**/.agent/logs/governance/**";
+
+// Paths no subagent may write: the /do plan files (they hold sign-off and waiver state), the confirmation store, the
+// audit store, and the decision log. Only the user, through the main conversation, changes the plan files and the decision log.
+const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB, AUDIT_GLOB];
 // [FR-242] The part of PROTECTED_GLOBS that holds for every tool caller, the main session included.
 const ALL_CALLER_GLOBS = [CONFIRMATIONS_GLOB];
 const PROTECTED_FILES = ["DECISIONS.md"];
@@ -164,6 +169,174 @@ function protectedRule(file) {
   return null;
 }
 
+// [FR-223] Shell write targets. A shell command names a target as text that the shell expands later: a glob it matches
+// against files, or a variable or substitution it fills in. lib/shell-writes.js keeps the glob characters (`*`, `?`,
+// `[...]`) as written and replaces each variable, substitution, and brace group with ANY, which stands for any text,
+// slashes included. The two functions below ask whether such a target could be a protected path, with the same glob
+// lists and the same case folding as protectedRule. A target without a wildcard is judged by protectedRule itself.
+const ANY = "\u0001";
+const WILD = /[*?[\u0001]/;
+
+function isAnySegment(segment) {
+  return segment.length > 0 && segment.replace(/\u0001/g, "").length === 0;
+}
+
+// The regular expression for one folded pattern segment. `*` and ANY match any run without a slash, `?` one
+// character, `[...]` a character class (a POSIX class such as [:upper:] matches any character, a superset). A
+// pattern that does not compile matches any run, which can only widen the judgement.
+function segmentExpression(segment) {
+  try {
+    let source = "";
+    for (let i = 0; i < segment.length; i++) {
+      const ch = segment.charAt(i);
+      if (ch === "*" || ch === ANY) {
+        source += "[^/]*";
+      } else if (ch === "?") {
+        source += "[^/]";
+      } else if (ch === "[") {
+        let j = i + 1;
+        if (segment.charAt(j) === "!" || segment.charAt(j) === "^") j++;
+        if (segment.charAt(j) === "]") j++;
+        while (j < segment.length && segment.charAt(j) !== "]") {
+          const posixEnd = segment.substr(j, 2) === "[:" ? segment.indexOf(":]", j + 2) : -1;
+          j = posixEnd === -1 ? j + 1 : posixEnd + 2;
+        }
+        if (j >= segment.length) {
+          source += "\\[";
+        } else {
+          let body = segment.slice(i + 1, j);
+          const negated = body.charAt(0) === "!" || body.charAt(0) === "^";
+          if (negated) body = body.slice(1);
+          body = body.replace(/\[:[a-z]+:\]/g, "\u0002").replace(/[\\\]\[]/g, "\\$&").replace(/\u0002/g, "\\s\\S");
+          source += "[" + (negated ? "^" : "") + body + "]";
+          i = j;
+        }
+      } else {
+        source += ch.replace(/[\\^$.|+(){}\]/-]/g, "\\$&");
+      }
+    }
+    return new RegExp("^" + source + "$");
+  } catch (err) {
+    return /^[^/]*$/;
+  }
+}
+
+// True when the folded target segment can name the protected glob segment `literal`. As in a shell without dotglob, a
+// leading glob character does not match a name that starts with a dot.
+function segmentOverlaps(segment, literal) {
+  if (literal.indexOf("*") !== -1) return true;
+  if (!WILD.test(segment)) return segment === literal;
+  if (/^[*?[]/.test(segment) && literal.charAt(0) === ".") return false;
+  return segmentExpression(segment).test(literal);
+}
+
+// True when the folded target segment holds at least one character that is neither a wildcard nor ANY.
+function hasLiteral(segment) {
+  return segment.replace(/[\u0001*?[\]]/g, "").length > 0;
+}
+
+// True when some path that the target segments could name matches `glob` (segments, `**` allowed) and at least one
+// matching target segment holds a literal character. That anchor keeps `src/$X/a.js` and `rm -rf build/*` from counting
+// as writes of `.agent/main-plan/a.js` and `DECISIONS.md`, which the variable or the star could spell but nothing in the
+// command names. A segment made of ANY alone stands for zero or more path segments. A trailing `**` needs at least one
+// more segment, as in matchGlob.
+function looseMatch(segments, glob) {
+  const seen = new Map();
+  function go(si, gi, anchored) {
+    const key = (si * 1024 + gi) * 2 + (anchored ? 1 : 0);
+    if (seen.has(key)) return seen.get(key);
+    seen.set(key, false);
+    let result = false;
+    if (gi === glob.length) {
+      result = anchored && segments.slice(si).every(isAnySegment);
+    } else if (glob[gi] === "**") {
+      if (gi === glob.length - 1) {
+        result = anchored && si < segments.length;
+      } else {
+        for (let skip = si; skip <= segments.length && !result; skip++) result = go(skip, gi + 1, anchored);
+      }
+    } else if (si < segments.length) {
+      if (isAnySegment(segments[si])) result = go(si + 1, gi, anchored) || go(si, gi + 1, anchored) || go(si + 1, gi + 1, anchored);
+      else result = segmentOverlaps(segments[si], glob[gi]) && go(si + 1, gi + 1, anchored || hasLiteral(segments[si]));
+    }
+    seen.set(key, result);
+    return result;
+  }
+  return go(0, 0, false);
+}
+
+// The folded segments of a shell target, or null when it is not judged: an empty path, or a target with a variable or
+// substitution and no literal character at all (`$OUT`, `$DIR/*`), which is the variable-built command that FR-223
+// records as a known limit.
+function targetSegments(file) {
+  const clean = normalize(file);
+  if (!clean) return null;
+  const segments = clean.split("/").map(foldSegment).filter((part) => part.length > 0);
+  if (segments.length === 0 || segments.length > MAX_SEGMENTS) return null;
+  const unresolved = segments.some((part) => part.indexOf(ANY) !== -1);
+  if (unresolved && !segments.some(hasLiteral)) return null;
+  return segments;
+}
+
+// [FR-223] True when a shell target cannot be judged at all: it is not a usable path (over 4096 characters or a NUL
+// character) or it has more segments than the matcher reads. The write bar denies such a target, as it does for the write tools.
+function unjudgeableTarget(file) {
+  const clean = normalize(file);
+  return !clean || clean.split("/").filter((part) => part.length > 0).length > MAX_SEGMENTS;
+}
+
+// [FR-223] The rule that a shell target could write, or null. A target with no wildcard goes to protectedRule.
+function protectedPatternRule(file) {
+  const segments = targetSegments(file);
+  if (segments === null) return null;
+  if (!segments.some((part) => WILD.test(part))) return protectedRule(file);
+  for (let i = 0; i < PROTECTED_FILES.length; i++) {
+    if (looseMatch(segments, ["**", PROTECTED_FILES[i].toUpperCase().toLowerCase()])) return PROTECTED_FILES[i];
+  }
+  for (let i = 0; i < PROTECTED_GLOBS.length; i++) {
+    if (looseMatch(segments, PROTECTED_GLOBS[i].toUpperCase().toLowerCase().split("/"))) return PROTECTED_GLOBS[i];
+  }
+  return null;
+}
+
+// The directory chains that lead to a protected path: for `**/.agent/main-plan/**` they are `**/.agent` and
+// `**/.agent/main-plan`. Removing or moving one of them takes the protected files with it.
+function directoryChains() {
+  const chains = [];
+  PROTECTED_GLOBS.forEach((glob) => {
+    const parts = glob.toUpperCase().toLowerCase().split("/").slice(0, -1);
+    for (let m = 1; m <= parts.length; m++) {
+      if (parts[m - 1] !== "**") chains.push({ glob, parts: parts.slice(0, m) });
+    }
+  });
+  return chains;
+}
+
+// [FR-223] The protected glob whose directory the target is (or could be), or null: the target of `rm -rf .agent` or
+// `mv .agent/main-plan elsewhere`. Used for the targets a command removes or moves away.
+function protectedAncestorRule(file) {
+  const segments = targetSegments(file);
+  if (segments === null) return null;
+  const chains = directoryChains();
+  for (let i = 0; i < chains.length; i++) {
+    if (looseMatch(segments, chains[i].parts)) return chains[i].glob;
+  }
+  return null;
+}
+
+// [FR-223] The protected glob whose directory `file` is (or could be), or null: `.agent/governance/confirmations` for the
+// two files of the confirmation store. Used for the directory that a copy or move writes into: the store directory holds
+// nothing a subagent may add, whatever the new file is called.
+function protectedDirectoryRule(file) {
+  const segments = targetSegments(file);
+  if (segments === null) return null;
+  for (let i = 0; i < PROTECTED_GLOBS.length; i++) {
+    const parts = PROTECTED_GLOBS[i].toUpperCase().toLowerCase().split("/").slice(0, -1);
+    if (parts.length > 0 && parts[parts.length - 1] !== "**" && looseMatch(segments, parts)) return PROTECTED_GLOBS[i];
+  }
+  return null;
+}
+
 // True when the normalized `clean` path sits below the normalized `base` root. A root that starts with a drive
 // letter compares without regard to case, as Windows does.
 function underRoot(clean, base) {
@@ -221,4 +394,4 @@ function relativeForms(file, roots) {
   return forms.length > 0 ? forms : [clean];
 }
 
-module.exports = { TEST_GLOBS, TASK_PLAN_GLOB, PROTECTED_GLOBS, ALL_CALLER_GLOBS, PROTECTED_FILES, AUTO_LOADED, MAX_PATH_CHARS, normalize, matchGlob, isTaskPlanFile, protectedRule, allCallerRule, outsideRoots, testGlobFor, testerDenial, relativeTo, relativeForms };
+module.exports = { TEST_GLOBS, TASK_PLAN_GLOB, PROTECTED_GLOBS, ALL_CALLER_GLOBS, PROTECTED_FILES, AUTO_LOADED, MAX_PATH_CHARS, ANY, normalize, matchGlob, isTaskPlanFile, protectedRule, unjudgeableTarget, protectedPatternRule, protectedAncestorRule, protectedDirectoryRule, allCallerRule, outsideRoots, testGlobFor, testerDenial, relativeTo, relativeForms };
