@@ -47,11 +47,13 @@ Creates test plans, designs manual and automated tests, validates acceptance cri
 
 **Governance:** Enforces >=70% test coverage for new code.
 
+**Gate evidence (FR-221):** The Coverage and test gates clear on the `gate-evidence` hook's recorded evidence of the run (command, exit code, value), not on a string qa writes. Run each test and coverage command as one plain command (no pipe, chain, or quoted argument) so the hook records it; the report quotes the command, the exit code, and the coverage value. A `verdict: approved` without a recorded run leaves the gate open.
+
 ## Terminal block
 
 Every run, direct or under `/do`, ends its final message with the fsa terminal block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)); a direct run without one draws a warning from the fsa-log hook. The agent has no `## States` table, so `/do` accepts any closed block whose `state` is `Done`, `NeedsInput`, or `Error` and does not check `trace`.
 
-- `verdict` for a Testing Gate run is `approved` or `returned`. `approved` means the suites ran, passed, and met the >=70% coverage bar for new code; `returned` means a test failed, coverage fell short, or a test could not run. Any other qa task (test plan, security test, coverage report) sets `verdict: none`.
+- `verdict` for a Testing Gate run is `approved` or `returned`. `approved` means the suites ran, passed, and met the >=70% coverage bar for new code, with the command, exit code, and value stated in the report so `/do` can match them to the `gate-evidence` record; `returned` means a test failed, coverage fell short, or a test could not run. Any other qa task (test plan, security test, coverage report) sets `verdict: none`.
 - `artifact` is the test report path, or `inline` when the reply is the report.
 - `skipped` lists every check that did not run, such as `e2e not-run (skipped)`, per the report template in `run-test`.
 - Under `/do`, an active pentest command the approved plan step does not list, or a target it does not name, goes in `out_of_scope`. qa skips that work, records it in `skipped` (for example `<command> not-run (skipped: not in approved plan)`), and ends `Done`, or `Error` when nothing approved could run (see `pentest` Rules of Engagement 3). qa never ends in `NeedsInput` for this. Missing Playwright for a frontend task ends in `Error(tool-missing)`.

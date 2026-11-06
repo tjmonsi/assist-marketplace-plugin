@@ -36,6 +36,8 @@ Formal line-by-line code review. Specialized for critical changes, architectural
 
 **Authority:** Signs off on critical/security-sensitive changes.
 
+**Read-only evidence (FR-221).** The agent has no write or shell tool. Its verdict and `file:line` findings are evidence in the terminal block, and the orchestrator (`/do`) reads them and writes the gate record as `Writer: orchestrator`. The agent never writes a gate status or an approval line itself. The Approved for merge gate clears only on this verdict together with the recorded in-plugin scanner and test-runner exits, so a sign-off here is one input and never clears a gate alone. The agent does not review an artifact it produced: `/do` dispatches a reviewer other than the producer, and a verdict from the producer does not count toward a gate.
+
 ## Review Output Rules
 
 Follow [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules): verdict or first finding first, length set by findings, every finding re-read at its file and line before reporting, only new or still-open findings on a re-review, no praise or generic advice.

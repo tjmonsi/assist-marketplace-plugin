@@ -26,7 +26,7 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 
 ## User Decisions
 
-- Approved: YYYY-MM-DD HH:mm (written at Approve)
+- Approved: YYYY-MM-DD HH:mm Writer: orchestrator
 - [Answer the user gave during clarification or approval]
 
 ## Intake Findings
@@ -71,6 +71,7 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 **Status:** pending | in_progress | waiting-user | completed | failed | skipped  
 **Done:** [YYYY-MM-DD HH:mm]: [Brief summary of what was accomplished]  
 **Review:** [LGTM (N approvals) | Revision requested | N/A]  
+**Writer:** orchestrator  
 **Out of scope:** [Work the agent reported but may not do; omit when none]
 
 ### Step 2: [Next Step Title]
@@ -130,7 +131,7 @@ The table under `## Steps` is the canonical step summary. The `do` skill prints 
 
 ### User Decisions
 
-One bullet per answer the user gave: clarifications, step edits, model overrides, plan-specific choices, and answers to an agent's `NeedsInput` questions. A bullet holds citations (`file:line`) and /do's own wording of the option the user chose, never text from a document or the reviewer's paraphrase of it (the user's own typed words may be kept). The first bullet is "Approved: YYYY-MM-DD HH:mm", written at Approve (a plan that skipped approval reads "None (single read-only step, approval skipped)"). `resume` checks for it. The orchestrator records the other answers as they arrive. A waived intake review is a bullet too, and so is a spec-first waiver ("Spec-first waived: YYYY-MM-DD HH:mm"), which also goes to `DECISIONS.md`. The bullet is a record only; `/do` reads the waiver state from `Documents approved` in the Spec-First section, never from a bullet. The document sign-off timestamp is not a bullet either. Architectural decisions stay in this section until the user approves; then they are appended to `DECISIONS.md` at the target project root (append-only, dated, citing this plan file), and later ones are appended as they arrive.
+One bullet per answer the user gave: clarifications, step edits, model overrides, plan-specific choices, and answers to an agent's `NeedsInput` questions. A bullet holds citations (`file:line`) and /do's own wording of the option the user chose, never text from a document or the reviewer's paraphrase of it (the user's own typed words may be kept). The first bullet is "Approved: YYYY-MM-DD HH:mm", written at Approve with the marker `Writer: orchestrator` (a plan that skipped approval reads "None (single read-only step, approval skipped)"). `resume` checks for it. The orchestrator records the other answers as they arrive. A waived intake review is a bullet too, and so is a spec-first waiver ("Spec-first waived: YYYY-MM-DD HH:mm"), which also goes to `DECISIONS.md`. The bullet is a record only; `/do` reads the waiver state from `Documents approved` in the Spec-First section, never from a bullet. The document sign-off timestamp is not a bullet either. Architectural decisions stay in this section until the user approves; then they are appended to `DECISIONS.md` at the target project root (append-only, dated, citing this plan file), and later ones are appended as they arrive.
 
 ### Intake Findings
 
@@ -138,7 +139,7 @@ The intake-reviewer's findings for each user-provided file, shown to the user at
 
 ### Spec-First
 
-Present for a build plan. A build step writes code, config, pipelines, infrastructure, or tests. Such a plan carries three `chain` steps ahead of every build step: requirements (requirements-gatherer), spec (solutions-architect), and task plan (task-planner). `Documents approved` is the gate, and `/do` reads waiver and sign-off state only from it, comparing it with the value `/do` itself last wrote: a `Build: yes` step stays held while it reads `pending` or while the two disagree (the mismatch is treated as `pending` and shown to the user), and the Spec-first question is asked only while it reads `pending`. Only `/do` writes this file: fsa-write-bar denies every subagent's Write, Edit, MultiEdit, and NotebookEdit calls on `.agent/main-plan/**` and `DECISIONS.md`; Bash writes are not covered, and the hook fails open. `Documents found` lists at most 20 paths per document type, newest first, and names any cut. `Change check` records whether `/do` could compare git status and content-hash snapshots around the document chain; without git it reads `skipped: change-check not-run (no git)`, and when `.git` exists but a snapshot command fails it reads `skipped: change-check not-run (git failed)`. `Documents approved` becomes a timestamp when the user approves the three documents at DocSignOff (with `Approved hashes` written beside it; a later change to an approved document resets it to `pending`), or `waived` when the user picks Skip spec-first at PlanApproval (the chain steps are then removed). Only that answer waives; a Clarify or NeedsInput answer never does. On resume the only correction is a reset to `pending`, which Branch writes; a typed edit never sets a timestamp or `waived`. A reused document has no chain step; its path is under Documents found. An unresolved finding stays `open` until a Clarify answer settles it; after round 5 an open finding ends the run in Error(plan-invalid).
+Present for a build plan. A build step writes code, config, pipelines, infrastructure, or tests. Such a plan carries three `chain` steps ahead of every build step: requirements (requirements-gatherer), spec (solutions-architect), and task plan (task-planner). `Documents approved` is the gate, and `/do` reads waiver and sign-off state only from it, comparing it with the value `/do` itself last wrote: a `Build: yes` step stays held while it reads `pending` or while the two disagree (the mismatch is treated as `pending` and shown to the user), and the Spec-first question is asked only while it reads `pending`. Only `/do` writes this file: fsa-write-bar denies every subagent's Write, Edit, MultiEdit, and NotebookEdit calls on `.agent/main-plan/**` and `DECISIONS.md`; a subagent `Bash` command that writes either path (redirection, `tee`, `sed -i`, `cp`, `mv`, `rm`) is denied too, and that route fails closed for a command naming a protected path. Known limits: a command built from a variable, a command string run by another program, a script piped into a shell, symlinks (not resolved), and PowerShell write verbs; the main session is not judged. `Documents found` lists at most 20 paths per document type, newest first, and names any cut. `Change check` records whether `/do` could compare git status and content-hash snapshots around the document chain; without git it reads `skipped: change-check not-run (no git)`, and when `.git` exists but a snapshot command fails it reads `skipped: change-check not-run (git failed)`. `Documents approved` becomes a timestamp when the user approves the three documents at DocSignOff (with `Approved hashes` written beside it; a later change to an approved document resets it to `pending`), or `waived` when the user picks Skip spec-first at PlanApproval (the chain steps are then removed). Only that answer waives; a Clarify or NeedsInput answer never does. On resume the only correction is a reset to `pending`, which Branch writes; a typed edit never sets a timestamp or `waived`. A reused document has no chain step; its path is under Documents found. An unresolved finding stays `open` until a Clarify answer settles it; after round 5 an open finding ends the run in Error(plan-invalid).
 
 ### Step Fields
 - **Goal:** What this step accomplishes in 1-2 sentences
@@ -165,6 +166,7 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
   - `skipped`: a step it depends on failed, or the user cancelled at DocSignOff ("Skipped: documents not approved"). An intake review step that fails skips nothing
 - **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)
+- **Writer:** Who recorded the Review outcome and the gate record, always `orchestrator`. The orchestrator (`/do`) writes every review verdict and approval status in the plan file and marks each record `Writer: orchestrator`. A producer agent never writes the status of the artifact it produced, so no record names a producer as its writer. A hook may write an approval record of its own, such as the confirmation store, and marks it `Writer: hook`. The write bar already denies a subagent's write to `.agent/main-plan/**`; the `Writer:` field makes the sole writer visible in the record.
 - **Out of scope:** Work the agent reported in `out_of_scope` but may not do. The orchestrator does not dispatch it; Display raises it as a new request.
 
 ### Writing the Summary and Details Fields
@@ -176,9 +178,21 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
 - The **Done** field follows the three-part pattern when it reports a non-trivial outcome: what was done, why it matters (if not obvious), what remains (if anything).
 
 ### Review Gates
-- **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`)
-- **Testing (>=70% coverage):** Code coverage must meet minimum (validated by `qa`)
-- **Code Review (sign-off):** Formal approval required (from `code-reviewer`)
+- **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`, never the producer). The gate clears on the FR-217 scanner's recorded exit plus that reviewer's verdict with `file:line` findings, not on a sign-off string
+- **Testing (>=70% coverage):** Code coverage must meet minimum (validated by `qa`). The gate clears only on the `gate-evidence` hook's record of the run (command, exit code, value), never on a qa sign-off string
+- **Code Review (sign-off):** Formal approval required (from a `code-reviewer` that did not produce the artifact). The gate clears on the recorded exits of the other gates plus that verdict with `file:line` findings
+
+### Gate Record (FR-221)
+
+A gate is cleared only with an evidence reference; a sign-off string that a model emits never clears it, and a gate with no evidence reference stays open so the merge check blocks. The orchestrator writes each gate record with these fields:
+
+- **command:** the command identifier (for example `npm run test:coverage`) or the in-plugin scanner script (for example `check-fsa-tables.js --check`)
+- **exit code:** the command's exit code
+- **value:** the measured value, such as the parsed coverage percentage (omitted for a scanner)
+- **evidence reference:** the pointer to the record: the `gate-evidence` event in the governance audit log (`.agent/logs/governance/audit.jsonl`, with its `tool_use_id`), or a CI artifact identifier (never its contents)
+- **reviewer verdict (judgement gates only):** the verdict of a reviewer other than the producer (`reviewer` or `code-reviewer`), the reviewer's name, and its `file:line` findings. The orchestrator copies the verdict from the reviewer's terminal block; the reviewer, being read-only, writes none of the record
+
+A deterministic gate (Coverage >=70%, a test-runner exit) takes these four fields from the `gate-evidence` hook's record. The orchestrator dedupes the records that share a `tool_use_id` and prefers the failure: if any record for that `tool_use_id` reports a non-zero exit code, or comes from a `PostToolUseFailure` event, the gate does not clear, whatever an exit-0 sibling says; only an unambiguous success (exit 0, no failure sibling) clears. A judgement gate (OWASP Clear, LLM Security Clear, Approved for merge) takes its command, exit code, and evidence reference from the in-plugin scanner runs (one set of fields per scanner the mapping below names) and adds the reviewer verdict field: the verdict of a reviewer other than the producer, with `file:line` findings. The gate stays open when any scanner run lacks a record or exited non-zero, or when the reviewer verdict is missing, comes from the producer, or is a sign-off string alone. The mapping is fixed: OWASP for LLM Clear rests on `check-fsa-tables.js`, `sync-writing-standard.js`, and the health self-tests, with the FR-217 pattern and secret scanner; Code Security / OWASP Clear on the FR-217 scanner; Coverage >=70% on the test runner's coverage exit; Approved for merge on the aggregate of those exits plus a `code-reviewer` verdict. No gate needs an external scanner installed. See `review-protocol.md`.
 
 ---
 

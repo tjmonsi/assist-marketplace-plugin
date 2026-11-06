@@ -133,6 +133,10 @@ If below 70%:
 2. Identify high-risk uncovered paths (error handlers, auth flows)
 3. Report as a finding requiring remediation
 
+### Evidence recorded by the hook (FR-221)
+
+The `gate-evidence` hook records the result of each test and coverage command in the governance audit log: the command identifier, the exit code, and the parsed coverage value (a `PostToolUse` success reads as exit 0; a `PostToolUseFailure` takes the exit code from the "Exit code N" that begins its `error`). The Coverage gate clears on that record, not on a sign-off string in the report. To get a record, run each test and coverage command from the tables above as one plain command: no pipe, chain, redirection (a trailing `2>&1` is fine), or quoted argument, because the exit status of a pipeline or chain is not the runner's. Quote the command, the exit code, and the value in the report so `/do` can match them to the record.
+
 ---
 
 ## Report Format
@@ -142,7 +146,7 @@ Use the template in [references/test-report-template.md](references/test-report-
 The report structure:
 - **What was tested:** Test suite name, language, framework
 - **Pass/fail counts:** Number of passed, failed, skipped tests
-- **Coverage vs. target:** Actual % vs. the >=70% minimum
+- **Coverage vs. target:** Actual % vs. the >=70% minimum, with the command and exit code that produced it
 - **For every failure:** Test name, how it was invoked, captured output/logs
 - **Recommendations:** Tests to add, failures to fix, coverage gaps to address
 

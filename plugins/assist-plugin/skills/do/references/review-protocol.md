@@ -10,6 +10,21 @@ Review happens AFTER implementation steps. Goals:
 - Validate test coverage (>=70%)
 - Obtain formal sign-off before merge
 
+**Sole writer of approval status (FR-222).** A review verdict or approval status is recorded only by the orchestrator (`/do`) or by a hook. The agent that produced the artifact under review never writes that artifact's status, and a reviewer's `✓` line is a finding that `/do` reads from the terminal block and then records. Every **Approval:** line below names the status `/do` records, not a string a producer writes. `/do` marks each record `Writer: orchestrator`, as "Approval Tracking" shows. A producer's write to `.agent/main-plan/**` is already denied by the `fsa-write-bar` protected glob and the Shell Write Path, so this rule matches the enforcement.
+
+**Evidence for every gate (FR-221).** `/do` records a gate as cleared only with an evidence reference; a `✓` line or a sign-off string that a model emits never clears a gate, and a gate with no evidence reference stays open so the merge check blocks. A deterministic gate (Coverage >=70% and any test-runner exit) clears only on the `gate-evidence` hook's record in the governance audit log: the command identifier, the exit code, and the measured value. The hook reads a `PostToolUse` success event as exit 0 and takes the exit status of a `PostToolUseFailure` event from the "Exit code N" that begins its `error` field. When the orchestrator reads `gate-evidence` records to clear a deterministic gate, it MUST dedupe the records that share a `tool_use_id` and prefer the failure: if any record for that `tool_use_id` reports a non-zero exit code, or comes from a `PostToolUseFailure` event, the gate does not clear, whatever an exit-0 sibling says. Only an unambiguous success (exit 0 and no failure sibling) clears. This holds even if the platform ever fires `PostToolUse` for a failed run, since the hook may write both records and the reader resolves them. A judgement gate (OWASP Clear, LLM Security Clear, Approved for merge) clears only on an in-plugin scanner exit code together with a verdict from a reviewer other than the producer, carrying `file:line` findings. The gate-to-scanner mapping is fixed, and no gate needs an external scanner installed:
+
+| Gate | In-plugin scanner evidence | Plus |
+|---|---|---|
+| OWASP for LLM Clear | `check-fsa-tables.js` and `sync-writing-standard.js` and the health self-tests, with the FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Code Security / OWASP Clear | The FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Coverage >=70% | The test runner's coverage exit (the `gate-evidence` record) | The parsed coverage value |
+| Approved for merge | The aggregate of those exits | A verdict from a `code-reviewer` other than the producer |
+
+The gate record fields are `command`, `exit code`, `value`, and `evidence reference` (see "Approval Tracking" and `plan-format.md`).
+
+**Evidence basis of a judgement gate.** A judgement gate clears only on both pieces together: (1) the exit code of the gate's in-plugin scanner from the table above, read from the `gate-evidence` record for that run (a scanner run with no record, or a non-zero exit, leaves the gate open), and (2) a verdict from a reviewer that did not produce the artifact, carrying `file:line` findings. A verdict from the producer does not count, so `/do` dispatches a reviewer other than the producer. Reviewers stay read-only (`tools: [Read, Grep, Glob, LSP]`): the verdict in the terminal block is evidence, and the orchestrator reads it and writes the gate record as `Writer: orchestrator`, naming the scanner command, its exit code, the evidence reference, and the reviewer verdict. A model sign-off string never supplies either piece. An external scanner (semgrep, CodeQL) is optional extra evidence and a gate never depends on one.
+
 ---
 
 ## Reviewer Adversarial Self-Reflection
@@ -171,7 +186,9 @@ Before formal audit, reviewer deliberately:
    - 2 consecutive LGTMs from reviewer: Approved
    - 10 iterations reached: no further round; escalate to the user with continue, waive, or abort (see "Exhausting a gate")
 
-**Approval:** `✓ OWASP Clear` (after iteration complete)
+**Evidence:** the gate clears on the FR-217 pattern and secret scanner's recorded exit plus a verdict from a reviewer that did not produce the artifact, carrying `file:line` findings. The reviewer's `✓` line alone never clears it.
+
+**Approval:** `✓ OWASP Clear` (after iteration complete), which `/do` records as `Writer: orchestrator` only on that evidence
 
 ---
 
@@ -184,7 +201,9 @@ Before formal audit, reviewer deliberately:
 
 **Iteration Process:** the Security Gate's cap applies. Exit on 2 consecutive `approved` verdicts, or at the cap of 10 iterations run no further round and escalate to the user with continue, waive, or abort (see "Exhausting a gate"). The main agent never rewrites the artifact. The fix phase is the usual one (Sonnet, findings routed by path inside the gated step's Writes).
 
-**Approval:** `✓ LLM Security Clear` (after iteration complete). `✓ OWASP Clear` never stands in for it.
+**Evidence:** the gate clears on the recorded exits of `check-fsa-tables.js --check`, `sync-writing-standard.js --check`, the health self-tests, and the FR-217 scanner, plus a verdict from a reviewer that did not produce the artifact, carrying `file:line` findings. The reviewer's `✓` line alone never clears it.
+
+**Approval:** `✓ LLM Security Clear` (after iteration complete), which `/do` records as `Writer: orchestrator` only on that evidence. `✓ OWASP Clear` never stands in for it.
 
 ---
 
@@ -204,7 +223,9 @@ Before formal audit, reviewer deliberately:
 
 **On `returned`:** the fix phase routes test gaps to `developer-tester` and code defects to the producing agent, then qa reruns. The gate exits at 2 consecutive `approved` verdicts or at the cap of 10 iterations, when `/do` runs no further round and escalates to the user with the last qa report and the unresolved findings (see "Exhausting a gate").
 
-**Approval:** QA must sign off: ✓ Coverage >=70%
+**Evidence:** the gate clears on the `gate-evidence` record for the run, not on the qa verdict string. The record holds the command identifier (for example `npm run test:coverage`), the exit code, and the parsed coverage value; qa's report quotes the same three facts. With no record for the run, or a value below 70, the gate stays open whatever qa wrote.
+
+**Approval:** `✓ Coverage >=70%`, which `/do` records only on that `gate-evidence` record (command, exit code 0, value >=70) and never on a qa sign-off string.
 
 ---
 
@@ -268,7 +289,9 @@ Before formal audit, reviewer deliberately:
    - 2 consecutive LGTMs from code-reviewer: Approved
    - 10 iterations reached: no further round; escalate to the user with continue, waive, or abort (see "Exhausting a gate")
 
-**Approval:** `✓ Approved for merge` (after iteration complete)
+**Evidence:** the gate clears on the recorded exits of the other gates plus a `code-reviewer` verdict, from a `code-reviewer` that did not produce the artifact, carrying `file:line` findings. The sign-off string alone never clears it.
+
+**Approval:** `✓ Approved for merge` (after iteration complete), which `/do` records as `Writer: orchestrator` only on that evidence
 
 ---
 
@@ -410,9 +433,12 @@ In plan file, mark review outcomes:
 **Done:** [YYYY-MM-DD HH:mm]: [Summary]  
 **Review:** LGTM (3 approvals)
   - Security: ✓ OWASP clear
-  - Testing: ✓ 85% coverage
+  - Testing: ✓ 85% coverage (evidence: `npm run test:coverage`, exit 0, value 85, audit log tool_use_id toolu_01ABC)
   - Code Review: ✓ Approved
+**Writer:** orchestrator
 ```
+
+The orchestrator (or a hook) writes the review outcome and every approval line, and marks the record `Writer: orchestrator`. The agent that produced the artifact never writes the artifact's review outcome or approval status. A record that names a producer as its writer is not an approval; `/do` writes the record itself from the reviewer's terminal block.
 
 ```markdown
 ### Step 3: Implementation (Code)
@@ -421,9 +447,10 @@ In plan file, mark review outcomes:
 **Done:** [YYYY-MM-DD HH:mm]: [Summary]  
 **Review:** Code Review with Iterations
   - Security (OWASP): Iteration 2 → ✓ OWASP Clear
-  - Testing: ✓ 82% coverage
+  - Testing: ✓ 82% coverage (evidence: `npm run test:coverage`, exit 0, value 82)
   - Code Review: Iteration 3 → ✓ Approved for merge
   - Tracked: cap of 10 iterations; exited at 3 (2 consecutive LGTMs)
+**Writer:** orchestrator
 ```
 
 ```markdown
@@ -437,6 +464,7 @@ In plan file, mark review outcomes:
   - Iteration 1: Developer adds null checks → Reviewer LGTM #1
   - Iteration 2: Developer renames variables → Reviewer LGTM #2
   - Final: ✓ Approved for merge
+**Writer:** orchestrator
 ```
 
 ---
@@ -465,7 +493,7 @@ For low-risk changes (docs, tests, non-critical fixes):
 - Approve or request revision
 
 **Tools:** Read, Grep, Glob, LSP (no write, no shell)  
-**Authority:** Can block merge if security issues found
+**Authority:** Can block merge if security issues found. Its verdict is evidence that `/do` records, never a status it writes, and it does not review an artifact it produced
 
 ### Formal Code Reviewer (`code-reviewer` agent)
 
@@ -475,7 +503,7 @@ For low-risk changes (docs, tests, non-critical fixes):
 - Used for high-impact changes
 
 **Tools:** Read, Grep, Glob, LSP (no write, no shell)  
-**Authority:** Formal approval required for sensitive changes
+**Authority:** Formal approval required for sensitive changes. Its sign-off is evidence that `/do` records, never a status it writes, and it does not sign off an artifact it produced
 
 ---
 

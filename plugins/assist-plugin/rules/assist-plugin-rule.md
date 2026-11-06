@@ -18,6 +18,34 @@ Governance rules and constraints for development workflows in assist-plugin.
 
 ---
 
+## Approval Status Writer (FR-222)
+
+A review verdict or approval status is written only by the orchestrator (`/do`) or by a hook, never by the agent that produced the artifact under review. `/do` records each verdict and approval line in the plan file and marks the record `Writer: orchestrator` (see `skills/do/references/plan-format.md`). A hook that records an approval of its own, such as the confirmation store, marks it `Writer: hook`. A reviewer reports its verdict in its terminal block, and `/do` reads it and writes the record. A producer's write to `.agent/main-plan/**` is denied by the protected glob under [Write guard lists](#write-guard-lists), and a shell write by [Shell Write Path](#shell-write-path); this section is the documented rule that matches that enforcement. Every **Approval:** line below names a status `/do` records.
+
+## Evidence for Gate Approvals (FR-221)
+
+`/do` records a gate as cleared only with an evidence reference. A sign-off string that a model emits, such as `✓ Coverage >=70%`, never clears a gate. With no evidence reference the gate stays open and the merge check blocks.
+
+**Deterministic gate (Coverage >=70%, test-runner exit).** It clears only on a `gate-evidence` record in the governance audit log (`.agent/logs/governance/audit.jsonl`) that holds the command identifier, the exit code, and the measured value. The `gate-evidence` hook writes that record, so the model cannot forge it. The hook runs on `PostToolUse` (a success event, read as exit 0) and on `PostToolUseFailure` (the exit status is the N of the `error` field's leading "Exit code N") for the `Bash` tool, and records only an allowlisted test, coverage, or in-plugin scanner command. The record holds the allowlist's fixed identifier for the command (for example `npm run test:coverage`), never the command text typed, arguments, output, or a secret (NFR-031). A command off the allowlist, a chained or piped command, or a run with no known exit status leaves no record, so its gate stays open. The record shows that an allowlisted command ran and how it ended; the reviewer reads what the run covered.
+
+**Judgement gate (OWASP Clear, LLM Security Clear, Approved for merge).** It clears only on an in-plugin scanner exit code together with a verdict from a reviewer other than the producer, carrying `file:line` findings. The scanners are the plugin's own scripts, so no gate depends on an external scanner being installed; an external scanner (semgrep, CodeQL) is optional extra evidence. The mapping from gate to scanner is fixed:
+
+| Gate | In-plugin scanner evidence | Plus |
+|---|---|---|
+| OWASP for LLM Clear | `check-fsa-tables.js` and `sync-writing-standard.js` and the health self-tests, with the FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Code Security / OWASP Clear | The FR-217 pattern and secret scanner | A non-producer reviewer verdict with `file:line` findings |
+| Coverage >=70% | The test runner's coverage exit (the `gate-evidence` record) | The parsed coverage value |
+| Approved for merge | The aggregate of those exits | A verdict from a `code-reviewer` other than the producer |
+
+A CI artifact is an alternative evidence reference; the gate record holds its identifier, not its contents.
+
+**Evidence basis of a judgement gate.** A judgement gate clears only when both pieces exist, and neither alone is enough:
+
+1. **A scanner exit.** The exit code of each in-plugin scanner the table above names for the gate, taken from the `gate-evidence` record for that run. A scanner run with no record, or a non-zero exit, gives no evidence and the gate stays open.
+2. **A non-producer verdict.** A reviewer verdict from an agent that did not produce the artifact under review, carrying `file:line` findings. A verdict from the producer does not count, and a returned verdict whose findings name no file and line does not count.
+
+A model sign-off string, from a reviewer or any other agent, never supplies either piece. The reviewers (`reviewer`, `code-reviewer`) stay read-only (`tools: [Read, Grep, Glob, LSP]`): the verdict is evidence the orchestrator records, never a status a reviewer writes. `/do` writes the gate record with `Writer: orchestrator`, naming the scanner command, its exit code, the evidence reference, and the reviewer verdict (see `skills/do/references/plan-format.md`). An external scanner (semgrep, CodeQL) is optional extra evidence and a gate never depends on one.
+
 ## Security Review Gate (OWASP)
 
 **When triggered:** Code changes in production code  
@@ -92,9 +120,7 @@ Code MUST pass ALL checks before approval:
    - Count iterations against the one cap of 10
    - Exit when: 2 consecutive LGTMs from reviewer OR the cap of 10 iterations (no further round; escalate to the user: continue, waive, or abort)
 
-**Approval:** `✓ OWASP Clear` only after iteration loop complete
-
-**Approval:** Must sign: `✓ OWASP Clear` (after iteration loop)
+**Approval:** `/do` records `✓ OWASP Clear` as `Writer: orchestrator`, only after the iteration loop completes and on the evidence basis in [Evidence for Gate Approvals](#evidence-for-gate-approvals-fr-221): the FR-217 pattern and secret scanner's exit plus a non-producer reviewer verdict with `file:line` findings
 
 ---
 
@@ -125,7 +151,7 @@ LLM07 System Prompt Leakage, LLM09 Misinformation/Overreliance, LLM10 Unbounded 
 for changes that look like "docs-only." The files named under **When triggered** (the `agents/`, `skills/`, `rules/`, and `hooks/`
 folders, the instruction files, and `.claude/settings*.json`) are this plugin's executable surface.
 
-**Approval:** Must sign: `✓ LLM Security Clear`
+**Approval:** `/do` records `✓ LLM Security Clear` as `Writer: orchestrator`, only on the evidence basis in [Evidence for Gate Approvals](#evidence-for-gate-approvals-fr-221): the exits of `check-fsa-tables.js --check`, `sync-writing-standard.js --check`, the health self-tests, and the FR-217 scanner, plus a non-producer reviewer verdict with `file:line` findings
 
 ---
 
@@ -266,7 +292,7 @@ npm run test:coverage  # or equivalent
 # Must show: No critical paths uncovered
 ```
 
-**Approval:** Must sign: `✓ Coverage >=70%`
+**Approval:** `/do` records `✓ Coverage >=70%` as `Writer: orchestrator`, only on a `gate-evidence` record that holds the command, the exit code, and the value (see [Evidence for Gate Approvals](#evidence-for-gate-approvals-fr-221)). A qa-authored sign-off string never clears it.
 
 ---
 
@@ -295,9 +321,7 @@ npm run test:coverage  # or equivalent
    - Count iterations against the one cap of 10
    - Exit when: 2 consecutive LGTMs from code-reviewer OR the cap of 10 iterations (no further round; escalate to the user: continue, waive, or abort)
 
-**Approval:** `✓ Approved for merge` only after iteration loop complete
-
-**Approval:** Must sign: `✓ Approved for merge` (after iteration loop)
+**Approval:** `/do` records `✓ Approved for merge` as `Writer: orchestrator`, only after the iteration loop completes and on the evidence basis in [Evidence for Gate Approvals](#evidence-for-gate-approvals-fr-221): the recorded exits of the other gates plus a `code-reviewer` verdict, from a `code-reviewer` that did not produce the artifact, with `file:line` findings
 
 ---
 
@@ -332,16 +356,17 @@ Escalate to code-reviewer if:
 
 **Before merge, ALL gates must be passed:**
 
-- [ ] Security review: ✓ OWASP Clear
+- [ ] Security review: ✓ OWASP Clear, backed by the FR-217 scanner exit and a non-producer reviewer verdict
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate): `agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/` at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`)
-- [ ] Testing: ✓ >=70% coverage
-- [ ] Code review: ✓ Approved (if applicable)
+- [ ] Testing: ✓ >=70% coverage, backed by a `gate-evidence` record (command, exit code, value)
+- [ ] Code review: ✓ Approved (if applicable), backed by a non-producer `code-reviewer` verdict with `file:line` findings
 - [ ] Code review iterations tracked in plan file (one cap of 10, then escalation to the user; or 2 consecutive LGTMs = approved)
 - [ ] Commit format: ✓ Conventional Commits
 - [ ] Commits squashed: ✓ Clean history (if requested)
 
 **Merge blocked if:**
 - Any gate fails
+- Any gate has no evidence reference (a sign-off string alone never clears a gate)
 - Test suite fails
 - Conflicts with main
 - Author has < 2 hours since last commit (prevents race conditions)
@@ -415,17 +440,19 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 - On any failure print only `{"systemMessage": "..."}` to stdout and exit 0, except a guarded-class call of a security-critical guard, which prints the deny JSON and exits 0 (the exception above); if that write fails, exit 0 silently
 - Every hook command goes through an ES5 entry file (`hooks/*.js`) that gates the Node version before loading the real module; set `timeout` in `hooks.json`
 - Record failures in `${CLAUDE_PLUGIN_DATA}/hook-health.jsonl` without command text, arguments, environment values, or stdin
-- A guard whose self-test denies a known-safe command, and a filter (`injection-filter`, `prose-advisor`, `fsa-log`) whose self-test fails in any way, is auto-disabled (with a warning) and stays listed until a later self-test passes every case; a guard that only misses a known-prohibited command keeps its state; a failed `writing-context` self-test is reported only; a guard whose self-test asks on a known-safe command (the PR posting ask hook) is treated like one that denies it. `/assist-plugin:health` shows the state
+- A guard whose self-test denies a known-safe command, and a filter (`injection-filter`, `prose-advisor`, `fsa-log`) whose self-test fails in any way, is auto-disabled (with a warning) and stays listed until a later self-test passes every case; a guard that only misses a known-prohibited command keeps its state; a failed `writing-context` or `goal-guard` self-test is reported only; a guard whose self-test asks on a known-safe command (the PR posting ask hook) is treated like one that denies it. `/assist-plugin:health` shows the state
+- The `fsa-write-bar` shell route (FR-223) is on the security-critical list above and passes `failClosedFor` to `guard()`: an error or timeout after the input was parsed denies a subagent `Bash` command that names a protected path, and every other call fails open as before. Its self-test denies a known-safe command only if the bar has a bug, so such a result disables the whole bar like any guard ([Shell Write Path](#shell-write-path))
 - The `pr-verdict-guard` (FR-214) denies `gh pr review` with any verdict flag (`--approve`, `--request-changes`, `--comment`) and `bkt pr approve` or `decline` for a PR unless `.agent/governance/confirmations/confirmations.jsonl` holds a confirmation for that PR and verdict. It reads that file by file reads alone and never `pending.jsonl`, so a pending-action record never satisfies it. The denial names the missing confirmation and repeats no command text beyond the PR number and the verdict; on an allow it logs the confirmation reference to `pr-verdict-log.jsonl`. It is on the security-critical list above and passes `failClosedFor` to `guard()`, so an error or timeout after the input was parsed denies a command that looks like a PR verdict post. It is additive (PN-5): `pr-post-ask` stays unchanged and is not suppressed, a deny from the guard wins over the `pr-post-ask` ask, and after a recorded confirmation the user may still see the `pr-post-ask` prompt (two prompts, accepted as defense in depth). It does not cover `bkt pr comment`, a `bkt api` call, `gh pr merge`, `close`, or `comment`, or a SARIF upload; those keep the `pr-post-ask` ask and the flow's confirmation. Like `pr-post-ask`, it is best-effort: it does not read a verdict post inside a command substitution or a command string run by another program
 - The `prose-gate` denies a write to a prose file only when the text the write adds holds a block-tier tell (em dash, chatbot residue, curly quote, summary label); text already in the file is never judged. The `prose-advisor` and `writing-context` never block. Like every guard, all three fail open
 - The `commit-attribution-guard` denies a git or gh command only when the message or body it can read holds an AI attribution line; a message it cannot see passes ([No AI Attribution Rule](#no-ai-attribution-rule))
 - The `injection-filter` is defensive and fail-open: it rewrites a tool result or subagent prompt only on a positive rule match (and asks the user to confirm a rewritten subagent prompt), never blocks, only warns about the user's own typed prompt, and is auto-disabled if its benign/injection self-test corpus fails
+- The `goal-guard` (FR-219, FR-238) is an advisory, rule-based alignment check on `WebFetch`, `WebSearch`, and `mcp__*` results (`PostToolUse`, `timeout` 5). It matches a fixed rule set in `hooks/lib/hijack-rules.js` against attacker-controlled text, so it calls no model and makes no network request (decision D-13, NFR-027), holds no write tool, and adds no tool grant. On a match it appends a `goal-guard` would-deny record to the governance audit log (rule id and family, rule count, tool name, agent identity), and when nothing matches it appends a `pass` record (tool name and agent identity, no rule id); neither holds the result text, a URL, a query, a path, or a secret, and a tool or event outside the matcher leaves no record. The hook withholds, rewrites, and prints nothing, so it never blocks and never exits non-zero. It fails open: a failed or refused append is noted in `hook-health.jsonl` and the result proceeds. The rules are a heuristic signal, not a boundary. It does not read the user's goal. Promotion to blocking is a later step (Tranche 4) and needs the FR-238 baseline first. Its self-test is report-only: a failure reports weak detection and never disables the hook
 
 ---
 
 ## Write guard lists
 
-`fsa-write-bar` enforces these lists from `hooks/lib/fsa-paths.js`. This section is the source of truth: `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exits 1 while the code differs, and the fix is to edit the JavaScript. The first column holds the exact code string. Removing or narrowing an entry under Protected globs, Protected files, or Auto-loaded names, or any change to the Task-plan glob, needs a user decision recorded in `DECISIONS.md` before the JavaScript follows this section.
+`fsa-write-bar` enforces these lists from `hooks/lib/fsa-paths.js`. This section is the source of truth: `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` exits 1 while the code differs, and the fix is to edit the JavaScript. The first column holds the exact code string. Removing or narrowing an entry under Protected globs, Protected files, or Auto-loaded names, or any change to the Task-plan glob, needs a user decision recorded in `DECISIONS.md` before the JavaScript follows this section. The Protected globs and Protected files also bind a subagent `Bash` command ([Shell Write Path](#shell-write-path)).
 
 ### Protected globs
 
@@ -434,6 +461,7 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 | `**/.agent/main-plan/**` | The `/do` plan files, which hold sign-off and waiver state; no subagent writes them |
 | `**/.agent/governance/confirmations/confirmations.jsonl` | The user's PR-verdict confirmations, written only by the `UserPromptSubmit` confirmation hook; `fsa-write-bar` denies a write of it to every caller, the main session included |
 | `**/.agent/governance/confirmations/pending.jsonl` | The pending PR-verdict actions that the main-session `/do` orchestrator writes; no subagent writes it, the main session may |
+| `**/.agent/logs/governance/**` | The governance audit log: the hash-chained `audit.jsonl`, its rotated segments, and its lock file, written by the guard runtime and the audit-writer hook through `hooks/lib/audit-chain.js`; no subagent writes it |
 
 ### Protected files
 
@@ -454,6 +482,19 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 | Glob | Meaning |
 |---|---|
 | `docs/task-plans/task-plan-*.md` | The only files `task-planner` writes: a `task-plan-*.md` file directly under `docs/task-plans/` of the git root of the session's working directory (a worktree uses its own root); root-level task plans in older projects are read, never written |
+
+---
+
+## Shell Write Path
+
+`fsa-write-bar` also judges a `Bash` call from a subagent (an `agent_id` is present), so the protected paths in [Write guard lists](#write-guard-lists) cannot be written through the shell. `hooks/lib/shell-writes.js` reads the command and returns the paths it would write; the call is denied when one of them is on the Protected globs or Protected files lists (`.agent/main-plan/**`, `DECISIONS.md`, `.agent/logs/governance/**`, and the confirmation store), and any path a later step adds to those lists is covered without a change here.
+
+- **Forms judged:** output redirection (`>`, `>>`, `>|`, `N>`, `>&FILE`, and a here-document that feeds a redirected command), `tee`, `sed -i`, `perl -i`, `cp`, `mv` (the source too, because it is removed), `rm`, and the same-shaped `unlink`, `rmdir`, `shred`, `truncate`, `touch`, `dd of=`, `install`, `ln`, `curl -o`, and `wget -O`. Each lexed part of a chained command is judged on its own. The text of a `$( )` substitution, `eval`, `sh -c` and `bash -c`, and a here-document that feeds a shell is judged as a command of its own.
+- **Reads stay allowed:** `cat DECISIONS.md`, `grep x .agent/main-plan/plan.md`, and `<` input redirection yield no write target. A write to any other path is not judged, and the per-agent limits (test paths, task-plan scope, dot paths) apply to the four write tools only.
+- **Names the shell expands:** a glob in a target (`DECISION?.md`, `.agent/main-pl*/p`), a quoted or escaped spelling (`DECI""SIONS.md`, `$'\x44ECISIONS.md'`), a relative target under a protected directory (after `cd .agent`, or when the session's working directory is inside one), and `rm -rf` or `mv` of a directory that holds a protected path (`rm -rf .agent`) are judged. A glob whose literal part could spell a protected file is denied: `rm *.md` could match `DECISIONS.md`, so a command that needs to remove Markdown files names them. A copy or move into a directory (`cp /tmp/DECISIONS.md .`, `mv x .agent/main-plan/`) is judged by the file it creates in that directory; a destination without a trailing slash counts as a directory when it exists as one. A target made only of a variable or wildcards (`> "$OUT"`, `rm -rf build/*`) is not judged.
+- **Main session:** not judged on this route. As for the write tools, only a subagent is barred, except that `confirmations.jsonl` stays denied to every caller of a write tool.
+- **Fail-closed (NFR-028, FR-223):** `fsa-write-bar` passes `failClosedFor` to `guard()`. An error, an uncaught exception, or a timeout after the input was parsed denies a subagent `Bash` command that names a protected path (loosely, quotes ignored and `\xNN` escapes decoded); a command outside that class, a write-tool call, unreadable input, and a disabled guard proceed with a warning as before. A command or a target too long or too deeply nested to read is denied outright. Each denial is logged to the governance audit log under the rule id `fsa-write-bar.shell-write`.
+- **Known limits, recorded and not closed:** a command built from a variable (`$CMD x`, `eval "$X"`, `bash -c "$X"`) or run from a script file; a command string passed to another program (`python -c`, `node -e`, `awk`, `find -exec`, `xargs` fed from a pipe, `git checkout -- FILE`, `rsync`), and a script piped into a shell; symlinks and other aliases of a protected path, which are not resolved; `rm -rf .` and other removals that name a directory above a protected path only as `.` or a variable; PowerShell write verbs (`Set-Content`, `Out-File`, `Move-Item`), which FR-223 does not name and the `Bash` registration does not see; and the main session, which the shell route does not judge. The bar is a guardrail with these gaps, not a boundary against a determined agent.
 
 ---
 
