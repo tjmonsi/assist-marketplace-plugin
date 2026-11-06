@@ -6,7 +6,8 @@
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\")",
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\" --clear)",
     "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\" --verify-audit)",
+    "Bash(node \"${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js\" --data-dir \"${CLAUDE_PLUGIN_DATA}\" --export-evidence --from * --to *)",
     "Read"
   ],
-  "argument-hint": "[--clear | --verify-audit]"
+  "argument-hint": "[--clear | --verify-audit | --export-evidence --from YYYY-MM-DD --to YYYY-MM-DD]"
 }

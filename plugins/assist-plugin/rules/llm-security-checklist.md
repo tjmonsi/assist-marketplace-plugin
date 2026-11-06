@@ -97,7 +97,11 @@ review comments posted to third-party platforms, or outbound web requests.
   `mv`, `rm`) is denied too (task plan Step 15, FR-223; known limits in `rules/assist-plugin-rule.md`,
   "Shell Write Path"). Each line holds the SHA-256 of
   the prior line, the log rotates by size with the final hash carried into the new segment, and
-  segments are kept at least 12 months. The library throws on a record that matches its content
+  segments are kept at least 12 months. An access event that carries an `operation` field holds the
+  operation, a path with its data-class tag, the agent identity, the human authorizer (a reference to
+  the plan approval or `none` with a reason, never message text), and the timestamp (FR-227).
+  `hooks/impl/fsa-log.js` writes the subagent log `fsa-log.jsonl` in the plugin data directory through
+  the same library, with the agent identity and the authorizer only and no 500-line cap. The library throws on a record that matches its content
   heuristics (a content-named field, an over-long or multi-line string, a secret pattern, a
   non-plain value); this is a heuristic guard, not a full sanitizer, so callers pass only the
   structured schema. The chain alone cannot confirm the final line or detect trailing-line
