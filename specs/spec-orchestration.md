@@ -7,9 +7,9 @@
 | **Feature** | `/do` orchestration: the Communicator state machine, its agents, and its review gates |
 | **Parent feature** | None |
 | **Sub-features** | spec-orchestration-planning.md, spec-orchestration-plan-approval.md, spec-orchestration-spec-first.md, spec-orchestration-dispatch.md, spec-orchestration-review-gates.md, spec-orchestration-terminal-block.md, spec-orchestration-agents.md |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, FR-218, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024 |
 | **Feature type** | Architecture |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -1026,3 +1026,49 @@ Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`referenc
 ### Rework 2: line cites refreshed (no behavior change)
 
 The planning gate found cites that the build had moved. Re-read on 2026-10-22: in Requirement: /do guards every .agent write against a symlink, the scope paragraph cites the PR-file guard row of the failure table at `skills/do/references/pr-review-flow.md:351`; Requirement: Read and question caps cites the change-check line limit at `skills/do/SKILL.md:456`. The other cites of the guard requirement (`skills/do/SKILL.md:245`, `:247-275`, `:551`; `pr-review-flow.md:96-104`) were re-read on 2026-10-23 and hold.
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-218 (section 2.5); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Step 8; `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" (D-7, OQ-2). Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval). The detailed gate change is spec-orchestration-review-gates.md, Change Log 2026-11-05, Requirement 4.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: FR-218 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Failure modes, the "Reviewer never approves" row: "One binding code-reviewer pass decides (FR-055)" becomes "at the cap the orchestrator escalates to the user: continue, waive, or abort (FR-218)".
+- Error handling, the "Gate bound reached without approval" row: "One binding code-reviewer pass | `completed` on `approved`, `failed` on `returned`" becomes "escalate to the user | continue, waive, or abort; no further developer or reviewer round".
+- Change Log 2026-10-16, the unfolded MODIFIED Requirement: Every loop is bounded, and its Scenario "OWASP for LLM Gate exhausted": the exhausted target and the scenario outcome become escalation to the user rather than a binding code-reviewer pass. This 2026-11-05 entry reconciles with that unfolded entry: its Was below quotes that entry's Now (the loops-table row).
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Every loop is bounded
+
+**Was:** The `/do` skill SHALL bound every loop by a named counter, maximum, and exhausted target, except the loops that only the user's answer exits. Loops table row: "Review gate (code, planning, OWASP for LLM) | review and fix iterations | 2 consecutive `approved` or 10 iterations | One binding code-reviewer pass".
+
+**Now:** The `/do` skill SHALL bound every loop by a named counter, maximum, and exhausted target, except the loops that only the user's answer exits. Loops table row: "Review gate (code, planning, OWASP for LLM) | review and fix iterations | 2 consecutive `approved` or 10 iterations | Escalate to the user: continue, waive, or abort (no further developer or reviewer round)".
+
+**Reason:** FR-218, settled by `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" (D-7, OQ-2). The cap stays at 10 and two consecutive LGTMs stay the normal pass; at the cap the orchestrator runs no further round and escalates to the user, replacing the binding code-reviewer pass. The statement is unchanged; only the row's exhausted target changes. Per the multiple-deltas rule, this Was quotes the Now of the unfolded Change Log 2026-10-16 MODIFIED Requirement: Every loop is bounded.
+
+**Requirement refs:** NFR-010, FR-199, FR-218 | **Status:** Planned (harness-governance Tranche 1)
+
+##### Scenario: Cap reached escalates
+
+- **GIVEN** a review gate (code, planning, or OWASP for LLM) that reaches 10 iterations without 2 consecutive `approved` verdicts
+- **WHEN** `/do` ends the gate
+- **THEN** `/do` SHALL run no further developer or reviewer round and SHALL present the unresolved findings to the user with the choices continue, waive, or abort
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-218 | Change Log 2026-11-05: Requirement: Every loop is bounded | Review gate at the cap escalates to the user; spec-orchestration-review-gates.md, Requirement 4 |

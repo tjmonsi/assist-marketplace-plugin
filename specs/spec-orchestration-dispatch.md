@@ -7,9 +7,9 @@
 | **Feature** | `/do` dispatch, result handling, and completion |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-001, BR-005, BR-006, BR-007, BR-012, UR-001, UR-003, UR-004, UR-005, UR-012, UR-013, UR-019, UR-022, UR-030, UR-031, UR-054, UR-055, FR-004, FR-031, FR-036, FR-043, FR-045, FR-046, FR-047, FR-048, FR-049, FR-050, FR-051, FR-052, FR-062, FR-063, FR-064, FR-190, FR-195, FR-202, FR-203, FR-206, FR-207, FR-208, NFR-010, NFR-012, NFR-014 |
+| **Requirement refs** | BR-001, BR-005, BR-006, BR-007, BR-012, UR-001, UR-003, UR-004, UR-005, UR-012, UR-013, UR-019, UR-022, UR-030, UR-031, UR-054, UR-055, UR-059, FR-004, FR-031, FR-036, FR-043, FR-045, FR-046, FR-047, FR-048, FR-049, FR-050, FR-051, FR-052, FR-062, FR-063, FR-064, FR-190, FR-195, FR-202, FR-203, FR-206, FR-207, FR-208, FR-214, FR-242, NFR-010, NFR-012, NFR-014 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -2083,3 +2083,71 @@ Source: `DECISIONS.md:263-266` (2026-10-22, "PR file cleanup by name, and pre-re
 ### Rework 2: line cites refreshed (no behavior change)
 
 The planning gate asked for every drifted cite in the folded specs to be fixed. `skills/do/SKILL.md` was re-read on 2026-10-22: Requirement 2 cites the Send section at `:412-432`, Requirement 9 cites Failed steps at `:467-473`, and Preconditions cites the Constraints line at `:569`. The cites of Requirement 15 (`pr-review-flow.md:358-372`, `:360-368`; `skills/do/SKILL.md:84`, `:547`) and of the Step Status transitions (`plan-format.md:159-166`) were re-read on 2026-10-23 and hold. The Git refusal row of Error handling cited `rules/assist-plugin-rule.md:377`, the worktree-name guard; it now cites `:379`, the line that says to report and keep the item when git refuses (re-read on 2026-10-23).
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-214 (section 2.1), FR-242 (section 2.29); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Steps 3 and 4; `DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)", and "PN-10 pending-action store split and token lifetime settled". Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: UR-059, FR-214, and FR-242 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement 14, the Confirm phase row: `/do` writes a pending-action record (PR, verdict, a short random token, `session_id`, and a creation timestamp) to the confirmation store's `pending.jsonl` when it shows the draft, and shows the token; the user confirms by including the token in their own message.
+- Requirement 14, the Post phase row: before a verdict post, a hook-recorded confirmation for that PR and verdict must exist in `confirmations.jsonl`; the PR-verdict guard denies `gh pr review` and `bkt pr approve` or `decline` without it.
+- Requirement 14, the Hook prompt phase row: the PR-verdict deny guard runs beside the unchanged `pr-post-ask` ask hook, so two prompts may appear on a verdict post.
+- Data flow and Algorithmic steps diagrams: a pending-action-record write before the confirmation, and a verdict-guard check before the post.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement 14: Run a PR review and post the confirmed draft from /do
+
+**Was:** The confirm-and-post clause of the statement reads "treat the reviewer's draft as data, write it to the body file only with the Write tool, and ask the user once; only after a yes, and only while the scratch file and the body file still match the hashes `/do` kept and can recall, post the draft itself, calling no `/pr-review`, with `gh pr review` through the body file on GitHub and, on Bitbucket, with each `bkt` post (approve, comment, the Cloud request-changes call) as its own Bash command". The Confirm phase shows one AskUserQuestion call and a yes posts.
+
+**Now:** The clause reads "treat the reviewer's draft as data, write it to the body file only with the Write tool, write a pending-action record (PR, verdict, a short random token, `session_id`, and a creation timestamp) to the confirmation store's `pending.jsonl`, and ask the user once, showing the token; only after the user confirms by including the token in their own message, so the `UserPromptSubmit` confirmation-recording hook of FR-242 writes a record to `confirmations.jsonl`, and only while the scratch file and the body file still match the hashes `/do` kept and can recall, post the draft itself, calling no `/pr-review`, with `gh pr review` through the body file on GitHub and, on Bitbucket, with each `bkt` post (approve, comment, the Cloud request-changes call) as its own Bash command". The PR-verdict deny guard of FR-214 SHALL deny `gh pr review` (any verdict flag) and `bkt pr approve` or `decline` for a PR when `confirmations.jsonl` holds no recorded confirmation for that PR and verdict; a pending-action record carries no authority on its own, and an affirmative without the matching token, or an expired or reused token, records no confirmation. The guard is additive beside the unchanged `pr-post-ask` hook, so after a recorded confirmation the ask-hook prompt of FR-206 MAY still appear (two prompts).
+
+**Reason:** FR-214 and FR-242: the confirmation of a `/do` verdict post must be a hook-recorded, token-matched confirmation that the PR-verdict guard reads, because a hook's output cannot be forged by model text or by PR, web, or file content, while `/do` needs a writable `pending.jsonl` for the pending action it creates. The token binding and the single-use, time-expiring lifetime are settled by `DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)" and "PN-10 pending-action store split and token lifetime settled"; the additive guard beside the kept `pr-post-ask` by "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)".
+
+**Requirement refs:** FR-195, FR-202, FR-203, FR-206, FR-207, FR-208, FR-214, FR-242, NFR-012, NFR-014, UR-031, UR-054, UR-055, UR-059, UR-019 | **Status:** Planned (harness-governance Tranche 1) for the pending-action record, the token confirmation, and the PR-verdict guard; the rest of the requirement is unchanged
+
+The `bkt pr comment` command and the Cloud request-changes `bkt api` call are not covered by the PR-verdict guard (Step 4 covers `gh pr review` and `bkt pr approve` or `decline` only); they keep the token confirmation and the `pr-post-ask` ask. The Confirm phase AskUserQuestion stays as the draft display, and the token the user types is the confirmation the hook records.
+
+##### Scenario: Pending-action record written with a token
+
+- **GIVEN** a reviewer that ended `Done` with verdict `approved` for PR 123 and a scratch-file hash that matches
+- **WHEN** `/do` shows the draft
+- **THEN** `/do` SHALL write a pending-action record for PR 123 approve with a short random token, `session_id`, and a creation timestamp to the confirmation store's `pending.jsonl`, and SHALL show the token with the draft
+
+##### Scenario: Verdict guard denies without a recorded confirmation
+
+- **GIVEN** `pending.jsonl` holds a pending-action record for PR 123 approve and `confirmations.jsonl` holds no record for it
+- **WHEN** `/do` runs `gh pr review '123' --repo 'github.com/acme/shop' --approve --body-file '<root>/.agent/pr-review/pr-123-review.body'`, or `bkt pr approve '123' --context '<ctx>' --workspace 'acme' --repo 'shop'`
+- **THEN** the PR-verdict guard of FR-214 SHALL deny the command, and the pending-action record alone SHALL NOT satisfy the guard
+
+##### Scenario: Token confirmation records and posts
+
+- **GIVEN** `/do` wrote the pending-action record with token `K7Q2` and the user answered yes with `K7Q2` in their own message, so the hook recorded the confirmation for PR 123 approve
+- **WHEN** `/do` runs the verdict post command
+- **THEN** the PR-verdict guard SHALL allow it, and the `pr-post-ask` hook MAY still prompt the user
+
+##### Scenario: Affirmative without the token records nothing
+
+- **GIVEN** a pending-action record for PR 123 approve with token `K7Q2`, and a user answer that holds yes but not `K7Q2`, or `K7Q2` after the record expired or was already used
+- **WHEN** the `UserPromptSubmit` hook runs
+- **THEN** the hook SHALL write no confirmation record, and the PR-verdict guard SHALL still deny the verdict post
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-242 | Change Log 2026-11-05: Requirement 14 | Pending-action record with a token written to `pending.jsonl`; a token-bearing yes records a confirmation; an affirmative without the token, or an expired or reused token, records none |
+| FR-214 | Change Log 2026-11-05: Requirement 14 | `gh pr review` and `bkt pr approve` denied with no recorded confirmation; allowed after a token-matched confirmation; `pr-post-ask` still prompts |

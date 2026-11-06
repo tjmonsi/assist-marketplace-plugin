@@ -7,9 +7,9 @@
 | **Feature** | FSA write bar: per-agent write limits and protected paths |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, NFR-008, NFR-009 |
+| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, UR-075, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, FR-242, FR-245, NFR-008, NFR-009, NFR-031, NFR-036 |
 | **Feature type** | Functionality |
-| **Status** | Approved |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -753,3 +753,81 @@ The scenarios Developer reason names the glob and Protected reason names the rul
 - The code-lines table: the `hooks/lib/git-root.js:1-38` row says the walk is shared with `sa-mermaid-only`, and that `hooks/lib/prose-diff.js` shared it for FR-181 until 1.13.1.
 
 The task-planner scope, the walk, and every scenario are unchanged, so this entry records no ADDED, MODIFIED, or REMOVED requirement and the Status stays `Approved` (`skills/spec-from-requirements/references/delta-format.md`, When to use delta: a wording fix with no behavior change is a direct edit).
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-242 (section 2.29), FR-245 (section 2.32), NFR-031 and NFR-036 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Step 2; `DECISIONS.md`, 2026-10-30, "PN-10 pending-action store split and token lifetime settled" and "Proposed governance file names and store paths approved (PN-8)". Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review. Requirement refs: UR-075, FR-242, FR-245, NFR-031, and NFR-036 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Algorithmic steps flow: a branch for the confirmation store, checked before the assist-plugin agent gate, that denies `confirmations.jsonl` to every caller and denies `pending.jsonl` to every subagent.
+- Required data: `PROTECTED_FILES` or a store entry in `hooks/lib/fsa-paths.js` for the confirmation store's two files with their different write rules.
+
+### ADDED Requirements
+
+#### Requirement: Confirmation store protected from writes
+
+The `fsa-write-bar` hook SHALL protect the confirmation store, the directory `.agent/governance/confirmations/` of FR-242, with two rules: it SHALL deny a Write, Edit, MultiEdit, or NotebookEdit of `confirmations.jsonl` in that directory from every tool caller, the main session included, and it SHALL deny such a write of `pending.jsonl` from every subagent while allowing it from the main-session `/do` orchestrator.
+
+**Requirement refs:** FR-245, FR-242, UR-075, NFR-031, NFR-036 | **Status:** Planned (harness-governance Tranche 1) | **Source:** FR-NFR-harness-governance.md v1.3, FR-245 (section 2.32) and FR-242 (section 2.29); task plan Step 2; `DECISIONS.md`, 2026-10-30, "PN-10 pending-action store split and token lifetime settled" and "Proposed governance file names and store paths approved (PN-8)"
+
+The store is one of the six protected paths of FR-245, held as a directory with two files that carry different write rules. `confirmations.jsonl` is written only by the `UserPromptSubmit` confirmation-recording hook of FR-242, which writes with `fs` and so is not stopped by a tool-level deny; a Write, Edit, MultiEdit, or NotebookEdit of it is denied whatever the caller, so model or PR text cannot forge a confirmation through the main session. `pending.jsonl` holds the pending-action records that the main-session `/do` orchestrator (no `agent_id`) writes, so it stays writable by the main session and denied to every subagent. The entry lives in `hooks/lib/fsa-paths.js` beside the Write guard lists markdown and is kept identical under `check-fsa-tables.js --check`. Residual risk until the shell write path closes (a later tranche): a subagent can still reach the store through a Bash command, which this hook does not judge.
+
+##### Scenario: Subagent write to confirmations.jsonl denied
+
+- **GIVEN** any subagent call with an `agent_id` writes `.agent/governance/confirmations/confirmations.jsonl`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it
+
+##### Scenario: Main-session write to confirmations.jsonl denied
+
+- **GIVEN** the main session (no `agent_type`, no `agent_id`) writes `.agent/governance/confirmations/confirmations.jsonl`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it, because only the `UserPromptSubmit` hook writes that file
+
+##### Scenario: Subagent write to pending.jsonl denied
+
+- **GIVEN** any subagent call with an `agent_id` writes `.agent/governance/confirmations/pending.jsonl`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it
+
+##### Scenario: Main-session write to pending.jsonl allowed
+
+- **GIVEN** the main session (no `agent_type`, no `agent_id`) writes `.agent/governance/confirmations/pending.jsonl`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL allow it with no output
+
+##### Scenario: Read allowed
+
+- **GIVEN** a subagent session reads `.agent/governance/confirmations/confirmations.jsonl`
+- **WHEN** the hook evaluates it
+- **THEN** the read SHALL be allowed, because the bar judges only the four write tools
+
+### MODIFIED Requirements
+
+#### Requirement: Calls the bar judges
+
+**Was:** The `fsa-write-bar` hook SHALL judge a Write, Edit, MultiEdit, or NotebookEdit call only when its `agent_type` starts with `assist-plugin:` or its `agent_id` is a non-empty string, so an `assist-plugin:<name>` agent's rules reach a main session only when that session was started with `--agent assist-plugin:<name>`.
+
+**Now:** The `fsa-write-bar` hook SHALL judge a Write, Edit, MultiEdit, or NotebookEdit call only when its `agent_type` starts with `assist-plugin:` or its `agent_id` is a non-empty string, except that it SHALL apply the confirmation store's `confirmations.jsonl` all-callers rule (Requirement: Confirmation store protected from writes) to every caller, the main session included, before the agent gate; an `assist-plugin:<name>` agent's rules otherwise reach a main session only when that session was started with `--agent assist-plugin:<name>`.
+
+**Reason:** FR-245 and FR-242, settled by `DECISIONS.md`, 2026-10-30, "PN-10 pending-action store split and token lifetime settled". The forged-confirmation case of FR-242 needs `confirmations.jsonl` denied to the main session as well, and the built hook judges subagents only today (`hooks/impl/fsa-write-bar.js`, the `agent_id` check).
+
+**Status:** Planned (harness-governance Tranche 1)
+
+The scenarios Main session, Main session started as an assist-plugin agent, and Main session started as another agent are unchanged for every path other than `confirmations.jsonl` in the confirmation store.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-245 | Change Log 2026-11-05: Requirement: Confirmation store protected from writes | Subagent and main-session deny cases for both files; read allowed |
+| FR-242 | Change Log 2026-11-05: Requirement: Calls the bar judges | All-callers deny of `confirmations.jsonl`; main-session allow of `pending.jsonl` |

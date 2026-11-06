@@ -7,9 +7,9 @@
 | **Feature** | Git workflow skills: `/commit`, `/bump`, `/branch` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-006, BR-009, BR-010, UR-015, UR-028, UR-029, UR-030, UR-056, FR-135, FR-136, FR-137, FR-138, FR-139, FR-140, FR-141, FR-196, FR-200, FR-209 |
+| **Requirement refs** | BR-006, BR-009, BR-010, UR-015, UR-028, UR-029, UR-030, UR-056, UR-060, FR-135, FR-136, FR-137, FR-138, FR-139, FR-140, FR-141, FR-196, FR-200, FR-209, FR-215, FR-217, NFR-028, NFR-031 |
 | **Feature type** | Tooling |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -1150,3 +1150,81 @@ Status: Review -> Draft, by the fold rule of `spec-from-requirements` (`referenc
 ### Rework 1: R6 cite (`DECISIONS.md:263-266`)
 
 `DECISIONS.md:263-266` records the R6 correction (`test -d` with no `--`, because bash's `test` rejects `--`). The Source line of this entry, the R6 bullet above, and check 6 of Requirement: --path value validated before it names anything now cite it in place of the build plan's gate notes. No behavior changes.
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-215 (section 2.2), FR-217 (section 2.4), NFR-031 and NFR-028 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Steps 5 and 6; `DECISIONS.md`, 2026-10-30, "Secret-scan tool settled as the in-plugin pattern scanner (PN-4)". Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: UR-060, FR-215, FR-217, NFR-028, and NFR-031 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Algorithmic steps, the `/commit` line "stage changes; run `/commit`": staging names paths explicitly and never runs `git add .`, and a secret scan runs on the staged changes before the commit step.
+- Required data, the Staged diff row: the diff is the staged changes, which the workflow stages by named path only.
+
+### ADDED Requirements
+
+#### Requirement: Stage only named paths
+
+The `/commit` skill SHALL stage only the paths the user named or the paths the workflow listed and the user accepted, and SHALL NOT run `git add .`, `git add -A`, or `git add --all`.
+
+**Requirement refs:** FR-215, UR-060 | **Status:** Planned (harness-governance Tranche 1) | **Source:** FR-NFR-harness-governance.md v1.3, FR-215 (section 2.2); task plan Step 5
+
+The workflow lists the changed paths with `git status --porcelain`, asks which to stage, and runs `git add -- <named paths>` for exactly those. A request to "commit everything" lists the changed paths and asks which to stage; it stages nothing until paths are named.
+
+##### Scenario: Named paths staged
+
+- **GIVEN** the user names `src/a.js` and `src/b.js`
+- **WHEN** the commit workflow stages changes
+- **THEN** the workflow SHALL stage exactly those two paths and SHALL NOT run `git add .`, `-A`, or `--all`
+
+##### Scenario: Request to stage everything
+
+- **GIVEN** the user says "commit everything" and the tree holds a `.env` file
+- **WHEN** the commit workflow starts
+- **THEN** the workflow SHALL list the changed paths and ask which to stage
+- **AND** the workflow SHALL stage nothing until paths are named
+
+#### Requirement: Secret scan before the commit
+
+The `/commit` skill SHALL run a secret scan on the staged changes before it creates a commit, using the in-plugin pattern-scanner script as the default scan tool, and SHALL stop with no commit when the scan reports a finding or cannot run.
+
+**Requirement refs:** FR-217, UR-060, NFR-031, NFR-028 | **Status:** Planned (harness-governance Tranche 1) | **Source:** FR-NFR-harness-governance.md v1.3, FR-217 (section 2.4); task plan Step 6; `DECISIONS.md`, 2026-10-30, "Secret-scan tool settled as the in-plugin pattern scanner (PN-4)"
+
+The default scan is the in-plugin script `scripts/scan-staged-secrets.js`, which reads `git diff --cached`, matches rules, and exits 0 clean, 1 on a finding, 2 cannot-run; it ships with the plugin, so the default scan has no external dependency. A report or log line holds the file path and the rule name only, never the matched value (NFR-031). Exit 1 and exit 2 both stop the commit; a scanner that cannot run (git missing, not a repository, script error, or a substituted external scanner that is not installed) is treated as cannot-run and the user is told the scan did not run. A project MAY substitute an external scanner (for example gitleaks or trufflehog) by replacing the script call, provided the substitute keeps the three outcomes clean, findings, and cannot-run.
+
+##### Scenario: Clean scan commits
+
+- **GIVEN** the staged changes hold no secret pattern
+- **WHEN** the commit workflow reaches the commit step
+- **THEN** the scan SHALL report clean and the workflow SHALL create the commit
+
+##### Scenario: Staged secret stops the commit
+
+- **GIVEN** a staged file holds an API key pattern
+- **WHEN** the commit workflow reaches the commit step
+- **THEN** the workflow SHALL stop with no commit
+- **AND** the report SHALL show the file path and the rule name and SHALL NOT show the secret value
+
+##### Scenario: Scanner unavailable
+
+- **GIVEN** the in-plugin pattern-scanner script cannot run, or a substituted external scanner is not installed
+- **WHEN** the commit workflow reaches the commit step
+- **THEN** the workflow SHALL treat the outcome as cannot-run, stop with no commit, and tell the user the scan did not run
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-215 | Change Log 2026-11-05: Requirement: Stage only named paths | Named-paths and commit-everything scenarios; no `git add .`, `-A`, or `--all` in the workflow |
+| FR-217, NFR-031 | Change Log 2026-11-05: Requirement: Secret scan before the commit | Clean, finding, and cannot-run scans; report holds path and rule name, never the value |

@@ -7,7 +7,7 @@
 | **Feature** | Health check: hook self-tests, auto-disable, session notice, health report, attribution settings |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, NFR-007, NFR-009, NFR-016 |
+| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, UR-059, UR-060, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, FR-214, FR-216, FR-242, NFR-007, NFR-009, NFR-016, NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -932,3 +932,102 @@ None.
 ### Fix pass 1 (2026-10-23)
 
 Review findings applied: `/do` settled that the three cases that duplicate another once `projectAt` and `gitRootAt` go are dropped (cases 10, 19, and 20), so `prose-gate` has 38 deny cases, not 41; the case table now gives a label after the change for every moved or relabeled case, the unmoved ones that named a project variable included (cases 16 to 18 at `:263-265`, cases 21 and 22 at `:343-344`); the helper-removal row names every root argument (`:263-267`, `:277-281`, `:343-344`, `:349`); Requirement refs gain FR-104 and FR-213.
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-216 (section 2.3), NFR-035, FR-214 (section 2.1), FR-242 (section 2.29); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Steps 3, 4, and 7; `DECISIONS.md`, 2026-10-30, "Push grant scoped per named remote, not origin-only (D-3 refined)". Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta; its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-060 and FR-216 added. NFR-035, FR-214, FR-242, and UR-059 added by the Self-tests entry below, in the metadata block.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description and Algorithmic steps (node B of the flow diagram, inline and `spec-hooks-health-check-flow.mmd`): "ten hooks" becomes "twelve hooks", with the guard `pr-verdict-guard` and the filter `confirmation-record` named.
+- Requirement: Self-tests, the statement and the table: the Now below, with two new rows.
+- Requirement: Health report, the report section list and line formats: a push-grant section after the attribution settings, listing a wildcard or unscoped push grant when one is read, or nothing when every push grant names a remote.
+- Algorithmic steps flow: the report path reads `permissions.allow` from the settings files alongside the attribution read, both read-only.
+
+### ADDED Requirements
+
+#### Requirement: Push-grant finding
+
+In report mode the health check SHALL read `permissions.allow` from the local, project, and user Claude Code settings files that it already reads for the attribution report, and SHALL report, read-only, a wildcard or unscoped push grant (`Bash(git push *)`, `Bash(git push:*)`, or a broader family that includes `git push` to any remote), naming the file and the entry, and SHALL NOT report a push grant that names a specific remote, including a second named remote.
+
+**Requirement refs:** FR-216, UR-060 | **Status:** Planned (harness-governance Tranche 1) | **Source:** FR-NFR-harness-governance.md v1.3, FR-216 (section 2.3); task plan Step 7; `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" and "Push grant scoped per named remote, not origin-only (D-3 refined)"
+
+The check reads the same three settings files as the attribution report, in the same precedence, and never edits a settings file. A grant such as `Bash(git push origin *)`, and a second such as `Bash(git push mirror *)`, passes with no finding, because each trusted remote is enumerated by name and no wildcard auto-approves an arbitrary remote an injected instruction could add. The documentation recommendation to scope each push grant to a named remote ships with this check; the user applies the grants in `.claude/settings.local.json` or the committed `.claude/settings.json`.
+
+##### Scenario: Named grant passes the check
+
+- **GIVEN** the settings hold `Bash(git push origin *)` and no wildcard or unscoped push grant
+- **WHEN** the health check runs in report mode
+- **THEN** the report SHALL show no push-grant finding
+
+##### Scenario: Second named remote passes the check
+
+- **GIVEN** the settings hold `Bash(git push origin *)` and `Bash(git push mirror *)` and no wildcard or unscoped push grant
+- **WHEN** the health check runs
+- **THEN** the report SHALL show no push-grant finding
+
+##### Scenario: Wildcard grant reported
+
+- **GIVEN** the settings hold `Bash(git push *)` or `Bash(git push:*)`
+- **WHEN** the health check runs
+- **THEN** the report SHALL list the wildcard or unscoped push grant and name the file and the entry
+- **AND** the health check SHALL NOT edit the settings file
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** (main body) The health check SHALL, in both modes, run each of the ten hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; and `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list.
+
+**Now:** The health check SHALL, in both modes, run each of the twelve hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list; `pr-verdict-guard` runs as a guard whose unconfirmed-post cases are its deny list and whose confirmed-post cases are its allow list; and `confirmation-record` runs as a filter whose genuine token case must write a record and whose forged, tokenless, expired, and reused cases must write none, each against a stub confirmation store.
+
+**Reason:** NFR-035: each new guard or filter ships a self-test corpus with a known-safe and a known-prohibited case and reports through `/assist-plugin:health`. The health check does not self-test a hook by a generic discovery step: each hook is one `GUARDS` entry in `hooks/impl/health-check.js` (Requirement: Self-tests, the `pr-post-ask` entry, Change Log 2026-10-22), so a new hook is self-tested only when this requirement lists it. Task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Step 4 (the FR-214 PR-verdict guard: "one allowed confirmed case and one denied unconfirmed case") and Step 3 (the FR-242 confirmation-recording hook: a genuine case carrying the token, a forged-text case, an affirmative-without-token case, and an expired-token case) each modify `hooks/impl/health-check.js` and `skills/health/SKILL.md` for this. This Now keeps the main-body statement and quotes its wording; the unfolded Change Log 2026-10-23 entry changes only the `prose-gate` and `prose-advisor` rows and the Isolation paragraph of this requirement, so the two entries do not overlap.
+
+**Requirement refs:** NFR-035, FR-214, FR-242, UR-059, UR-018 | **Status:** Planned (harness-governance Tranche 1)
+
+New rows of the self-test table:
+
+| Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
+|---|---|---|---|---|
+| `pr-verdict-guard` | guard | At least 1 confirmed case: a recorded confirmation for the same PR and verdict | At least 2 unconfirmed cases: no recorded confirmation; a confirmation for a different verdict (`--approve` recorded, `--request-changes` posted) | `deny === true`; the case carries a stub confirmation-store reader |
+| `confirmation-record` | filter | At least 3 no-record cases: forged text with no matching pending record; an affirmative without the token; an expired or reused token | At least 1 record case: a prompt carrying the token of an unused, unexpired pending record for the same `session_id` | The hook returns a confirmation record to write; the case carries a stub pending store and a stub confirmation store |
+
+Rules:
+- The exact case counts are counted from the corpus at the build, as for every other row. The minimums above are the cases the task plan names; the corpus MAY hold more.
+- Both `GUARDS` entries use stubs only: no case reads or writes `.agent/governance/confirmations/`, and no case runs a clock other than a fixed timestamp per case. The `pr-verdict-guard` entry has no `reportOnly` flag, so `updateDisabled` and `buildProblems` treat it as a guard (Requirement: Auto-disable and re-enable). `confirmation-record` is listed as a filter, so any false deny, false allow, or thrown case disables it; a disabled recording hook writes no confirmation, and `pr-verdict-guard` then denies the post, which is the safe direction.
+- The report shows one PASS or FAIL line per hook, `/assist-plugin:health` lists both hooks in its guard list and findings table (`skills/health/SKILL.md`, Steps 3 and 4), and the build passes `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` and `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` with exit 0 (NFR-035).
+- The report nouns, the exact PASS-line counts, and the filter noun set for `confirmation-record` are proposed at the build, following the `pr-post-ask` entry.
+
+##### Scenario: Verdict-guard and recording-hook self-tests pass
+
+- **GIVEN** `pr-verdict-guard` and `confirmation-record` give the expected result on every case
+- **WHEN** the session starts, or the report runs
+- **THEN** the notice SHALL NOT name either hook, and the report SHALL show a PASS line for each
+
+##### Scenario: Verdict guard denies a confirmed case
+
+- **GIVEN** a defect makes `pr-verdict-guard` deny the confirmed case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL add `pr-verdict-guard` to `hooks-disabled.json` and report the false deny
+
+##### Scenario: Recording hook writes a record for a tokenless affirmative
+
+- **GIVEN** a defect makes `confirmation-record` return a record for the affirmative-without-token case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL add `confirmation-record` to `hooks-disabled.json` and report the false allow
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-216 | Change Log 2026-11-05: Requirement: Push-grant finding | `Bash(git push origin *)` and a second named remote pass; `Bash(git push *)` and `Bash(git push:*)` each reported; no settings file written |
+| NFR-035 | Change Log 2026-11-05: Requirement: Self-tests | HEALTH report with a PASS line for `pr-verdict-guard` (confirmed and unconfirmed cases) and for `confirmation-record` (genuine, forged, tokenless, expired, and reused cases); `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
+| FR-214, FR-242 | Change Log 2026-11-05: Requirement: Self-tests | The self-test corpora of the PR-verdict guard (spec-skills-pr-review.md, Change Log 2026-11-05) and the confirmation-recording hook; a false deny or false allow lists the hook in `hooks-disabled.json` |

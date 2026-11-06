@@ -7,9 +7,9 @@
 | **Feature** | Pull request review skill: `/pr-review` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, BR-010, BR-012, BR-016, UR-019, UR-031, UR-054, UR-055, UR-057, FR-142, FR-143, FR-144, FR-195, FR-202, FR-203, FR-204, FR-205, FR-206, FR-210, NFR-011, NFR-012, NFR-014 |
+| **Requirement refs** | BR-005, BR-006, BR-010, BR-012, BR-016, UR-019, UR-031, UR-054, UR-055, UR-057, UR-059, FR-142, FR-143, FR-144, FR-195, FR-202, FR-203, FR-204, FR-205, FR-206, FR-210, FR-214, FR-242, NFR-011, NFR-012, NFR-014 |
 | **Feature type** | Integration |
-| **Status** | Draft |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -1651,3 +1651,76 @@ Source: `DECISIONS.md:263-266` (2026-10-22, "PR file cleanup by name, and pre-re
 - MODIFIED Requirement: Verdict confirmation gate. Was: on Bitbucket an approval ran `bkt pr approve`, then `bkt pr comment`, whose command alone checked the body. Now: on Bitbucket the skill hashes the draft once before the confirmation and keeps `<hash>`; for an approval the body-hash check runs as its own command before `bkt pr approve`, and a mismatch, or a hash the skill cannot recall, posts nothing; the comment command repeats the check (`SKILL.md:140`, `:231-247`; `review-workflow.md:49`). New Scenario: Body changed before a Bitbucket approval. The Bitbucket command forms table gains the body-check row, and its Comment row shows the check prefix; Algorithmic steps 7, 9, and 10 follow.
 - Cites switched to `DECISIONS.md:263-266`: the "exactly one" reading of the contexts array (one element that meets the Match rule, not an array of length 1) in pin step 3 and the command-forms table, and the `--jq` JSON-quoted note in pin step 4, the PR link row, and Open question 4, which the fold entry above took from the build plan's step 1 record.
 - Open question 9 is closed. Body cites into `SKILL.md` after line 140 move by 5 lines for the longer file, and cites into `review-workflow.md` after line 51 by 4.
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-214 (section 2.1), FR-242 (section 2.29); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Steps 3 and 4; `DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)", and "PN-10 pending-action store split and token lifetime settled". Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Draft -> Review. Requirement refs: UR-059, FR-214, and FR-242 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement: Verdict confirmation gate, the protocol paragraph and the post sequences: the confirmation now also writes a pending-action record with a per-action token and records the user's token-bearing confirmation, and the posting of a verdict is denied by the PR-verdict guard without a recorded confirmation.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Verdict confirmation gate
+
+**Was:** The `/pr-review` skill SHALL run `--approve`, `--changes-requested`, `--comment`, `bkt pr approve`, the Bitbucket comment submission (`bkt pr comment`), or the Bitbucket Cloud request-changes call (`bkt api` with a relative path) only after the user answers yes to "Do you approve this verdict? (yes/no)" for the drafted verdict and the exact body that will be posted, shown for every verdict, even when the flag was passed or the `reviewer` agent chose the verdict; declining a PR is a manual choice outside the skill's verdict mapping. On Bitbucket Cloud a confirmed `--changes-requested` posts the findings as a comment and then makes the request-changes call, and makes no request-changes call when the comment fails; on Data Center it posts the comment and leaves the PR open. Each `bkt` post runs as its own Bash command, so the ask hook of FR-206 prompts for each; a rejected prompt is reported as declined and not as a failure, is not retried, and a rejected first prompt of a pair runs no second command. No flag overrides an already approved or declined PR, and the skill text names none.
+
+**Now:** The `/pr-review` skill SHALL run `--approve`, `--changes-requested`, `--comment`, `bkt pr approve`, the Bitbucket comment submission (`bkt pr comment`), or the Bitbucket Cloud request-changes call (`bkt api` with a relative path) only after the user confirms the drafted verdict and the exact body that will be posted, shown for every verdict, even when the flag was passed or the `reviewer` agent chose the verdict, where the confirmation is a per-action token: the skill writes a pending-action record (PR, verdict, a short random token, `session_id`, and a creation timestamp) to the confirmation store's `pending.jsonl`, shows the token, and the user confirms by answering yes with that token in their own message, so that the `UserPromptSubmit` confirmation-recording hook of FR-242 writes a record to `confirmations.jsonl`; an affirmative without the matching token, and an expired or reused token, confirm nothing. The PR-verdict deny guard of FR-214 SHALL deny `gh pr review` (any verdict flag) and `bkt pr approve` or `decline` for a PR when no recorded confirmation exists in `confirmations.jsonl` for that PR and verdict, and SHALL allow the posting command once a recorded confirmation exists; `bkt pr comment` and the Cloud request-changes `bkt api` call are not covered by the verdict guard and keep this confirmation and the `pr-post-ask` ask only. The verdict guard is additive and leaves the `pr-post-ask` hook unchanged, so after a recorded confirmation the user MAY still see the `pr-post-ask` prompt (two prompts), accepted as defense in depth. Declining a PR is a manual choice outside the skill's verdict mapping. On Bitbucket Cloud a confirmed `--changes-requested` posts the findings as a comment and then makes the request-changes call, and makes no request-changes call when the comment fails; on Data Center it posts the comment and leaves the PR open. Each `bkt` post runs as its own Bash command, so the ask hook of FR-206 prompts for each; a rejected prompt is reported as declined and not as a failure, is not retried, and a rejected first prompt of a pair runs no second command. No flag overrides an already approved or declined PR, and the skill text names none.
+
+**Reason:** FR-214 and FR-242: the confirmation of a verdict post must be a hook-recorded, token-matched confirmation that the PR-verdict guard reads, so attacker-controlled PR text cannot post a verdict; the token fails closed because the hook sees only the prompt text and `session_id` and cannot tell a pasted affirmative from a typed one. The additive guard and the kept `pr-post-ask` prompt are settled by `DECISIONS.md`, 2026-10-30, "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)"; the token binding and the two-file store by "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)" and "PN-10 pending-action store split and token lifetime settled".
+
+**Requirement refs:** FR-143, FR-206, FR-214, FR-242, UR-031, UR-055, UR-059, BR-006 | **Status:** Planned (harness-governance Tranche 1)
+
+##### Scenario: Approve denied without a recorded confirmation
+
+- **GIVEN** a drafted approval for PR 42 and no confirmation recorded in `confirmations.jsonl` for PR 42 approve
+- **WHEN** the skill runs `gh pr review '42' --approve --body-file '<run folder>/body.txt'`, or `bkt pr approve '42'`
+- **THEN** the PR-verdict guard of FR-214 SHALL deny the command and name the missing confirmation
+
+##### Scenario: Token confirmation posts the verdict
+
+- **GIVEN** the skill wrote a pending-action record for PR 42 approve with token `K7Q2`, showed the token, and the user answered yes with `K7Q2` in their own message, so the hook recorded the confirmation
+- **WHEN** the skill runs the `gh pr review` or `bkt pr approve` command for PR 42 approve
+- **THEN** the PR-verdict guard SHALL allow the command
+- **AND** the `pr-post-ask` hook MAY still prompt the user, because the verdict guard does not replace it
+
+##### Scenario: Affirmative without the token does not confirm
+
+- **GIVEN** a pending-action record for PR 42 approve with token `K7Q2`, and a user answer that holds yes but not `K7Q2`
+- **WHEN** the skill prepares to post
+- **THEN** no confirmation record SHALL be written and the PR-verdict guard SHALL still deny `gh pr review` or `bkt pr approve`
+
+##### Scenario: Bitbucket comment stays outside the verdict guard
+
+- **GIVEN** a confirmed comment-only verdict on a Bitbucket PR, or the Cloud request-changes `bkt api` call that follows a confirmed `--changes-requested` comment
+- **WHEN** the skill runs `bkt pr comment`, or the Cloud request-changes `bkt api` call
+- **THEN** the PR-verdict guard SHALL not apply to either command, and the existing confirmation and the `pr-post-ask` ask SHALL govern the post
+
+##### Scenario: GitHub comment verdict is guard-covered
+
+- **GIVEN** a drafted `--comment` verdict for GitHub PR 42 and no confirmation recorded in `confirmations.jsonl` for PR 42 comment
+- **WHEN** the skill runs `gh pr review '42' --comment --body-file '<run folder>/body.txt'`
+- **THEN** the PR-verdict guard of FR-214 SHALL deny the command and name the missing confirmation
+- **AND** once a token-matched confirmation for PR 42 comment is recorded, the guard SHALL allow the command, and the `pr-post-ask` hook MAY still prompt the user
+
+The scenarios Flag supplied, User declines, Unclear answer, Second verdict in the same session, Exact body shown for an approval, Pre-supplied flag still asks, No override flag, and the per-host post scenarios are unchanged, except that a yes to a verdict post now carries the per-action token and a recorded confirmation must exist before `gh pr review` or `bkt pr approve` runs.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-214 | Change Log 2026-11-05: Requirement: Verdict confirmation gate | `gh pr review` and `bkt pr approve` denied with no recorded confirmation; allowed after a token-matched confirmation |
+| FR-242 | Change Log 2026-11-05: Requirement: Verdict confirmation gate | Pending-action record with a token; a token-bearing yes records a confirmation; an affirmative without the token records none |

@@ -7,9 +7,9 @@
 | **Feature** | `/do` review gates, fix phase, and merge signatures |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, UR-013, UR-014, FR-054, FR-055, FR-056, FR-057, FR-058, FR-059, FR-060, FR-061, FR-193, FR-195, FR-199, NFR-010, NFR-011, NFR-012, NFR-024 |
+| **Requirement refs** | BR-005, BR-006, UR-013, UR-014, UR-061, FR-054, FR-055, FR-056, FR-057, FR-058, FR-059, FR-060, FR-061, FR-193, FR-195, FR-199, FR-218, NFR-010, NFR-011, NFR-012, NFR-024, NFR-036 |
 | **Feature type** | Functionality |
-| **Status** | Approved |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -589,3 +589,87 @@ The `/do` skill SHALL run the OWASP for LLM Gate, a named gate on `reviewer` or 
 | FR-054 (PLANNED) | MODIFIED Requirements 1 and 2 | Gate list and gate prompt for an LLM-surface step |
 | FR-195 (PLANNED) | MODIFIED Requirement 1 (PR review draft under /do) | No gate dispatch after the reviewer step of a `/do` PR review |
 | FR-061, NFR-011, FR-193 (PLANNED) | MODIFIED Requirement 12 | Merge policy check on plugin, metadata, and application paths |
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-218 (section 2.5), NFR-036 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Step 8; `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" (D-7, OQ-2). Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta, so its Status returns to `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Approved -> Review. Requirement refs: UR-061, FR-218, and NFR-036 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: the sentence "a binding code-reviewer pass ends a gate that reaches its bound" becomes "at the cap of 10 iterations the orchestrator runs no further round and escalates to the user (continue, waive, or abort)".
+- Algorithmic steps diagram: the `BP` node "One binding code-reviewer pass" and its `approved`/`returned` edges become an escalation node "Escalate to the user: continue, waive, or abort" with no further reviewer or developer round.
+- Requirement 9 (Testing Gate), the body paragraph: "The gate exits at 2 consecutive `approved` or 10 iterations (binding code-reviewer pass over the last qa report)" becomes "at the cap the orchestrator escalates to the user with continue, waive, or abort".
+- Requirement 10 (code-reviewer), the body paragraph: "It is also the binding reviewer when any gate reaches its bound" is dropped; code-reviewer stays the final call when a reviewer and a producer disagree.
+- Requirement 13 (ADDED in the Change Log 2026-10-16), the statement clause "binding final `code-reviewer` pass", the Bound property row, and the Scenario "Gate exhausted": the binding `code-reviewer` pass becomes escalation to the user (continue, waive, or abort), with no eleventh round. The formal Was and Now are in MODIFIED Requirement 13 below.
+- RULE-003: "then one binding code-reviewer pass" becomes "then escalation to the user (continue, waive, or abort)".
+- Performance considerations, the "Iterations per gate" row and Error handling, the "Bound reached" row: the binding pass becomes escalation.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement 4: End a code or planning gate at two approvals or ten iterations
+
+**Was:** The `/do` skill SHALL end a code or planning gate after 2 consecutive `approved` verdicts or 10 iterations, and after 10 iterations run one code-reviewer pass whose verdict is binding.
+
+**Now:** The `/do` skill SHALL end a code or planning gate after 2 consecutive `approved` verdicts as the normal pass, or at a single cap of 10 iterations, and at the cap without approval SHALL run no further developer or reviewer round and SHALL escalate to the user, presenting the unresolved findings with the choices continue, waive, or abort; a waive is recorded in the plan file by the orchestrator.
+
+**Reason:** FR-218, settled by `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" (D-7, OQ-2): the cap of 10 with two consecutive LGTMs is the normal pass, and at the cap FR-218 wins over the review protocol's "Exhausting a gate" step, so the one binding code-reviewer pass at the bound is replaced by escalation to the user. The review-protocol change is on the LLM surface, so the Step takes the OWASP for LLM Gate (NFR-036).
+
+**Requirement refs:** FR-055, FR-218, NFR-010, NFR-036 | **Status:** Planned (harness-governance Tranche 1)
+
+Review passes and fix passes count toward the same cap of 10. At the cap the main agent runs no further round and never rewrites an artifact to end a gate; it presents the unresolved findings and the three choices, and records a waive in the plan file the way existing waiver state is recorded.
+
+##### Scenario: Two approvals
+
+- **GIVEN** a reviewer returns `approved` twice in a row
+- **WHEN** the gate counts
+- **THEN** `/do` SHALL end the gate approved and SHALL NOT escalate
+
+##### Scenario: Cap reached
+
+- **GIVEN** a gate reaches 10 iterations without approval
+- **WHEN** `/do` evaluates the gate
+- **THEN** `/do` SHALL invoke no further developer or reviewer round and SHALL NOT rewrite the artifact itself
+- **AND** the user SHALL receive the unresolved findings with the choices continue, waive, or abort
+
+##### Scenario: Approval not consecutive
+
+- **GIVEN** the verdicts so far are `approved`, `returned`, `approved`
+- **WHEN** the gate counts
+- **THEN** `/do` SHALL keep the gate open, because the two approvals are not consecutive
+
+#### Requirement 13: Run the OWASP for LLM Gate as a named gate
+
+**Was:** (Change Log 2026-10-16, ADDED Requirement 13, not yet folded) The statement ends: "using the Security gate's iteration bound and binding final `code-reviewer` pass." The Bound row of the gate property table reads: "2 consecutive `approved` or 10 iterations, then one binding `code-reviewer` pass (Requirement 4, FR-055)". The Scenario Gate exhausted reads: the OWASP for LLM Gate reached 10 iterations without 2 consecutive `approved` verdicts; `/do` SHALL run one `code-reviewer` pass whose verdict is binding, set the step `completed` on `approved` and `failed` on `returned`, and SHALL NOT rewrite the artifact itself.
+
+**Now:** The statement ends: "using the Security gate's iteration bound and, at the cap, escalation to the user." The Bound row reads: "2 consecutive `approved` or 10 iterations, then escalation to the user: continue, waive, or abort, with no eleventh round (Requirement 4, FR-218)". The Scenario Gate exhausted is replaced by the one below. Every other row, statement clause, and Scenario of Requirement 13 (gate name, artifact type, reviewer, signature, fix phase, position, and the other Scenarios) is unchanged.
+
+**Reason:** FR-218, settled by `DECISIONS.md`, 2026-10-30, "Gap-3 push grant and gap-6 revision-loop cap settled" (D-7, OQ-2): at the cap the orchestrator runs no further round and escalates, replacing the binding `code-reviewer` pass for every review gate, the OWASP for LLM Gate included. Requirement 13 pointed at Requirement 4 for its bound, and this entry changes Requirement 4 to escalation, so Requirement 13 would otherwise still mandate a binding pass. Per the multiple-deltas rule, this Was quotes the unfolded Change Log 2026-10-16 ADDED Requirement 13, the same way spec-orchestration.md, Change Log 2026-11-05, Requirement: Every loop is bounded, quotes the unfolded 2026-10-16 entry for the loops-table row. If both entries are folded in one pass, the 2026-11-05 Now is the folded text.
+
+**Requirement refs:** FR-199, FR-055, FR-218, NFR-011 | **Status:** Planned (harness-governance Tranche 1)
+
+##### Scenario: Gate exhausted escalates (Planned, harness-governance Tranche 1)
+
+- **GIVEN** the OWASP for LLM Gate reached 10 iterations without 2 consecutive `approved` verdicts
+- **WHEN** `/do` ends the gate
+- **THEN** `/do` SHALL run no further developer or reviewer round, including no `code-reviewer` pass, and SHALL NOT rewrite the artifact itself
+- **AND** the user SHALL receive the unresolved findings with the choices continue, waive, or abort
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-218 | Change Log 2026-11-05: Requirement 4 | Two consecutive LGTMs end the gate inside the cap; at 10 iterations the orchestrator runs no further round and escalates with continue, waive, or abort |
+| FR-218, FR-199 | Change Log 2026-11-05: Requirement 13 | OWASP for LLM Gate at 10 iterations without 2 consecutive `approved`: no `code-reviewer` pass, no eleventh round, and the user receives continue, waive, or abort |
+| NFR-036 | Change Log 2026-11-05: Requirement 4 | The review-protocol change carries `✓ LLM Security Clear` before merge |

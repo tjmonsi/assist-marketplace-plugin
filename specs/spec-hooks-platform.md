@@ -7,7 +7,7 @@
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
 | **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md |
-| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025 |
+| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-242, FR-246, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-035, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
 
@@ -937,3 +937,129 @@ None.
 ### Fix pass 2 (2026-10-23)
 
 Review finding applied: Requirement refs gain FR-104 and FR-213.
+
+## Change Log: 2026-11-05
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): NFR-028 and NFR-026 (section 3.2), FR-214 (section 2.1), FR-242 (section 2.29), NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 1 Step 1 (fail-closed Failure path), Step 3 (the `confirmation-record` hook, `hooks.json` entry at line 227), and Step 4 (the `pr-verdict-guard` hook, `hooks.json` entry at line 234). Harness-governance Tranche 1 is not built yet, so every change here is Planned (harness-governance Tranche 1). This spec received a delta; its Status stays `Review` (delta rule 6, no same-turn approval). The two new hooks are self-tested as a guard and a filter by spec-hooks-health-check.md, Change Log 2026-11-05 (twelve hooks), and this entry uses the same names and kinds.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-059, FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-242, FR-246, NFR-026, NFR-028, NFR-035, and NFR-036 added (from FR-NFR-harness-governance.md), since this delta traces to them. FR-217, FR-220, FR-223, FR-231, FR-233, and FR-246 are cited only as members of the NFR-028 security-critical class (Requirement: Failure path, Reason); NFR-036 is the LLM-surface clearance cited in Requirement: Hook registration. NFR-026 is traced as partially addressed only (see Traceability added).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement: Guard decision and deny output, the Hook Fail-Open Rule quotation (`rules/assist-plugin-rule.md`): the rule gains the security-critical exception that NFR-028 defines, a named class of guards that denies its own guarded operation class on an error, a timeout, or an unreadable configuration, while keeping "never exit non-zero to block".
+- Failure modes table: a row for a security-critical guard that cannot evaluate. Its impact is that the guarded operation class is denied, not that the call proceeds unchecked.
+- Description: "eleven ES5 entry files" reads thirteen.
+- Components: the `hooks/hooks.json` row registers 13 scripts as 18 command entries; the entry-file row reads 13 entry files; the `hooks/impl/*.js` row reads 12 hook modules besides `health-check`. The shared-logic row gains `confirmation-store.js` (task plan Steps 2 and 3) and `pr-verdict.js` (Step 4).
+- Requirement: Entry file and Node version gate, Source: "same shape in all 11 entry files" reads 13 entry files.
+- Requirement: Hook registration, scenarios Registration count after the ask hook and Count in the BRD scope list: the counts read 18 across 13 scripts; the script-name set gains `confirmation-record` and `pr-verdict-guard`. The Timeouts scenario holds for the two new entries (see the MODIFIED Hook registration below).
+- Requirement: Guard decision and deny output, Rules: the guards list gains `pr-verdict-guard`, and the reads table gains a `pr-verdict-guard` row.
+- Requirement: Filter output, Rules: the filters list gains `confirmation-record`.
+- Traceability, FR-086 row: "16 across 11 scripts" reads "18 across 13 scripts". The FR-206 row ("row 16") is unchanged.
+
+### ADDED Requirements
+
+None. The two hooks' own requirements are in the skills-area spec for the PR flow (spec-skills-pr-review.md, Change Log 2026-11-05) and in spec-hooks-health-check.md (Requirement: Self-tests).
+
+### MODIFIED Requirements
+
+#### Requirement: Hook registration
+
+**Was:** The plugin SHALL register exactly 16 command entries in `hooks/hooks.json`, built from 11 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and the listed timeout: the 16 rows of the table below, row 16 (`pr-post-ask`) placed in the `Bash|PowerShell` group after `doc-cli-guard`.
+
+**Now:** The plugin SHALL register exactly 18 command entries in `hooks/hooks.json`, built from 13 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 16 rows of the registration table, plus row 17 (UserPromptSubmit, no matcher, script `confirmation-record`, no extra argument, timeout 5) and row 18 (PreToolUse, matcher `Bash|PowerShell`, script `pr-verdict-guard`, no extra argument, timeout 5).
+
+**Reason:** Task plan Step 3 creates the `confirmation-record` entry file and adds one `UserPromptSubmit` entry with a `timeout` (task plan line 227); Step 4 creates the `pr-verdict-guard` entry file and adds one `PreToolUse` entry with matcher `Bash|PowerShell` and a `timeout` (task plan line 234). That is two new scripts and two new command entries: 11 + 2 = 13 scripts and 16 + 2 = 18 entries. The timeout value 5 is proposed wording that follows every other hook; the task plan requires an explicit `timeout` for each new entry and names no number, and the `UserPromptSubmit` default of 30 seconds is replaced by a smaller explicit value (Step 3, Notes). FR-214 and FR-242 name the behavior of the two hooks; NFR-035 requires their self-tests (spec-hooks-health-check.md, Change Log 2026-11-05).
+
+**Requirement refs:** FR-086, FR-214, FR-242, NFR-007, NFR-035, UR-017, UR-059 | **Status:** Planned (harness-governance Tranche 1) for rows 17 and 18; Built for rows 1 to 16
+
+The new hook is on the LLM surface (`hooks/`), so the change carries `✓ LLM Security Clear` (NFR-011, NFR-036). The counts in the BRD in-scope list (`docs/requirements/BRD-assist-plugin.md`, section 4) and in FR-086 read 11 scripts and 16 commands today; this spec states the planned 13 and 18 and leaves those documents to their owners.
+
+##### Scenario: Registration count after Tranche 1
+
+- **GIVEN** `hooks/hooks.json` after task plan Steps 3 and 4 are built
+- **WHEN** a test counts the entries whose `type` is `command`
+- **THEN** the count SHALL be 18 across 13 scripts, the added scripts being `confirmation-record` and `pr-verdict-guard`
+- **AND** the PreToolUse entry whose command runs `pr-verdict-guard.js` SHALL sit in a group whose matcher is `Bash|PowerShell`
+- **AND** the entry whose command runs `confirmation-record.js` SHALL be registered for the `UserPromptSubmit` event
+
+##### Scenario: Timeouts with the two new hooks
+
+- **GIVEN** the same file
+- **WHEN** a test reads each entry's `timeout`
+- **THEN** every entry SHALL read 5, `confirmation-record` and `pr-verdict-guard` included, except `health-check.js --session-start`, which SHALL read 10
+
+##### Scenario: Count holds until the hooks are built
+
+- **GIVEN** `hooks/hooks.json` before task plan Steps 3 and 4 are built
+- **WHEN** the registration test runs
+- **THEN** the count SHALL be 16 across 11 scripts, as in the main body
+
+The scenarios Documentation guard matcher and Registration drift are unchanged.
+
+#### Requirement: Guard decision and deny output
+
+**Was:** Rules: "The guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, and `pr-post-ask`." The reads table ends with the row `pr-post-ask` | none | none | Built (follow-up to 1.12.0).
+
+**Now:** The statement is unchanged. Rules: the guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, `pr-post-ask`, and `pr-verdict-guard`. The reads table gains the row: `pr-verdict-guard` | `confirmations.jsonl` in `.agent/governance/confirmations/`, by file read alone (it never reads `pending.jsonl` as a confirmation source) | a stub confirmation-store reader (option name set at the build) | Planned (harness-governance Tranche 1).
+
+**Reason:** Task plan Step 4: `impl/pr-verdict-guard.js` exports `evaluate(input)`, registered through `guard()` on `PreToolUse` `Bash|PowerShell`, whose only I/O is the file read of the confirmation store. The guard denies; it never returns `ask: true`, so the rule "Only `pr-post-ask` returns `ask: true`" holds. FR-214 is in the security-critical class of NFR-028, so the guard declares the `failClosedFor(input)` classifier of Requirement: Failure path (Step 4, Blocked on: "the fail-closed branch ships with the guard"). The self-test treats `pr-verdict-guard` as a guard (spec-hooks-health-check.md, Change Log 2026-11-05).
+
+**Requirement refs:** FR-088, FR-214, FR-242, NFR-028, NFR-035, UR-059 | **Status:** Planned (harness-governance Tranche 1)
+
+The scenarios Positive match, No match, Truthy value that is not true, Reads a test can replace, Git walk replaced in a test, Wording in the rule file, Ask output, Deny wins over ask, and Truthy ask that is not true are unchanged. The deny and allow behavior of `pr-verdict-guard` itself is specified in spec-skills-pr-review.md, Change Log 2026-11-05.
+
+#### Requirement: Filter output
+
+**Was:** Rules: "The filters are `injection-filter`, `prose-advisor`, `fsa-log`, and `writing-context`."
+
+**Now:** The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, and `confirmation-record`.
+
+**Reason:** Task plan Step 3: `impl/confirmation-record.js` is a `UserPromptSubmit` hook that reads the user's own prompt and records a confirmation only when the prompt carries the matching token. It never returns a deny decision, which matches the filter rule, and the health-check delta lists it as a filter (spec-hooks-health-check.md, Change Log 2026-11-05, Requirement: Self-tests). Its fail-closed behavior for the FR-242 class follows D-1: when it cannot write, no record exists and `pr-verdict-guard` denies the post.
+
+**Requirement refs:** FR-088, FR-089, FR-242, NFR-035, UR-059 | **Status:** Planned (harness-governance Tranche 1)
+
+The scenarios Positive result, Null result, and Output that cannot be serialized are unchanged.
+
+#### Requirement: Failure path
+
+**Was:** Every hook SHALL, on a thrown error, uncaught exception, unhandled rejection, stdin error, malformed input, timeout, unsupported Node, or launcher error, append one health-log record, print only `{"systemMessage": "assist-plugin <hook> hook failed (<kind>[: <detail>]); <suffix>"}`, and exit 0 so the call proceeds.
+
+**Now:** Every hook SHALL, on a thrown error, uncaught exception, unhandled rejection, stdin error, malformed input, timeout, unsupported Node, or launcher error, append one health-log record, print only `{"systemMessage": "assist-plugin <hook> hook failed (<kind>[: <detail>]); <suffix>"}`, and exit 0 so the call proceeds, except that a security-critical guard SHALL deny its own guarded operation class on the failure. A guard MAY declare an optional `failClosedFor(input)` classifier, and when its `evaluate` throws, times out, or cannot read its configuration and the classifier assigns the call to the guarded class, the runtime SHALL print the `permissionDecision: "deny"` JSON with exit 0 (and append the health-log record) in place of the systemMessage-and-proceed path; a call the classifier does not assign to the class SHALL still proceed, and no path SHALL exit non-zero.
+
+**Reason:** NFR-028, the fail-closed exception to the Hook Fail-Open Rule, settled by `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (D-1). Tranche 1 Step 1 adds the `failClosedFor(input)` classifier to `guard()` in `hooks/lib/health.js`. The security-critical class is FR-214, FR-217 (any hook-level wiring), FR-220, FR-223, FR-231, FR-233, and FR-246. The classifier is cheap and never throws; an absent `profile.json` is not an error and leaves its controls log-only.
+
+**Requirement refs:** FR-089, NFR-009, UR-017, BR-007, NFR-028; NFR-026 partially addressed (the fail-closed path logs the failure event to `hook-health.jsonl`; full NFR-026 decision logging is deferred to the Tranche 2 Step 12 decision-log writer) | **Status:** Planned (harness-governance Tranche 1)
+
+NFR-026 limit: the `hook-health.jsonl` record this requirement appends on the fail-closed deny holds only `{ts, hook, node, kind, message}`, with no command, rule, or identity text (Requirement: Health log content, privacy, and cap), so it cannot carry the agent identity, decision, and rule id that NFR-026 requires. This entry does not claim NFR-026 as satisfied. The decision record with timestamp, agent identity, decision, and rule id is the deliverable of task plan Step 12 (Tranche 2), which adds the append to `guard()` through `lib/audit-chain.js`.
+
+##### Scenario: Fail-closed for the guarded class
+
+- **GIVEN** a security-critical guard whose `failClosedFor(input)` assigns `gh pr review 42 --approve` to its guarded class
+- **WHEN** the guard's `evaluate` throws, times out, or cannot read its configuration
+- **THEN** the runtime SHALL print the `permissionDecision: "deny"` JSON and exit 0
+- **AND** the runtime SHALL append one `hook-health.jsonl` record for the failure
+
+##### Scenario: Call outside the class still proceeds
+
+- **GIVEN** the same guard and the command `ls`, which `failClosedFor` does not assign to the class
+- **WHEN** the guard's `evaluate` throws
+- **THEN** the runtime SHALL print only the `systemMessage` warning and exit 0, and the call SHALL proceed
+
+The scenarios Malformed input, Guard logic throws, and Warning write fails are unchanged, because none of them is a security-critical guarded-class call.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-028 | Change Log 2026-11-05: Requirement: Failure path | A guard that throws on a guarded-class call denies; `ls` still proceeds |
+| NFR-026 (partial) | Change Log 2026-11-05: Requirement: Failure path | Partially addressed: the fail-closed deny appends one `hook-health.jsonl` record (`{ts, hook, node, kind, message}`) for the failure event, which holds no agent identity, decision, or rule id. Full NFR-026 decision logging is deferred to the Tranche 2 Step 12 decision-log writer and is not verified by this entry |
+| FR-086 | Change Log 2026-11-05: Requirement: Hook registration | Registration count test on `hooks/hooks.json`: 18 command entries across 13 scripts, with `confirmation-record` on UserPromptSubmit and `pr-verdict-guard` on PreToolUse `Bash\|PowerShell`, and every `timeout` as listed (`tests/hooks/hooks-registration.test.js`, task plan Step 9) |
+| FR-214, FR-242, NFR-035 | Change Log 2026-11-05: Requirements: Hook registration, Guard decision and deny output, Filter output | `pr-verdict-guard` listed as a guard and `confirmation-record` as a filter; self-test PASS lines for both in the HEALTH report (spec-hooks-health-check.md, Change Log 2026-11-05) |
+| NFR-036 | Change Log 2026-11-05: Requirement: Hook registration | The two new entries sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |
+| FR-217, FR-220, FR-223, FR-231, FR-233, FR-246 | Change Log 2026-11-05: Requirement: Failure path | Named as members of the NFR-028 security-critical class; a guard whose `failClosedFor(input)` assigns a call to the class denies on failure. Each requirement's own behavior is specified in its own spec and is not verified by this entry |
