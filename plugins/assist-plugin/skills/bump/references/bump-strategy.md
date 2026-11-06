@@ -246,7 +246,7 @@ git log v1.0.0..HEAD --format="%s"
 sed -i.bak 's/"version": "[^"]*"/"version": "1.1.0"/' package.json
 
 # Create commit and tag
-git add -A
+git add -- package.json CHANGELOG.md  # only the files the bump changed
 git commit -m "chore: bump version to 1.1.0"
 git tag -a v1.1.0 -m "Release version 1.1.0"
 ```

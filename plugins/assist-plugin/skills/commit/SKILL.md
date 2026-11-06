@@ -78,16 +78,39 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ## Workflow
 
-1. Stage your changes: `git add .`
-2. Run `/commit`
-3. Choose commit type and scope (if prompted)
-4. Write commit message
-5. Confirm and commit
+1. List the changed paths with `git status --porcelain`, ask which to stage, then stage exactly those with `git add -- <named paths>`. A request to "commit everything" lists the paths and asks; it stages nothing until paths are named.
+2. Scan the staged changes for secrets (see Secret Scan below). Stop on exit 1 or exit 2; create no commit.
+3. Run `/commit`
+4. Choose commit type and scope (if prompted)
+5. Write commit message
+6. Confirm and commit
+
+## Secret Scan
+
+[FR-217] Run the scan after staging and before any commit step:
+
+```
+node "${CLAUDE_PLUGIN_ROOT}/scripts/scan-staged-secrets.js"
+```
+
+The script reads `git diff --cached`, matches the added lines against the rules in `hooks/lib/secret-rules.js`, and prints the file path and rule name of each finding, never the matched value. It runs under this skill's `Bash` grant; add no other grant.
+
+| Exit | Outcome | Action |
+|---|---|---|
+| 0 | clean | Continue to the commit step |
+| 1 | findings | Stop with no commit. Report each printed path and rule name. Ask the user to unstage or remove the secret, then run the scan again |
+| 2 | cannot run (git missing, not a repository, or a script error) | Stop with no commit. Tell the user the scan did not run. Never commit on the assumption that the scan would have passed |
+
+- Report only the file path and rule name [NFR-031]. Never show, quote, or log the matched value, the matching line, or the diff text. Do not run `git diff --cached` to look for the value.
+- The scan never edits files or the index; the user decides what to unstage or remove.
+- A project may substitute an external scanner (for example gitleaks or trufflehog) by replacing the script call above, provided the substitute keeps the same three outcomes: clean (0), findings (1), cannot run (2). A scanner that is not installed is cannot run.
 
 ## Constraints
 
 - Always use Conventional Commits format
+- Stage only paths the user named or accepted from the listed changes. Never run `git add .`, `git add -A`, or `git add --all`.
 - Never commit without review (changes should be reviewed first)
+- Never commit when the secret scan reports a finding (exit 1) or cannot run (exit 2)
 - Keep messages concise and meaningful
 - The Report Writing Standard below applies to the commit body only; the subject line and the Conventional Commits type and scope syntax follow the Format section
 - Link to issues/tickets in footer if applicable
