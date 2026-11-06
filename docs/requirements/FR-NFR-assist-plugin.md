@@ -1805,7 +1805,7 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 
 ### FR-086: Hook registration
 
-**Statement:** The plugin SHALL register 13 hook scripts as 18 commands in `hooks/hooks.json`, each with a `timeout` of 5 seconds, except the SessionStart health check at 10 seconds. The 1.12.0 baseline was 10 scripts and 15 commands; the posting ask hook of FR-206 (`hooks/pr-post-ask.js`, built for 1.13.0) added one script and one command, and Tranche 1 added two more scripts with one command each (`hooks/confirmation-record.js` and `hooks/pr-verdict-guard.js`). The counts live in this requirement and in the in-scope list of the BRD (section 4); `CLAUDE.md` and `README.md` state no hook count.
+**Statement:** The plugin SHALL register 16 hook scripts as 23 commands in `hooks/hooks.json`, each with a `timeout` of 5 seconds, except the SessionStart health check at 10 seconds. The 1.12.0 baseline was 10 scripts and 15 commands; the posting ask hook of FR-206 (`hooks/pr-post-ask.js`, built for 1.13.0) added one script and one command, and Tranche 1 added two more scripts with one command each (`hooks/confirmation-record.js` and `hooks/pr-verdict-guard.js`). Tranche 2 added three more scripts (`hooks/audit-log.js`, `hooks/gate-evidence.js`, and `hooks/goal-guard.js`) and a second `fsa-write-bar` registration on `Bash`, for 5 more commands; the health check self-tests 15 of the 16 scripts (every script except `health-check`). The counts live in this requirement and in the in-scope list of the BRD (section 4); `CLAUDE.md` and `README.md` state no hook count.
 **Traces to:** UR-017, UR-055 | **Priority:** Must | **Status:** Built; Built (1.13.0): the added script and command (read in `hooks/hooks.json` on 2026-10-22: 16 `command` entries across 11 distinct scripts, the `pr-post-ask.js` entry at `:29` with `timeout` 5)
 **Source:** `hooks/hooks.json`; `docs/TOKEN_OPTIMIZATION.md`; `DECISIONS.md:243-246`
 
@@ -1814,10 +1814,16 @@ Section 5 holds the non-functional requirements. Each FR heading is followed by 
 - **WHEN** a test counts the command entries
 - **THEN** the count was 15 across the scripts `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `health-check`, and `writing-context`
 
-#### Scenario: Registration count after Tranche 1
+#### Scenario: Registration count after Tranche 1 (superseded by the Tranche 2 scenario)
 - **GIVEN** `hooks/hooks.json` with FR-206 and the two Tranche 1 hooks (confirmation-record, pr-verdict-guard) built
 - **WHEN** a test counts the command entries
 - **THEN** the count SHALL be 18 across 13 scripts, the added scripts being the posting ask hook, the confirmation record hook, and the PR verdict guard, and the BRD scope list SHALL state 13 scripts and 18 commands
+
+#### Scenario: Registration count after Tranche 2
+- **GIVEN** `hooks/hooks.json` with the Tranche 1 hooks and the Tranche 2 hooks (audit-log, gate-evidence, goal-guard) built
+- **WHEN** a test counts the command entries
+- **THEN** the count SHALL be 23 across 16 scripts, the added scripts being the audit log writer, the gate evidence recorder, and the goal guard, with `fsa-write-bar` registered twice (once on `Write|Edit|MultiEdit|NotebookEdit`, once on `Bash`), `gate-evidence` registered on `PostToolUse` and `PostToolUseFailure` for `Bash`, and the BRD scope list SHALL state 16 scripts and 23 commands
+- **AND** the health check SHALL self-test 15 hooks, every script except `health-check`
 
 #### Scenario: Timeouts
 - **GIVEN** the same file

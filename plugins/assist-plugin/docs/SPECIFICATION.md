@@ -378,7 +378,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 
 **Workflow:**
-1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `pr-post-ask`, `commit-attribution-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, and `fsa-log` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only)
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `pr-post-ask`, `commit-attribution-guard`, `pr-verdict-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, and `confirmation-record` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only, and `audit-log`, `gate-evidence`, and `goal-guard` against fixed record and no-record cases, also reporting only; 15 hooks in all, every hook script except `health-check`)
 2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
 3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
 4. With `--clear`, truncate `hook-health.jsonl` after showing it
@@ -389,6 +389,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Constraints:**
 - Hooks fail open: a failure lets the command run with a `systemMessage` warning; only a positive guard match denies
 - A guard whose self-test denies, or for `pr-post-ask` asks on, a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes (an ask on a known-safe command counts as a false deny). A posting command that `pr-post-ask` does not ask on leaves it enabled and reports weak protection
+- `audit-log` (PostToolUse on every tool), `gate-evidence` (PostToolUse and PostToolUseFailure on `Bash`), and `goal-guard` (PostToolUse on `WebFetch`, `WebSearch`, and `mcp__*`) write to the governance audit log `.agent/logs/governance/audit.jsonl` and never block. A failed self-test of any of the three is reported and never disables the hook
 - The health log never holds command text, arguments, environment values, or stdin
 
 ---
