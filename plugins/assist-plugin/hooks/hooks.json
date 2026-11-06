@@ -65,6 +65,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-write-bar.js\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -74,6 +84,31 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/injection-filter.js\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/audit-log.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate-evidence.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|WebSearch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/goal-guard.js\"",
             "timeout": 5
           }
         ]
@@ -104,6 +139,18 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/fsa-log.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/gate-evidence.js\"",
             "timeout": 5
           }
         ]
