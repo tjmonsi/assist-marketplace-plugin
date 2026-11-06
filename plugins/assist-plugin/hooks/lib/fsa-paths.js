@@ -34,9 +34,17 @@ const TEST_GLOBS = [
 // exactly as written, also when the write bar has no root and judges a plain relative path.
 const TASK_PLAN_GLOB = "docs/task-plans/task-plan-*.md";
 
-// Paths no subagent may write: the /do plan files (they hold sign-off and waiver state) and the decision log.
-// Only the user, through the main conversation, changes them.
-const PROTECTED_GLOBS = ["**/.agent/main-plan/**"];
+// [FR-245] The confirmation store (lib/confirmation-store.js) is one directory with two files and two write rules.
+// confirmations.jsonl is written only by the UserPromptSubmit confirmation hook, with fs, so no tool caller may write
+// it (ALL_CALLER_GLOBS). pending.jsonl is written by the main-session /do orchestrator, so only a subagent may not.
+const CONFIRMATIONS_GLOB = "**/.agent/governance/confirmations/confirmations.jsonl";
+const PENDING_GLOB = "**/.agent/governance/confirmations/pending.jsonl";
+
+// Paths no subagent may write: the /do plan files (they hold sign-off and waiver state), the confirmation store, and
+// the decision log. Only the user, through the main conversation, changes the plan files and the decision log.
+const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB];
+// [FR-242] The part of PROTECTED_GLOBS that holds for every tool caller, the main session included.
+const ALL_CALLER_GLOBS = [CONFIRMATIONS_GLOB];
 const PROTECTED_FILES = ["DECISIONS.md"];
 
 // Files Claude Code loads into later sessions. A write there plants instructions, so developer-tester,
@@ -126,11 +134,26 @@ function foldSegment(segment) {
   return base.toUpperCase().toLowerCase().replace(/[. ]+$/, "");
 }
 
+// The path segments of `file` as a case-insensitive file system sees them, or [] for a value that is not a usable path.
+function foldedSegments(file) {
+  const clean = normalize(file);
+  return clean ? clean.split("/").map(foldSegment).filter((part) => part.length > 0) : [];
+}
+
+// [FR-242] The glob in ALL_CALLER_GLOBS that makes `file` off limits to every tool caller, the main session included, or
+// null. It folds the name as protectedRule does.
+function allCallerRule(file) {
+  const folded = foldedSegments(file).join("/");
+  if (!folded) return null;
+  for (let i = 0; i < ALL_CALLER_GLOBS.length; i++) {
+    if (matchGlob(ALL_CALLER_GLOBS[i], folded)) return ALL_CALLER_GLOBS[i];
+  }
+  return null;
+}
+
 // The rule that makes `file` off limits to every assist-plugin subagent (a glob, or the file name), or null.
 function protectedRule(file) {
-  const clean = normalize(file);
-  if (!clean) return null;
-  const folded = clean.split("/").map(foldSegment).filter((part) => part.length > 0);
+  const folded = foldedSegments(file);
   if (folded.length === 0) return null;
   for (let i = 0; i < PROTECTED_FILES.length; i++) {
     if (folded[folded.length - 1] === PROTECTED_FILES[i].toUpperCase().toLowerCase()) return PROTECTED_FILES[i];
@@ -198,4 +221,4 @@ function relativeForms(file, roots) {
   return forms.length > 0 ? forms : [clean];
 }
 
-module.exports = { TEST_GLOBS, TASK_PLAN_GLOB, PROTECTED_GLOBS, PROTECTED_FILES, AUTO_LOADED, MAX_PATH_CHARS, normalize, matchGlob, isTaskPlanFile, protectedRule, outsideRoots, testGlobFor, testerDenial, relativeTo, relativeForms };
+module.exports = { TEST_GLOBS, TASK_PLAN_GLOB, PROTECTED_GLOBS, ALL_CALLER_GLOBS, PROTECTED_FILES, AUTO_LOADED, MAX_PATH_CHARS, normalize, matchGlob, isTaskPlanFile, protectedRule, allCallerRule, outsideRoots, testGlobFor, testerDenial, relativeTo, relativeForms };
