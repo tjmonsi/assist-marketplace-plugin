@@ -28,6 +28,11 @@
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-post-ask.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/pr-verdict-guard.js\"",
+            "timeout": 5
           }
         ]
       },
@@ -110,6 +115,15 @@
           {
             "type": "command",
             "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/injection-filter.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"${CLAUDE_PLUGIN_ROOT}\" 2>/dev/null || true; node \"${CLAUDE_PLUGIN_ROOT}/hooks/confirmation-record.js\"",
             "timeout": 5
           }
         ]

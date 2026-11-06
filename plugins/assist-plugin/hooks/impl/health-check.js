@@ -38,6 +38,16 @@
 // The pr-post-ask is a guard: its corpus holds `gh` and `bkt` posting commands (must ask) and read commands, quoted
 // mentions, and `bkt api` reads (must not ask); a false ask disables it like a false deny, and a missed ask reports
 // weak protection.
+// The pr-verdict-guard is a guard: its corpus holds PR verdict posts (`gh pr review`, `bkt pr approve|decline`) with no
+// recorded confirmation or a confirmation for another PR or verdict (must be denied) and a confirmed post, other gh and
+// bkt commands, and quoted mentions (must pass). Each case carries the confirmations a stub store holds, so no case reads
+// or writes a real store.
+// The confirmation-record is a UserPromptSubmit filter that writes a record, so its corpus runs against a temporary
+// project root and never touches a real store. The record cases (a genuine confirmation: the typed token of an
+// unused, unexpired pending action) must write one confirmation record, consume the token, and keep the message text
+// and the token out of the record. The no-record cases (a token that appears only in a quote line or a code fence, an
+// affirmative with no token, an expired token) must write none. A record written for a no-record case, or a missed
+// genuine record, disables it (it then writes nothing, so a PR verdict post stays blocked).
 // Both prose hooks skip temp-directory paths and paths in prose-gate-allowlist.json. A voice script under docs/tts/
 // is judged like any prose file, with fenced blocks exempt. The self-tests pass an explicit allowlist per case, so
 // a user's real allowlist never masks or changes a result. The allowlist file is separate from hooks-disabled.json,
@@ -75,6 +85,7 @@ const docCliGuard = require("./doc-cli-guard.js");
 const commitAttributionGuard = require("./commit-attribution-guard.js");
 const saMermaidOnly = require("./sa-mermaid-only.js");
 const prPostAsk = require("./pr-post-ask.js");
+const prVerdictGuard = require("./pr-verdict-guard.js");
 const injectionFilter = require("./injection-filter.js");
 const injectionRules = require("../lib/injection-rules.js");
 const proseGate = require("./prose-gate.js");
@@ -82,6 +93,8 @@ const proseAdvisor = require("./prose-advisor.js");
 const fsaWriteBar = require("./fsa-write-bar.js");
 const fsaLog = require("./fsa-log.js");
 const writingContext = require("./writing-context.js");
+const confirmationRecord = require("./confirmation-record.js");
+const confirmationStore = require("../lib/confirmation-store.js");
 
 const SOLUTIONS_ARCHITECT = "solutions-architect";
 
@@ -816,6 +829,118 @@ function writingContextFlagged(testCase) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// pr-verdict-guard corpus (test data only) [FR-214] [NFR-035]. A case's `confirmed` lists the {pr, verdict} records
+// that its stub store holds; the guard looks them up through options.findConfirmation, so no case touches a real store.
+// A pending-action record is not a store record here either: the guard has no lookup for it.
+
+const VERDICT_REF = "selftest-session#1";
+
+function verdictCase(label, command, confirmed, tool) {
+  const input = tool === "PowerShell" ? powershell(command) : bash(command);
+  return Object.assign(input, { label, confirmed: confirmed || [] });
+}
+
+function stubConfirmations(input) {
+  return (pr, verdict) => {
+    const match = input.confirmed.some((record) => record.pr === pr && record.verdict === verdict);
+    return match ? { pr, verdict, user_message_ref: VERDICT_REF } : null;
+  };
+}
+
+const PR_VERDICT_ALLOW = [
+  verdictCase("confirmed gh approve of PR 42", "gh pr review 42 --approve --body-file body.txt", [{ pr: "42", verdict: "approve" }]),
+  verdictCase("confirmed gh request-changes of PR 42", "gh pr review 42 -r -b 'see the findings'", [{ pr: "42", verdict: "request-changes" }]),
+  verdictCase("confirmed bkt approve of PR 7", "bkt pr approve 7 --workspace acme --repo shop", [{ pr: "7", verdict: "approve" }]),
+  verdictCase("confirmed PowerShell approve of PR 42", "GH.EXE pr review 42 --approve", [{ pr: "42", verdict: "approve" }], "PowerShell"),
+  verdictCase("gh pr view needs no confirmation", "gh pr view 42"),
+  verdictCase("gh pr merge is outside the guard", "gh pr merge 42"),
+  verdictCase("bkt pr comment is outside the guard", "bkt pr comment 42 --text x"),
+  verdictCase("quoted mention of a verdict post", "echo \"gh pr review 42 --approve\""),
+  verdictCase("commit message that names a verdict post", "git commit -m \"docs: explain gh pr review 42 --approve\""),
+];
+
+const PR_VERDICT_DENY = [
+  verdictCase("gh approve with no confirmation", "gh pr review 42 --approve"),
+  verdictCase("gh request-changes after an approve confirmation", "gh pr review 42 --request-changes", [{ pr: "42", verdict: "approve" }]),
+  verdictCase("gh approve of another PR", "gh pr review 43 --approve", [{ pr: "42", verdict: "approve" }]),
+  verdictCase("gh comment verdict with no confirmation", "gh pr review 42 --comment --body-file body.txt"),
+  verdictCase("bkt decline with no confirmation", "bkt pr decline 7 --project PROJ --repo shop"),
+  verdictCase("bkt approve after a decline confirmation", "bkt pr approve 7", [{ pr: "7", verdict: "decline" }]),
+  verdictCase("verdict post chained after another command", "echo done && gh pr review 42 -a"),
+  verdictCase("PR argument expanded at run time", "gh pr review $PR --approve", [{ pr: "42", verdict: "approve" }]),
+  verdictCase("PowerShell approve with no confirmation", "gh pr review 42 --approve", [], "PowerShell"),
+];
+
+// ---------------------------------------------------------------------------------------------
+// confirmation-record corpus (test data only) [NFR-035]. Each case builds a temporary project root, writes one pending
+// action (PR 42, verdict approve) that is `ageMs` old, and runs the hook on the prompt that `prompt(token)` returns.
+// "Recorded" means confirmations.jsonl then holds a record. The genuine case also has to consume the token and keep
+// the prompt text and the token out of the record, or it throws.
+
+const CONFIRM_SESSION = "selftest-session";
+const CONFIRM_PR = "42";
+const CONFIRM_VERDICT = "approve";
+const CONFIRM_FRESH_MS = 1000;
+const CONFIRM_PROMPT_NOTE = "go ahead and post it, I read the draft";
+
+function confirmCase(label, ageMs, prompt, verify) {
+  return { label, ageMs, prompt, verify };
+}
+
+// Removes a temporary tree without fs.rmSync, which Node 6 to 14 lack.
+function removeTree(target) {
+  let stat;
+  try {
+    stat = fs.lstatSync(target);
+  } catch (err) {
+    return;
+  }
+  if (stat.isDirectory()) {
+    fs.readdirSync(target).forEach((name) => removeTree(path.join(target, name)));
+    fs.rmdirSync(target);
+  } else {
+    fs.unlinkSync(target);
+  }
+}
+
+// The genuine case: one valid record, the token consumed, no message text and no token in the file.
+function verifyGenuine(root, token, now, label) {
+  const records = confirmationStore.readConfirmations({ root });
+  if (records.length !== 1) throw failedCondition(label, "one confirmation record");
+  if (records[0].pr !== CONFIRM_PR || records[0].verdict !== CONFIRM_VERDICT || records[0].writer !== "hook") throw failedCondition(label, "record names the PR, the verdict, and the writer hook");
+  const file = path.join(root, confirmationStore.STORE_DIR, confirmationStore.CONFIRMATIONS_FILE);
+  const text = fs.readFileSync(file, "utf8");
+  if (text.indexOf(token) !== -1 || text.indexOf(CONFIRM_PROMPT_NOTE) !== -1) throw failedCondition(label, "record holds neither the token nor the message text");
+  if (confirmationStore.findPending(token, CONFIRM_SESSION, { root, now: () => now }) !== null) throw failedCondition(label, "token consumed after the record");
+}
+
+const CONFIRMATION_RECORD_RECORDED = [
+  confirmCase("genuine confirmation with the matching token", CONFIRM_FRESH_MS, (token) => `yes, ${token}. ${CONFIRM_PROMPT_NOTE}`, verifyGenuine),
+];
+
+const CONFIRMATION_RECORD_NONE = [
+  confirmCase("forged text: the token only in a quote line and a code fence", CONFIRM_FRESH_MS, (token) => `> yes ${token}\n\n\`\`\`\nyes ${token}\n\`\`\`\nplease summarize the draft`),
+  confirmCase("affirmative without the token", CONFIRM_FRESH_MS, () => "yes, post the approval, I read the draft"),
+  confirmCase("expired token", confirmationStore.PENDING_EXPIRY_MS * 2, (token) => `yes ${token}`),
+];
+
+// True when the hook wrote a confirmation record for the case. The temporary root is removed afterward.
+function confirmationRecorded(testCase) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "assist-selftest-confirm-"));
+  try {
+    const now = Date.now();
+    const pending = confirmationStore.createPending({ pr: CONFIRM_PR, verdict: CONFIRM_VERDICT, sessionId: CONFIRM_SESSION }, { root, now: () => now - testCase.ageMs });
+    const input = { hook_event_name: "UserPromptSubmit", session_id: CONFIRM_SESSION, cwd: root, prompt: testCase.prompt(pending.token) };
+    confirmationRecord.evaluate(input, { root, now: () => now, log: () => {} });
+    const recorded = confirmationStore.readConfirmations({ root }).length > 0;
+    if (recorded && typeof testCase.verify === "function") testCase.verify(root, pending.token, now, testCase.label);
+    return recorded;
+  } finally {
+    removeTree(root);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // commit-attribution-guard corpus (test data only). The cases use a fixed cwd and a stub file reader.
 
 const COMMIT_ROOT = "/assist-selftest/project";
@@ -1051,6 +1176,15 @@ const GUARDS = [
     ],
   },
   {
+    // [FR-214] Security-critical guard (NFR-028): a false deny of a confirmed or unrelated command disables it, and
+    // a missed deny reports weak protection. It has no reportOnly flag.
+    name: prVerdictGuard.NAME,
+    nouns: { allow: "allow cases", deny: "deny cases", falseDeny: "known-safe or confirmed command", falseAllow: "unconfirmed verdict post" },
+    evaluate: (input) => prVerdictGuard.evaluate(input, { findConfirmation: stubConfirmations(input) }),
+    allow: PR_VERDICT_ALLOW,
+    deny: PR_VERDICT_DENY,
+  },
+  {
     name: injectionFilter.NAME,
     filter: true,
     evaluate: (input) => ({ deny: injectionFlagged(input) }),
@@ -1097,6 +1231,16 @@ const GUARDS = [
     evaluate: (input) => ({ deny: fsaLogFlagged(input) }),
     allow: FSA_LOG_CLEAN,
     deny: FSA_LOG_BROKEN,
+  },
+  {
+    // [FR-242] A filter that writes a record: a record for a no-record case, or no record for the genuine case, disables
+    // it. A disabled hook writes nothing, so the PR-verdict guard has no confirmation to allow (fail closed).
+    name: confirmationRecord.NAME,
+    filter: true,
+    nouns: { allow: "no-record cases", deny: "record cases", falseDeny: "forged or unbound case", falseAllow: "genuine case", altered: "RECORDED", missed: "NOT RECORDED" },
+    evaluate: (input) => ({ deny: confirmationRecorded(input) }),
+    allow: CONFIRMATION_RECORD_NONE,
+    deny: CONFIRMATION_RECORD_RECORDED,
   },
   {
     // [FR-118] Report-only: a failed self-test is reported and never adds the hook to hooks-disabled.json.
@@ -1221,7 +1365,7 @@ function buildProblems(results, disabled, newEntries, fsaNew) {
 }
 
 function formatReport(context) {
-  const { version, results, disabled, attribution, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist } = context;
+  const { version, results, disabled, attribution, pushGrants, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist } = context;
   const lines = ["assist-plugin hook health", ""];
   lines.push(`Node: ${version} (minimum supported: ${launch.MIN_NODE_MAJOR}) OK`);
   lines.push(`Data directory: ${canPersist ? process.env.CLAUDE_PLUGIN_DATA : "NOT SET (failures cannot be logged and guards cannot be disabled)"}`);
@@ -1245,6 +1389,7 @@ function formatReport(context) {
     lines.push(`  ${name}: ${entry.reason || "no reason recorded"} (since ${entry.ts || "unknown"})`);
   });
   lines.push("", attribution.join("\n"));
+  if (pushGrants && pushGrants.length > 0) lines.push("", pushGrants.join("\n"));
   lines.push("", `Hook failure log (${entries.length} entr${entries.length === 1 ? "y" : "ies"}, newest ${REPORT_LOG_ROWS} shown, ${newEntries.length} new since the last report):`);
   if (entries.length === 0) lines.push("  none");
   entries.slice(-REPORT_LOG_ROWS).forEach((entry) => {
@@ -1285,9 +1430,10 @@ function attributionFiles(options) {
 }
 
 // Reads one settings file. Returns {label, file, state, values}: state is "ok", "missing", "unreadable",
-// "invalid JSON", or "not a JSON object"; values holds attribution.commit and attribution.pr when state is "ok".
+// "invalid JSON", or "not a JSON object"; values holds attribution.commit and attribution.pr when state is "ok", and
+// allow holds the string entries of permissions.allow.
 function inspectSettings(entry, readFile) {
-  const result = { file: entry.file, label: entry.label, state: "ok", values: {} };
+  const result = { file: entry.file, label: entry.label, state: "ok", values: {}, allow: [] };
   let text;
   try {
     text = readFile(entry.file);
@@ -1310,6 +1456,8 @@ function inspectSettings(entry, readFile) {
   ATTRIBUTION_KEYS.forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(attribution, key)) result.values[key] = attribution[key];
   });
+  const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+  if (Array.isArray(permissions.allow)) result.allow = permissions.allow.filter((rule) => typeof rule === "string");
   return result;
 }
 
@@ -1354,6 +1502,73 @@ function attributionReport(options) {
   }
   lines.push(`  Source: ${ATTRIBUTION_SOURCE}`);
   return lines;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Push grants (read-only). [UR-060 -> FR-216] A permissions.allow entry that lets git push reach any remote
+// auto-approves a push to a remote an injected instruction names. Each trusted remote is granted by name instead
+// (Bash(git push origin *), and Bash(git push <mirror-name> *) for a mirror), and more than one named remote is
+// fine. The check reports only a wildcard or unscoped grant. Nothing here writes a settings file.
+
+// Commands that no grant naming a specific remote can match: an unlisted remote name, with and without options.
+// They catch the broad families (bare Bash, Bash(*), Bash(git *), Bash(git push*)). A grant that pins options before
+// the remote is judged by its remote token instead (see pushRemoteToken).
+const PUSH_PROBES = [
+  "git push zz-unlisted-remote",
+  "git push --force zz-unlisted-remote",
+  "git push -u zz-unlisted-remote main",
+];
+
+// Turns a Bash permission pattern into a regular expression. A trailing ":*" is the legacy form of " *".
+function permissionPattern(body) {
+  const pattern = body.replace(/:\*$/, " *");
+  const source = pattern.split("*").map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+  return new RegExp(`^${source}$`);
+}
+
+// For a grant whose command is "git push ...", returns the remote token: the first token after any leading option
+// tokens (those starting with "-", whatever the flag). Returns null when the command is not a literal git push, or
+// has no remote token.
+function pushRemoteToken(body) {
+  const tokens = body.replace(/:\*$/, " *").split(/\s+/).filter(Boolean);
+  if (tokens[0] !== "git" || tokens[1] !== "push") return null;
+  const remote = tokens.slice(2).find((token) => !token.startsWith("-"));
+  return remote === undefined ? null : remote;
+}
+
+// True when a permissions.allow entry lets git push reach any remote, whatever options it pins first: bare Bash,
+// Bash(*), Bash(git *), Bash(git push *), Bash(git push:*), Bash(git push -f *), Bash(git push --tags *), and any
+// other pattern that matches a push to an unlisted remote. A grant is scoped only when its remote token is a literal
+// remote name (Bash(git push origin *)); a remote token holding a wildcard admits any remote and is unscoped.
+function isUnscopedPushGrant(rule) {
+  const text = rule.trim();
+  if (text === "Bash") return true;
+  const match = /^Bash\(([\s\S]*)\)$/.exec(text);
+  if (!match) return false;
+  const body = match[1].trim();
+  const pattern = permissionPattern(body);
+  if (PUSH_PROBES.some((probe) => pattern.test(probe))) return true;
+  const remote = pushRemoteToken(body);
+  return remote !== null && remote.includes("*");
+}
+
+// Returns the report lines, or an empty array when every push grant names a remote or none exists.
+// options: {home, configDir, projectDir, readFile}; readFile(file) returns text or throws.
+function pushGrantReport(options) {
+  const opts = options || {};
+  const readFile = opts.readFile || ((file) => fs.readFileSync(file, "utf8"));
+  const findings = [];
+  attributionFiles(opts).map((entry) => inspectSettings(entry, readFile)).forEach((result) => {
+    result.allow.filter(isUnscopedPushGrant).forEach((rule) => {
+      findings.push(`  wildcard or unscoped push grant in ${result.file}: ${describeValue(rule)}`);
+    });
+  });
+  if (findings.length === 0) return [];
+  return [
+    "Push grants (read-only; this check never edits settings):",
+    ...findings,
+    "  Scope each push grant to a named remote instead, for example Bash(git push origin *) and, for a mirror, Bash(git push <mirror-name> *). You apply the grants in .claude/settings.local.json or .claude/settings.json; the plugin does not.",
+  ];
 }
 
 function run(argv) {
@@ -1414,8 +1629,14 @@ function run(argv) {
   } catch (err) {
     attribution = [`Claude Code attribution settings: could not be checked (${health.describeError(err)})`];
   }
+  let pushGrants;
+  try {
+    pushGrants = pushGrantReport();
+  } catch (err) {
+    pushGrants = [`Push grants: could not be checked (${health.describeError(err)})`];
+  }
   process.stdout.write(
-    formatReport({ version: launch.nodeVersion(), results, disabled, attribution, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist }) + "\n"
+    formatReport({ version: launch.nodeVersion(), results, disabled, attribution, pushGrants, entries, newEntries, fsaEntries, fsaNew, notes, cleared, canPersist }) + "\n"
   );
   markNotified();
 }
@@ -1433,6 +1654,6 @@ function main() {
   // Exit naturally (exit code 0) so buffered stdout is flushed; the watchdog timer is unref'd.
 }
 
-module.exports = { NAME, GUARDS, WRITING_CONTEXT_SILENT, WRITING_CONTEXT_CONTEXT, COMMIT_GUARD_ALLOW, COMMIT_GUARD_DENY, attributionReport, FSA_WRITE_ALLOW, FSA_WRITE_DENY, FSA_LOG_CLEAN, FSA_LOG_BROKEN, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
+module.exports = { NAME, GUARDS, WRITING_CONTEXT_SILENT, WRITING_CONTEXT_CONTEXT, COMMIT_GUARD_ALLOW, COMMIT_GUARD_DENY, attributionReport, pushGrantReport, FSA_WRITE_ALLOW, FSA_WRITE_DENY, FSA_LOG_CLEAN, FSA_LOG_BROKEN, INJECTION_SAMPLES, BENIGN_SAMPLES, PROSE_GATE_ALLOW, PROSE_GATE_DENY, PROSE_ADVISOR_CLEAN, PROSE_ADVISOR_FLAGGED, selfTest, main };
 
 if (require.main === module) main();

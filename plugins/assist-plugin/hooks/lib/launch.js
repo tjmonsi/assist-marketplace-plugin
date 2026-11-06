@@ -37,6 +37,7 @@ function suffixFor(hook) {
   if (hook === "writing-context") return "the writing standard was not loaded";
   if (hook === "fsa-write-bar") return "this write was not checked";
   if (hook === "fsa-log") return "this subagent report was not checked";
+  if (hook === "confirmation-record") return "your confirmation was not recorded";
   return "this command was not checked";
 }
 

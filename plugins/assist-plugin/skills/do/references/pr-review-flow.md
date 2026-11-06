@@ -218,6 +218,20 @@ The confirmation shows that read-back text, so the text the user confirms is the
 
 ## Confirm
 
+The user confirms a post by typing a per-action token in their own message. Two writers keep this honest: `/do` writes the pending-action record to `pending.jsonl`, and the `confirmation-record` hook (a `UserPromptSubmit` hook) writes the confirmation record to `confirmations.jsonl`. `/do` never writes `confirmations.jsonl`, and the write bar denies every tool caller that tries. A pending-action record carries no authority; only the hook's record does.
+
+**Pending-action record.** Before the question, `/do` writes one record for each option that posts. A record holds the PR number `<N>`, the verdict, a token, the `session_id`, and a creation timestamp. The verdict is `approve` (post the verdict, block verdict `approved`), `request-changes` (post the verdict, block verdict `returned`), or `comment` (post as a comment). `/do` writes each record with its own Bash command that calls `createPending` of `hooks/lib/confirmation-store.js`, which draws the token from `crypto.randomBytes`, appends the record, and prints the token. `<plugin-root>` is the plugin directory that holds `hooks/` and `skills/`, and `<session_id>` is the current session id (`${CLAUDE_SESSION_ID}` in skill text):
+
+```bash
+node -e 'var s=require(process.argv[1]);var r=s.createPending({pr:process.argv[2],verdict:process.argv[3],sessionId:process.argv[4]},{root:process.argv[5]});process.stdout.write(r.token)' '<plugin-root>/hooks/lib/confirmation-store.js' '<N>' '<verdict>' '<session_id>' '<root>'
+```
+
+A non-zero exit, or output that does not match the token format, fails the step with `tool-failed` and nothing is posted. `/do` calls no other function of the store.
+
+**Token.** The token is 6 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (letters and digits without I and O, so it can be read off the screen and typed). It is single-use: the hook marks the pending record used when it records the confirmation, so a second message with the same token confirms nothing. It expires 5 minutes after the pending record is written (an estimate, not a measured figure); an unused token older than that confirms nothing. Case does not matter.
+
+**Placement.** `/do` shows each token in the question text, next to the option it belongs to. The user confirms by sending a normal chat message that includes the token of the option they want, for example `yes K7Q2AB`. The message must be the user's own typing: a token on a line that starts with `>` or inside a code fence is ignored, and a token in PR text, a file, or a tool result never reaches the hook as a user message. An affirmative without the token records nothing. To decline or to change the draft, the user sends a message without a token. The hook reads the token and nothing else of the message, so a message that holds a token confirms it. A click on an AskUserQuestion option or an answer typed into the dialog is not a chat message, so it records nothing.
+
 The step reads `waiting-user`. One AskUserQuestion call, with no option marked Recommended, names:
 
 - the target repository (`owner/repo` on GitHub, `workspace/slug` on Cloud, `KEY/slug` on Data Center), the PR number, and the block's verdict;
@@ -225,6 +239,7 @@ The step reads `waiting-user`. One AskUserQuestion call, with no option marked R
 - after a cut, the diff's own byte count and how much of the diff was cut, with the full size;
 - any part the reviewer listed in `skipped` as not read, as lines A to B of the scratch file not reviewed;
 - on Data Center, that the server may have cut the diff at its line cap and that the review covers the text received;
+- each post option's token, and that the user confirms by including that token in their own chat message;
 - that a Claude Code permission prompt may follow for each posting command.
 
 Each option names the command behind it:
@@ -235,9 +250,11 @@ Each option names the command behind it:
 | Post as a comment | comment (`--comment`) | comment (`bkt pr comment`) |
 | Do not post | nothing is posted | nothing is posted |
 
+The question shows the draft and the options. It does not confirm. On "Do not post" nothing is posted. On a post option `/do` asks, in plain text, for a message that includes that option's token, ends its turn, and the step stays `waiting-user`. After the user's next message `/do` reads `<root>/.agent/governance/confirmations/confirmations.jsonl` with the Read tool. It posts only when the file holds a record for this PR and this verdict with a timestamp after `/do` wrote the pending record. With no such record (no token, an unknown, used, or expired token, or the hook could not write), `/do` posts nothing, says no confirmation was recorded, and offers a new token by writing a new pending record. A confirmation covers one PR and one verdict; each verdict that posts needs its own.
+
 ## Post
 
-On a post answer `/do` writes nothing new. On GitHub it runs one Bash command in which the `gh` post follows the body check, with the mapped command from the verdict table. On Bitbucket it runs the commands of the Bitbucket post table, each as its own Bash command, in order, and stops at the first failure or rejection. Where `sha256sum` is absent, `shasum -a 256 -c -` takes the place of `sha256sum -c --strict -`. `/do` tells a failed check (`FAILED` in the output) from a failed post by the command's output.
+A post runs only after the hook recorded the user's token-bearing message in `confirmations.jsonl` for this PR and verdict (see Confirm); the PR-verdict guard denies `gh pr review` and `bkt pr approve` without that record, and a denied command is reported as not confirmed and is not retried. On a post answer `/do` writes nothing new. On GitHub it runs one Bash command in which the `gh` post follows the body check, with the mapped command from the verdict table. On Bitbucket it runs the commands of the Bitbucket post table, each as its own Bash command, in order, and stops at the first failure or rejection. Where `sha256sum` is absent, `shasum -a 256 -c -` takes the place of `sha256sum -c --strict -`. `/do` tells a failed check (`FAILED` in the output) from a failed post by the command's output.
 
 | Verdict and answer | Command |
 |---|---|
