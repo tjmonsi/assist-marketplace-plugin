@@ -45,11 +45,27 @@ const PENDING_GLOB = "**/.agent/governance/confirmations/pending.jsonl";
 // does not stop them; no subagent may write it.
 const AUDIT_GLOB = "**/.agent/logs/governance/**";
 
+// [FR-245|D-12] The two governance configuration files (lib/data-class.js reads them). The committed project settings
+// file holds the compliance profile flag in its `env` block, and profile.json holds the data-class globs, PHI patterns,
+// and BAA references. A subagent that could write either could turn a profile off or untag a path. The user applies any
+// change to them, and the plugin never writes them.
+const SETTINGS_GLOB = "**/.claude/settings.json";
+const PROFILE_GLOB = "**/.agent/governance/profile.json";
+
+// [FR-245|FR-247] The session purpose record (lib/purpose-record.js). The UserPromptSubmit purpose-capture hook is its
+// only writer and writes with fs, so no tool caller may write it (ALL_CALLER_GLOBS): model output or PR, web page, or
+// file text cannot forge the declared purpose through any tool.
+const PURPOSE_GLOB = "**/.agent/governance/session-purpose.json";
+
 // Paths no subagent may write: the /do plan files (they hold sign-off and waiver state), the confirmation store, the
-// audit store, and the decision log. Only the user, through the main conversation, changes the plan files and the decision log.
-const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB, AUDIT_GLOB];
-// [FR-242] The part of PROTECTED_GLOBS that holds for every tool caller, the main session included.
-const ALL_CALLER_GLOBS = [CONFIRMATIONS_GLOB];
+// audit store, the two governance configuration files, the session purpose record, and the decision log. Only the user,
+// through the main conversation, changes the plan files and the decision log.
+const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB, AUDIT_GLOB, SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB];
+// The part of PROTECTED_GLOBS that protects one named file, not a directory of its own. The parent directories (.claude/,
+// .agent/governance/) hold other files a subagent may add, so protectedDirectoryRule skips these globs.
+const FILE_LEVEL_GLOBS = [SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB];
+// [FR-242] [FR-247] The part of PROTECTED_GLOBS that holds for every tool caller, the main session included.
+const ALL_CALLER_GLOBS = [CONFIRMATIONS_GLOB, PURPOSE_GLOB];
 const PROTECTED_FILES = ["DECISIONS.md"];
 
 // Files Claude Code loads into later sessions. A write there plants instructions, so developer-tester,
@@ -331,6 +347,7 @@ function protectedDirectoryRule(file) {
   const segments = targetSegments(file);
   if (segments === null) return null;
   for (let i = 0; i < PROTECTED_GLOBS.length; i++) {
+    if (FILE_LEVEL_GLOBS.indexOf(PROTECTED_GLOBS[i]) !== -1) continue;
     const parts = PROTECTED_GLOBS[i].toUpperCase().toLowerCase().split("/").slice(0, -1);
     if (parts.length > 0 && parts[parts.length - 1] !== "**" && looseMatch(segments, parts)) return PROTECTED_GLOBS[i];
   }
