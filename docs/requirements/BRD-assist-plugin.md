@@ -61,7 +61,7 @@ Status: BR-001 to BR-017 describe built behavior. The parts that were PLANNED (1
 - Orchestration with `/do`: routing, plans, approval, dispatch, review gates, spec-first flow, decision records.
 - The 16 agents and their terminal-block contract.
 - The 22 skills (18 user-invocable, 4 internal).
-- The 11 hook scripts (16 hook commands) in `hooks/hooks.json` (Built, 1.13.0: the posting ask hook of FR-206 added one script and one command to the 10 scripts and 15 commands of 1.12.0; FR-086 holds the count), their shared libraries, and the two maintenance scripts (`sync-writing-standard.js`, `check-fsa-tables.js`).
+- The 13 hook scripts (18 hook commands) in `hooks/hooks.json` (Built, 1.13.0: the posting ask hook of FR-206 added one script and one command to the 10 scripts and 15 commands of 1.12.0, and Tranche 1 added the confirmation record hook and the PR verdict guard, one script and one command each; FR-086 holds the count), their shared libraries, and the two maintenance scripts (`sync-writing-standard.js`, `check-fsa-tables.js`).
 - The writing standard and the opt-in `assist-plugin:terse` output style.
 - Governance rules in `rules/assist-plugin-rule.md` and `rules/llm-security-checklist.md`.
 - Marketplace identity and installation (`.claude-plugin/marketplace.json`, `plugin.json`).

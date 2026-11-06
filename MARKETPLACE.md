@@ -47,7 +47,7 @@ assist-marketplace-plugin/
         ├── hooks/ (fail-open guards, injection filter, prose hooks, and health check)
         ├── output-styles/ (terse.md)
         ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
-        ├── scripts/ (sync-writing-standard.js, check-fsa-tables.js)
+        ├── scripts/ (sync-writing-standard.js, check-fsa-tables.js, scan-staged-secrets.js)
         ├── docs/ (comprehensive documentation)
         ├── Claude.md (quick reference)
         ├── NOTICE (attribution)
