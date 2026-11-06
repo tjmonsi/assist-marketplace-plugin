@@ -83,7 +83,7 @@ Use `/do` to route any development task to the right agent:
 - **injection-filter** (PreToolUse on `Agent`; PostToolUse on `WebFetch`, `WebSearch`, `mcp__*`, `Agent`, and `Bash` and `PowerShell` downloads; UserPromptSubmit): replaces injection phrasing with a marker; warns on typed prompts. Never blocks.
 - **writing-context** (SessionStart and SubagentStart): injects `rules/writing-standard-compact.md` (about 1,195 characters, about 300 tokens per session and per subagent). The health check self-tests it; a failure is reported and never disables it.
 - **Output style** `assist-plugin:terse`: opt-in, not applied to subagents.
-- All hooks fail open. The per-write hooks cost about 80 to 110 ms per write.
+- All hooks fail open except the security-critical guards (the NFR-028 class, currently pr-verdict-guard), which fail closed for their guarded class after reading input. See the Hook Fail-Open Rule in `rules/assist-plugin-rule.md`. The per-write hooks cost about 80 to 110 ms per write.
 
 ## Getting Started
 
