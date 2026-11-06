@@ -7,7 +7,7 @@
 | **Feature** | Governance audit log: hash-chained append, rotation, decision logging, first-session and disablement logging, and chain verification |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-019, BR-020, UR-065, UR-067, FR-224, FR-225, FR-228, FR-245, NFR-026, NFR-030, NFR-031, NFR-032 |
+| **Requirement refs** | BR-019, BR-020, UR-065, UR-066, UR-067, FR-224, FR-225, FR-226, FR-227, FR-228, FR-245, NFR-026, NFR-030, NFR-031, NFR-032 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -347,3 +347,130 @@ None.
 | Requirement | Spec section | Verified by |
 |---|---|---|
 | FR-228 | Change Log 2026-11-06: Requirement: Logging from the first session and logged disablement | A disabled guard yields one `guard-disabled` event per guard per project, suppressed across sessions while it stays disabled; a re-enable then re-disable logs a new event (`tests/hooks/audit-log-disablement.test.js`) |
+
+## Change Log: 2026-11-06 (Tranche 3)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-226 (section 2.13), FR-227 (section 2.14), NFR-031 and NFR-032 (section 3.2, 3.4); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 3 Step 21 (the per-agent identity helper `hooks/lib/identity.js`) and Step 22 (the attribution event schema, the human-authorizer resolver `hooks/lib/authorizer.js`, and the `fsa-log.jsonl` fields and rotation); `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)" (D-5, OQ-4; D-6, OQ-3) and "Judgement-gate evidence and the /do human authorizer settled" (OQ-7). Harness-governance Tranche 3 is not built yet, so every change here is Planned (harness-governance Tranche 3). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The data-class tags these records carry come from the compliance subsystem (spec-hooks-compliance.md); this entry carries the identity helper, the attribution schema, the authorizer, and the `fsa-log.jsonl` fields and rotation.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-066, FR-226, and FR-227 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description preamble: the sentence "The full per-access attribution schema (operation, data accessed as a path and data-class tag, human authorizer) and the per-agent identity helper are task plan Steps 21 and 22 (Tranche 3) and are out of scope for this spec" is superseded by the ADDED Requirements below, which land both; at the next fold the schema reads as the per-access schema this spec defines.
+- Requirement: Decision logging in every guard, the final paragraph: "In Tranche 2 the decision record sources the agent identity directly from the raw hook input (`agent_type` and `agent_id`); the richer per-agent identity helper (`lib/identity.js`) is task plan Step 21 (Tranche 3), so until it lands the `unidentified` flag ... matches nothing" is superseded by Requirement: Per-agent identity helper, which has the callers source identity through `lib/identity.js`.
+- Requirement: Chain verification, the final paragraph: "The `unidentified` record flag anticipates the per-agent identity of task plan Step 21 (Tranche 3); in Tranche 2 no record carries that identity yet, so the flag matches nothing until Step 21 lands" is superseded, because records now carry the identity and the `unidentified` flag matches a real value.
+- Required data, the Record fields row: the Tranche 3 per-access schema (operation, data accessed as a path and data-class tag only, agent identity, human authorizer, timestamp) replaces the "`ts`, `prev`, `event`, payload slot; the decision record adds agent identity, decision, rule id" slot wording for an access record; the decision record keeps its decision and rule id.
+
+### ADDED Requirements
+
+#### Requirement: Per-agent identity helper
+
+The helper `lib/identity.js` SHALL return the actor's agent type, agent id, and plugin version, SHALL return `main-session` when no subagent acted, and SHALL return `unidentified` when neither a subagent nor the main session can be established, and SHALL never leave the identity blank.
+
+**Requirement refs:** FR-226, UR-066 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-226 (section 2.13); task plan Step 21 (`hooks/lib/identity.js`; callers in `lib/audit-chain.js`, `impl/audit-log.js`, and `lib/health.js` use it)
+
+The plugin version comes from the manifest `plugins/assist-plugin/.claude-plugin/plugin.json` at run time, not a string constant. `agent_id` is present only inside a subagent, and `agent_type` alone can mean a main session started with `--agent`, so the helper reuses the write bar's `agent_id` and `agent_type` reading (spec-hooks-fsa-write-bar.md) to tell a subagent, the main session, and an `unidentified` actor apart, with the rule recorded in a code comment. A blank identity is a defect. This replaces the Tranche 2 decision record's direct read of `agent_type` and `agent_id` from the raw hook input.
+
+##### Scenario: Subagent event
+
+- **GIVEN** the developer subagent writes a file
+- **WHEN** the event is logged
+- **THEN** the record SHALL hold agent type `developer`, its agent id, and the plugin version
+
+##### Scenario: Main-session event
+
+- **GIVEN** the main session runs a command
+- **WHEN** the event is logged
+- **THEN** the record SHALL hold `main-session`
+- **AND** the identity SHALL NOT be left blank
+
+##### Scenario: Unidentified actor
+
+- **GIVEN** an action arrives with no agent id and is not the main session
+- **WHEN** the event is logged
+- **THEN** the record SHALL carry the identity `unidentified`
+- **AND** chain verification SHALL flag the record (Requirement: Chain verification)
+
+#### Requirement: Attribution record schema
+
+The audit log `audit.jsonl` SHALL record, for each access event, the operation, the data accessed as a path and a data-class tag only, the agent identity, the human authorizer, and the timestamp, and SHALL NOT hold prompt text, file contents, or secret values.
+
+**Requirement refs:** FR-227, NFR-031, UR-066 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-227 (section 2.14), NFR-031 (section 3.2); task plan Step 22 (`hooks/lib/audit-chain.js` event schema); `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)" (D-5, OQ-4)
+
+The data-accessed field holds a path and a data-class tag only (student-record, PHI, or none), never content (NFR-031). This completes the record schema the Tranche 2 Requirement: Hash-chained append defined as `ts`, `prev`, `event`, and a payload slot. The two-file split is ratified as written: the per-access attribution goes to `audit.jsonl`, and `fsa-log.jsonl` adds only identity and authorizer (Requirement: Subagent log carries identity and authorizer).
+
+##### Scenario: Complete record
+
+- **GIVEN** a user-confirmed PR post under a plan the user approved
+- **WHEN** the event is logged
+- **THEN** the audit record SHALL hold the operation, the data accessed as a path and a data-class tag, the agent identity, the human authorizer, and the timestamp
+
+##### Scenario: Secret kept out of the access record
+
+- **GIVEN** an access event whose context holds a secret string
+- **WHEN** the record is appended
+- **THEN** the record SHALL hold the path and the data-class tag
+- **AND** the record SHALL NOT hold the secret value or the command text
+
+#### Requirement: Human authorizer resolution
+
+The resolver `lib/authorizer.js` SHALL set the human authorizer to a reference to the plan approval the user made (the plan's "Approved" decision or the approval message id), never the message text, and SHALL set it to `none` with a reason for an autonomous action or one with no user approval of the plan, and SHALL NOT omit the field.
+
+**Requirement refs:** FR-227, NFR-031, UR-066 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-227 (section 2.14); task plan Step 22 (`hooks/lib/authorizer.js`); `DECISIONS.md`, 2026-10-30, "Judgement-gate evidence and the /do human authorizer settled" (OQ-7)
+
+The approval reference is the "Approved" decision the orchestrator writes in `.agent/main-plan/**` (spec-hooks-fsa-write-bar.md keeps that path orchestrator-only) or the approval message id. `lib/authorizer.js` reads that reference with file reads; it never stores the message text (NFR-031). Actions an approved plan authorizes carry the reference. No per-action prompt is added.
+
+##### Scenario: Complete authorizer
+
+- **GIVEN** a user-confirmed action under a plan the user approved
+- **WHEN** the record is written
+- **THEN** the authorizer field SHALL hold a reference to the plan approval
+- **AND** the field SHALL NOT hold message text
+
+##### Scenario: No human authorizer
+
+- **GIVEN** an autonomous read with no user action, or an action with no user approval of the plan
+- **WHEN** the record is written
+- **THEN** the authorizer field SHALL read `none` with a reason
+- **AND** the field SHALL NOT be omitted
+
+#### Requirement: Subagent log carries identity and authorizer
+
+The subagent log `fsa-log.jsonl`, written once per subagent report, SHALL add the agent identity and the human authorizer to each report row and SHALL NOT hold an operation or a data-accessed field, and SHALL replace the 500-line `MAX_LOG_LINES` cap with size-based rotation through `lib/audit-chain.js` that carries the prior segment's final chain hash into each new segment and retains segments for at least 12 months.
+
+**Requirement refs:** FR-227, NFR-032, NFR-031, UR-066 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-227 (section 2.14), NFR-032 (section 3.4); task plan Step 22 (`hooks/impl/fsa-log.js`: add identity and authorizer; replace `MAX_LOG_LINES` at line 30 with size-based rotation through `lib/audit-chain.js`; update the "Privacy" paragraph at `skills/health/SKILL.md:97` and the 500-line text at `:28`); `DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)" (D-5, D-6)
+
+One report row cannot carry a single operation or accessed path, so per-access attribution stays in `audit.jsonl` and the subagent log adds only identity and authorizer. The rotation is the same size-based rotation the audit log uses (Requirement: Size-based rotation with retention): each new segment holds the prior segment's final chain hash, so the chain verifies across the cut (NFR-030, NFR-032). The existing `fsa-log` problem codes and `check-fsa-tables.js --check` still pass.
+
+##### Scenario: Report row carries identity and authorizer
+
+- **GIVEN** a subagent report is logged
+- **WHEN** the `fsa-log.jsonl` row is written
+- **THEN** the row SHALL hold the agent identity and the human authorizer
+- **AND** the row SHALL NOT hold an operation or a data-accessed field
+
+##### Scenario: Size-based rotation replaces the line cap
+
+- **GIVEN** `fsa-log.jsonl` reaches its configured rotation size
+- **WHEN** rotation runs
+- **THEN** the first line of the new segment SHALL hold the prior segment's final chain hash
+- **AND** no 500-line cap SHALL apply, and no segment younger than 12 months SHALL be deleted
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-226 | Change Log 2026-11-06 (Tranche 3): Requirement: Per-agent identity helper | Subagent, main-session, and unidentified-actor cases (`tests/hooks/identity.test.js`, task plan Step 30) |
+| FR-227 | Change Log 2026-11-06 (Tranche 3): Requirement: Attribution record schema; Requirement: Human authorizer resolution; Requirement: Subagent log carries identity and authorizer | Complete-record and no-authorizer cases; `audit.jsonl` holds all five fields and `fsa-log.jsonl` holds identity and authorizer only (`tests/hooks/attribution-record.test.js`, `tests/hooks/fsa-log-identity.test.js`, task plan Step 30) |
+| NFR-032 | Change Log 2026-11-06 (Tranche 3): Requirement: Subagent log carries identity and authorizer | `fsa-log.jsonl` has no 500-line cap, rotates by size with the prior segment's final hash carried in, and keeps segments at least 12 months |
+| NFR-031 | Change Log 2026-11-06 (Tranche 3): Requirement: Attribution record schema; Requirement: Human authorizer resolution | No access or subagent record holds prompt text, file contents, a secret value, or the message text behind the authorizer reference |

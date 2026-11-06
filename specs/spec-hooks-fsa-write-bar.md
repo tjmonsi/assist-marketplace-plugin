@@ -7,7 +7,7 @@
 | **Feature** | FSA write bar: per-agent write limits and protected paths |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, UR-064, UR-075, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, FR-223, FR-242, FR-245, NFR-008, NFR-009, NFR-028, NFR-031, NFR-036 |
+| **Requirement refs** | BR-005, BR-006, BR-012, UR-019, UR-037, UR-049, UR-064, UR-075, FR-108, FR-109, FR-110, FR-111, FR-112, FR-113, FR-114, FR-186, FR-223, FR-231, FR-242, FR-243, FR-245, FR-247, NFR-008, NFR-009, NFR-028, NFR-031, NFR-036 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -940,3 +940,73 @@ The Step-15 build judges more shell write forms than the ADDED Requirement: Shel
 - `protectedDirectoryRule`: writing any new file into a protected directory is denied, not only a write of a named protected file. The protected directories are the confirmation-store directory (`.agent/governance/confirmations/`), `**/.agent/main-plan/`, and the governance log directory (`**/.agent/logs/governance/`).
 - `guardedClass` marker scan: the fail-closed-class marker scan decodes `\x`, `\u`, `\U`, and octal escapes before matching, so an escaped protected path still classifies the call into the NFR-028 guarded class.
 - Known limits, recorded and not closed (superseding the limits paragraph of the ADDED requirement): a command built from a variable, a command string run by another program, a script piped into a shell, symlinks (not resolved), PowerShell write verbs (`Set-Content`, `Out-File`, `Move-Item`), the main session (not judged; only a subagent `Bash` call with an `agent_id` is), and a same-command `mkdir DIR && cp ... DIR` time-of-check-to-time-of-use case where the destination directory does not exist at judge time.
+
+## Change Log: 2026-11-06 (Tranche 3)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-245 (section 2.32), FR-231 (section 2.18), FR-243 (section 2.30), FR-247 (section 2.34), NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 3 Step 23 (protect `.claude/settings.json` and `.agent/governance/profile.json`, D-12) and Step 24 (protect the session purpose record); `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (D-12) and "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2). Harness-governance Tranche 3 is not built yet, so every change here is Planned (harness-governance Tranche 3). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). This entry adds the three Tranche 3 paths of the six FR-245 protected paths; the compliance subsystem that reads the two configuration files is spec-hooks-compliance.md.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-231, FR-243, and FR-247 added. FR-245, UR-075, and NFR-036 are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Algorithmic steps flow (`spec-hooks-fsa-write-bar-flow.mmd` and the copy in this file): the protected-path branch (node E) names the six FR-245 paths, and the all-callers confirmation-store branch also denies the session purpose record to every caller.
+- Required data: a `PROTECTED_FILES` or store entry in `hooks/lib/fsa-paths.js` for `.claude/settings.json`, `.agent/governance/profile.json`, and the session purpose record, each with its caller scope.
+
+### ADDED Requirements
+
+#### Requirement: Governance configuration and purpose record protected
+
+The `fsa-write-bar` hook SHALL deny every subagent a Write, Edit, MultiEdit, or NotebookEdit of `.claude/settings.json` or `.agent/governance/profile.json`, SHALL deny a Write, Edit, MultiEdit, or NotebookEdit of the session purpose record from every tool caller, the main session included, and SHALL allow a read of any of the three.
+
+**Requirement refs:** FR-245, FR-231, FR-243, FR-247, UR-075, NFR-036 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-245 (section 2.32); task plan Step 23 (`hooks/lib/fsa-paths.js` protected entries for `.claude/settings.json` and `.agent/governance/profile.json`, D-12) and Step 24 (the session purpose record path, protected from every tool caller as in Step 2); `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (D-12) and "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2)
+
+These are the three Tranche 3 paths of the six FR-245 protected paths. The six are: `.claude/settings.json` and `.agent/governance/profile.json` (this entry, D-12); the confirmation store `.agent/governance/confirmations/` (Change Log 2026-11-05); `.agent/logs/governance/**` (Change Log 2026-11-06, Tranche 2, Requirement: Shell write path to protected paths and spec-hooks-audit.md Requirement: Protected store); the session purpose record (this entry); and the rule-mode store, which a later tranche adds. The two configuration files are the adopter's own: the user applies a profile opt-out to the committed `.claude/settings.json` and maintains `.agent/governance/profile.json`, and the plugin never edits either (FR-243), so they are denied to every subagent (D-12) and left writable by the main session and the user. The session purpose record is denied to every tool caller, the main session included, because the `UserPromptSubmit` purpose-capture hook of FR-247 is its only writer and writes with `fs`, so model or file text cannot forge it through any tool, the same all-callers rule the confirmation store's `confirmations.jsonl` carries. The exact session-purpose-record path is a build-time choice under `.agent/governance/`; the entry lives in `hooks/lib/fsa-paths.js` beside the Write guard lists markdown and is kept identical under `check-fsa-tables.js --check`. The shell-write route (Requirement: Shell write path to protected paths) covers all three without a further change, because its `Bash` judge reads `protectedRule()` from `hooks/lib/fsa-paths.js`, the same list the write-tool branches read.
+
+##### Scenario: Subagent write to a configuration file denied
+
+- **GIVEN** a subagent session with an `agent_id` writes `.agent/governance/profile.json` or `.claude/settings.json`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it
+- **AND** the log SHALL hold a deny record
+
+##### Scenario: Subagent read of a configuration file allowed
+
+- **GIVEN** a subagent session reads `.agent/governance/profile.json`
+- **WHEN** the hook evaluates it
+- **THEN** the read SHALL be allowed, because the bar judges only the four write tools
+
+##### Scenario: Main-session write to the purpose record denied
+
+- **GIVEN** the main session (no `agent_type`, no `agent_id`) writes the session purpose record
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it, because only the `UserPromptSubmit` purpose-capture hook writes that record
+
+##### Scenario: Subagent write to the purpose record denied
+
+- **GIVEN** any subagent call with an `agent_id` writes the session purpose record
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it
+
+##### Scenario: Main-session write to a configuration file allowed
+
+- **GIVEN** the main session (no `agent_type`, no `agent_id`) writes `.claude/settings.json`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL allow it with no output, because the subagent-only rule does not judge the main session and the user applies a profile opt-out
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-245 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | Subagent write denied and read allowed for both configuration files; the session purpose record denied to every caller and allowed to no tool; a configuration file writable by the main session (`tests/hooks/fsa-write-bar-shell.test.js`, task plan Step 30) |
+| FR-231, FR-243 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | A subagent write of `.claude/settings.json` and `.agent/governance/profile.json` is denied and a read is allowed |
+| FR-247 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | A write of the session purpose record is denied to every caller, the main session included |

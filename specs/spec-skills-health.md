@@ -7,7 +7,7 @@
 | **Feature** | Hook health skill: `/health` |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, UR-018, UR-055, UR-065, UR-067, FR-104, FR-166, FR-118, FR-206, FR-213, FR-225, FR-228, NFR-027, NFR-030, NFR-035 |
+| **Requirement refs** | BR-007, UR-018, UR-055, UR-065, UR-067, FR-104, FR-166, FR-118, FR-206, FR-213, FR-225, FR-228, FR-229, NFR-027, NFR-030, NFR-035 |
 | **Feature type** | Tooling |
 | **Status** | Review |
 
@@ -577,3 +577,64 @@ None.
 ### Reconciliation to as-built (2026-11-06)
 
 - `audit-no-root` finding: besides the three logging-filter rows and the broken-chain row above, the findings table gains an `audit-no-root` row. It means a governed action ran with no resolvable project root, so the governance audit log under `.agent/logs/governance/` could not be located and the append was skipped (fail-open, the action proceeds and the skill reports the skip). The fix tells the user to run the governed action within a project that has a resolvable root so the log can be written; no settings or state file changes because of the skill. This supersedes the findings-table wording of the MODIFIED Requirement: Short summary with a fix per finding at the next fold.
+
+## Change Log: 2026-11-06 (Tranche 3)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-229 (section 2.16), NFR-027 and NFR-030 (sections 3.2, 3.3); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 3 Step 29 (the `--export-evidence` mode of `hooks/impl/health-check.js`, with the `allowed-tools` and `argument-hint` of `skills/health/SKILL.md` and the `metadata.json` mirror). Harness-governance Tranche 3 is not built yet, so every change here is Planned (harness-governance Tranche 3). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The `--verify-audit` mode already exists (Change Log 2026-11-06, Requirement: Verify the governance audit chain); this entry adds the `--export-evidence` mode as the fourth exact command form. The export module and its report are specified in spec-hooks-health-check.md (Change Log 2026-11-06 (Tranche 3), Requirement: Control evidence export).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-229 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Required data: a `--export-evidence` row with a date range, passed on when the user asks for a control-evidence export.
+- The findings and fixes table: a row for a control-evidence export that returns an unverified range (the fix names the first broken line and tells the user the log was changed after it was written).
+- Dependencies, the Tool grants row: the skill's grants allow four command forms (plain, `--clear`, `--verify-audit`, and `--export-evidence`) plus Read, each naming the exact command, not a bare `Bash` (NFR-027).
+
+### ADDED Requirements
+
+#### Requirement: Export control evidence
+
+The `/health` skill SHALL, when the user asks for a control-evidence export over a date range, run `node "${CLAUDE_PLUGIN_ROOT}/hooks/health-check.js" --data-dir "${CLAUDE_PLUGIN_DATA}" --export-evidence` with the date-range arguments, and SHALL report the counts and records of denies, asks, gate evidence, and approvals by type together with the chain-verification result, naming the first broken line and marking the range unverified when the chain breaks inside it.
+
+**Requirement refs:** FR-229, NFR-030, NFR-027, UR-067, UR-018 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-229 (section 2.16); task plan Step 29 (the `--export-evidence` mode; the `allowed-tools` and `argument-hint` of `skills/health/SKILL.md`; the `metadata.json` mirror); spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3), Requirement: Control evidence export
+
+The export runs as a mode of the existing `/assist-plugin:health` skill, not a new skill, so the skill count and the "Keeping counts in sync" list do not change (task plan Step 29). The `allowed-tools` entry names the exact `--export-evidence` command with the date-range flags, not a bare `Bash` (NFR-027), and `skills/health/metadata.json` mirrors the `allowed-tools` and `argument-hint` (`tests/skills/metadata-mirror.test.js`). The export algorithm, the rotated-segment reading, and the chain-verification result are in spec-hooks-health-check.md and spec-hooks-audit.md.
+
+##### Scenario: Export for a verified range
+
+- **GIVEN** the chain is intact for the date range the user names
+- **WHEN** the user runs the export mode
+- **THEN** the skill SHALL list the control events by type and report the chain as verified
+
+##### Scenario: Range with a break
+
+- **GIVEN** the chain breaks inside the named date range
+- **WHEN** the user runs the export mode
+- **THEN** the skill SHALL mark the range unverified and name the first broken line
+
+### MODIFIED Requirements
+
+#### Requirement: Run the health check with the user's flag
+
+**Was:** (Change Log 2026-11-06) The statement is unchanged for the plain and `--clear` forms. The skill's grants allow exactly three command forms plus Read: the plain form, the `--clear` form, and the `--verify-audit` form (Requirement: Verify the governance audit chain), each named exactly in `allowed-tools` (NFR-027).
+
+**Now:** The statement is unchanged for the plain and `--clear` forms. The skill's grants allow exactly four command forms plus Read: the plain form, the `--clear` form, the `--verify-audit` form (Requirement: Verify the governance audit chain), and the `--export-evidence` form with its date-range arguments (Requirement: Export control evidence), each named exactly in `allowed-tools`, not a bare `Bash` (NFR-027).
+
+**Reason:** FR-229 and task plan Step 29 add the `--export-evidence` mode to the same skill and its exact command to `allowed-tools`.
+
+**Requirement refs:** FR-166, FR-225, FR-229, UR-018, NFR-027 | **Status:** Planned (harness-governance Tranche 3) for the fourth form; Built for the first two; Planned (harness-governance Tranche 2) for `--verify-audit`
+
+The four existing Scenarios (Plain run, Clear requested, Long log without the flag) and the `--verify-audit` scenarios are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-229, NFR-030 | Change Log 2026-11-06 (Tranche 3): Requirement: Export control evidence | `/health --export-evidence` on a verified range lists control events by type and shows the chain verified; on a range with a break names the first broken line (spec-hooks-health-check.md verifies the export module) |
+| NFR-027 | Change Log 2026-11-06 (Tranche 3): Requirement: Run the health check with the user's flag | `allowed-tools` names the four exact commands, the `--export-evidence` form included; `metadata.json` mirrors them |

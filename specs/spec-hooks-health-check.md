@@ -7,7 +7,7 @@
 | **Feature** | Health check: hook self-tests, auto-disable, session notice, health report, attribution settings |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, UR-059, UR-060, UR-062, UR-063, UR-065, UR-067, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, FR-214, FR-216, FR-219, FR-221, FR-224, FR-225, FR-228, FR-242, NFR-007, NFR-009, NFR-016, NFR-026, NFR-027, NFR-030, NFR-032, NFR-035 |
+| **Requirement refs** | BR-007, BR-009, UR-015, UR-017, UR-018, UR-055, UR-059, UR-060, UR-062, UR-063, UR-065, UR-067, UR-068, UR-069, UR-075, FR-091, FR-104, FR-107, FR-118, FR-119, FR-120, FR-206, FR-213, FR-214, FR-216, FR-219, FR-221, FR-224, FR-225, FR-228, FR-229, FR-230, FR-231, FR-232, FR-233, FR-242, FR-243, FR-244, FR-246, FR-247, NFR-007, NFR-009, NFR-016, NFR-026, NFR-027, NFR-028, NFR-030, NFR-031, NFR-032, NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -1166,3 +1166,167 @@ None.
 | FR-228, NFR-026, NFR-032 | Change Log 2026-11-06: Requirement: Disablement logging at session start | A disabled guard yields one disablement event per session, with no duplicate on a later session (`tests/hooks/audit-log-disablement.test.js`, task plan Step 20) |
 | NFR-035, FR-219, FR-221, FR-224 | Change Log 2026-11-06: Requirement: Self-tests | HEALTH report with a PASS line for `audit-log`, `gate-evidence`, and `goal-guard`; a false finding on any of the three reports weak or missing logging and leaves the hook enabled; `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
 | FR-091 | Change Log 2026-11-06: Requirement: Auto-disable and re-enable | The three logging filters are never added to `hooks-disabled.json`; a full pass removes a hand-added entry |
+
+## Change Log: 2026-11-06 (Tranche 3)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-229 (section 2.16), FR-231 (section 2.18), FR-243 (section 2.30), FR-244 (section 2.31), NFR-027 and NFR-028 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 3 Step 23 (the health check reports a malformed `profile.json`, reports a flag found only in `.claude/settings.local.json` as ignored, reports a profile that is off with no `DECISIONS.md` entry, and on `--session-start` appends a profile-disablement event) and Step 29 (the `--export-evidence` mode and its `allowed-tools` entry). Harness-governance Tranche 3 is not built yet, so every change here is Planned (harness-governance Tranche 3). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The `--verify-audit` mode already exists (Change Log 2026-11-06, Requirement: Verify the governance audit chain); this entry adds the governance-profile report, the profile-disablement log event, and the `--export-evidence` mode. The compliance controls these reports describe are specified in spec-hooks-compliance.md; the `/health` skill side of `--export-evidence` and its exact command are in spec-skills-health.md.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-068, UR-069, UR-075, FR-229, FR-231, FR-243, FR-244, and NFR-028 added by the ADDED Requirements of this pass; FR-230, FR-232, FR-233, FR-246, FR-247, and NFR-031 added by the Self-tests entry below (the four new Tranche 3 hooks it enumerates), since this delta traces to them.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description and Algorithmic steps, node B of the flow diagram (inline and `spec-hooks-health-check-flow.mmd`): the hook count reads nineteen, with the four Tranche 3 hooks `purpose-capture`, `data-access-log`, `phi-outbound-guard`, and `ferpa-disclosure-guard` named. The Change Log 2026-11-06 (Tranche 2) already stages this count at fifteen (adding `audit-log`, `gate-evidence`, and `goal-guard`); at the fold it reads nineteen. The `.mmd` source is not edited in this pass; the node text follows at the fold.
+- Description: the health check also reports the governance profile state (a malformed `profile.json`, a profile flag set only in `.claude/settings.local.json`, and a profile that is off with no `DECISIONS.md` entry), appends a profile-disablement event at session start, and runs a control-evidence export for a date range.
+- Required data: a `--export-evidence` argument with a date range, and a `.agent/governance/profile.json` row (read for the profile report, read-only) and the committed `.claude/settings.json` row (parsed for the profile flag, read-only).
+- Requirement: Health report, the mode selection: `--export-evidence` is a fourth report-mode branch beside the plain report, `--clear`, and `--verify-audit`, and the report gains a governance-profile section.
+- Algorithmic steps flow: the report path reads the committed `.claude/settings.json` env block and `.agent/governance/profile.json` alongside the attribution and push-grant reads, all read-only.
+
+### ADDED Requirements
+
+#### Requirement: Governance profile report
+
+In report mode the health check SHALL report, read-only, a malformed `.agent/governance/profile.json`, a profile flag found only in `.claude/settings.local.json` and therefore ignored, and a profile that is off with no `DECISIONS.md` entry for that disablement.
+
+**Requirement refs:** FR-231, FR-243, FR-244, NFR-028, UR-068, UR-069, UR-075 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-231 (section 2.18), FR-243 (section 2.30), FR-244 (section 2.31); task plan Step 23 (the health check reports a malformed `profile.json`, an ignored `.claude/settings.local.json` flag, and a profile off with no `DECISIONS.md` entry); spec-hooks-compliance.md, Requirement: Data-class tagging and Requirement: Profile disablement is logged and recorded
+
+The check reads the profile state through the same direct parse of the committed project `.claude/settings.json` that `lib/data-class.js` uses (spec-hooks-compliance.md), never the merged process environment, and reads `.agent/governance/profile.json` read-only. A flag set only in `.claude/settings.local.json` is reported as ignored, because that file cannot disable enforcement (FR-243). A malformed `profile.json` under an enforced profile is reported, and the compliance controls deny their guarded operations until it is fixed (NFR-028; spec-hooks-compliance.md). The check reads the `DECISIONS.md` headings only, to name a profile opt-out that lacks a decision entry (FR-244); it never edits a settings file.
+
+##### Scenario: Malformed profile.json
+
+- **GIVEN** `.agent/governance/profile.json` is invalid JSON and a profile is enforced
+- **WHEN** the report runs
+- **THEN** the report SHALL name the malformed file and say the tagged-path controls deny until it is fixed
+
+##### Scenario: Ignored personal flag
+
+- **GIVEN** `.claude/settings.local.json` holds a profile flag and the committed `.claude/settings.json` does not
+- **WHEN** the report runs
+- **THEN** the report SHALL list the personal flag as ignored and say it cannot disable enforcement
+
+##### Scenario: Opt-out without a decision entry
+
+- **GIVEN** a profile is off in the committed `.claude/settings.json` and `DECISIONS.md` holds no entry for that disablement
+- **WHEN** the report runs
+- **THEN** the report SHALL list the disablement as lacking a decision entry
+
+#### Requirement: Profile-disablement logging at session start
+
+The health check SHALL, with `--session-start`, append one profile-disablement event per opted-out profile to the governance audit log through `lib/audit-chain.js`, naming the profile and the time, deduplicated like the guard-disablement event.
+
+**Requirement refs:** FR-244, NFR-026, NFR-032, UR-075 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-244 (section 2.31); task plan Step 23 (the `--session-start` path appends a profile-disablement event naming the profile and the time); spec-hooks-audit.md, Requirement: Logging from the first session and logged disablement; spec-hooks-compliance.md, Requirement: Profile disablement is logged and recorded
+
+The event is written to `.agent/logs/governance/audit.jsonl`, not to `hook-health.jsonl`; its schema, chaining, and at-least-12-months retention are in spec-hooks-audit.md. This extends the FR-228 guard-disablement append (Change Log 2026-11-06, Requirement: Disablement logging at session start) to profile opt-outs: the profile flag read exists only in Tranche 3, so the profile event lands here. Core logging has no opt-in and is not gated by the compliance profile flag.
+
+##### Scenario: Profile opt-out logged
+
+- **GIVEN** the committed settings turn the HIPAA profile off
+- **WHEN** the next session starts
+- **THEN** the audit log SHALL hold a profile-disablement event naming the HIPAA profile and the time
+
+#### Requirement: Control evidence export
+
+The health check SHALL, with `--export-evidence` and a date range, call the export module (`scripts/export-control-evidence.js`) to count and list the denies, asks, gate evidence, and approvals from the governance audit log and `fsa-log.jsonl` across rotated segments for that range, together with the chain-verification result, and SHALL mark the range unverified and name the first broken line when the chain breaks inside it.
+
+**Requirement refs:** FR-229, NFR-030, NFR-027, UR-067 | **Status:** Planned (harness-governance Tranche 3) | **Source:** FR-NFR-harness-governance.md v1.3, FR-229 (section 2.16); task plan Step 29 (`scripts/export-control-evidence.js`; the `--export-evidence` mode of `hooks/impl/health-check.js`; the `allowed-tools` and `argument-hint` of `skills/health/SKILL.md` and the `metadata.json` mirror); spec-hooks-audit.md, Requirement: Chain verification
+
+The `--export-evidence` command is a fourth exact command the `/health` skill's `allowed-tools` names (the plain run, `--clear`, and `--verify-audit` are the first three), not a bare `Bash` (NFR-027; spec-skills-health.md). The export reads the rotated segments that cover the range (segments are retained at least 12 months) and uses the chain hash carried across each cut. The evidence comes from the plugin's own hooks, not a vendor report.
+
+##### Scenario: Export for a verified range
+
+- **GIVEN** the chain is intact for a date range
+- **WHEN** the export runs for that range
+- **THEN** it SHALL list the control events by type and show the chain as verified
+
+##### Scenario: Range with a break
+
+- **GIVEN** the chain breaks inside the range
+- **WHEN** the export runs
+- **THEN** it SHALL mark the range unverified and name the first bad line
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** (Change Log 2026-11-06 Tranche 2) The health check SHALL, in both modes, run each of the fifteen hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list; `pr-verdict-guard` runs as a guard whose unconfirmed-post cases are its deny list and whose confirmed-post cases are its allow list; `confirmation-record` runs as a filter whose genuine token case must write a record and whose forged, tokenless, expired, and reused cases must write none, each against a stub confirmation store; and `audit-log`, `gate-evidence`, and `goal-guard` each run as a report-only logging filter against a stub audit sink, whose self-test reports weak or missing logging on a false finding and never disables the hook.
+
+**Now:** The health check SHALL, in both modes, run each of the nineteen hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; one `writing-context` case reads the installed `rules/writing-standard-compact.md` through the hook's own reader, because checking that file is the point of that case; `pr-post-ask` runs as a guard whose ask cases are its deny list and whose no-ask cases are its allow list; `pr-verdict-guard` runs as a guard whose unconfirmed-post cases are its deny list and whose confirmed-post cases are its allow list; `confirmation-record` runs as a filter whose genuine token case must write a record and whose forged, tokenless, expired, and reused cases must write none, each against a stub confirmation store; `audit-log`, `gate-evidence`, and `goal-guard` each run as a report-only logging filter against a stub audit sink, whose self-test reports weak or missing logging on a false finding and never disables the hook; `phi-outbound-guard` and `ferpa-disclosure-guard` each run as a security-critical guard (NFR-028) whose PHI-carrying or undeclared calls are its deny list and whose clean, exempt, or declared calls are its allow list, each case against a temporary project root; `data-access-log` runs as a report-only logging filter whose tagged-path access events are its record cases and whose untagged, opted-out, no-profile, shell-read, and `PostToolUse` events write none, against a stub audit sink and a temporary project root; and `purpose-capture` runs as a filter whose declared-purpose case must write one session purpose record and whose forged, pasted, tool-result, undeclared, and over-long cases must write none, against a temporary project root.
+
+**Reason:** NFR-035: each new guard or filter ships a self-test corpus with a known-safe and a known-prohibited case and reports through `/assist-plugin:health`. Task plan Step 24 (`purpose-capture`), Steps 25 and 26 (`data-access-log` for student-record and PHI paths), Step 27 (`phi-outbound-guard`), and Steps 27a and 27b (`ferpa-disclosure-guard`) each add one `GUARDS` entry to `hooks/impl/health-check.js`. spec-hooks-platform.md (Change Log 2026-11-06 (Tranche 3)) lists `phi-outbound-guard` and `ferpa-disclosure-guard` as guards and `purpose-capture` and `data-access-log` as filters; spec-hooks-compliance.md owns the four hooks' behavior. Each hook is one `GUARDS` entry, so a new hook is self-tested only when this requirement lists it (Requirement: Self-tests, the `pr-post-ask` entry, Change Log 2026-10-22). This Now keeps the Change Log 2026-11-06 (Tranche 2) statement and adds three clauses; the unfolded Change Logs 2026-10-23 (the `prose-gate` and `prose-advisor` rows), 2026-11-05 (the `pr-verdict-guard` and `confirmation-record` rows), and 2026-11-06 (Tranche 2) (the three logging-filter rows) touch other rows, so this entry does not overlap them.
+
+**Requirement refs:** NFR-035, FR-230, FR-232, FR-233, FR-246, FR-247, NFR-028, NFR-031, UR-018, UR-068, UR-069 | **Status:** Planned (harness-governance Tranche 3) | **Source:** `hooks/impl/health-check.js`, read on 2026-11-06 at the Tranche 3 working tree: the `GUARDS` entries `phi-outbound-guard` `:2122-2130`, `ferpa-disclosure-guard` `:2131-2139`, `purpose-capture` `:2203-2212`, and `data-access-log` `:2234-2244`; the corpora `PHI_OUTBOUND_ALLOW` `:1450-1468` and `PHI_OUTBOUND_DENY` `:1470-1503`, `FERPA_DISCLOSURE_ALLOW` `:1576-1595` and `FERPA_DISCLOSURE_DENY` `:1597-1630`, `PURPOSE_CAPTURE_RECORDED` `:1164-1166` and `PURPOSE_CAPTURE_NONE` `:1168-1174`, and `DATA_ACCESS_RECORD` `:1311-1342` and `DATA_ACCESS_NONE` `:1344-1350`; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Steps 24 to 27b
+
+New rows of the self-test table (the counts are counted from the built corpus read on 2026-11-06):
+
+| Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
+|---|---|---|---|---|
+| `phi-outbound-guard` | guard (security-critical, NFR-028) | 17 allow cases: clean PR posts and `WebFetch` calls, a BAA-recorded system, a `WebFetch` host no system names, a HIPAA opt-out, a project with no `profile.json`, PHI text in a non-post command, a `Read`, and the three fail-closed-class allow cases | 31 deny cases: PR posts and `WebFetch` calls that carry a PHI pattern or name a PHI-tagged path, a system with no BAA reference, a malformed or bad-`phi_patterns` `profile.json`, and the five fail-closed-class deny cases | `deny === true`; the case runs against a temporary project root, and a denial that holds the matched value throws |
+| `ferpa-disclosure-guard` | guard (security-critical, NFR-028; status to verify, NFR-033) | 18 allow cases: a clean call, a declared party on the allowlist with a legitimate interest, a 99.32(d) exception, a FERPA opt-out, a project with no `profile.json`, no pattern or glob configured, a record pattern in a non-post command, a `Read`, and the three fail-closed-class allow cases | 31 deny cases: a call that carries the pattern or names a student-record path with no declaration, a missing field, an off-allowlist party, two parties, or a malformed or bad-value `profile.json`, and the five fail-closed-class deny cases | `deny === true`; an allowed disclosure hands the stub sink one event with the party and the interest and neither `unstated` nor the matched value, and a denial, an exception, or a leak throws |
+| `data-access-log` | report-only logging filter | 5 no-record cases: a path outside the student-record class, a tagged path while the committed settings opt FERPA out, a project with no `profile.json`, a shell read, and a `PostToolUse` event | 5 record cases: a `Read`, a `Write`, a subagent `Edit`, a no-session-id `Read`, and a `Grep` of a student-record-tagged path; the record holds the tool, operation, path, class tag, purpose, and review flag, and the case throws when the record holds the secret or file content (NFR-031) | The hook returns an access record to append; the case carries a stub audit sink and a temporary project root |
+| `purpose-capture` | filter (disabled on a self-test failure) | 5 no-record cases: the declaration only in a quote line and a code fence, a `Purpose:` line in pasted PR text below the first line, a tool-result event carrying a `Purpose:` line, no declaration, and an over-long purpose | 1 record case: a declared purpose on the first line of the user's own message; the record holds the purpose and the writer `hook`, and the case throws when it holds prompt text beyond the purpose or another session reads it | The hook returns a session purpose record to write; the case carries a stub purpose store and a temporary project root |
+
+Rules:
+- Report-only: `data-access-log` carries `reportOnly: true` in its `GUARDS` entry (`hooks/impl/health-check.js:2234-2244`), as `writing-context`, `audit-log`, `gate-evidence`, and `goal-guard` do; `updateDisabled` never adds it to `hooks-disabled.json`, and a false finding reports weak or missing logging and leaves it enabled, because disabling the writer would stop the access trail (NFR-032; Requirement: Auto-disable and re-enable).
+- `purpose-capture` is a filter with no `reportOnly` flag (`:2203-2212`): a record written for a no-record case, or no record for the declared case, disables it, as for `confirmation-record`. A disabled `purpose-capture` writes nothing, so the access logs read the purpose as `unstated`, the safe direction (FR-247).
+- `phi-outbound-guard` (`:2122-2130`) and `ferpa-disclosure-guard` (`:2131-2139`) are guards with no `reportOnly` flag, in the NFR-028 security-critical class: a false deny disables the guard and a missed deny reports weak protection. `ferpa-disclosure-guard` stays "to verify" (NFR-033).
+- A record case whose appended record holds the secret or file content throws an `Error` that names the case and the condition, so the report lists it under "case threw", as `audit-log` and `writing-context` throw on a wrong-content record (NFR-031).
+- The counts above are counted from the built corpus (read on 2026-11-06); `/assist-plugin:health` lists the four hooks with a PASS or FAIL line and, for a logging filter, a weak-logging finding row (spec-skills-health.md, Change Log 2026-11-06 (Tranche 3)), and the build passes `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` and `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` with exit 0 (NFR-035).
+
+##### Scenario: Tranche 3 self-tests pass
+
+- **GIVEN** `phi-outbound-guard`, `ferpa-disclosure-guard`, `data-access-log`, and `purpose-capture` give the expected result on every case
+- **WHEN** the session starts, or the report runs
+- **THEN** the notice SHALL NOT name any of the four, and the report SHALL show a PASS line for each
+
+##### Scenario: Outbound guard denies a clean call
+
+- **GIVEN** a defect makes `phi-outbound-guard` deny one of its clean allow cases, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL add `phi-outbound-guard` to `hooks-disabled.json` and report the false deny
+
+##### Scenario: Access-log record holds file content
+
+- **GIVEN** a defect makes `data-access-log` return a record holding the file content for one record case
+- **WHEN** the self-test runs
+- **THEN** the case SHALL throw, the report SHALL list it under "case threw", and `hooks-disabled.json` SHALL NOT gain `data-access-log`
+
+##### Scenario: Purpose-capture records a forged declaration
+
+- **GIVEN** a defect makes `purpose-capture` write a record for the quoted-and-fenced forged case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL add `purpose-capture` to `hooks-disabled.json` and report the false deny
+
+#### Requirement: Auto-disable and re-enable
+
+**Was:** (Change Log 2026-11-06 Tranche 2) When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, `audit-log`, `gate-evidence`, or `goal-guard`, whose self-tests are report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Now:** When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL add a hook to `hooks-disabled.json` when its latest self-test has a false deny (guards, where an ask by `pr-post-ask` on a known-safe case counts as a false deny, and `phi-outbound-guard` and `ferpa-disclosure-guard` count as guards) or any false deny, false allow, or thrown case (the filters `injection-filter`, `prose-advisor`, and `fsa-log`), SHALL never add `writing-context`, `audit-log`, `gate-evidence`, `goal-guard`, or `data-access-log`, whose self-tests are report-only, SHALL leave `pr-post-ask` in its state and report weak protection when it only misses an ask, and SHALL remove a listed hook when its latest self-test passes every case.
+
+**Reason:** Task plan Steps 25 and 26 add `data-access-log`, a `PreToolUse` logging filter that never returns a deny (spec-hooks-platform.md, Change Log 2026-11-06 (Tranche 3), Requirement: Filter output); disabling it would stop the access trail (NFR-032), the unsafe direction, so it follows the `writing-context` report-only treatment, as `audit-log`, `gate-evidence`, and `goal-guard` do. `purpose-capture` (Step 24) is a filter disabled on any failure, because a disabled `purpose-capture` writes no record and the access logs then read the purpose as `unstated` (the safe direction), as `confirmation-record` is; it is covered by the generic filter rule and needs no name in the parenthetical. `phi-outbound-guard` and `ferpa-disclosure-guard` (Steps 27 to 27b) are guards disabled on a false deny, covered by the generic guard rule.
+
+**Requirement refs:** FR-091, FR-230, FR-233, FR-246, FR-247, NFR-032, NFR-035 | **Status:** Planned (harness-governance Tranche 3)
+
+##### Scenario: Access-log failure never disables it
+
+- **GIVEN** the `data-access-log` self-test misses a record case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the finding as weak or missing logging and SHALL NOT add `data-access-log` to `hooks-disabled.json`
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-231, FR-243 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance profile report | Malformed-profile, ignored-personal-flag, and opt-out-without-decision cases (`tests/hooks/data-class.test.js` and the health-check report tests, task plan Step 30) |
+| FR-244 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance profile report; Requirement: Profile-disablement logging at session start | An opt-out without a decision entry is reported; a profile opt-out appends a disablement event naming the profile and the time |
+| FR-229, NFR-030 | Change Log 2026-11-06 (Tranche 3): Requirement: Control evidence export | A verified range lists control events by type and shows the chain verified; a range with a break is marked unverified and names the first bad line (`tests/scripts/export-control-evidence.test.js`, task plan Step 30) |
+| NFR-027 | Change Log 2026-11-06 (Tranche 3): Requirement: Control evidence export | `allowed-tools` names the exact `--export-evidence` command, not a bare `Bash` (spec-skills-health.md) |
+| NFR-035, FR-233, FR-246 | Change Log 2026-11-06 (Tranche 3): Requirement: Self-tests | HEALTH report with a PASS line for `phi-outbound-guard` (17 allow, 31 deny) and `ferpa-disclosure-guard` (18 allow, 31 deny); a false deny lists the guard in `hooks-disabled.json`; each guard's own behavior is verified in spec-hooks-compliance.md, not by this entry |
+| NFR-035, FR-230, FR-232, FR-247 | Change Log 2026-11-06 (Tranche 3): Requirement: Self-tests | HEALTH report with a PASS line for `data-access-log` (5 no-record, 5 record) and `purpose-capture` (5 no-record, 1 record); a record holding a secret or file content lists under "case threw"; `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
+| FR-091 | Change Log 2026-11-06 (Tranche 3): Requirement: Auto-disable and re-enable | `data-access-log` is never added to `hooks-disabled.json`; `purpose-capture` is added on a false deny or false allow; `phi-outbound-guard` and `ferpa-disclosure-guard` are added on a false deny |

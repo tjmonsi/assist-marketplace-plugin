@@ -6,8 +6,8 @@
 |---|---|
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
-| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md, spec-hooks-audit.md, spec-hooks-goal-guard.md |
-| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, UR-062, UR-063, UR-065, UR-067, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-219, FR-220, FR-221, FR-223, FR-224, FR-225, FR-228, FR-231, FR-233, FR-242, FR-245, FR-246, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-029, NFR-030, NFR-032, NFR-035, NFR-036 |
+| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md, spec-hooks-audit.md, spec-hooks-goal-guard.md, spec-hooks-compliance.md |
+| **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, UR-062, UR-063, UR-065, UR-067, UR-068, UR-069, UR-075, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-219, FR-220, FR-221, FR-223, FR-224, FR-225, FR-228, FR-230, FR-231, FR-232, FR-233, FR-242, FR-243, FR-245, FR-246, FR-247, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-029, NFR-030, NFR-031, NFR-032, NFR-035, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
 
@@ -1144,3 +1144,105 @@ None.
 | FR-219, FR-221, FR-224, FR-228, NFR-035 | Change Log 2026-11-06: Requirements: Hook registration, Filter output | `audit-log`, `gate-evidence`, and `goal-guard` listed as filters and registered; each hook's own behavior and self-test verified in spec-hooks-audit.md, spec-orchestration-review-gates.md, spec-hooks-goal-guard.md, and spec-hooks-health-check.md, not by this entry |
 | NFR-026 | Change Log 2026-11-06: Requirement: Guard decision and deny output (body note) | Addressed by reference: after a deny or ask the runtime appends a decision record with timestamp, agent identity, decision, and rule id to `.agent/logs/governance/audit.jsonl` through `lib/audit-chain.js` (spec-hooks-audit.md, Requirement: Decision logging in every guard; task plan Step 12). This reconciles the partial NFR-026 note of the Change Log 2026-11-05, whose fail-closed deny appended only a `hook-health.jsonl` record |
 | NFR-036 | Change Log 2026-11-06: Requirement: Hook registration | The three new entry files sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |
+
+## Change Log: 2026-11-06 (Tranche 3)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-230 (section 2.17), FR-232 (section 2.19), FR-233 (section 2.20), FR-243 (section 2.30), FR-245 (section 2.32), FR-246 (section 2.33), FR-247 (section 2.34), NFR-028 (section 3.2), NFR-029 (section 3.1), NFR-031, NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 3 Step 23 (`hooks/lib/data-class.js`: the profile-state parse of the committed `.claude/settings.json` and the data-class glob classifier), Step 24 (`hooks/purpose-capture.js`, `hooks/impl/purpose-capture.js`, `hooks/lib/purpose-record.js`, the `UserPromptSubmit` entry), Step 25 (`hooks/data-access-log.js`, `hooks/impl/data-access-log.js`, the `PreToolUse` entry for student-record paths), Step 26 (`data-access-log` for PHI-tagged paths and `hooks/lib/identity.js`), Step 27 (`hooks/phi-outbound-guard.js`, `hooks/impl/phi-outbound-guard.js`, its `PreToolUse` entry), and Steps 27a and 27b (`hooks/ferpa-disclosure-guard.js`, `hooks/impl/ferpa-disclosure-guard.js`, its `PreToolUse` entry). Harness-governance Tranche 3 is not built yet, so every change here is Planned (harness-governance Tranche 3); the counts and matchers below are read from the built `hooks/hooks.json` in the working tree on 2026-11-06. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The four new hooks' compliance behavior lives in the new child spec spec-hooks-compliance.md (governance profile configuration, data-class tagging, session purpose capture, the FERPA and HIPAA access logs, the PHI and FERPA outbound guards, and BAA readiness); their self-tests are in spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3); `lib/identity.js` and `lib/authorizer.js` are owned by spec-hooks-audit.md. This entry carries only the registration, the counts, the guard and filter enumeration, and the compliance sub-feature link, parallel to how the Change Log 2026-11-06 (Tranche 2) added `audit-log`, `gate-evidence`, and `goal-guard`.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: UR-068, UR-069, UR-075, FR-230, FR-232, FR-243, FR-247, and NFR-031 added, since this delta traces to them. FR-233 and FR-246 (the two outbound guards) and FR-231 and FR-245 (the governance configuration they read and the write protection on it) are already listed. FR-230 and FR-232 are the FERPA and HIPAA access-log controls `data-access-log` carries; FR-247 is the purpose-capture hook; FR-243 is the committed-settings profile read; NFR-031 is the no-secret rule the two new logging filters follow.
+- Sub-features: spec-hooks-compliance.md added, so the parent-child link resolves (the compliance control subsystem names this spec as its parent). The Sub-feature breakdown row follows at the fold (Body text this entry supersedes), as the Change Log 2026-11-06 (Tranche 2) added spec-hooks-audit.md and spec-hooks-goal-guard.md.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: "sixteen ES5 entry files" reads twenty.
+- Components: the `hooks/hooks.json` row registers 20 scripts as 27 command entries; the entry-file row reads 20 entry files; the `hooks/impl/*.js` row reads 19 hook modules besides `health-check`. The shared-logic row gains `data-class.js` (Step 23: the profile-state parse of the committed `.claude/settings.json` and the data-class glob classifier via `matchGlob` from `lib/fsa-paths.js`; owned by spec-hooks-compliance.md), `purpose-record.js` (Step 24: the session purpose record read and write; spec-hooks-compliance.md), `identity.js` (Step 26: the per-agent identity helper; spec-hooks-audit.md), and `authorizer.js` (the human-authorizer attribution helper; spec-hooks-audit.md).
+- A new project-root store, outside `${CLAUDE_PLUGIN_DATA}`: `.agent/governance/profile.json`, the data-class and compliance configuration read (never written) by the four new hooks through `lib/data-class.js`, and the session purpose record written only by `purpose-capture` through `lib/purpose-record.js`; both are protected from subagent and tool writes by `fsa-write-bar` (FR-245; spec-hooks-fsa-write-bar.md). Their shapes are specified in spec-hooks-compliance.md; this spec names only the files and their writers.
+- Sub-feature breakdown: a new child row "Compliance control subsystem | spec-hooks-compliance.md | Governance profile configuration and data-class tags, session purpose capture, FERPA and HIPAA access logs, PHI and FERPA outbound guards, and BAA readiness (FR-230, FR-232, FR-233, FR-234, FR-243, FR-244, FR-246, FR-247, NFR-028); Planned (harness-governance Tranche 3)".
+- Requirement: Guard decision and deny output, Rules: the guards list gains `phi-outbound-guard` and `ferpa-disclosure-guard`, and the reads table gains their rows (see the MODIFIED Requirement below).
+- Requirement: Filter output, Rules: the filters list gains `purpose-capture` and `data-access-log` (see the MODIFIED Requirement below).
+- Traceability, FR-086 row: "23 across 16 scripts" reads "27 across 20 scripts".
+
+### Topology and data flow
+
+The topology and data-flow diagrams draw one generic `impl/NAME.js` hook on the shared runtime (`lib/launch.js`, `lib/health.js`), so the four new hooks add no node and the diagrams need no edit, the same treatment the Change Logs 2026-11-05 and 2026-11-06 (Tranche 2) gave their new hooks. The new shared-logic files and the `.agent/governance/profile.json` store are named in Components above and are not drawn individually, as `audit-chain.js` and the governance audit log were not in the Tranche 2 entry. The compliance control flow itself is drawn in spec-hooks-compliance.md (`spec-hooks-compliance-flow.mmd`, rendered 2026-11-06). Rendering of this spec's diagrams stays skipped (chrome-headless-shell missing, note under Data flow); the `.mmd` sources are the record.
+
+### ADDED Requirements
+
+None. The four hooks' own behavior is specified in spec-hooks-compliance.md (and `lib/identity.js` in spec-hooks-audit.md); their self-tests are in spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3).
+
+### MODIFIED Requirements
+
+#### Requirement: Hook registration
+
+**Was:** (Change Log 2026-11-06 Tranche 2) The plugin SHALL register exactly 23 command entries in `hooks/hooks.json`, built from 16 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 18 rows of the Change Log 2026-11-05 registration, plus row 19 (PostToolUse, matcher `.*`, script `audit-log`, no extra argument, timeout 5), row 20 (PreToolUse, matcher `Bash`, script `fsa-write-bar`, no extra argument, timeout 5), row 21 (PostToolUse, matcher `Bash`, script `gate-evidence`, no extra argument, timeout 5), row 22 (PostToolUseFailure, matcher `Bash`, script `gate-evidence`, no extra argument, timeout 5), and row 23 (PostToolUse, matcher `WebFetch|WebSearch|mcp__.*`, script `goal-guard`, no extra argument, timeout 5).
+
+**Now:** The plugin SHALL register exactly 27 command entries in `hooks/hooks.json`, built from 20 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 23 rows of the Change Log 2026-11-06 (Tranche 2) registration, plus row 24 (PreToolUse, matcher `Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit`, script `data-access-log`, no extra argument, timeout 5), row 25 (PreToolUse, matcher `WebFetch|Bash|PowerShell`, script `phi-outbound-guard`, no extra argument, timeout 5), row 26 (PreToolUse, matcher `WebFetch|Bash|PowerShell`, script `ferpa-disclosure-guard`, no extra argument, timeout 5, in the same group as `phi-outbound-guard` and after it), and row 27 (UserPromptSubmit, no matcher, script `purpose-capture`, no extra argument, timeout 5).
+
+**Reason:** Task plan Step 25 creates the `data-access-log` entry file and adds one `PreToolUse` entry on `Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit`; Step 27 creates the `phi-outbound-guard` entry file and adds one `PreToolUse` entry on `WebFetch|Bash|PowerShell`; Steps 27a and 27b create the `ferpa-disclosure-guard` entry file and add it to the same `PreToolUse` group after `phi-outbound-guard`; Step 24 creates the `purpose-capture` entry file and adds one `UserPromptSubmit` entry. That is four new scripts (`data-access-log`, `phi-outbound-guard`, `ferpa-disclosure-guard`, `purpose-capture`) and four new command entries: 16 + 4 = 20 scripts and 23 + 4 = 27 entries. The matchers are read from the built `hooks/hooks.json` in the working tree (2026-11-06); the timeout 5 follows every other hook and the NFR-029 per-hook budget, and the `UserPromptSubmit` default of 30 seconds is replaced by the explicit value, as for `confirmation-record` and `purpose-capture`'s sibling `UserPromptSubmit` hooks.
+
+**Requirement refs:** FR-086, FR-230, FR-232, FR-233, FR-246, FR-247, NFR-007, NFR-029, NFR-035, UR-017, UR-068, UR-069, UR-075 | **Status:** Planned (harness-governance Tranche 3) for rows 24 to 27; Built for rows 1 to 16; Planned (harness-governance Tranche 1) for rows 17 and 18; Planned (harness-governance Tranche 2) for rows 19 to 23
+
+The four new scripts are on the LLM surface (`hooks/`), so the change carries `✓ LLM Security Clear` (NFR-011, NFR-036). The counts in the BRD in-scope list (`docs/requirements/BRD-assist-plugin.md`, section 4) and in FR-086 read 11 scripts and 16 commands today; this spec states the planned 20 and 27 and leaves those documents to their owners. `phi-outbound-guard` and `ferpa-disclosure-guard` share one `PreToolUse` group whose matcher is `WebFetch|Bash|PowerShell`, which keeps two entries in one group; `data-access-log` sits in its own `PreToolUse` group on the Read-and-write matcher, and `purpose-capture` joins the `UserPromptSubmit` group beside `injection-filter` and `confirmation-record`.
+
+##### Scenario: Registration count after Tranche 3
+
+- **GIVEN** `hooks/hooks.json` after task plan Steps 24, 25, 27, 27a, and 27b are built
+- **WHEN** a test counts the entries whose `type` is `command`
+- **THEN** the count SHALL be 27 across 20 scripts, the added scripts being `data-access-log`, `phi-outbound-guard`, `ferpa-disclosure-guard`, and `purpose-capture`
+- **AND** `phi-outbound-guard` and `ferpa-disclosure-guard` SHALL each be registered on `PreToolUse` with the matcher `WebFetch|Bash|PowerShell`
+- **AND** `data-access-log` SHALL be registered on `PreToolUse` with the matcher `Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit`
+- **AND** `purpose-capture` SHALL be registered on `UserPromptSubmit`
+
+##### Scenario: Timeouts with the Tranche 3 hooks
+
+- **GIVEN** the same file
+- **WHEN** a test reads each entry's `timeout`
+- **THEN** every entry SHALL read 5, the four new entries included, except `health-check.js --session-start`, which SHALL read 10
+
+##### Scenario: Count holds until the hooks are built
+
+- **GIVEN** `hooks/hooks.json` before task plan Steps 24, 25, 27, 27a, and 27b are built
+- **WHEN** the registration test runs
+- **THEN** the count SHALL be 23 across 16 scripts, as in the Change Log 2026-11-06 (Tranche 2)
+
+The scenarios Documentation guard matcher and Registration drift are unchanged.
+
+#### Requirement: Guard decision and deny output
+
+**Was:** (Change Log 2026-11-05) Rules: the guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, `pr-post-ask`, and `pr-verdict-guard`. The reads table ends with the `pr-verdict-guard` row.
+
+**Now:** The statement is unchanged. Rules: the guards are `sa-mermaid-only`, `doc-cli-guard`, `commit-attribution-guard`, `prose-gate`, `fsa-write-bar`, `pr-post-ask`, `pr-verdict-guard`, `phi-outbound-guard`, and `ferpa-disclosure-guard`. The reads table gains the row `phi-outbound-guard` | `.agent/governance/profile.json`, the committed `.claude/settings.json` env block (through `lib/data-class.js`), and a `--body-file` payload, by file read alone | the case's temporary project root (option name set at the build) | Planned (harness-governance Tranche 3), and the row `ferpa-disclosure-guard` | the same three reads (the profile holds the student-record patterns, the receiving-party allowlist, and the 34 CFR 99.32(d) exception list) | the same | Planned (harness-governance Tranche 3).
+
+**Reason:** Task plan Steps 27, 27a, and 27b: `impl/phi-outbound-guard.js` and `impl/ferpa-disclosure-guard.js` export `evaluate(input)`, registered through `guard()` on `PreToolUse` `WebFetch|Bash|PowerShell`, whose only I/O is the file read of `profile.json`, the committed settings, and a `--body-file` payload. Both deny and never return `ask: true`, so the rule "Only `pr-post-ask` returns `ask: true`" holds. FR-233 and FR-246 are in the NFR-028 security-critical class (Change Log 2026-11-05, Requirement: Failure path), so each guard declares the `failClosedFor(input)` classifier: on an error, a timeout, or an unreadable configuration it denies calls in its guarded class, and a malformed `profile.json` under an enforced profile denies until fixed. The self-test treats both as guards (spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3)).
+
+**Requirement refs:** FR-088, FR-233, FR-246, NFR-028, NFR-035, UR-068, UR-069 | **Status:** Planned (harness-governance Tranche 3)
+
+The scenarios Positive match, No match, Truthy value that is not true, Reads a test can replace, Git walk replaced in a test, Wording in the rule file, Ask output, Deny wins over ask, and Truthy ask that is not true are unchanged. The deny and allow behavior of `phi-outbound-guard` and `ferpa-disclosure-guard` is specified in spec-hooks-compliance.md.
+
+#### Requirement: Filter output
+
+**Was:** (Change Log 2026-11-06 Tranche 2) The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, `confirmation-record`, `audit-log`, `gate-evidence`, and `goal-guard`.
+
+**Now:** The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, `confirmation-record`, `audit-log`, `gate-evidence`, `goal-guard`, `purpose-capture`, and `data-access-log`.
+
+**Reason:** Task plan Step 24 (`purpose-capture`, a `UserPromptSubmit` hook that records the user's declared session purpose and never denies) and Steps 25 and 26 (`data-access-log`, a `PreToolUse` hook that appends a FERPA or HIPAA access record and never denies) each run through `transform()` in `lib/health.js` and return no `deny` decision. `data-access-log` is a report-only logging filter, never disabled, because disabling the writer would stop the access trail (NFR-032); `purpose-capture` is a filter disabled on a self-test failure, because a disabled `purpose-capture` writes no record and the access logs then read the purpose as `unstated`, the safe direction (spec-hooks-health-check.md, Change Log 2026-11-06 (Tranche 3), Requirement: Self-tests and Requirement: Auto-disable and re-enable). Their record shapes and self-tests are in spec-hooks-compliance.md and spec-hooks-health-check.md.
+
+**Requirement refs:** FR-088, FR-089, FR-230, FR-232, FR-247, NFR-031, NFR-035 | **Status:** Planned (harness-governance Tranche 3)
+
+The scenarios Positive result, Null result, and Output that cannot be serialized are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-086 | Change Log 2026-11-06 (Tranche 3): Requirement: Hook registration | Registration count test on `hooks/hooks.json`: 27 command entries across 20 scripts, with `phi-outbound-guard` and `ferpa-disclosure-guard` on `PreToolUse` `WebFetch\|Bash\|PowerShell`, `data-access-log` on `PreToolUse` `Read\|Grep\|Glob\|Write\|Edit\|MultiEdit\|NotebookEdit`, `purpose-capture` on `UserPromptSubmit`, and every `timeout` as listed (`tests/hooks/hooks-registration.test.js`, task plan Step 30) |
+| FR-233, FR-246, NFR-028 | Change Log 2026-11-06 (Tranche 3): Requirement: Guard decision and deny output | `phi-outbound-guard` and `ferpa-disclosure-guard` listed as guards, each declaring `failClosedFor(input)`; each hook's own deny and allow behavior and its self-test are verified in spec-hooks-compliance.md and spec-hooks-health-check.md, not by this entry |
+| FR-230, FR-232, FR-247, NFR-035 | Change Log 2026-11-06 (Tranche 3): Requirement: Filter output | `purpose-capture` and `data-access-log` listed as filters and registered; each hook's own behavior and self-test are verified in spec-hooks-compliance.md and spec-hooks-health-check.md |
+| FR-245 | Change Log 2026-11-06 (Tranche 3): Body (Components, new store) | `.agent/governance/profile.json` and the session purpose record are protected from subagent and tool writes by `fsa-write-bar` (spec-hooks-fsa-write-bar.md) |
+| NFR-036 | Change Log 2026-11-06 (Tranche 3): Requirement: Hook registration | The four new entry files sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |

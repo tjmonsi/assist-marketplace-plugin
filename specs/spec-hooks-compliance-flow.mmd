@@ -1,0 +1,35 @@
+flowchart TD
+  S(["Governed action: a tool call in a session"]) --> PS["profileState(): parse the env block of the<br/>committed .claude/settings.json directly<br/>(never process.env, never .claude/settings.local.json)"]
+  PS --> FLAG{"Profile flag present in the committed file?"}
+  FLAG -->|"no"| ALL["Enforce SOC 2, HIPAA, and FERPA (default)"]
+  FLAG -->|"yes"| SOME["Enforce the profiles the flag leaves on;<br/>a flag only in settings.local.json is ignored"]
+  ALL --> CFG{"Load .agent/governance/profile.json"}
+  SOME --> CFG
+  CFG -->|"absent"| LOGONLY["Log-only: nothing is tagged,<br/>no control hard-denies (NFR-028)"]
+  CFG -->|"malformed, a profile enforced"| DENYCFG(["Deny the guarded tagged-path operation<br/>until the file is fixed (NFR-028, fail-closed)"])
+  CFG -->|"valid"| CLASS["Classify the path by data-class glob:<br/>student-record, PHI, or none"]
+  LOGONLY --> CLASS
+  CLASS --> KIND{"Tool surface"}
+  KIND -->|"read or write of a tagged path"| PURP["Read the session purpose record (FR-247),<br/>or 'unstated' when none; never deny on a missing purpose"]
+  PURP --> FERPALOG["FERPA (student-record tag): append an internal<br/>access event, five attribution fields plus purpose (FR-230)"]
+  PURP --> HIPAALOG["HIPAA (PHI tag): append one agent-level record<br/>per action, 45 CFR 164.312(b) (FR-232)"]
+  FERPALOG --> PROCEED(["Action proceeds; the log never denies on purpose"])
+  HIPAALOG --> PROCEED
+  KIND -->|"outbound call (WebFetch or PR post)"| HIPAAON{"HIPAA profile enforced?<br/>(phi-outbound-guard.js)"}
+  KIND -->|"outbound call (WebFetch or PR post)"| FERPAON{"FERPA profile enforced?<br/>(ferpa-disclosure-guard.js)"}
+  HIPAAON -->|"no (opted out)"| HOFF(["PHI and BAA controls do not run"])
+  HIPAAON -->|"yes"| PHI{"PHI: payload matches a PHI pattern<br/>or names a PHI-tagged path?"}
+  PHI -->|"yes"| DENYPHI(["Deny the outbound call (FR-233)"])
+  PHI -->|"no"| BAA{"Receiving system has a recorded BAA?"}
+  BAA -->|"no"| DENYBAA(["Deny; profile reads not ready (FR-234)"])
+  BAA -->|"yes"| ALLOWH(["PHI and BAA controls allow the call"])
+  FERPAON -->|"no (opted out)"| FOFF(["FERPA disclosure control does not run"])
+  FERPAON -->|"yes"| FERPADISC{"Carries education-record data<br/>(student-record tag or pattern)?"}
+  FERPADISC -->|"no"| ALLOWF(["FERPA disclosure control allows the call"])
+  FERPADISC -->|"yes"| PARSE["Parse the receiving party and legitimate interest<br/>from the payload; read the allowlist from profile.json"]
+  PARSE --> EXC{"Party covered by a listed 99.32(d) exception?"}
+  EXC -->|"yes"| ALLOWF
+  EXC -->|"no"| CHECK{"Both fields present and party on the allowlist?"}
+  CHECK -->|"no"| DENYDISC(["Deny the disclosure; never log 'unstated'<br/>(FR-246, fail-closed, status to verify)"])
+  CHECK -->|"yes"| RECORD["Append a disclosure event:<br/>receiving party and legitimate interest"]
+  RECORD --> ALLOWF
