@@ -7,7 +7,7 @@
 | **Feature** | Goal-hijack guardrail: a rule-based, advisory-first alignment check on tool results |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-028 (blocking mode, per `DECISIONS.md` 2026-11-13), NFR-035 |
+| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-028 (blocking mode, per `DECISIONS.md` 2026-11-13), NFR-034, NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -404,3 +404,147 @@ None.
 | FR-219 | Change Log 2026-11-13 (Tranche 5): Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput` | In blocking mode a hijack-matching result is replaced through `updatedToolOutput` and a deny record holds the rule id; a `block` decision alone does not suppress the result (`tests/hooks/goal-guard.test.js`, task plan Step 41) |
 | NFR-028 | Change Log 2026-11-13 (Tranche 5): Requirement: Fail closed for the guarded class in blocking mode | In blocking mode an evaluation error or timeout withholds the result through `updatedToolOutput`; in advisory mode the same error passes the result through (`tests/hooks/goal-guard.test.js`). FR-219 (blocking mode) joins the NFR-028 set by `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode"; the FR-NFR NFR-028 enumeration (section 3.2) gains FR-219 in the Tranche 5 documentation sync (task plan Step 8) |
 | FR-219, FR-238 | Change Log 2026-11-13 (Tranche 5): Requirement: Mode read from the rule-mode store, promotion disabled this release | The hook reads the store and acts on a blocking mode; the default stays advisory and no promotion is performed this release (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`) |
+
+## Change Log: 2026-11-13 (Tranche 5, FR-219 end-to-end: advisory findings-write)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), FR-238 (section 2.25, "record every finding, and produce a baseline report with finding counts and precision before promotion"), NFR-034 (section 3.5, the at-least-90% precision bar computed from the user's true or false labels); `DECISIONS.md`, 2026-11-13, "FR-219 completed end-to-end (goal-guard writes advisory findings for the promotion baseline)"; the shared baseline store and scripts of spec-hooks-code-scan.md (Requirement: Advisory baseline and precision from user labels, Requirement: Promotion gate, Requirement: Rule-mode store governs advisory versus blocking). This entry adds the advisory findings-write that makes `goal-guard` promotable under FR-238: in advisory mode the hook records each hijack would-deny match as a finding in the baseline store `.agent/governance/review-findings.jsonl`, besides its existing governance audit-log would-deny and pass records. Without this write `scripts/promote-rule.js goal-guard` refuses with the missing-baseline reason forever, because the baseline the promotion gate reads is the findings store, not the audit log, and `goal-guard` wrote only the audit log through the Tranche 4 build. The findings-write changes none of the mode behaviors the earlier Tranche 5 blocking delta specifies: advisory mode still fails open and withholds nothing, and blocking mode withholds or rewrites the result through `updatedToolOutput` and fails closed for the guarded class. This entry enables no blocking (the mode default stays advisory, and a switch is still the user-run `scripts/promote-rule.js`). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: NFR-034 added, for the promotion precision bar the advisory findings-write feeds; this also applies the NFR-034 addition that the Change Log 2026-11-13 (Tranche 4) direct-edits line recorded but the metadata block had not yet carried. FR-219 and FR-238 are already present.
+- Correction to this entry's finding-field wording (no behavior change): the baseline finding's `rule_id` is the fixed string `"goal-guard"`, not the per-hijack rule id. `scripts/baseline-report.js` and `scripts/promote-rule.js` group and filter findings by `rule_id` equal to the rule-mode store key, so a finding whose `rule_id` is a per-hijack id such as `go-ignore-previous` leaves `promote-rule.js goal-guard` with zero findings and a missing-baseline refusal, which defeats the findings-write. The per-hijack rule id moves to a separate field, `hijack_rule_id`. The corrected wording is in the Algorithmic steps and Events emitted bullets below, Requirement: Advisory would-deny finding written to the baseline store (now with a field table), Requirement: Rule-mode store key for goal-guard is the flat key "goal-guard", Requirement: Findings keep accruing in blocking mode, and the Traceability rows. The record shape matches the as-built `hooks/impl/goal-guard.js` (`findingOf`).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description, the sentence (line 20) "when a rule matches, it records a would-deny event with a rule id to the governance audit log and withholds nothing; when nothing matches, it records a pass": now reads that, in advisory mode, besides the governance audit-log would-deny and pass records, the hook also records each would-deny (hijack match) as a finding in the baseline store `.agent/governance/review-findings.jsonl` (Requirement: Advisory would-deny finding written to the baseline store). The audit-log records are unchanged.
+- Requirement: Advisory alignment check on tool results (statement at line 66, and the "Now" wording of Change Log 2026-11-13 (Tranche 4)): the clause "SHALL record a would-deny event with a rule id to the governance audit log ... and a pass record otherwise" stays unchanged for the audit log and is supplemented: in advisory mode the hook also writes a finding to `.agent/governance/review-findings.jsonl` on each would-deny, per Requirement: Advisory would-deny finding written to the baseline store. The withhold behavior is unchanged.
+- Algorithmic steps, the advisory flow: on a hijack match in advisory mode the "Record a would-deny event ... to the governance audit log" node gains a parallel step, "Append a finding (`rule_id` `"goal-guard"`, `hijack_rule_id`, severity, confidence, tool name) to `.agent/governance/review-findings.jsonl`"; the branch structure is otherwise unchanged (the finding is a second record, not a new branch), so the diagram's `.mmd` and PNG are re-rendered at the next fold, not in this pass.
+- Business rules: a row RULE-005 is added, "Each advisory would-deny is also recorded as a finding in `review-findings.jsonl` for the FR-238 baseline", with Traces-to "FR-238, NFR-034" and Applied-at "Requirement: Advisory would-deny finding written to the baseline store".
+- Data transformations: a row is added, Input "A would-deny (hijack match)", Transformation "Append a finding record", Output "A baseline record in `.agent/governance/review-findings.jsonl` awaiting a user label", Notes "The shared store code-scan uses; not an FR-245 protected path (FR-245 Origin)". The existing audit-record rows are unchanged.
+- Output / Outcome: a row is added, Output "Would-deny finding", Type "`review-findings.jsonl` line", Description "A hijack rule matched; the baseline record the FR-238 promotion gate reads". The existing audit-log and exit rows are unchanged.
+- Events emitted: a row is added, Event name "Would-deny finding", Payload "The fields of the finding field table in Requirement: Advisory would-deny finding written to the baseline store: `rule_id` (the fixed string `"goal-guard"`), `hijack_rule_id` (the matching hijack rule id), severity, confidence, `file` (the tool name), `line` (1), and `review_id` when the session id fits the id pattern; never the matched text, the result text, a URL, or a query", Consumer(s) "`scripts/label-findings.js`, `scripts/baseline-report.js`, `scripts/promote-rule.js` (spec-hooks-code-scan.md)", When emitted "A hijack rule matched (advisory mode; also blocking mode under Requirement: Findings keep accruing in blocking mode)". The existing Would-deny record and Pass record rows (the audit-log records) are unchanged.
+
+### ADDED Requirements
+
+#### Requirement: Advisory would-deny finding written to the baseline store
+
+In advisory mode the `goal-guard` hook SHALL record a finding, whose `rule_id` is the fixed string `"goal-guard"`, to the shared baseline store `.agent/governance/review-findings.jsonl` on each hijack-rule match, besides its governance audit-log would-deny record, so the check produces the baseline the FR-238 promotion gate reads.
+
+**Requirement refs:** FR-219, FR-238, NFR-034 | **Status:** Planned (harness-governance Tranche 5) | **Source:** FR-NFR-harness-governance.md v1.3, FR-219 (section 2.6), FR-238 (section 2.25, "record every finding"); `DECISIONS.md`, 2026-11-13, "FR-219 completed end-to-end (goal-guard writes advisory findings for the promotion baseline)"; spec-hooks-code-scan.md, Requirement: Advisory baseline and precision from user labels (the shared record shape and the session-id `review_id`), Requirement: Promotion gate (the missing-baseline refusal)
+
+The finding is one record in the shared finding schema that `checkFinding` validates and that `scripts/baseline-report.js`, `scripts/label-findings.js`, and `scripts/promote-rule.js` read (spec-hooks-code-scan.md, Requirement: Advisory baseline and precision from user labels). The hook builds it field by field as the table states, and the Step 9 tests (`tests/hooks/goal-guard.test.js`) assert exactly these fields:
+
+| Field | Value | Notes |
+|---|---|---|
+| `id` | A minted unique id with the prefix `gg` | 1 to 64 characters of `A-Z a-z 0-9 . _ : -`, starting with a letter or digit (the `checkFinding` id pattern) |
+| `rule_id` | The fixed string `"goal-guard"` | The rule-mode store key. `baseline-report.js` and `promote-rule.js` filter findings by `rule_id` equal to the store key, so this value lets `promote-rule.js goal-guard` find its baseline. It is not the per-hijack rule id |
+| `hijack_rule_id` | The id of the first matching hijack rule, for example `go-ignore-previous` | An extra field, the same id the audit would-deny or deny record carries as its `rule_id`. `checkFinding` ignores extra fields, and `scripts/label-findings.js` preserves them |
+| `severity` | `"HIGH"`, fixed | A fixed heuristic mapping for the hijack rule set (see the note below the table) |
+| `confidence` | `"Medium"`, fixed | Same note |
+| `file` | The tool name: `WebFetch`, `WebSearch`, or an MCP tool name of the form `mcp__<server>__<tool>` | The schema requires `file`, and a tool result has no file path, so the tool name stands in |
+| `line` | `1` | The schema requires `line`, and a tool result has no line, so the value is fixed |
+| `timestamp` | The UTC time the finding was recorded, ISO 8601 | Set by the hook at write time |
+| `review_id` | The session id when it matches the id pattern; otherwise the field is omitted | The baseline counts a session as one review |
+| `label` | Absent | The hook sets no label; only the user-run `scripts/label-findings.js` does (NFR-034) |
+
+The `severity` and `confidence` values are a fixed heuristic mapping for the hijack rule set, not values drawn from the severity policy (`rules/severity-policy.md`): the rules of `hooks/lib/hijack-rules.js` carry no severity or confidence of their own, so the hook sets the same pair on every goal-guard finding (a goal hijack in tool output is high impact, and the rule set is a heuristic signal). The pair feeds baseline labeling only. It does not drive `goal-guard`'s block decision, which the rule-mode store alone gates, and the user's labels, not these values, decide the precision.
+
+The hook writes one finding per result, for the first matching rule. A pass (no hijack rule matched) and a fail-closed withhold (an evaluation failure, not a hijack match) write no finding. The finding never carries the matched text, the result text, a URL, or a query, the same privacy rule the existing audit-log would-deny and pass records follow (NFR-031).
+
+The store `.agent/governance/review-findings.jsonl` is the one `code-scan` writes and is not an FR-245 protected path (FR-245 Origin). This is the write FR-238 requires of an advisory-first check ("record every finding, and produce a baseline report"): the user labels the goal-guard findings true or false with `scripts/label-findings.js`, `scripts/baseline-report.js` computes the precision over the baseline window from those user-set labels only, and `scripts/promote-rule.js` gates a goal-guard promotion on that precision (at least 90%, NFR-034). Reading the store and acting on a blocking mode is unchanged (Requirement: Mode read from the rule-mode store, promotion disabled this release); this requirement adds only the advisory record the gate reads.
+
+##### Scenario: Advisory hijack writes a baseline finding
+
+- **GIVEN** the rule-mode store is absent or marks `goal-guard` advisory and a fetched page tells the agent to send repository files to a URL
+- **WHEN** the WebFetch result reaches the hook and a hijack rule matches
+- **THEN** the hook SHALL append a finding to `.agent/governance/review-findings.jsonl` whose `rule_id` is `"goal-guard"` and whose `hijack_rule_id` is the id of the matching hijack rule
+- **AND** the finding SHALL carry `severity` `"HIGH"`, `confidence` `"Medium"`, `file` equal to the tool name (`WebFetch`), and `line` 1, and SHALL carry no `label`
+- **AND** the finding SHALL NOT carry the matched text, the result text, a URL, or a query
+- **AND** the hook SHALL also record its governance audit-log would-deny record and withhold nothing
+
+##### Scenario: Finding groups under the rule-mode key
+
+- **GIVEN** an advisory `WebFetch` result that matches the hijack rule `go-ignore-previous` and is recorded as a finding
+- **WHEN** `scripts/baseline-report.js --rule goal-guard` or `scripts/promote-rule.js goal-guard` reads `review-findings.jsonl`
+- **THEN** the script SHALL count that finding under `goal-guard`, because the finding's `rule_id` is `"goal-guard"`
+- **AND** the finding's `rule_id` SHALL NOT be `go-ignore-previous`, which appears only in `hijack_rule_id` (and as the audit record's `rule_id`)
+
+##### Scenario: review_id follows the session id
+
+- **GIVEN** an advisory hijack match in a session whose id matches the id pattern, and a second match in a session whose id does not
+- **WHEN** the hook writes each finding
+- **THEN** the first finding SHALL carry `review_id` equal to the session id
+- **AND** the second finding SHALL omit `review_id`
+
+##### Scenario: Benign result writes no finding
+
+- **GIVEN** a fetched page holds only documentation text
+- **WHEN** the result reaches the hook and no hijack rule matches
+- **THEN** the hook SHALL write no finding to `.agent/governance/review-findings.jsonl`
+- **AND** the hook SHALL record its governance audit-log pass record
+
+##### Scenario: Findings-write makes goal-guard promotable
+
+- **GIVEN** `goal-guard` has recorded advisory findings over the baseline window and the user has labelled them true or false with `scripts/label-findings.js`
+- **WHEN** the user runs `scripts/baseline-report.js` and then `scripts/promote-rule.js goal-guard`
+- **THEN** `promote-rule.js` SHALL read a non-empty goal-guard baseline from `review-findings.jsonl` and SHALL NOT refuse on an absent baseline
+- **AND** the switch SHALL still be gated on an approved policy and a precision of at least 90% (NFR-034)
+
+##### Scenario: Without the findings-write promotion refuses
+
+- **GIVEN** a build in which `goal-guard` records only to the governance audit log and writes no finding to `review-findings.jsonl`
+- **WHEN** the user runs `scripts/promote-rule.js goal-guard`
+- **THEN** the switch SHALL be refused with the missing-baseline reason, because the baseline the gate reads is the findings store and not the audit log
+
+#### Requirement: Rule-mode store key for goal-guard is the flat key "goal-guard"
+
+The mode of the goal-hijack check in the rule-mode store `.agent/governance/rule-modes.json` SHALL be the single flat key `"goal-guard"`, which `scripts/promote-rule.js` sets to `"blocking"` by writing `{"goal-guard": "blocking"}` on a promotion; the per-hijack-rule id is carried in the audit would-deny record as its `rule_id` and in the baseline finding as `hijack_rule_id`, and is not a rule-mode key, while the baseline finding's own `rule_id` is the same flat key `"goal-guard"`.
+
+**Requirement refs:** FR-219, FR-238 | **Status:** Planned (harness-governance Tranche 5) | **Source:** `DECISIONS.md`, 2026-11-13, "FR-219 completed end-to-end (goal-guard writes advisory findings for the promotion baseline)" ("The rule-mode store key for goal-guard is the flat key \"goal-guard\" (promote-rule.js writes {\"goal-guard\": \"blocking\"}); the per-hijack-rule id stays the audit rule_id"); spec-hooks-code-scan.md, Requirement: Rule-mode store governs advisory versus blocking
+
+`goal-guard` is governed as one check, so one rule-mode key covers it; the many hijack rules of `hooks/lib/hijack-rules.js` are not promoted one at a time. The promotion scripts look findings up by that same key: `baseline-report.js` and `promote-rule.js` match a finding's `rule_id` to the store key, so the baseline finding carries `"goal-guard"` as its `rule_id` and keeps the matching hijack rule in `hijack_rule_id` (Requirement: Advisory would-deny finding written to the baseline store). The DECISIONS.md line cited above names the audit `rule_id`, which stays the per-hijack id. The key sits in the same flat store `code-scan` reads (spec-hooks-code-scan.md), where an absent key, any value other than `"blocking"`, a non-object, or malformed JSON reads as advisory and never fails open into blocking (Requirement: Mode read from the rule-mode store, promotion disabled this release).
+
+##### Scenario: promote-rule writes the flat goal-guard key
+
+- **GIVEN** an approved policy and a goal-guard baseline at or above 90% precision
+- **WHEN** the user runs `scripts/promote-rule.js goal-guard`
+- **THEN** the rule-mode store SHALL hold `{"goal-guard": "blocking"}` for the check
+- **AND** no per-hijack rule id (the audit `rule_id` or the finding's `hijack_rule_id`) SHALL appear as a rule-mode key
+
+#### Requirement: Findings keep accruing in blocking mode
+
+The `goal-guard` hook SHOULD continue to record a would-deny finding to `.agent/governance/review-findings.jsonl` on each hijack-rule match while its mode is blocking, so findings keep accruing for review after a promotion.
+
+**Requirement refs:** FR-238, NFR-034 | **Status:** Planned (harness-governance Tranche 5) | **Source:** `DECISIONS.md`, 2026-11-13, "FR-219 completed end-to-end (goal-guard writes advisory findings for the promotion baseline)"; FR-NFR-harness-governance.md v1.3, FR-238 (section 2.25); spec-hooks-code-scan.md, Requirement: Advisory baseline and precision from user labels
+
+The baseline that gates a promotion under FR-238 and NFR-034 is the advisory-period precision: `scripts/baseline-report.js` and `scripts/promote-rule.js` read the findings the hook recorded while the check was advisory and the user labelled. A blocking-mode finding is recorded and labelled the same way, but it feeds ongoing monitoring, not the promotion gate that a promotion has already cleared. Recording in blocking mode is additive: it changes neither the blocking-mode audit-log deny record nor the `updatedToolOutput` withhold (Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`) and neither the advisory fail-open nor the blocking fail-closed behavior (Requirement: Fail closed for the guarded class in blocking mode). A build that records findings in advisory mode only still satisfies FR-238, because the gate reads the advisory baseline; recording in both modes is the recommended default so post-promotion findings are not lost.
+
+##### Scenario: Blocking-mode hijack records a finding
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and a fetched page tells the agent to send repository files to a URL
+- **WHEN** the WebFetch result reaches the hook and a hijack rule matches
+- **THEN** the hook SHOULD append a finding to `.agent/governance/review-findings.jsonl` with the same fields as an advisory finding: `rule_id` `"goal-guard"`, `hijack_rule_id`, `severity` `"HIGH"`, `confidence` `"Medium"`, `file` the tool name, and `line` 1
+- **AND** the hook SHALL still withhold the result through `updatedToolOutput` and record its blocking-mode audit-log deny record
+
+##### Scenario: The promotion gate reads the advisory baseline
+
+- **GIVEN** `goal-guard` has recorded findings in both advisory and blocking periods
+- **WHEN** `scripts/promote-rule.js goal-guard` evaluates a promotion
+- **THEN** the precision bar SHALL be computed over the advisory-period findings the user labelled, the baseline FR-238 requires, not over blocking-mode findings alone
+
+### MODIFIED Requirements
+
+None. The existing audit-log record requirement (Requirement: Fails open and records to the audit log) is unchanged; the findings-write is an added, separate record, and the lines that read as audit-log-only are qualified above under "Body text this entry supersedes".
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-219, FR-238 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Advisory would-deny finding written to the baseline store | An advisory hijack match writes a finding to `review-findings.jsonl` with `rule_id` `"goal-guard"`, `hijack_rule_id`, `severity` `"HIGH"`, `confidence` `"Medium"`, `file` the tool name, `line` 1, `review_id` from the session id when it fits the id pattern, no `label`, and no matched, result, URL, or query text; the finding groups under `goal-guard` in the baseline; a benign result writes none (`tests/hooks/goal-guard.test.js`, Step 9) |
+| FR-238, NFR-034 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Advisory would-deny finding written to the baseline store | With the findings-write `promote-rule.js goal-guard` reads a non-empty baseline and is gated on the 90% precision bar; without it the switch refuses with the missing-baseline reason (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`) |
+| FR-219, FR-238 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Rule-mode store key for goal-guard is the flat key "goal-guard" | `promote-rule.js goal-guard` writes `{"goal-guard": "blocking"}`; no per-hijack id is a rule-mode key, and the baseline finding's `rule_id` equals the key `"goal-guard"` so `baseline-report.js` and `promote-rule.js` find the findings (`tests/scripts/promote-rule.test.js`, `tests/hooks/goal-guard.test.js`) |
+| FR-238, NFR-034 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Findings keep accruing in blocking mode | A blocking-mode hijack match records a finding, and the promotion gate computes precision over the advisory-period baseline (`tests/hooks/goal-guard.test.js`) |

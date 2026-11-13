@@ -16,6 +16,11 @@
 //     still proceed.
 //   - transform() runs a PostToolUse / PreToolUse / UserPromptSubmit filter. It emits output only when the
 //     filter positively returns {stdout}; every failure path above prints nothing or a systemMessage and exits 0.
+//   - [NFR-028] A filter may also pass failClosedFor(input) and closedOutput(hook, kind, input) to transform(). When
+//     failClosedFor returns true for the parsed input and the filter then throws, an uncaught exception, an unhandled
+//     rejection, or a timeout occurs, the filter's own closedOutput is printed (for goal-guard, the PostToolUse
+//     updatedToolOutput that withholds the result; for code-scan, the PreToolUse deny) with exit 0 instead of a
+//     warning that lets the call or result proceed. A filter that passes neither keeps the fail-open path unchanged.
 //   - [NFR-026] After a deny or ask decision, guard() appends a decision record to the governance audit log
 //     (.agent/logs/governance/audit.jsonl, through lib/audit-chain.js). The append runs after the decision output is
 //     written and fails open: a failed or refused append is noted in the health log and never changes the decision.
@@ -335,11 +340,30 @@ function inGuardedClass(classify) {
   }
 }
 
+// [NFR-028] The text a fail-closed failure prints: the JSON of options.closedOutput(hook, kind) when the caller gave a
+// function that returns an object (a PostToolUse filter that withholds a result), else the PreToolUse deny with `reason`.
+// A closedOutput that throws, returns a non-object, or returns something that cannot be serialized falls back to the deny,
+// so the closed path never prints nothing. Never throws.
+function closedText(options, hook, kind, reason) {
+  if (typeof options.closedOutput === "function") {
+    try {
+      var custom = options.closedOutput(hook, kind);
+      if (custom && typeof custom === "object") return JSON.stringify(custom);
+    } catch (err) {
+      // fall back to the deny below
+    }
+  }
+  return JSON.stringify(denyOutput(reason));
+}
+
 // [NFR-028] Record the failure, warn, and exit 0 so the command proceeds. Never throws, never exits non-zero.
 // detail must be a fixed string from our own code (never user input); err is described, not copied.
 // options: {suffix: sentence tail for the warning,
 //           failClosedNow: function returning true when the failing call belongs to a security-critical guarded
-//           class (NFR-028); the call is then denied with permissionDecision "deny" and exit 0 instead of proceeding}
+//           class (NFR-028); the call is then denied with permissionDecision "deny" and exit 0 instead of proceeding,
+//           closedOutput: optional function (hook, kind) returning the object to print for a fail-closed failure in place of
+//           the PreToolUse deny (a PostToolUse filter prints its withholding output),
+//           onFailClosed: optional function called after a fail-closed output is written (the audit record)}
 function failOpen(hook, kind, detail, err, options) {
   if (finished) return;
   finished = true;
@@ -359,11 +383,12 @@ function failOpen(hook, kind, detail, err, options) {
   }
   if (closed) {
     writeStdout(
-      JSON.stringify(
-        denyOutput(
-          "assist-plugin " + hook + " guard failed (" + kind + (message ? ": " + message : "") + "); this call is in the guard's " +
-            "security-critical class and is denied until the guard works. Run /assist-plugin:health for details."
-        )
+      closedText(
+        options,
+        hook,
+        kind,
+        "assist-plugin " + hook + " guard failed (" + kind + (message ? ": " + message : "") + "); this call is in the guard's " +
+          "security-critical class and is denied until the guard works. Run /assist-plugin:health for details."
       )
     );
     if (typeof options.onFailClosed === "function") {
@@ -866,9 +891,39 @@ function disabledNoticeShown(name, entry) {
 // stdout is the object fn returned, or a {"systemMessage"} warning. Always exits 0.
 // options: {suffix: tail of the failure warning, disabledNote: tail of the one-time disabled notice}.
 // A hook listed in hooks-disabled.json passes through with a one-time systemMessage.
+//
+// [NFR-028] Optional fail-closed class, for a filter whose failure must not let its input through (goal-guard in
+// blocking mode withholds a tool result; code-scan in blocking mode denies a code-file write):
+//   failClosedFor(input)       true when the parsed input belongs to the guarded class right now (it reads the rule mode,
+//                              so it is true only while the rule is blocking). Must be cheap and must not throw; a throw
+//                              counts as "not in the class".
+//   closedOutput(hook, kind, input)
+//                              the object to print when a failure occurs for a call in the class (kind is the fixed failure
+//                              kind: exception, timeout, uncaught-exception, unhandled-rejection; input is the parsed
+//                              hook input, so the output can follow the tool's own result shape)
+//   onFailClosed(input)        optional audit hook, run after the closed output is written; its failure never changes it
+// When the failure happens before the input was parsed, for an input outside the class, or for a hook that is disabled, the
+// filter still proceeds with a warning, as before. Without failClosedFor the behavior is unchanged.
 function transform(name, fn, options) {
   options = options || {};
+  var failClosedFor = typeof options.failClosedFor === "function" ? options.failClosedFor : null;
+  var parsed = false;
+  var parsedInput = null;
   var failure = { suffix: options.suffix || "this content was not filtered" };
+  if (failClosedFor) {
+    failure.failClosedNow = function () {
+      return parsed && failClosedFor(parsedInput) === true;
+    };
+    if (typeof options.closedOutput === "function") {
+      failure.closedOutput = function (hook, kind) {
+        return options.closedOutput(hook, kind, parsedInput);
+      };
+    }
+    failure.onFailClosed = function () {
+      if (typeof options.onFailClosed === "function") options.onFailClosed(parsedInput);
+      else logDecision(name, "deny", name + ".fail-closed", parsedInput);
+    };
+  }
   installHandlers(name, failure);
   startWatchdog(name, WATCHDOG_MS, failure);
   readStdin(function (stdinError, raw) {
@@ -903,6 +958,8 @@ function transform(name, fn, options) {
       failOpen(name, "malformed-input", "hook input is not valid JSON", null, failure);
       return;
     }
+    parsedInput = input;
+    parsed = true;
     var result;
     try {
       result = fn(input);

@@ -2,20 +2,27 @@
 // Copyright (C) 2026 Toni-Jan Keith Monserrat
 // [FR-220|FR-238] PreToolUse hook (matcher Write|Edit|MultiEdit) that scans the text a call writes to a code file for
 // insecure patterns and records each match as a would-deny finding in the advisory baseline store
-// .agent/governance/review-findings.jsonl (task plan Tranche 4, Step 35; specs/spec-hooks-code-scan.md).
+// .agent/governance/review-findings.jsonl (task plan Tranche 4, Step 35, and Tranche 5, Step 4; specs/spec-hooks-code-scan.md).
 //
-// ADVISORY ONLY (FR-238, advisory phase). Every rule is advisory unless .agent/governance/rule-modes.json names it
-// "blocking", and an absent, unreadable, or malformed store means advisory for every rule (lib/severity.js parseRuleModes),
-// so a store defect never turns a rule blocking. In advisory mode the hook records the finding and allows the write: it
-// prints nothing. The deny that names the rule id and line applies only to a finding that route() sends to "block-merge"
-// for a rule the store marks "blocking", and only the user-run scripts/promote-rule.js (task plan Step 36) writes that
-// mode, so this release enables no blocking.
+// ADVISORY BY DEFAULT (FR-238). Every rule is advisory unless .agent/governance/rule-modes.json names it "blocking", and an
+// absent, unreadable, or malformed store means advisory for every rule (lib/rule-mode-store.js, lib/severity.js
+// parseRuleModes), so a store defect never turns a rule blocking. In advisory mode the hook records the finding and allows
+// the write: it prints nothing, and an evaluation error, a timeout, or an unreadable store lets the write proceed with a
+// note in hook-health.jsonl (fail open).
 //
-// [NFR-028] FAIL-CLOSED CLASS, DORMANT. The guarded class is a write of a code file (lib/code-rules.js CODE_EXTENSIONS).
-// failClosedFor() defines it. It is exported and not wired in: this hook runs on the filter runtime (health.transform), which
-// has no fail-closed branch, so an evaluation error, a timeout, or an unreadable store lets the write proceed and the
-// failure is noted in hook-health.jsonl. At promotion the hook becomes a guard (health.guard) that passes failClosedFor, and
-// the fail-closed deny of a code-file write activates there; that change is Step 36 and is not built here.
+// BLOCKING (FR-220, set by a user-run promotion). The deny that names the rule id and line applies to a finding that route()
+// sends to "block-merge" for a rule the store marks "blocking". Only the user-run scripts/promote-rule.js writes that mode;
+// this hook never writes the store and no promotion is performed here. The store keys each rule by its code-rules.js rule id.
+//
+// [NFR-028] FAIL-CLOSED CLASS, LIVE WHILE ANY RULE IS BLOCKING. The guarded class is a write of a code file
+// (lib/code-rules.js CODE_EXTENSIONS); failClosedFor() defines it. blockingFailClosedFor() is the classifier the hook passes to
+// the filter runtime (health.transform): it is true for a code-file write while the store marks at least one code rule
+// "blocking", so in that state an evaluation error, an uncaught exception, an unhandled rejection, or a timeout after the
+// input was parsed denies the write (the PreToolUse deny, exit 0) instead of letting it through, and the failure is noted in
+// hook-health.jsonl with a decision record under the rule id "code-scan.fail-closed". The runtime is chosen by the parsed
+// input, not at start-up, because the store lives under the project root that only the input's cwd names; this keeps one
+// runtime for both modes, so the advisory path is unchanged. A write outside the code set, input that cannot be read or
+// parsed, a disabled hook, and a mode that cannot be read (advisory by the store contract) still proceed.
 //
 // [NFR-029] RULE-BASED, NO MODEL, NO NETWORK. The scan is a pattern match over the written text (lib/code-rules.js). This
 // module imports no model client, makes no network request, and spawns no process. A write to a file outside the code set
@@ -37,17 +44,14 @@ const path = require("path");
 const health = require("../lib/health.js");
 const severity = require("../lib/severity.js");
 const codeRules = require("../lib/code-rules.js");
+const store = require("../lib/rule-mode-store.js");
+const findingStore = require("../lib/finding-store.js");
 
 const NAME = "code-scan";
 const WRITE_TOOLS = ["Write", "Edit", "MultiEdit"];
-const STORE_DIR = path.join(".agent", "governance");
-const FINDINGS_FILE = "review-findings.jsonl";
-const MODES_FILE = "rule-modes.json";
 const MAX_EDITS = 200;
 const MAX_FILE_READ = 2000000;
 const ALLOW = Object.freeze({ deny: false, findings: Object.freeze([]), reason: "" });
-
-let counter = 0;
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -60,12 +64,22 @@ function targetOf(input) {
   return typeof file === "string" && file.length > 0 ? file : null;
 }
 
-// [NFR-028] True when the call writes a code file: the class the fail-closed deny would guard after promotion. Cheap, never
-// throws. Dormant: nothing passes it to a runner in this release.
+// [NFR-028] True when the call writes a code file: the class the fail-closed deny guards. Cheap, never throws.
 function failClosedFor(input) {
   try {
     const file = targetOf(input);
     return file !== null && codeRules.isCodeFile(file, null);
+  } catch (err) {
+    return false;
+  }
+}
+
+// [NFR-028] True when `input` writes a code file and the store marks at least one code rule "blocking": the state in which a
+// failure of the scan denies the write. False (advisory) for anything it cannot read. Cheap, never throws.
+function blockingFailClosedFor(input) {
+  try {
+    if (!failClosedFor(input)) return false;
+    return store.anyBlocking(store.read(health.auditRoot(input)), codeRules.RULES.map((rule) => rule.id));
   } catch (err) {
     return false;
   }
@@ -133,12 +147,7 @@ function scanCall(input, options) {
 // The rule modes of the project: the store parsed defensively, or an empty map (every rule advisory) when it is absent,
 // unreadable, or malformed [FR-238].
 function readModes(root) {
-  if (typeof root !== "string" || root.length === 0) return severity.parseRuleModes(null);
-  try {
-    return severity.parseRuleModes(fs.readFileSync(path.join(root, STORE_DIR, MODES_FILE), "utf8"));
-  } catch (err) {
-    return severity.parseRuleModes(null);
-  }
+  return store.read(root);
 }
 
 // The path as the record names it: relative to the project root with forward slashes when inside it, else as given.
@@ -149,16 +158,11 @@ function recordPath(root, file) {
   return relative.split(path.sep).join("/");
 }
 
-function findingId() {
-  counter += 1;
-  return "cs-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1679616).toString(36) + "-" + counter;
-}
-
 // [FR-238] The baseline record of one finding, or null when it does not pass severity.checkFinding (a path with a control
 // character, say). No label: only the user sets one.
 function recordOf(input, root, hit) {
   const record = {
-    id: findingId(),
+    id: findingStore.nextId("cs"),
     rule_id: hit.rule_id,
     severity: hit.severity,
     confidence: hit.confidence,
@@ -166,32 +170,9 @@ function recordOf(input, root, hit) {
     line: hit.line,
     timestamp: new Date().toISOString(),
   };
-  if (typeof input.session_id === "string" && severity.ID_PATTERN.test(input.session_id)) record.review_id = input.session_id;
+  const reviewId = findingStore.reviewIdOf(input);
+  if (reviewId !== undefined) record.review_id = reviewId;
   return severity.checkFinding(record) === null ? null : record;
-}
-
-// Appends one record line to the baseline store under `root`. Returns true when the line was written. Never throws.
-function appendFinding(root, record) {
-  if (typeof root !== "string" || root.length === 0) return false;
-  try {
-    const dir = path.join(root, STORE_DIR);
-    mkdirs(dir);
-    fs.appendFileSync(path.join(dir, FINDINGS_FILE), JSON.stringify(record) + "\n");
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
-
-function mkdirs(dir) {
-  if (fs.existsSync(dir)) return;
-  const parent = path.dirname(dir);
-  if (parent !== dir) mkdirs(parent);
-  try {
-    fs.mkdirSync(dir);
-  } catch (err) {
-    if (!err || err.code !== "EEXIST") throw err;
-  }
 }
 
 function plural(count, word) {
@@ -205,8 +186,8 @@ function denyReason(file, hit) {
 }
 
 // Decision for one call. Returns {deny, reason, findings, recorded}: `findings` are the matches, `recorded` the records the
-// sink accepted, `deny` true only for a "block-merge" finding of a rule the store marks "blocking" (never in this release,
-// where the store is advisory). options: {root, modes, readFile, sink} replace the project-root lookup, the store read, the
+// sink accepted, `deny` true only for a "block-merge" finding of a rule the store marks "blocking" (never while the store is
+// advisory, the default). options: {root, modes, readFile, sink} replace the project-root lookup, the store read, the
 // file read, and the baseline write (the self-test, which reads and writes nothing real). The sink gets a record and returns
 // false when it could not store it; a failed append is noted in hook-health.jsonl and the write proceeds.
 function run(input, options) {
@@ -216,7 +197,7 @@ function run(input, options) {
   const findings = scanCall(input, { root, readFile: opts.readFile });
   if (findings.length === 0) return ALLOW;
   const modes = opts.modes && typeof opts.modes === "object" ? opts.modes : readModes(root);
-  const sink = typeof opts.sink === "function" ? opts.sink : (record) => appendFinding(root, record);
+  const sink = typeof opts.sink === "function" ? opts.sink : (record) => findingStore.append(root, record);
   let denied = null;
   let failed = 0;
   const recorded = [];
@@ -234,6 +215,21 @@ function run(input, options) {
   return { deny: true, findings, recorded, reason: denyReason(input.tool_input.file_path, denied), rule: denied.rule_id };
 }
 
+// [FR-220] The PreToolUse deny of a write.
+function denyOutput(reason) {
+  return { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason } };
+}
+
+// [NFR-028] The output of a fail-closed failure: the write is denied until the scan works. `kind` is the fixed failure kind from
+// the health runtime, named only when it has the plain shape of one.
+function closedOutput(hook, kind) {
+  const named = typeof kind === "string" && /^[a-z-]{1,40}$/.test(kind) ? " (" + kind + ")" : "";
+  return denyOutput(
+    "assist-plugin code-scan could not finish scanning this write" + named + "; writes to code files are denied while a code-scan rule is " +
+      "blocking and the scan fails. Run /assist-plugin:health for details."
+  );
+}
+
 function main() {
   health.transform(
     NAME,
@@ -241,12 +237,17 @@ function main() {
       const result = run(input);
       if (!result.deny) return null;
       health.logDecision(NAME, "deny", result.rule, input);
-      return { stdout: { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: result.reason } } };
+      return { stdout: denyOutput(result.reason) };
     },
-    { suffix: "this write was not scanned for insecure code", disabledNote: "code writes are not scanned for insecure code" }
+    {
+      suffix: "this write was not scanned for insecure code",
+      disabledNote: "code writes are not scanned for insecure code",
+      failClosedFor: blockingFailClosedFor,
+      closedOutput,
+    }
   );
 }
 
-module.exports = { NAME, failClosedFor, scanCall, readModes, run, main };
+module.exports = { NAME, failClosedFor, blockingFailClosedFor, scanCall, readModes, run, main };
 
 if (require.main === module) main();
