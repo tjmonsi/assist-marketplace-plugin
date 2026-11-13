@@ -638,3 +638,63 @@ None.
 |---|---|---|
 | FR-229, NFR-030 | Change Log 2026-11-06 (Tranche 3): Requirement: Export control evidence | `/health --export-evidence` on a verified range lists control events by type and shows the chain verified; on a range with a break names the first broken line (spec-hooks-health-check.md verifies the export module) |
 | NFR-027 | Change Log 2026-11-06 (Tranche 3): Requirement: Run the health check with the user's flag | `allowed-tools` names the four exact commands, the `--export-evidence` form included; `metadata.json` mirrors them |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-220 (section 2.7), FR-238 (section 2.25), NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 35 (the `code-scan` self-test, reported through `/assist-plugin:health`, lines 482 to 487). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The `code-scan` hook's behavior and the severity-routing mechanism are in spec-hooks-code-scan.md; its self-test corpus is in spec-hooks-health-check.md; this entry covers only what `/health` tells the user. The `code-scan` self-test is a report-only logging filter this release, so it adds no new command form and the Requirement: Run the health check with the user's flag is unchanged.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-220 and FR-238 added by the Short-summary entry below.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- The findings and fixes table (`skills/health/SKILL.md:36-69`): a row for a failed `code-scan` self-test, the same report-only shape as the `audit-log`, `gate-evidence`, and `goal-guard` rows (the hook stays enabled, its scanning is weak, and the fix is to report the bug with the report output).
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Short summary with a fix per finding
+
+**Was:** The `/health` skill SHALL summarize the status in a few lines and give each finding its fix from the findings table. [The findings table carries rows through the Tranche 3 hooks, the three Tranche 2 logging filters included.]
+
+**Now:** The statement is unchanged. The findings table gains a row for the Tranche 4 filter `code-scan`: a failed self-test means the filter stays enabled (a report-only logging filter is not auto-disabled for a missed finding) and its insecure-code scanning is weak, and the fix is to report the bug with the report output. The overview describes `code-scan` as an advisory-only check that records a would-deny finding and blocks nothing this release, and names the rule-mode store that governs when a rule turns blocking after a user-run promotion.
+
+**Reason:** NFR-035 ships a self-test for `code-scan` reported through `/assist-plugin:health` (task plan Step 35); the hook is a report-only logging filter in the advisory release (spec-hooks-platform.md, Change Log 2026-11-13 (Tranche 4), Requirement: Filter output), so a false finding reports weak scanning and leaves the hook enabled, as `goal-guard`, `audit-log`, and `gate-evidence` do (spec-hooks-health-check.md, Change Log 2026-11-13 (Tranche 4)). `code-scan` blocks nothing this release (spec-hooks-code-scan.md, Requirement: Promotion is a user-run operation and this release enables no blocking).
+
+**Requirement refs:** FR-166, FR-220, FR-238, NFR-035, UR-018 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-220 (section 2.7); task plan Step 35; spec-hooks-health-check.md, Change Log 2026-11-13 (Tranche 4), Requirement: Self-tests
+
+##### Scenario: Code-scan self-test fails
+
+- **GIVEN** the report shows the `code-scan` self-test failed
+- **WHEN** the skill summarizes
+- **THEN** the entry SHALL say the hook stays enabled and its insecure-code scanning may be incomplete, and SHALL give the fix: report the bug with the report output
+
+##### Scenario: Code-scan blocks nothing this release
+
+- **GIVEN** the user asks whether `code-scan` denies a write
+- **WHEN** the skill answers from the overview
+- **THEN** it SHALL say `code-scan` runs advisory-only, records a would-deny finding, and blocks nothing until a rule is promoted to blocking by a user-run operation
+
+The other Scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-220, NFR-035 | Change Log 2026-11-13 (Tranche 4): Requirement: Short summary with a fix per finding | A failed `code-scan` self-test reports weak scanning with the hook left enabled; the overview says `code-scan` is advisory-only and blocks nothing this release (read of `skills/health/SKILL.md` after the build) |
+| FR-238 | Change Log 2026-11-13 (Tranche 4): Requirement: Short summary with a fix per finding | The overview names the rule-mode store and the user-run promotion that governs when a rule turns blocking |
+
+### Reconciliation to as-built (2026-11-13)
+
+The `/health` `code-scan` description shipped and is built this release; this note reconciles the entry's Planned labels to that build. It supersedes the "not built yet" preamble line and the Planned Status of the MODIFIED requirement at the next fold.
+
+- Source line of this entry: "Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4)" is superseded by the shipped, gate-approved harness-governance Tranche 4 build this entry reconciles to; at the next fold the Planned labels read as built and the Status stays `Review` until then, not `Implemented`.
+- Requirement: Short summary with a fix per finding (the `code-scan` overview mention and the findings-table row): Status Planned (harness-governance Tranche 4) -> Built (harness-governance Tranche 4). As built (`skills/health/SKILL.md`, read on 2026-11-13), the overview holds a `code-scan` passage that describes the hook as advisory-only this release (`PreToolUse` on `Write`, `Edit`, and `MultiEdit` for a code file; records a would-deny finding to `.agent/governance/review-findings.jsonl` and blocks nothing; the rule-mode store governs advisory versus blocking; a rule turns blocking only after the user-run `scripts/promote-rule.js`; a subagent write of the store is denied) and states that its self-test is report-only and `code-scan` never appears under disabled guards, and the findings-and-fixes table holds a `code-scan` self-test FAIL row (the hook stays enabled, its insecure-code scanning is weak, the fix is to report the bug with the report output). The Scenarios Code-scan self-test fails and Code-scan blocks nothing this release are satisfied by that text.

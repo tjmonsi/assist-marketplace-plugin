@@ -1010,3 +1010,74 @@ None.
 | FR-245 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | Subagent write denied and read allowed for both configuration files; the session purpose record denied to every caller and allowed to no tool; a configuration file writable by the main session (`tests/hooks/fsa-write-bar-shell.test.js`, task plan Step 30) |
 | FR-231, FR-243 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | A subagent write of `.claude/settings.json` and `.agent/governance/profile.json` is denied and a read is allowed |
 | FR-247 | Change Log 2026-11-06 (Tranche 3): Requirement: Governance configuration and purpose record protected | A write of the session purpose record is denied to every caller, the main session included |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-245 (section 2.32), FR-238 (section 2.25), NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 32 (protect the rule-mode store `.agent/governance/rule-modes.json`, lines 462 to 466); `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2: the rule-mode store is protected from every subagent write) and `DECISIONS.md`, 2026-10-30, "Proposed governance file names and store paths approved (PN-8)" (the store path is fixed). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). This entry adds the sixth and last of the six FR-245 protected paths; the rule-mode store's semantics (advisory default, who may write it, the routing it marks) are in spec-hooks-code-scan.md.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-238 added. FR-245, UR-075, and NFR-036 are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Algorithmic steps flow (`spec-hooks-fsa-write-bar-flow.mmd` and the copy in this file): the protected-path branch (node E) names all six FR-245 paths, the rule-mode store included.
+- Required data: a `PROTECTED_FILES` or store entry in `hooks/lib/fsa-paths.js` for `.agent/governance/rule-modes.json`, with its subagent-only caller scope.
+- Change Log 2026-11-06 (Tranche 3), Requirement: Governance configuration and purpose record protected, the six-path list: "and the rule-mode store, which a later tranche adds" reads "and the rule-mode store (`.agent/governance/rule-modes.json`, this entry)".
+
+### ADDED Requirements
+
+#### Requirement: Rule-mode store protected from subagents
+
+The `fsa-write-bar` hook SHALL deny every subagent a Write, Edit, MultiEdit, or NotebookEdit of the rule-mode store `.agent/governance/rule-modes.json` and SHALL allow a read, leaving the store writable by the main session, so a hook, the `/do` orchestrator, or the user-run `scripts/promote-rule.js` may write it.
+
+**Requirement refs:** FR-245, FR-238, UR-075, NFR-036 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-245 (section 2.32: "the rule-mode store (the store that holds the advisory or blocking mode of each check, FR-238)"); task plan Step 32 (`hooks/lib/fsa-paths.js` and the Write guard lists protect the store); `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection" (D-2) and `DECISIONS.md`, 2026-10-30, "Proposed governance file names and store paths approved (PN-8)"
+
+The rule-mode store is the sixth of the six FR-245 protected paths. The six are: `.claude/settings.json` and `.agent/governance/profile.json` (Change Log 2026-11-06 (Tranche 3), D-12); the confirmation store `.agent/governance/confirmations/` (Change Log 2026-11-05); `.agent/logs/governance/**` (Change Log 2026-11-06 (Tranche 2)); the session purpose record (Change Log 2026-11-06 (Tranche 3)); and the rule-mode store (this entry). The store carries a subagent-only deny, the same caller scope as the two governance configuration files, not the all-callers deny the confirmation store's `confirmations.jsonl` and the session purpose record carry: a hook, the orchestrator, or the user-run `promote-rule.js` writes it (spec-hooks-code-scan.md, Requirement: Rule-mode store governs advisory versus blocking), so only a subagent is denied. The entry lives in `hooks/lib/fsa-paths.js` beside the Write guard lists markdown and is kept identical under `check-fsa-tables.js --check`. The shell-write route (Requirement: Shell write path to protected paths) covers the store without a further change, because its `Bash` judge reads `protectedRule()` from `hooks/lib/fsa-paths.js`, the same list the write-tool branches read.
+
+##### Scenario: Subagent write to the rule-mode store denied
+
+- **GIVEN** a subagent session with an `agent_id` writes `.agent/governance/rule-modes.json`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL deny it
+- **AND** the log SHALL hold a deny record
+
+##### Scenario: Main-session write to the rule-mode store allowed
+
+- **GIVEN** the main session (no `agent_type`, no `agent_id`) writes `.agent/governance/rule-modes.json`
+- **WHEN** the hook evaluates it
+- **THEN** the hook SHALL allow it with no output, because a hook, the orchestrator, or the user-run `promote-rule.js` writes the store
+
+##### Scenario: Subagent read of the rule-mode store allowed
+
+- **GIVEN** a subagent session reads `.agent/governance/rule-modes.json`
+- **WHEN** the hook evaluates it
+- **THEN** the read SHALL be allowed, because the bar judges only the four write tools
+
+##### Scenario: Shell write to the rule-mode store denied
+
+- **GIVEN** a subagent session with an `agent_id`
+- **WHEN** it runs `echo '{}' > .agent/governance/rule-modes.json` or `sed -i 's/advisory/blocking/' .agent/governance/rule-modes.json`
+- **THEN** the hook SHALL deny each command through the shell-write route, because the target is on the protected list
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-245 | Change Log 2026-11-13 (Tranche 4): Requirement: Rule-mode store protected from subagents | A subagent write of `.agent/governance/rule-modes.json` is denied and a read is allowed; a main-session write is allowed; a subagent shell write is denied (`tests/hooks/fsa-write-bar-shell.test.js`, task plan Step 37) |
+| FR-238 | Change Log 2026-11-13 (Tranche 4): Requirement: Rule-mode store protected from subagents | The store that holds each rule's advisory or blocking mode is write-protected from subagents, so a subagent cannot flip a rule to blocking |
+
+### Reconciliation to as-built (2026-11-13)
+
+The rule-mode store protection shipped and is built this release; this note reconciles the entry's Planned labels to that build. It supersedes the "not built yet" preamble line and the Planned Status of the ADDED requirement at the next fold.
+
+- Source line of this entry: "Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4)" is superseded by the shipped, gate-approved harness-governance Tranche 4 build this entry reconciles to; at the next fold the Planned labels read as built and the Status stays `Review` until then, not `Implemented`.
+- Requirement: Rule-mode store protected from subagents: Status Planned (harness-governance Tranche 4) -> Built (harness-governance Tranche 4). As built (`hooks/lib/fsa-paths.js`, read on 2026-11-13), `RULE_MODES_GLOB` is `**/.agent/governance/rule-modes.json`, and it sits in `PROTECTED_GLOBS` and `FILE_LEVEL_GLOBS`, so `protectedRule()` denies a subagent write of the store and the shell-write route (`protectedPatternRule`) denies a subagent `Bash` write of it, while the main session, a hook, and the user-run `scripts/promote-rule.js` are not judged by the bar. The store is the sixth FR-245 protected path, as the entry states.

@@ -1,0 +1,12 @@
+flowchart TD
+  S(["PreToolUse: Write, Edit, or MultiEdit"]) --> C{"Code-file write?<br/>extension in the code set,<br/>not .md/.json/.yaml/.yml/.txt/docs/**"}
+  C -->|"no"| OK(["Allow; not judged; no overlap with prose-gate"])
+  C -->|"yes"| P["Pattern-match the written text<br/>against hooks/lib/code-rules.js (no model, no network)"]
+  P --> M{"A code rule matched?"}
+  M -->|"no"| OK
+  M -->|"yes"| R["route(finding) in lib/severity.js:<br/>block-merge only at confidence High and<br/>severity HIGH or CRITICAL; else inline-comment or log-only"]
+  R --> RM["Read the rule-mode store<br/>.agent/governance/rule-modes.json<br/>(absent or malformed means advisory)"]
+  RM --> ADV{"Rule advisory?"}
+  ADV -->|"yes (this release)"| REC["Downgrade routing to log-only;<br/>record a would-deny finding (rule id, severity,<br/>confidence, file:line) to .agent/governance/review-findings.jsonl"]
+  REC --> OK
+  ADV -->|"blocking (only after the Step 36 user-run promotion; out of scope)"| DENY["Deny the write, naming the rule id and line,<br/>when routing is block-merge"]

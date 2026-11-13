@@ -1246,3 +1246,90 @@ None.
 | FR-230, FR-232, FR-247, NFR-035 | Change Log 2026-11-06 (Tranche 3): Requirement: Filter output | `purpose-capture` and `data-access-log` listed as filters and registered; each hook's own behavior and self-test are verified in spec-hooks-compliance.md and spec-hooks-health-check.md |
 | FR-245 | Change Log 2026-11-06 (Tranche 3): Body (Components, new store) | `.agent/governance/profile.json` and the session purpose record are protected from subagent and tool writes by `fsa-write-bar` (spec-hooks-fsa-write-bar.md) |
 | NFR-036 | Change Log 2026-11-06 (Tranche 3): Requirement: Hook registration | The four new entry files sit on the LLM surface (`hooks/`) and carry `✓ LLM Security Clear` together with NFR-011 |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-220 (section 2.7), FR-237 (section 2.24), FR-238 (section 2.25), FR-239 (section 2.26), FR-241 (section 2.28), NFR-028 (section 3.2), NFR-029 (section 3.1), NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 32 (`hooks/lib/severity.js`, the rule-mode store, `scripts/baseline-report.js`, `scripts/promote-rule.js`, lines 461 to 466), Step 34 (`hooks/lib/sarif.js`, lines 475 to 480), and Step 35 (`hooks/code-scan.js`, `hooks/impl/code-scan.js`, `hooks/lib/code-rules.js`, the `hooks.json` entry, lines 482 to 487). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4); the counts and matcher below are proposed wording. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The new hook's own behavior, and the severity-routing mechanism (`route(finding)`, the rule-mode store, the advisory baseline, and the promotion gate), live in the new child spec spec-hooks-code-scan.md; the SARIF converter's semantics live in spec-orchestration-review-gates.md and spec-orchestration-dispatch.md; its self-test is in spec-hooks-health-check.md. This entry carries only the registration, the counts, the filter enumeration, and the new shared-logic files and stores, parallel to how the Change Log 2026-11-06 (Tranche 3) added the four compliance hooks.
+
+### Direct edits in this pass (no behavior change)
+
+- Sub-features: spec-hooks-code-scan.md added, so the parent-child link resolves (the insecure-code scan and the severity-routing mechanism name this spec as their parent). The Sub-feature breakdown row follows at the fold.
+- Requirement refs: UR-071, UR-072, FR-237, FR-238, FR-239, FR-241, and NFR-034 added, since this delta traces to them; FR-220, FR-219, and NFR-029 are already listed.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description: "twenty ES5 entry files" reads twenty-one.
+- Components: the `hooks/hooks.json` row registers 21 scripts as 28 command entries; the entry-file row reads 21 entry files; the `hooks/impl/*.js` row reads 20 hook modules besides `health-check`. The shared-logic row gains `code-rules.js` (Step 35: the insecure-code rule catalog and the code-extension set; owned by spec-hooks-code-scan.md), `severity.js` (Step 32: the pure `route(finding)` policy function returning `block-merge`, `inline-comment`, or `log-only`; owned by spec-hooks-code-scan.md and shared with the orchestrator), and `sarif.js` (Step 34: the pure SARIF 2.1.0 converter; owned by spec-orchestration-dispatch.md and run by the `/do` orchestrator, not a hook).
+- Two new project-root stores, outside `${CLAUDE_PLUGIN_DATA}`: `.agent/governance/rule-modes.json`, the rule-mode store that holds each check's advisory or blocking mode, read by the severity-routing hooks and written by a hook, the orchestrator, or the user-run `scripts/promote-rule.js`, protected from every subagent write by `fsa-write-bar` (FR-245, FR-238; spec-hooks-fsa-write-bar.md); and `.agent/governance/review-findings.jsonl`, the advisory baseline of findings and the user's true or false labels, which is not an FR-245 protected path. Their shapes are in spec-hooks-code-scan.md; this spec names only the files and their writers.
+- Sub-feature breakdown: a new child row "Insecure generated-code scan and severity routing | spec-hooks-code-scan.md | The `code-scan` PreToolUse hook, `route(finding)`, the rule-mode store, the advisory baseline, and the promotion gate (FR-220, FR-237, FR-238, FR-239, NFR-028, NFR-034); Planned (harness-governance Tranche 4)".
+- Requirement: Filter output, Rules: the filters list gains `code-scan` (advisory release; see the MODIFIED Requirement below).
+- Requirement: Failure path, the `lib/launch.js` suffix table: a `code-scan` row, "this write was not scanned for insecure code", matching the as-built `suffixFor` branch (`hooks/lib/launch.js`), so an `unsupported-node` or `launch-error` on the `code-scan` entry file prints the hook's own suffix rather than the "other guards" catch-all.
+
+### Topology and data flow
+
+The topology and data-flow diagrams draw one generic `impl/NAME.js` hook on the shared runtime, so the new hook adds no node and the diagrams need no edit, the same treatment the earlier harness-governance entries gave their new hooks. The new shared-logic files and the two stores are named in Components above and are not drawn individually. The `code-scan` scan flow is drawn in spec-hooks-code-scan.md (`spec-hooks-code-scan-flow.mmd`, rendered 2026-11-13). Rendering of this spec's diagrams stays skipped (chrome-headless-shell note under Data flow); the `.mmd` sources are the record.
+
+### ADDED Requirements
+
+None. The `code-scan` hook's behavior and the severity-routing mechanism are in spec-hooks-code-scan.md; the SARIF converter's semantics in spec-orchestration-dispatch.md and spec-orchestration-review-gates.md; the hook's self-test in spec-hooks-health-check.md.
+
+### MODIFIED Requirements
+
+#### Requirement: Hook registration
+
+**Was:** (Change Log 2026-11-06 Tranche 3) The plugin SHALL register exactly 27 command entries in `hooks/hooks.json`, built from 20 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 23 rows of the Change Log 2026-11-06 (Tranche 2) registration, plus row 24 (PreToolUse, matcher `Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit`, script `data-access-log`, no extra argument, timeout 5), row 25 (PreToolUse, matcher `WebFetch|Bash|PowerShell`, script `phi-outbound-guard`, no extra argument, timeout 5), row 26 (PreToolUse, matcher `WebFetch|Bash|PowerShell`, script `ferpa-disclosure-guard`, no extra argument, timeout 5, in the same group as `phi-outbound-guard` and after it), and row 27 (UserPromptSubmit, no matcher, script `purpose-capture`, no extra argument, timeout 5).
+
+**Now:** The plugin SHALL register exactly 28 command entries in `hooks/hooks.json`, built from 21 scripts, each with `"type": "command"`, a command of the form `cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/<script>.js"`, and an explicit timeout: the 27 rows of the Change Log 2026-11-06 (Tranche 3) registration, plus row 28 (PreToolUse, matcher `Write|Edit|MultiEdit`, script `code-scan`, no extra argument, timeout 5).
+
+**Reason:** Task plan Step 35 creates the `code-scan` entry file and adds one `PreToolUse` entry on `Write|Edit|MultiEdit` (line 483). That is one new script (`code-scan`) and one new command entry: 20 + 1 = 21 scripts and 27 + 1 = 28 entries. The matcher follows the events Step 35 names; the timeout 5 follows every other hook and the NFR-029 per-write budget (Step 35 asks for an explicit short `timeout`). `code-scan` ships advisory-only this release: it records a would-deny finding and allows, so its registration shares the `Write|Edit|MultiEdit` matcher with `prose-gate` and `fsa-write-bar` but judges only a code-file write and never overlaps `prose-gate` (spec-hooks-code-scan.md, Requirement: Code-file class and no overlap with prose-gate).
+
+**Requirement refs:** FR-086, FR-220, NFR-007, NFR-029, NFR-035, UR-017, UR-062 | **Status:** Planned (harness-governance Tranche 4) for row 28; Built for rows 1 to 16; Planned (harness-governance Tranche 1) for rows 17 and 18; Planned (harness-governance Tranche 2) for rows 19 to 23; Planned (harness-governance Tranche 3) for rows 24 to 27
+
+The new script is on the LLM surface (`hooks/`), so the change carries `✓ LLM Security Clear` (NFR-011, NFR-036). The counts in the BRD in-scope list (`docs/requirements/BRD-assist-plugin.md`, section 4) and in FR-086 read 11 scripts and 16 commands today; this spec states the planned 21 and 28 and leaves those documents to their owners. `code-scan` joins the existing `PreToolUse` `Write|Edit|MultiEdit` group beside `prose-gate` and the write-tool registration of `fsa-write-bar` (row 6), which adds one script and one command entry.
+
+##### Scenario: Registration count after Tranche 4
+
+- **GIVEN** `hooks/hooks.json` after task plan Step 35 is built
+- **WHEN** a test counts the entries whose `type` is `command`
+- **THEN** the count SHALL be 28 across 21 scripts, the added script being `code-scan`
+- **AND** `code-scan` SHALL be registered on `PreToolUse` with the matcher `Write|Edit|MultiEdit`
+
+##### Scenario: Timeouts with the Tranche 4 hook
+
+- **GIVEN** the same file
+- **WHEN** a test reads each entry's `timeout`
+- **THEN** every entry SHALL read 5, `code-scan` included, except `health-check.js --session-start`, which SHALL read 10
+
+##### Scenario: Count holds until the hook is built
+
+- **GIVEN** `hooks/hooks.json` before task plan Step 35 is built
+- **WHEN** the registration test runs
+- **THEN** the count SHALL be 27 across 20 scripts, as in the Change Log 2026-11-06 (Tranche 3)
+
+The scenarios Documentation guard matcher and Registration drift are unchanged.
+
+#### Requirement: Filter output
+
+**Was:** (Change Log 2026-11-06 Tranche 3) The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, `confirmation-record`, `audit-log`, `gate-evidence`, `goal-guard`, `purpose-capture`, and `data-access-log`.
+
+**Now:** The statement is unchanged. Rules: the filters are `injection-filter`, `prose-advisor`, `fsa-log`, `writing-context`, `confirmation-record`, `audit-log`, `gate-evidence`, `goal-guard`, `purpose-capture`, `data-access-log`, and `code-scan` (advisory release).
+
+**Reason:** Task plan Step 35: `impl/code-scan.js` is a `PreToolUse` hook that, this release, records a would-deny finding to the advisory baseline and allows, returning no `deny` decision, the same records-and-allows shape as the advisory `goal-guard` (FR-238; spec-hooks-code-scan.md, Requirement: Advisory scan of a code-file write). It is listed as a filter in the advisory release, as `goal-guard` is, even though both are blocking-capable checks that the Step 36 user-run promotion can switch to blocking (out of scope for this entry). At promotion `code-scan` becomes a guard that declares the `failClosedFor(input)` classifier of Requirement: Failure path for its NFR-028 code-file class; that fail-closed deny is dormant while the rule is advisory (spec-hooks-code-scan.md, Requirement: Fail-closed class is defined and dormant while advisory). FR-220 is already a listed member of the NFR-028 security-critical class (Change Log 2026-11-05, Requirement: Failure path).
+
+**Requirement refs:** FR-088, FR-089, FR-220, FR-238, NFR-028, NFR-035 | **Status:** Planned (harness-governance Tranche 4)
+
+The scenarios Positive result, Null result, and Output that cannot be serialized are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-086 | Change Log 2026-11-13 (Tranche 4): Requirement: Hook registration | Registration count test on `hooks/hooks.json`: 28 command entries across 21 scripts, with `code-scan` on `PreToolUse` `Write\|Edit\|MultiEdit` and every `timeout` as listed (`tests/hooks/hooks-registration.test.js`, task plan Step 37) |
+| FR-220, FR-238, NFR-035 | Change Log 2026-11-13 (Tranche 4): Requirements: Hook registration, Filter output | `code-scan` listed as a filter in the advisory release and registered; its own advisory-and-blocking behavior, the severity-routing mechanism, and its self-test are verified in spec-hooks-code-scan.md and spec-hooks-health-check.md, not by this entry |
+| FR-237, FR-239, FR-241, NFR-034 | Change Log 2026-11-13 (Tranche 4): Body (Components, new shared-logic and stores) | `lib/severity.js`, `lib/sarif.js`, and `lib/code-rules.js` and the rule-mode and review-findings stores are named; their behavior is in spec-hooks-code-scan.md, spec-orchestration-review-gates.md, and spec-orchestration-dispatch.md |
+| FR-245 | Change Log 2026-11-13 (Tranche 4): Body (Components, new store) | The rule-mode store `.agent/governance/rule-modes.json` is protected from every subagent write by `fsa-write-bar` (spec-hooks-fsa-write-bar.md) |
+| NFR-036 | Change Log 2026-11-13 (Tranche 4): Requirement: Hook registration | The new entry file sits on the LLM surface (`hooks/`) and carries `✓ LLM Security Clear` together with NFR-011 |

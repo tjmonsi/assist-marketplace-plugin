@@ -248,3 +248,62 @@ The build documents these recall limits in the rule library. They are known limi
 |---|---|---|
 | NFR-026 | Change Log 2026-11-06: Requirement: Fails open and records to the audit log | A pass record holds the tool name and agent identity and no rule id; a would-deny record holds the rule id, rule family, count of matching rules (`rule_count`), tool name, and agent identity (`tests/hooks/goal-guard.test.js`) |
 | FR-238 | Change Log 2026-11-06: Advisory-recall reassessment items | The head and tail scan cap, the window-overlap gap, and the carve-out phrasings are recorded for the Step 36 promotion reassessment |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), FR-238 (section 2.25), FR-239 (section 2.26), NFR-034 (section 3.5); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 32 (the rule-mode store, `route(finding)`, the baseline, and the promotion check) and Step 36 (promote FR-219 and FR-220 to blocking after the baseline); `DECISIONS.md`, 2026-10-31, "Severity policy approved". Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The severity-routing mechanism this entry ties `goal-guard` to (`route(finding)`, the rule-mode store, the advisory baseline, and the promotion gate) is specified in spec-hooks-code-scan.md; this entry only binds `goal-guard`'s advisory-or-blocking mode to it and records that this release enables no blocking.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-239 and NFR-034 added. FR-219 and FR-238 are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description, the sentence "Promotion from advisory to blocking is task plan Step 36 (Tranche 4), governed by the advisory-baseline-first gate of FR-238 and the severity policy, and is out of scope for this spec": now reads that the advisory-or-blocking mode of `goal-guard` is read from the rule-mode store `.agent/governance/rule-modes.json` (advisory when absent or malformed), and that promotion to blocking is the user-run `scripts/promote-rule.js` of task plan Step 36, built on the mechanism in spec-hooks-code-scan.md and governed by FR-238 and NFR-034; this release enables no blocking.
+
+### ADDED Requirements
+
+#### Requirement: Mode read from the rule-mode store, promotion disabled this release
+
+The `goal-guard` hook SHALL read its advisory-or-blocking mode from the rule-mode store `.agent/governance/rule-modes.json`, treating an absent or malformed store as advisory and never failing open into blocking, and SHALL stay advisory this release; a switch to blocking SHALL be only the user-run `scripts/promote-rule.js` of task plan Step 36, which the advisory baseline and the precision bar gate (FR-238, NFR-034).
+
+**Requirement refs:** FR-219, FR-238, NFR-034 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-219 (section 2.6), FR-238 (section 2.25); task plan Step 32 (the rule-mode store and the promotion check) and Step 36 (promotion is a user-run operation; this release builds the mechanism only and enables no blocking); spec-hooks-code-scan.md, Requirement: Rule-mode store governs advisory versus blocking and Requirement: Promotion gate
+
+`goal-guard` is the first of the two rules that the Tranche 4 severity-routing mechanism governs (the insecure-code scan of FR-220 is the second; spec-hooks-code-scan.md). Its mode comes from the shared rule-mode store, so no `goal-guard`-specific toggle exists. The fail-open-into-advisory default means a missing or corrupt store never turns `goal-guard` blocking. Before the Step 36 switch, the `PostToolUse` output shape that withholds a result is confirmed against current hooks documentation (the open build-time item of the Description), because advisory mode withholds nothing and so never exercises it. FR-219 is not a member of the NFR-028 security-critical class (NFR-028 names FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, and FR-246), so `goal-guard` fails open on an evaluation error in advisory mode and after promotion alike.
+
+##### Scenario: Absent store keeps goal-guard advisory
+
+- **GIVEN** `.agent/governance/rule-modes.json` does not exist
+- **WHEN** a `WebFetch` result that matches a hijack rule reaches the hook
+- **THEN** the hook SHALL record a would-deny event and withhold nothing, because the mode is advisory
+
+##### Scenario: Promotion is user-run and off this release
+
+- **GIVEN** the mechanism is built and no user has run `promote-rule.js`
+- **WHEN** a hijack-matching result reaches `goal-guard`
+- **THEN** the hook SHALL stay advisory and withhold nothing, because this release enables no blocking
+
+### MODIFIED Requirements
+
+#### Requirement: Advisory alignment check on tool results
+
+**Was:** The `goal-guard` hook SHALL run a rule-based alignment check over a `WebFetch`, `WebSearch`, or `mcp__*` result and, in advisory mode, SHALL record a would-deny event with a rule id to the governance audit log when a rule finds that the result tries to redirect the agent from the user's stated goal, and a pass record otherwise, and SHALL withhold nothing from the agent.
+
+**Now:** The `goal-guard` hook SHALL run a rule-based alignment check over a `WebFetch`, `WebSearch`, or `mcp__*` result and, while its mode in the rule-mode store is advisory (the default, including an absent or malformed store), SHALL record a would-deny event with a rule id to the governance audit log when a rule finds that the result tries to redirect the agent from the user's stated goal, and a pass record otherwise, and SHALL withhold nothing from the agent.
+
+**Reason:** FR-238 and task plan Step 32: the advisory-or-blocking mode of each check is read from the rule-mode store, and the advisory default (an absent or malformed store) is the safe direction. The record behavior is unchanged; the clause only names the store as the source of the advisory mode.
+
+**Requirement refs:** FR-219, FR-238, NFR-026, UR-062 | **Status:** Planned (harness-governance Tranche 4); the advisory record behavior matches the shipped Tranche 2 build
+
+The scenarios Hijack would-deny recorded and Benign result passes are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-219, FR-238 | Change Log 2026-11-13 (Tranche 4): Requirement: Mode read from the rule-mode store, promotion disabled this release | An absent rule-mode store keeps `goal-guard` advisory; no blocking is enabled without a user-run `promote-rule.js` (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`, task plan Step 37) |
+| NFR-034 | Change Log 2026-11-13 (Tranche 4): Requirement: Mode read from the rule-mode store, promotion disabled this release | A promotion of `goal-guard` is refused below 90% precision (spec-hooks-code-scan.md, Requirement: Promotion gate) |

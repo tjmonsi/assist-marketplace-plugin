@@ -1330,3 +1330,91 @@ None.
 | NFR-035, FR-233, FR-246 | Change Log 2026-11-06 (Tranche 3): Requirement: Self-tests | HEALTH report with a PASS line for `phi-outbound-guard` (17 allow, 31 deny) and `ferpa-disclosure-guard` (18 allow, 31 deny); a false deny lists the guard in `hooks-disabled.json`; each guard's own behavior is verified in spec-hooks-compliance.md, not by this entry |
 | NFR-035, FR-230, FR-232, FR-247 | Change Log 2026-11-06 (Tranche 3): Requirement: Self-tests | HEALTH report with a PASS line for `data-access-log` (5 no-record, 5 record) and `purpose-capture` (5 no-record, 1 record); a record holding a secret or file content lists under "case threw"; `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 |
 | FR-091 | Change Log 2026-11-06 (Tranche 3): Requirement: Auto-disable and re-enable | `data-access-log` is never added to `hooks-disabled.json`; `purpose-capture` is added on a false deny or false allow; `phi-outbound-guard` and `ferpa-disclosure-guard` are added on a false deny |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-220 (section 2.7), FR-238 (section 2.25), NFR-029 (section 3.1), NFR-032 (section 3.4), NFR-035; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 35 (the `code-scan` self-test corpus with a string-built SQL case and a parameterized case, lines 482 to 487). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The `code-scan` hook's behavior and the severity-routing mechanism are specified in spec-hooks-code-scan.md; this entry adds only the hook's self-test. The unfolded Change Logs 2026-10-23, 2026-11-05, 2026-11-06 (Tranche 2), and 2026-11-06 (Tranche 3) touch other rows of Requirement: Self-tests, so this entry does not overlap them.
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: FR-220, FR-238, and NFR-029 added, since this delta traces to them.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description and Algorithmic steps, node B of the flow diagram (inline and `spec-hooks-health-check-flow.mmd`): the hook count reads twenty, with the Tranche 4 hook `code-scan` named. The Change Log 2026-11-06 (Tranche 3) already stages this count at nineteen; at the fold it reads twenty. The `.mmd` source is not edited in this pass; the node text follows at the fold.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Self-tests
+
+**Was:** (Change Log 2026-11-06 Tranche 3) The health check SHALL, in both modes, run each of the nineteen hooks below against its fixed cases ... and `purpose-capture` runs as a filter whose declared-purpose case must write one session purpose record and whose forged, pasted, tool-result, undeclared, and over-long cases must write none, against a temporary project root.
+
+**Now:** The health check SHALL, in both modes, run each of the twenty hooks below against its fixed cases, calling the same `evaluate()` the hook runs, with no disk access for test files, a fixed `cwd`, and explicit allowlists, roots, git-root finders, file readers, and temp directories per case; the sixteen clauses of the Change Log 2026-11-06 (Tranche 3) statement are unchanged; and `code-scan` runs as a report-only logging filter (advisory release) whose string-built SQL case is its record case (a would-deny finding) and whose parameterized-query case is its no-record case, against a stub baseline sink and a stub rule-mode store that reads advisory.
+
+**Reason:** NFR-035: each new guard or filter ships a self-test corpus with a known-safe and a known-prohibited case and reports through `/assist-plugin:health`. Task plan Step 35 adds the `code-scan` corpus with a string-built SQL case denied (recorded as a would-deny finding while advisory) and a parameterized case allowed (no finding). `code-scan` ships advisory-only this release, records a would-deny finding and allows, and so is self-tested as a report-only logging filter, the same treatment `goal-guard` gets as the sibling blocking-capable advisory check (spec-hooks-code-scan.md, Requirement: Advisory scan of a code-file write; spec-hooks-platform.md, Change Log 2026-11-13 (Tranche 4), Requirement: Filter output). Each hook is one `GUARDS` entry, so a new hook is self-tested only when this requirement lists it. This Now keeps the Change Log 2026-11-06 (Tranche 3) statement and adds one clause; it touches no row the unfolded entries change.
+
+**Requirement refs:** NFR-035, FR-220, FR-238, UR-018, UR-062 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-220 (section 2.7), FR-238 (section 2.25); task plan Step 35 (`hooks/impl/health-check.js`: a string-built SQL case denied and a parameterized case allowed)
+
+New row of the self-test table:
+
+| Hook | Kind | Allow cases (must not be flagged) | Deny cases (must be flagged) | Flagged means |
+|---|---|---|---|---|
+| `code-scan` | report-only logging filter (advisory release) | At least 1 no-record case: a parameterized-query write that matches no rule, and a non-code write (a `.md` or `.json` target) that the hook does not judge | At least 1 record case: a write that builds an SQL string from request input and records a would-deny finding naming the rule id and line | The hook returns a would-deny finding; the case carries a stub rule set, a stub rule-mode store that reads advisory, and a stub baseline sink, and the hook withholds nothing |
+
+Rules:
+- Report-only: `code-scan` carries `reportOnly: true` in its `GUARDS` entry, as `goal-guard` does. `updateDisabled` never adds it to `hooks-disabled.json`, and `buildProblems` gives it no disable suffix (Requirement: Auto-disable and re-enable; Requirement: Session-start notice). A false finding reports weak or missing scanning and leaves the hook enabled, because this release blocks nothing and an absent or malformed rule-mode store reads advisory (spec-hooks-code-scan.md, Requirement: Rule-mode store governs advisory versus blocking); the fail-closed deny of the code-file class is dormant until the Step 36 promotion.
+- The non-code allow case asserts that `code-scan` does not judge a `.md` or `.json` write, so it never overlaps `prose-gate` (FR-220, NFR-029; spec-hooks-code-scan.md, Requirement: Code-file class and no overlap with prose-gate).
+- The exact case counts, the report nouns, and the PASS-line counts are proposed at the build and counted from the corpus, following the `goal-guard` entry. The minimums above are the cases the task plan names (Step 35); the corpus MAY hold more.
+- `/assist-plugin:health` lists `code-scan` with a weak-scanning finding row (spec-skills-health.md, Change Log 2026-11-13 (Tranche 4)), and the build passes `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` and `node plugins/assist-plugin/scripts/sync-writing-standard.js --check` with exit 0 (NFR-035).
+
+##### Scenario: Code-scan self-test passes
+
+- **GIVEN** `code-scan` records a would-deny finding for its SQL-from-input case and none for its parameterized-query and non-code cases
+- **WHEN** the session starts, or the report runs
+- **THEN** the notice SHALL NOT name `code-scan`, and the report SHALL show a PASS line for it
+
+##### Scenario: Code-scan misses the SQL case
+
+- **GIVEN** a defect makes `code-scan` record no would-deny for its SQL-from-input case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the finding as weak or missing scanning and SHALL NOT add `code-scan` to `hooks-disabled.json`
+
+#### Requirement: Auto-disable and re-enable
+
+**Was:** (Change Log 2026-11-06 Tranche 3) When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL ... SHALL never add `writing-context`, `audit-log`, `gate-evidence`, `goal-guard`, or `data-access-log`, whose self-tests are report-only, ...
+
+**Now:** When `CLAUDE_PLUGIN_DATA` is set, the health check SHALL ... SHALL never add `writing-context`, `audit-log`, `gate-evidence`, `goal-guard`, `data-access-log`, or `code-scan`, whose self-tests are report-only, ... (every other clause of the Change Log 2026-11-06 (Tranche 3) Now is unchanged).
+
+**Reason:** Task plan Step 35 adds `code-scan`, a `PreToolUse` hook that, this release, records a would-deny finding and allows and returns no deny (spec-hooks-platform.md, Change Log 2026-11-13 (Tranche 4), Requirement: Filter output). This release blocks nothing and an absent or malformed rule-mode store reads advisory, so disabling the hook would gain nothing and is not done; a false finding reports weak or missing scanning and the hook stays enabled, as `goal-guard` is.
+
+**Requirement refs:** FR-091, FR-220, FR-238, NFR-035 | **Status:** Planned (harness-governance Tranche 4)
+
+##### Scenario: Code-scan failure never disables it
+
+- **GIVEN** the `code-scan` self-test misses its SQL-from-input record case, and `CLAUDE_PLUGIN_DATA` is set
+- **WHEN** the health check runs
+- **THEN** it SHALL report the finding as weak or missing scanning and SHALL NOT add `code-scan` to `hooks-disabled.json`
+
+The other scenarios of this requirement are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-035, FR-220, FR-238 | Change Log 2026-11-13 (Tranche 4): Requirement: Self-tests | HEALTH report with a PASS line for `code-scan`; the SQL-from-input case records a would-deny finding and the parameterized and non-code cases record none; a missed SQL case reports weak scanning and leaves the hook enabled; `check-fsa-tables.js --check` and `sync-writing-standard.js --check` exit 0 (`tests/hooks/health-check-selftest.test.js`, task plan Step 37) |
+| FR-091 | Change Log 2026-11-13 (Tranche 4): Requirement: Auto-disable and re-enable | `code-scan` is never added to `hooks-disabled.json`; a full pass removes a hand-added entry |
+
+### Reconciliation to as-built (2026-11-13)
+
+The `code-scan` report-only self-test shipped and is built this release; this note reconciles the entry's Planned labels to that build. It supersedes the "not built yet" preamble line and the Planned Status of the MODIFIED requirements at the next fold.
+
+- Source line of this entry: "Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4)" is superseded by the shipped, gate-approved harness-governance Tranche 4 build this entry reconciles to; at the next fold the Planned labels read as built and the Status stays `Review` until then, not `Implemented`.
+- Requirement: Self-tests and Requirement: Auto-disable and re-enable: Status Planned (harness-governance Tranche 4) -> Built (harness-governance Tranche 4). As built (`hooks/impl/health-check.js`, read on 2026-11-13), the `GUARDS` array holds a `code-scan` entry (`name: codeScan.NAME`, `filter: true`, `reportOnly: true`, `evaluate` calling `codeScanFlagged`, corpora `CODE_SCAN_NONE` and `CODE_SCAN_RECORD`), so the self-test runs `code-scan` as a report-only logging filter, `updateDisabled` never adds it to `hooks-disabled.json`, and a false finding reports weak scanning with the hook left enabled, as the entry states.

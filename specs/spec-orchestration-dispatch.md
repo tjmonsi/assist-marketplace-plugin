@@ -2151,3 +2151,82 @@ None.
 |---|---|---|
 | FR-242 | Change Log 2026-11-05: Requirement 14 | Pending-action record with a token written to `pending.jsonl`; a token-bearing yes records a confirmation; an affirmative without the token, or an expired or reused token, records none |
 | FR-214 | Change Log 2026-11-05: Requirement 14 | `gh pr review` and `bkt pr approve` denied with no recorded confirmation; allowed after a token-matched confirmation; `pr-post-ask` still prompts |
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-241 (section 2.28), FR-240 (section 2.27), FR-214 (section 2.1); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 34 (the `/do` orchestrator writes the `.sarif` file from the SARIF content or findings a reviewer returns, converting through `lib/sarif.js`; a GitHub upload is a posting action under FR-214) and Step 33 (the orchestrator rejects a reviewer report missing a `severity`, `confidence`, or `routing` field and asks for a corrected one; `skills/do/SKILL.md` rejection handling); `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-9, OQ-8: the `/do` orchestrator writes the `.sarif` file, no subagent write path) and "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)" (the upload rule). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The reviewer-side finding format and the reviewer's SARIF-or-findings output are in spec-orchestration-review-gates.md (Change Log 2026-11-13 (Tranche 4), Requirements 15 and 16); the `lib/sarif.js` converter is a pure library named in spec-hooks-platform.md (Change Log 2026-11-13 (Tranche 4)); this entry carries the orchestrator's writing of the `.sarif` file, the upload-as-posting-action rule, and the orchestrator's rejection of an incomplete reviewer report.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review. Requirement refs: UR-073, UR-074, FR-240, and FR-241 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement 4 (Read a final message without a valid block as an error): a note that, besides a missing terminal block, a `reviewer` or `code-reviewer` report whose finding lacks a `severity`, `confidence`, or `routing` field is a protocol error the orchestrator sends back for a corrected report (Requirement 17).
+- Algorithmic steps diagram: after a `reviewer` or `code-reviewer` gate result, an orchestrator step that writes the `.sarif` file from the returned SARIF content or findings.
+
+### ADDED Requirements
+
+#### Requirement 16: Write the SARIF file from the reviewer output
+
+The `/do` orchestrator SHALL write the SARIF 2.1.0 file for a `reviewer` or `code-reviewer` gate to `<root>/.agent/reviews/review-<slug>.sarif`, converting the SARIF content or the findings the reviewer returns through `lib/sarif.js`, which is a pure converter that maps each finding's severity to a result level (CRITICAL and HIGH to `error`, MEDIUM to `warning`, LOW to `note`) and its file and line to a location, leaves out a finding with no location, and lists each left-out finding as not exported with the reason; no subagent writes the file, and uploading the file to GitHub is a posting action under the FR-214 confirmation rule. (FR-241, FR-214; `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled", D-9)
+
+**Requirement refs:** FR-241, FR-214, FR-240, NFR-012 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-241 (section 2.28); task plan Step 34 (`hooks/lib/sarif.js`; the `/do` orchestrator writes the `.sarif` file; the SARIF output path fixed by PN-8; a GitHub upload is a posting action under FR-214); `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" and "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)"
+
+The reviewers hold `tools: [Read, Grep, Glob, LSP]` and stay read-only (spec-orchestration-review-gates.md, Change Log 2026-11-13 (Tranche 4), Requirement 16), so the orchestrator, which already writes plan files and gate records, writes the `.sarif` file; no subagent write path is added to the write bar (D-9). The orchestrator writes it with the Write tool under the same `.agent` symlink guard it applies to every `.agent` write (spec-orchestration.md, Requirement: /do guards every .agent write against a symlink). `<slug>` identifies the reviewed artifact or step; the path is fixed by `DECISIONS.md`, 2026-10-30, "Proposed governance file names and store paths approved (PN-8)". The level map is the settled one from the policy basis (`rules/severity-policy.md`), so the converter needs no approval entry to run. Uploading the SARIF to GitHub is a posting action under the FR-214 confirmation rule: the user confirms in their own message with the Step 3 token, the `UserPromptSubmit` hook records the confirmation, and the PR-verdict guard is not widened to the upload command; enforcement of the upload rule rests on the flow being followed, a stated known limit (task plan Step 34).
+
+##### Scenario: Findings become a SARIF file
+
+- **GIVEN** a `reviewer` gate whose output holds two findings, each with a file, a line, and a severity
+- **WHEN** the orchestrator writes the SARIF file
+- **THEN** it SHALL write `<root>/.agent/reviews/review-<slug>.sarif` with two results, each carrying a level from the severity and a location from the file and line
+
+##### Scenario: Finding without a location left out
+
+- **GIVEN** a reviewer finding with no file and line
+- **WHEN** the orchestrator converts the output through `lib/sarif.js`
+- **THEN** the finding SHALL be left out of the SARIF file and listed as not exported with the reason
+
+##### Scenario: SARIF upload confirmed like a verdict
+
+- **GIVEN** the orchestrator is about to upload a `.sarif` file to GitHub
+- **WHEN** it posts the upload
+- **THEN** the upload SHALL require the user's token-matched confirmation under the FR-214 rule, the same as a verdict post, and no subagent SHALL write or post the file
+
+#### Requirement 17: Reject a reviewer report missing a severity field
+
+The `/do` orchestrator SHALL treat a `reviewer` or `code-reviewer` report whose finding lacks a `severity`, `confidence`, or `routing` field as a protocol error, reject it, and ask the agent for a corrected report, the way it rejects a report with no terminal block. (FR-240; `skills/do/SKILL.md` rejection handling; `skills/do/references/review-protocol.md` "Review Output Rules")
+
+**Requirement refs:** FR-240 | **Status:** Planned (harness-governance Tranche 4) | **Source:** FR-NFR-harness-governance.md v1.3, FR-240 (section 2.27, scenario Missing field); task plan Step 33 (`skills/do/SKILL.md` rejection handling; `review-protocol.md` "Review Output Rules"); spec-orchestration-review-gates.md, Change Log 2026-11-13 (Tranche 4), Requirement 15
+
+The three fields are defined in spec-orchestration-review-gates.md (Requirement 15); the finding format comes from the approved severity policy. A report missing a field is sent back for a corrected one, as a report with no terminal block is (Requirement 4, "no-terminal-block"); the orchestrator dispatches no fix and runs no gate outcome on an incomplete report. This rejection path is advisory-neutral: it runs whether or not any rule is promoted to blocking, because it checks the report's shape, not a severity threshold.
+
+##### Scenario: Reviewer report missing a field
+
+- **GIVEN** a `reviewer` report whose finding at `src/a.js:10` holds no `severity`
+- **WHEN** the orchestrator reads the report
+- **THEN** the orchestrator SHALL reject the report and ask the reviewer for a corrected one, and SHALL record no gate outcome from the incomplete report
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-241 | Change Log 2026-11-13 (Tranche 4): Requirement 16 | The orchestrator writes `<root>/.agent/reviews/review-<slug>.sarif` from the reviewer output through `lib/sarif.js`; two located findings become two results with level and location; a finding with no location is left out and listed; no reviewer write path exists (`tests/hooks/sarif.test.js`, task plan Step 37) |
+| FR-214 | Change Log 2026-11-13 (Tranche 4): Requirement 16 | A SARIF upload to GitHub requires the token-matched confirmation under the FR-214 rule; no subagent posts it |
+| FR-240 | Change Log 2026-11-13 (Tranche 4): Requirement 17 | A reviewer report missing `severity`, `confidence`, or `routing` is rejected and re-requested, like a missing terminal block (`tests/skills/contracts-reviewer-severity.test.js`, task plan Step 37) |
+
+### Reconciliation to as-built (2026-11-13)
+
+This note records the shipped `hooks/lib/sarif.js` converter and the orchestrator's SARIF write, read on 2026-11-13. It supersedes the Requirement 16 wording where it differs, at the next fold.
+
+- `convert()` is pure and never throws: it wraps its work and returns `{ok: false, error}` for an input that is neither a findings array nor a SARIF document, and `{ok: true, document, text, exported, notExported, report}` otherwise. Requirement 16 named only "a finding with no location" among the left-out findings; as built the converter also leaves out, and lists in `notExported` with the reason, a finding whose file path is absolute and outside `options.root`, a path that contains a `..` segment, a path over the length cap or holding a NUL, a finding whose severity is missing or not one of CRITICAL, HIGH, MEDIUM, or LOW (no level can be chosen), and a finding that is not an object. Each entry carries the 1-based input index, a one-line summary, and the reason.
+- The level map is `CRITICAL` and `HIGH` to `error`, `MEDIUM` to `warning`, and `LOW` to `note`; `severity`, `confidence` (High, Medium, or Low), and `routing` (block-merge, inline-comment, or log-only) travel in the result's `properties` bag, never in the SARIF `level`, so a reviewer-built level is never trusted and a reviewer-returned document is rebuilt through the same map from `properties.severity`.
+- The orchestrator writes `<root>/.agent/reviews/review-<slug>.sarif` with the Write tool under the same `.agent` symlink guard it applies to every `.agent` write, and no reviewer holds a write path; the SARIF upload to GitHub is the second of the orchestrator's two user-confirmed delivery actions (the PR review verdict post of Requirement 14 is the first), each gated by the FR-214 token-matched confirmation.

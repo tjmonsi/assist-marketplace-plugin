@@ -790,3 +790,83 @@ This note folds Requirement 14 and records the shipped `gate-evidence` behavior.
 - Allowlist scope as shipped: the `gate-evidence` allowlist records the two in-plugin documentation scanners `check-fsa-tables.js` and `sync-writing-standard.js`. The FR-217 pattern and secret scanner and the health self-tests named in the gate-to-scanner mapping are not recorded yet, so the Code Security / OWASP Clear gate and the OWASP for LLM gate stay OPEN (fail-safe) until a later step extends the allowlist; the Coverage gate and the Approved-for-merge aggregate are unaffected.
 - Gate-reader dedupe: the orchestrator dedupes `gate-evidence` records by `tool_use_id` and prefers a failure, so an exit-0 sibling never clears a gate past a failure record for the same `tool_use_id`.
 - Exit-code routing: the `gate-evidence` hook reads a `PostToolUse` success event as exit 0 and takes the failing exit status of a `PostToolUseFailure` event from its `error` field; this routing is verified against the Claude Code hooks documentation, and a live-payload capture of both event shapes is carried as a verification item.
+
+## Change Log: 2026-11-13 (Tranche 4)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-240 (section 2.27), FR-239 (section 2.26), FR-241 (section 2.28), FR-237 (section 2.24), NFR-027, NFR-035, NFR-036; task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Tranche 4 Step 33 (the reviewer and code-reviewer add `severity`, `confidence`, and `routing` to each finding; the orchestrator rejects a report missing a field and asks for a corrected one; `review-protocol.md` "Review Output Rules") and Step 34 (the reviewer output includes the SARIF content or the findings, returned and not written); `DECISIONS.md`, 2026-10-31, "Severity policy approved" and 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-9). Harness-governance Tranche 4 is not built yet, so every change here is Planned (harness-governance Tranche 4). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval). The routing policy `route(finding)` and the severity policy are in spec-hooks-code-scan.md and `rules/severity-policy.md`; the `/do` orchestrator's writing of the `.sarif` file, the `lib/sarif.js` converter, and the GitHub upload as a posting action are in spec-orchestration-dispatch.md (Change Log 2026-11-13 (Tranche 4)); this entry carries the reviewer-side finding format, the orchestrator's rejection of an incomplete report, and the reviewer's SARIF-or-findings output.
+
+### Direct edits in this pass (no behavior change)
+
+- Status: Review -> Review. Requirement refs: UR-072, UR-073, UR-074, FR-239, FR-240, FR-241, and FR-237 added.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Requirement 2 (State every gate input in the gate prompt): the prior-findings row notes that a finding carries `severity`, `confidence`, and `routing` when it comes from a `reviewer` or `code-reviewer` gate (Requirement 15).
+- Signatures and Business rules: a note that `block-merge` on a reviewer finding is displayed and recorded, not enforced, this release, because severity-based blocking is advisory until a rule is promoted (spec-hooks-code-scan.md).
+
+### ADDED Requirements
+
+#### Requirement 15: Severity, confidence, and routing on each reviewer finding
+
+The `reviewer` and `code-reviewer` agents SHALL give each finding a `severity`, a `confidence`, and a `routing` field with one of `block-merge`, `inline-comment`, or `log-only`, and the `/do` orchestrator SHALL reject a report that lacks any of the three on a finding and ask for a corrected one, the way it sends back a report with no terminal block; a `block-merge` routing on a reviewer finding SHALL be displayed and recorded, not enforced, this release. (FR-240, FR-239, FR-237; `skills/do/references/review-protocol.md` "Review Output Rules"; `DECISIONS.md`, 2026-10-31, "Severity policy approved")
+
+The three fields come from the approved severity policy (`rules/severity-policy.md`): `severity` is CRITICAL, HIGH, MEDIUM, or LOW, `confidence` is High, Medium, or Low, and `routing` is the value `route(finding)` returns, `block-merge` only at confidence High and severity HIGH or CRITICAL (spec-hooks-code-scan.md, Requirement: Severity routing policy function). A report missing a field is a protocol error the orchestrator sends back, as it does for a missing terminal block ("no-terminal-block", Requirement 3; spec-orchestration-dispatch.md, Requirement 4). Because the release is advisory-only (spec-hooks-code-scan.md, Requirement: Promotion is a user-run operation and this release enables no blocking), a `block-merge` on a reviewer finding is shown to the user and recorded in the gate outcome but does not block the merge; a rule blocks a merge on severity only after a user-run promotion. Both agents keep `tools: [Read, Grep, Glob, LSP]`; no write or shell tool is added (NFR-027).
+
+##### Scenario: Complete finding
+
+- **GIVEN** a `reviewer` reports a defect at `src/a.js:10`
+- **WHEN** the report is written
+- **THEN** the finding SHALL hold a `severity`, a `confidence`, and a `routing` field
+
+##### Scenario: Missing field rejected
+
+- **GIVEN** a finding lacks `severity`
+- **WHEN** the orchestrator reads the report
+- **THEN** the orchestrator SHALL reject the report and ask for a corrected one
+
+##### Scenario: Block-merge displayed, not enforced
+
+- **GIVEN** a reviewer finding whose `routing` is `block-merge` and the rule is advisory this release
+- **WHEN** the orchestrator records the gate outcome
+- **THEN** the orchestrator SHALL display and record the `block-merge` routing and SHALL NOT block the merge on it
+
+#### Requirement 16: Reviewer returns SARIF content or findings
+
+The `reviewer` and `code-reviewer` output SHALL include either a SARIF 2.1.0 document whose result level derives from the finding's severity and whose location is the file and line, or the findings from which the `/do` orchestrator builds that document; the reviewer SHALL return it and SHALL write no file. (FR-241, FR-240; `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled", D-9)
+
+The reviewers hold only `Read, Grep, Glob, LSP` and stay read-only, so another component writes the `.sarif` file: the `/do` orchestrator converts the SARIF content or the findings through `lib/sarif.js` and writes the file (spec-orchestration-dispatch.md, Change Log 2026-11-13 (Tranche 4), Requirement 16). The level map is the settled one from the policy basis: CRITICAL and HIGH to `error`, MEDIUM to `warning`, LOW to `note`. A finding with no file and line is left out of the SARIF and listed as not exported with the reason (spec-orchestration-dispatch.md). Uploading the SARIF to GitHub is a posting action under the FR-214 confirmation rule, handled by the orchestrator (spec-orchestration-dispatch.md); the reviewer never posts.
+
+##### Scenario: Findings carry locations for SARIF
+
+- **GIVEN** a reviewer reports two findings, each with a file and line and a severity
+- **WHEN** the reviewer writes its output
+- **THEN** the output SHALL include the SARIF content or the two findings, with the severity and the file and line for each, and the reviewer SHALL write no file
+
+##### Scenario: Finding without a location
+
+- **GIVEN** a finding has no file and line
+- **WHEN** the orchestrator builds the SARIF document from the reviewer output
+- **THEN** the finding SHALL be left out of the SARIF and listed as not exported with the reason (spec-orchestration-dispatch.md)
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-240, FR-239, FR-237 | Change Log 2026-11-13 (Tranche 4): Requirement 15 | A reviewer finding holds severity, confidence, and routing; the orchestrator rejects a report missing a field and asks for a corrected one; a `block-merge` routing is displayed and recorded, not enforced (`tests/skills/contracts-reviewer-severity.test.js`, task plan Step 37) |
+| FR-241 | Change Log 2026-11-13 (Tranche 4): Requirement 16 | The reviewer returns SARIF content or findings and writes no file; a finding with no location is left out; the orchestrator-side write is in spec-orchestration-dispatch.md (`tests/hooks/sarif.test.js`, task plan Step 37) |
+| NFR-027 | Change Log 2026-11-13 (Tranche 4): Requirement 15 | Both reviewers keep `tools: [Read, Grep, Glob, LSP]`; no write or shell tool is added |
+
+### Reconciliation to as-built (2026-11-13)
+
+This note records the shipped `hooks/lib/sarif.js` converter, read on 2026-11-13. It supersedes the Requirement 16 wording where it differs, at the next fold.
+
+- The converter is pure and never throws. Requirement 16 named only "a finding with no file and line" among the left-out findings; as built `convert()` also leaves out, and lists as not exported with the reason, a finding whose file path is absolute and outside the root or contains a `..` segment, a path over the length cap or holding a NUL, and a finding whose severity is missing or is not one of CRITICAL, HIGH, MEDIUM, or LOW. The orchestrator-side write and the full not-exported list are in spec-orchestration-dispatch.md (Change Log 2026-11-13 (Tranche 4), Reconciliation to as-built).
+- The level map (CRITICAL and HIGH to `error`, MEDIUM to `warning`, LOW to `note`) is unchanged; `severity`, `confidence`, and `routing` travel in the result's `properties` bag, not in the SARIF `level`, so a reviewer-built level is never trusted.
