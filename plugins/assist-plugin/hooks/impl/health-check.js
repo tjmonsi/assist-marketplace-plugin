@@ -113,6 +113,15 @@
 // hook input unchanged, since the hook withholds and rewrites nothing. The cases carry a stub sink, so no real audit log is read or
 // written. A failure is reported and never adds it to hooks-disabled.json (a full pass still removes a hand-added entry), so the hook
 // stays enabled and the report says the detection is weak.
+// The code-scan is a report-only, advisory logging filter [FR-220] [FR-238]: its record cases (a Write whose SQL string is built
+// by concatenation, an Edit and a MultiEdit whose new text interpolates a variable into SQL, each carrying a secret string, a
+// session id, and a stub file whose lines place the edit) must each hand the baseline sink one finding that passes the
+// finding validator, names the rule id and the line, carries the session id as its review id and no label, holds only the schema
+// fields, and neither the secret nor the written text, and the hook must allow the write. Its no-record cases (a parameterized query
+// in a JavaScript and a Python write, a SQL-string write to a .md file, a .json file, and a path under docs/, a Read, a
+// call with no path) must hand it none. Each case carries a stub rule-mode store that reads advisory, a stub file reader, and a
+// stub sink, so no real store is read or written. A failure is reported and never adds it to hooks-disabled.json (a full pass
+// still removes a hand-added entry), so the hook stays enabled and the report says the scanning is weak.
 // Both prose hooks skip temp-directory paths and paths in prose-gate-allowlist.json. A voice script under docs/tts/
 // is judged like any prose file, with fenced blocks exempt. The self-tests pass an explicit allowlist per case, so
 // a user's real allowlist never masks or changes a result. The allowlist file is separate from hooks-disabled.json,
@@ -194,6 +203,8 @@ const dataAccessLog = require("./data-access-log.js");
 const phiOutboundGuard = require("./phi-outbound-guard.js");
 const ferpaDisclosureGuard = require("./ferpa-disclosure-guard.js");
 const goalGuard = require("./goal-guard.js");
+const codeScan = require("./code-scan.js");
+const severity = require("../lib/severity.js");
 const confirmationStore = require("../lib/confirmation-store.js");
 const purposeRecord = require("../lib/purpose-record.js");
 const verifyAuditChain = require("../../scripts/verify-audit-chain.js");
@@ -1878,6 +1889,114 @@ function goalGuardFlagged(testCase) {
 }
 
 // ---------------------------------------------------------------------------------------------
+// code-scan corpus (test data only) [NFR-035] [NFR-031] [FR-220] [FR-238]. The hook is report-only and advisory: flagged means
+// it handed the stub sink a would-deny finding, and a failed self-test is reported and never disables it. A record case
+// carries a secret string in the written text and names the rule id and the line it expects; verify throws when the finding
+// fails the baseline validator, names another rule or line, holds a field outside the schema, a label, or any of the written
+// text, or when the hook denies the write (advisory mode blocks nothing).
+
+const CODE_SCAN_ROOT = "/assist-selftest/project";
+const CODE_SCAN_SESSION = "selftest-session-1";
+const CODE_SCAN_SECRET = "abc123selftest";
+const CODE_SCAN_FIELDS = ["id", "rule_id", "severity", "confidence", "file", "line", "timestamp", "review_id"];
+const CODE_SCAN_FILE = ["const a = 1;", "const b = 2;", "function lookup(db, id) {", "  return db.get(id);", "}"].join("\n");
+const CODE_SCAN_FILES = {};
+CODE_SCAN_FILES[`${CODE_SCAN_ROOT}/src/db.js`] = CODE_SCAN_FILE;
+CODE_SCAN_FILES[`${CODE_SCAN_ROOT}/src/db.py`] = ["import sqlite3", "", "def lookup(cur, uid):", "    return cur.fetchone()"].join("\n");
+const CODE_SCAN_SAFE_JS = 'db.query("SELECT name FROM users WHERE id = $1", [id]);';
+const CODE_SCAN_SAFE_PY = 'cur.execute("SELECT name FROM users WHERE id = %s", (uid,))';
+const CODE_SCAN_BUILT_SQL = `const q = "SELECT name FROM users WHERE token = '${CODE_SCAN_SECRET}' AND id = " + req.params.id;`;
+
+function codeScanInput(tool, file, toolInput, extra) {
+  return Object.assign({ hook_event_name: "PreToolUse", tool_name: tool, cwd: CODE_SCAN_ROOT, session_id: CODE_SCAN_SESSION, tool_input: Object.assign({ file_path: `${CODE_SCAN_ROOT}/${file}` }, toolInput) }, extra);
+}
+
+function codeScanReadFile(file) {
+  return Object.prototype.hasOwnProperty.call(CODE_SCAN_FILES, file) ? CODE_SCAN_FILES[file] : null;
+}
+
+// expected: {rule, line, file}
+function verifyCodeScanRecord(expected) {
+  return (record, label) => {
+    if (severity.checkFinding(record) === null) throw failedCondition(label, "record passes the baseline finding validator");
+    Object.keys(record).forEach((key) => {
+      if (CODE_SCAN_FIELDS.indexOf(key) === -1) throw failedCondition(label, "record holds only the schema fields");
+    });
+    if (record.rule_id !== expected.rule) throw failedCondition(label, `record.rule_id is ${expected.rule}`);
+    if (record.line !== expected.line) throw failedCondition(label, `record.line is ${expected.line}`);
+    if (record.file !== expected.file) throw failedCondition(label, "record.file is the project-relative path");
+    if (record.review_id !== CODE_SCAN_SESSION) throw failedCondition(label, "record.review_id is the session id");
+    if (JSON.stringify(record).indexOf(CODE_SCAN_SECRET) !== -1 || JSON.stringify(record).toLowerCase().indexOf("select") !== -1) throw failedCondition(label, "record holds none of the written text");
+  };
+}
+
+function codeScanCase(label, expect, input, verify) {
+  return { label, expect, input, verify };
+}
+
+// Cases the hook must flag with a would-deny finding.
+const CODE_SCAN_RECORD = [
+  codeScanCase(
+    "Write of a JavaScript file that builds an SQL string from request input",
+    "record",
+    codeScanInput("Write", "src/db.js", { content: `${CODE_SCAN_FILE}\n${CODE_SCAN_BUILT_SQL}\n` }),
+    verifyCodeScanRecord({ rule: "sql-string-concat", line: 6, file: "src/db.js" })
+  ),
+  codeScanCase(
+    "Edit of a JavaScript file whose new text interpolates a variable into an SQL template",
+    "record",
+    codeScanInput("Edit", "src/db.js", { old_string: "  return db.get(id);", new_string: `  const q = \`SELECT name FROM users WHERE token = '${CODE_SCAN_SECRET}' AND id = \${id}\`;` }),
+    verifyCodeScanRecord({ rule: "sql-string-interpolation", line: 4, file: "src/db.js" })
+  ),
+  codeScanCase(
+    "MultiEdit of a Python file whose second edit formats a variable into an SQL f-string",
+    "record",
+    codeScanInput("MultiEdit", "src/db.py", {
+      edits: [
+        { old_string: "import sqlite3", new_string: "import sqlite3\nimport sys" },
+        { old_string: "    return cur.fetchone()", new_string: `    cur.execute(f"SELECT name FROM users WHERE token = '${CODE_SCAN_SECRET}' AND id = {uid}")` },
+      ],
+    }),
+    verifyCodeScanRecord({ rule: "sql-string-interpolation", line: 4, file: "src/db.py" })
+  ),
+];
+
+// Cases the hook must not flag: a safe query, a file outside the code class, a tool it does not judge.
+const CODE_SCAN_NONE = [
+  codeScanCase("Write of a JavaScript file with a parameterized query", "none", codeScanInput("Write", "src/db.js", { content: `${CODE_SCAN_SAFE_JS}\n` })),
+  codeScanCase("Write of a Python file with a parameterized query", "none", codeScanInput("Write", "src/db.py", { content: `${CODE_SCAN_SAFE_PY}\n` })),
+  codeScanCase("Write of a markdown file that shows a string-built SQL query", "none", codeScanInput("Write", "notes/query.md", { content: `${CODE_SCAN_BUILT_SQL}\n` })),
+  codeScanCase("Write of a JSON file that holds a string-built SQL query", "none", codeScanInput("Write", "config/data.json", { content: `{"q": ${JSON.stringify(CODE_SCAN_BUILT_SQL)}}` })),
+  codeScanCase("Write of a code file under docs/ that shows a string-built SQL query", "none", codeScanInput("Write", "docs/example.py", { content: 'q = "SELECT * FROM t WHERE id = " + uid\n' })),
+  codeScanCase("Write of a code file in a comment only", "none", codeScanInput("Write", "src/db.js", { content: `// ${CODE_SCAN_BUILT_SQL}\n` })),
+  codeScanCase("Read of a code file", "none", codeScanInput("Read", "src/db.js", {})),
+  codeScanCase("Write with no path", "none", { hook_event_name: "PreToolUse", tool_name: "Write", cwd: CODE_SCAN_ROOT, tool_input: { content: CODE_SCAN_BUILT_SQL } }),
+];
+
+// True when the hook handed the sink a would-deny finding for the case. Throws when it records another kind than the case
+// expects, denies the write, or changes the hook input. The mode store, the file read, and the sink are stubs.
+function codeScanFlagged(testCase) {
+  const records = [];
+  const before = JSON.stringify(testCase.input);
+  const result = codeScan.run(testCase.input, {
+    root: CODE_SCAN_ROOT,
+    modes: severity.parseRuleModes(null),
+    readFile: codeScanReadFile,
+    sink: (record) => {
+      records.push(record);
+      return true;
+    },
+  });
+  if (JSON.stringify(testCase.input) !== before) throw failedCondition(testCase.label, "the hook leaves its input unchanged");
+  if (result.deny !== false) throw failedCondition(testCase.label, "the hook allows the write while the rule is advisory");
+  const kind = records.length === 0 ? "none" : "record";
+  if (kind !== testCase.expect) throw failedCondition(testCase.label, `the hook records ${testCase.expect === "none" ? "nothing" : "a would-deny finding"}`);
+  if (records.length > 1) throw failedCondition(testCase.label, "one finding per rule and line");
+  if (records.length === 1 && typeof testCase.verify === "function") testCase.verify(records[0], testCase.label);
+  return records.length > 0;
+}
+
+// ---------------------------------------------------------------------------------------------
 // commit-attribution-guard corpus (test data only). The cases use a fixed cwd and a stub file reader.
 
 const COMMIT_ROOT = "/assist-selftest/project";
@@ -2265,6 +2384,17 @@ const GUARDS = [
     evaluate: (input) => ({ deny: goalGuardFlagged(input) }),
     allow: GOAL_GUARD_NONE,
     deny: GOAL_GUARD_RECORD,
+  },
+  {
+    // [NFR-035] [FR-220] Report-only advisory filter: a missed or wrong would-deny finding reports weak or missing scanning and
+    // never adds the hook to hooks-disabled.json, because disabling the recorder would leave no baseline for the promotion decision.
+    name: codeScan.NAME,
+    filter: true,
+    reportOnly: true,
+    nouns: { allow: "no-record cases", deny: "would-deny cases", falseDeny: "no-record case", falseAllow: "would-deny case", altered: "FLAGGED", missed: "NOT FLAGGED" },
+    evaluate: (input) => ({ deny: codeScanFlagged(input) }),
+    allow: CODE_SCAN_NONE,
+    deny: CODE_SCAN_RECORD,
   },
 ];
 
