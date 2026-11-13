@@ -49,6 +49,11 @@
 // Harness governance Tranche 4 (FR-086, FR-220, FR-238, FR-245; spec-hooks-code-scan.md; task plan Steps 32 and 35):
 //   - "## Write guard lists" holds eight Protected globs, the eighth being `**/.agent/governance/rule-modes.json`,
 //     the rule-mode store.
+// Harness governance Tranche 5 (FR-219, FR-220, NFR-028; task plan Step 8 and Step 9):
+//   - The "All hooks fail open" bullet of CLAUDE.md and Claude.md keeps the three always-fail-closed guards and adds
+//     that goal-guard and code-scan fail closed (NFR-028) only in blocking mode, after a user-run promotion, and are
+//     advisory and fail open by default.
+//   - Open-gap row 4 of the checklist reads "Closed (was Medium)".
 //
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
@@ -249,7 +254,7 @@ test("checklist changes no other open-gap row: nine rows with the same severity 
     ["1", "Closed (was High)", "LLM06"],
     ["2", "Closed (was High)", "LLM01"],
     ["3", "High", "LLM02"],
-    ["4", "Medium", "LLM09"],
+    ["4", "Closed (was Medium)", "LLM09"],
     ["5", "Medium", "LLM09"],
     ["6", "Closed (was Medium)", "LLM10"],
     ["7", "Medium", "LLM04"],
@@ -552,8 +557,10 @@ function askBullet(text, who) {
   return { at: at, line: lines[at], lines: lines };
 }
 
+// Tranche 5 (FR-219, FR-220, NFR-028; task plan Step 8): the bullet adds that goal-guard and code-scan fail closed only
+// in blocking mode, after a user-run promotion, and are advisory and fail open by default.
 const FAIL_OPEN_BULLET =
-  "- All hooks fail open except the security-critical guards (the NFR-028 class: pr-verdict-guard, phi-outbound-guard, and ferpa-disclosure-guard), which fail closed for their guarded class after reading input.";
+  "- All hooks fail open except the security-critical guards (the NFR-028 class: pr-verdict-guard, phi-outbound-guard, and ferpa-disclosure-guard), which always fail closed for their guarded class after reading input. `goal-guard` and `code-scan` fail closed (NFR-028) only in blocking mode, after a user-run `scripts/promote-rule.js` promotion; they are advisory and fail open by default this release.";
 
 [["CLAUDE.md", CLAUDE], ["plugins/assist-plugin/Claude.md", PLUGIN_CLAUDE]].forEach((pair) => {
   test(pair[0] + " has a pr-post-ask bullet after doc-cli-guard", () => {

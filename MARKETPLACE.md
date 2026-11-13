@@ -47,7 +47,7 @@ assist-marketplace-plugin/
         ├── hooks/ (guards, injection filter, prose hooks, audit and access logging, advisory code-scan, and health check; all fail open except three security-critical guards)
         ├── output-styles/ (terse.md)
         ├── rules/ (governance, writing-standard.md, writing-standard-compact.md)
-        ├── scripts/ (sync-writing-standard.js, check-fsa-tables.js, scan-staged-secrets.js, verify-audit-chain.js, export-control-evidence.js, baseline-report.js, promote-rule.js, label-findings.js)
+        ├── scripts/ (sync-writing-standard.js, check-fsa-tables.js, check-control-register.js, scan-staged-secrets.js, verify-audit-chain.js, export-control-evidence.js, baseline-report.js, promote-rule.js, label-findings.js)
         ├── docs/ (comprehensive documentation)
         ├── Claude.md (quick reference)
         ├── NOTICE (attribution)
