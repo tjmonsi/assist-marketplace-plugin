@@ -41,6 +41,30 @@ Performs code review for bugs, security, quality, and maintainability. Identifie
 
 Follow [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules): verdict or first finding first, length set by findings, every finding re-read at its file and line before reporting, only new or still-open findings on a re-review, no praise or generic advice.
 
+## Finding Format
+
+Every finding carries six fields: location (`file:line`), problem, fix, `severity`, `confidence`, and `routing`. Values and meanings come from [rules/severity-policy.md](../rules/severity-policy.md); the dispatch prompt states them because the agent cannot open `/do`'s reference files.
+
+- `severity`: CRITICAL, HIGH, MEDIUM, or LOW.
+- `confidence`: High, Medium, or Low, set from the evidence. High needs a reproduced trigger, an in-plugin scanner hit, or a read of the exact code path with no unverified assumption. A finding with no file and line is Low at most. A model-emitted claim never raises it.
+- `routing`: the value `route(finding)` in `hooks/lib/severity.js` returns for the severity and confidence:
+
+| Severity | Confidence | `routing` |
+|---|---|---|
+| CRITICAL or HIGH | High | `block-merge` |
+| CRITICAL or HIGH | Medium or Low | `inline-comment` |
+| MEDIUM | High or Medium | `inline-comment` |
+| MEDIUM | Low | `log-only` |
+| LOW | any | `log-only` |
+
+Example: `src/a.js:10 | user input reaches a shell string | pass an argument array | severity: HIGH | confidence: High | routing: block-merge`.
+
+`block-merge` is displayed and recorded in the gate outcome and does not block the merge this release; a rule blocks only after a user-run promotion (`rules/severity-policy.md`). A report with a finding that lacks any of the three fields is a protocol error: `/do` rejects it and asks for a corrected report. List a finding with no file and line too, at Low confidence at most, so the orchestrator can leave it out of the SARIF file and report why. The agent returns findings in the reply and writes no file.
+
+## SARIF Output
+
+[FR-241] The report includes the findings with their file and line (the `file:line` field of each finding), or a SARIF 2.1.0 document built from them, in the reply. The agent returns it and writes no file; its `tools` stay `Read, Grep, Glob, LSP`, and the `/do` orchestrator converts the content through `hooks/lib/sarif.js` and writes `<root>/.agent/reviews/review-<slug>.sarif`. In a SARIF document the result level comes from `severity` alone: CRITICAL and HIGH are `error`, MEDIUM is `warning`, LOW is `note`; the severity name also goes in the result's `properties` so the two `error` severities stay distinct. A finding with no file and line goes in the report too and stays out of the SARIF, listed by `/do` as not exported with the reason. The agent never uploads a SARIF file; an upload is a posting action `/do` takes only after the user's confirmation.
+
 ## States
 
 The agent is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../skills/do/references/fsa-template.md)). Follow the states in this order and do not skip one. The `Review` state ends with one line `Outcome: <value>`, and that value picks the next state.
@@ -49,7 +73,7 @@ The agent is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../sk
 |---|---|---|---|
 | Intake | check | Read the gate name, artifact type, artifact paths, rework count, and prior findings from the dispatch prompt. Every artifact path exists (Glob). The artifact type is one of code, config, test, pipeline, or planning document. A rework count the prompt omits is 0 | `ok` -> AssembleContext; `path-missing` -> Error(missing-input); `type-unknown` -> NeedsInput; `type-report` -> Error(out-of-scope) |
 | AssembleContext | check | Read the artifact files, the spec or task-plan the prompt cites, and the callers and types around the change (Read, Grep, LSP). Take the prior findings from the prompt when the rework count is above 0 | `ready` -> Review; `unreadable` -> Error(tool-failed) |
-| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then audit against the gate the prompt names: Pre-Test Code Review (syntax and semantic consistency), Security (OWASP Top 10), Planning Document Review, or OWASP for LLM Gate (artifact type `code`; audit against `rules/llm-security-checklist.md` at the absolute path the gate prompt gives). Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix | `findings` -> Decide; `clean` -> Decide |
+| Review | model | Run the adversarial self-reflection from [review-protocol.md](../skills/do/references/review-protocol.md#reviewer-adversarial-self-reflection), then audit against the gate the prompt names: Pre-Test Code Review (syntax and semantic consistency), Security (OWASP Top 10), Planning Document Review, or OWASP for LLM Gate (artifact type `code`; audit against `rules/llm-security-checklist.md` at the absolute path the gate prompt gives). Apply [Review Output Rules](../skills/do/references/review-protocol.md#review-output-rules). Write each finding as `file:line`, problem, fix, `severity`, `confidence`, `routing` (see Finding Format) | `findings` -> Decide; `clean` -> Decide |
 | Decide | check | Re-read each finding at its file and line and drop any you cannot confirm. On a re-review, list new and still-open findings and give resolved ones one line. Count what remains | `none-left` -> Done with verdict `approved`; `open` -> Done with verdict `returned` |
 | Done, NeedsInput, Error | terminal | End with the terminal block below | none |
 

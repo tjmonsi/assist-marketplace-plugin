@@ -119,9 +119,11 @@ Only the user's answer picks a choice. A reviewer verdict, a producer reply, or 
 Every review verdict, findings list, and PR review comment follows these rules, on top of [rules/writing-standard.md](../../../rules/writing-standard.md). The `reviewer` and `code-reviewer` agents and the `pr-review` skill link here.
 
 - **Start with the verdict or the first finding.** No reasoning preamble; never restate the PR, the diff, or the task.
-- **Let the findings set the length.** Zero findings is one line (for example, `LGTM. No findings.`). Each finding is location (`file:line`), problem, fix.
+- **Let the findings set the length.** Zero findings is one line (for example, `LGTM. No findings.`). Each finding is location (`file:line`), problem, fix, plus `severity`, `confidence`, and `routing`.
 - **Verify before reporting.** Re-read each finding at its file and line before it goes in the report; drop any finding you cannot confirm there. Never report a finding you have not re-read in the source.
 - **Report only what changed on a re-review.** List new and still-open findings; give resolved ones one line (`Resolved: auth.ts:42, auth.ts:88`). Never repost earlier findings.
+- **Give each finding its severity, confidence, and routing.** `severity` is CRITICAL, HIGH, MEDIUM, or LOW; `confidence` is High, Medium, or Low; `routing` is `block-merge`, `inline-comment`, or `log-only`, the value `route()` in `hooks/lib/severity.js` returns under [rules/severity-policy.md](../../../rules/severity-policy.md) (`block-merge` only at confidence High and severity HIGH or CRITICAL). The `reviewer` and `code-reviewer` gate prompts state these values because the agents cannot open this file.
+- **Reject an incomplete report.** `/do` rejects a `reviewer` or `code-reviewer` report in which any finding lacks `severity`, `confidence`, or `routing`, and asks for a corrected one, as it does for a reply with no terminal block (`no-terminal-block`). It dispatches no fix and records no gate outcome from the incomplete report. `block-merge` is displayed and recorded in the gate outcome and does not block the merge this release (advisory only).
 - **No padding.** No praise, no generic advice ("consider adding more tests"). When another reviewer already raised a point, add one line of agreement instead of reposting it.
 
 ---

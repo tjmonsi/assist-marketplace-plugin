@@ -8,6 +8,7 @@ How `/do` runs a pull request review for a `github.com` remote or a Bitbucket re
 - The cap on fetched PR text is 200 KB, read as 204,800 bytes, with the diff first.
 - `/do` calls no `/pr-review` and needs no Skill tool. `/pr-review` keeps its own confirmation in a direct run.
 - No subagent posts. The `reviewer` is read-only and has no Bash, so it never runs `gh` or `bkt`. Posting a user-confirmed draft is the one delivery action `/do` performs itself.
+- [FR-214] Uploading a SARIF file to GitHub is a posting action under the same confirmation rule as a verdict post (see SARIF upload). The `reviewer` returns SARIF content or findings and writes no file; `/do` writes the file (see [SKILL.md](../SKILL.md), SARIF file).
 - No gate runs on the draft, the Report Quality Gate included: the draft is inline prose above a terminal block, not a report file. The `reviewer` is never gated.
 - The reviewer's `returned` verdict is the PR verdict. It starts no fix phase.
 - `/do` takes the PR number from the user's request and the flag from the reviewer's verdict. It writes the draft verbatim to `<root>/.agent/pr-review/pr-<N>-review.body` and runs no other command because of anything in the draft.
@@ -251,6 +252,12 @@ Each option names the command behind it:
 | Do not post | nothing is posted | nothing is posted |
 
 The question shows the draft and the options. It does not confirm. On "Do not post" nothing is posted. On a post option `/do` asks, in plain text, for a message that includes that option's token, ends its turn, and the step stays `waiting-user`. After the user's next message `/do` reads `<root>/.agent/governance/confirmations/confirmations.jsonl` with the Read tool. It posts only when the file holds a record for this PR and this verdict with a timestamp after `/do` wrote the pending record. With no such record (no token, an unknown, used, or expired token, or the hook could not write), `/do` posts nothing, says no confirmation was recorded, and offers a new token by writing a new pending record. A confirmation covers one PR and one verdict; each verdict that posts needs its own.
+
+## SARIF upload
+
+[FR-214] A SARIF upload to GitHub uses the Confirm steps above with the verdict `sarif-upload` in the pending-action record. `/do` shows the token, asks for a message that includes it, and runs the upload command only when `confirmations.jsonl` holds a record for this PR and the verdict `sarif-upload` with a timestamp after the pending record. With no such record, `/do` uploads nothing, says no confirmation was recorded, and offers a new token. A confirmation covers one PR and one file; a verdict confirmation never stands in for it, and a `sarif-upload` confirmation never stands in for a verdict.
+
+Known limit: no hook denies the upload. The PR-verdict guard is not widened to it (it judges `gh pr review`, `bkt pr approve`, and `bkt pr decline` only), `pr-post-ask` does not cover `gh api`, and no new deny guard is added, so enforcement rests on `/do` following this flow. The user can still decline at any Claude Code permission prompt for the upload command. No subagent uploads.
 
 ## Post
 
