@@ -7,7 +7,7 @@
 | **Feature** | Goal-hijack guardrail: a rule-based, advisory-first alignment check on tool results |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-035 |
+| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-028 (blocking mode, per `DECISIONS.md` 2026-11-13), NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -307,3 +307,100 @@ None.
 |---|---|---|
 | FR-219, FR-238 | Change Log 2026-11-13 (Tranche 4): Requirement: Mode read from the rule-mode store, promotion disabled this release | An absent rule-mode store keeps `goal-guard` advisory; no blocking is enabled without a user-run `promote-rule.js` (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`, task plan Step 37) |
 | NFR-034 | Change Log 2026-11-13 (Tranche 4): Requirement: Mode read from the rule-mode store, promotion disabled this release | A promotion of `goal-guard` is refused below 90% precision (spec-hooks-code-scan.md, Requirement: Promotion gate) |
+
+## Change Log: 2026-11-13 (Tranche 5)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), FR-238 (section 2.25), NFR-028 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Step 36 (promote FR-219 and FR-220 to blocking; "For FR-219, confirm the PostToolUse output shape that withholds a result (PN-1 note) before the switch"); `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) approved for build" (choice 3: the deferred FR-219 goal-guard blocking wiring, reading `.agent/governance/rule-modes.json` and the result-withhold mechanism, is built now; the runbook documents the path and performs no promotion); the Claude Code PostToolUse hook output shape, confirmed from the hooks documentation (`hookSpecificOutput.hookEventName` `"PostToolUse"` with `updatedToolOutput`; high confidence), which resolves the design this spec deferred at line 70 and line 262. This entry specifies the blocking-mode contract the advisory-only body left open; it enables no blocking (the default stays advisory, and a switch is a user-run promotion). FR-219's membership in the NFR-028 fail-closed set, in blocking mode only, rests on the user decision `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode". The NFR-028 enumeration in FR-NFR-harness-governance.md (section 3.2) does not list FR-219 today; it is updated to add FR-219 (blocking mode) in the Tranche 5 documentation sync (task plan Step 8), so this entry does not claim the enumeration already holds it. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: NFR-028 added, for the blocking-mode fail-closed behavior this entry specifies; the basis is `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode". FR-219 and FR-238 are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description, line 70 ("The design of the deny path and the withholding of a result are confirmed against current hooks documentation before Step 36 promotes the rule"): now reads that the withhold mechanism is the Claude Code PostToolUse `updatedToolOutput` output (Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`), confirmed from the hooks documentation.
+- Change Log 2026-11-13 (Tranche 4), Requirement: Mode read from the rule-mode store, promotion disabled this release, the clause "Before the Step 36 switch, the `PostToolUse` output shape that withholds a result is confirmed against current hooks documentation ... because advisory mode withholds nothing and so never exercises it": superseded; the output shape is confirmed and specified below, and the mode-read and withhold wiring is built this release (the Tranche 4 build left `goal-guard.js` hardcoded advisory per `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 4 ... built"; Tranche 5 wires it).
+- Change Log 2026-11-13 (Tranche 4), the sentence "FR-219 is not a member of the NFR-028 security-critical class ..., so `goal-guard` fails open on an evaluation error in advisory mode and after promotion alike": the claim that FR-219 is not a member of the NFR-028 security-critical class and the "after promotion alike" clause are superseded by the user decision `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode" and by Requirement: Fail closed for the guarded class in blocking mode. Advisory mode still fails open; in blocking mode, a result the hook cannot finish evaluating is withheld (fail-closed for the guarded class). FR-219's `Should` priority is unchanged. The FR-NFR-harness-governance.md NFR-028 enumeration (section 3.2) is updated to add FR-219 (blocking mode) in the Tranche 5 documentation sync (task plan Step 8); until that sync lands the enumeration does not list it.
+- Business rules, row RULE-004 ("The hook fails open; records carry a rule id", traced to NFR-026): now reads "The hook fails open in advisory mode; fails closed for the guarded class in blocking mode (NFR-028); records carry a rule id", and its Traces-to cell reads "NFR-026, NFR-028". The unqualified fail-open wording contradicts Requirement: Fail closed for the guarded class in blocking mode, which fails closed in blocking mode and keeps the fail-open behavior in advisory mode only.
+- Requirements, Requirement: Fails open and records to the audit log (statement at line 114, and the "Now" wording of Change Log 2026-11-06): the opening clause "The `goal-guard` hook SHALL fail open: when the check throws, times out, or cannot read its rules, it SHALL record the failure in `hook-health.jsonl` and withhold nothing" is unqualified and contradicts Requirement: Fail closed for the guarded class in blocking mode. It now reads "The `goal-guard` hook SHALL fail open in advisory mode: when the check throws, times out, or cannot read its rules, it SHALL record the failure in `hook-health.jsonl` and withhold nothing; in blocking mode it SHALL fail closed for the guarded class (NFR-028), withholding a result it cannot finish evaluating through `updatedToolOutput` and recording the failure in `hook-health.jsonl`". The record-field clauses that follow in the 2026-11-06 "Now" wording (the would-deny and pass record fields) are unchanged, the requirement's Requirement refs gain NFR-028, and the heading is unchanged so existing references resolve. The advisory-mode scenario Check error withholds nothing is unchanged.
+- Error handling, the first row (line 155), Outcome cell "Withhold nothing; the result proceeds": now scoped to advisory mode. The row's Error condition reads "Check throws, times out, or cannot read its rules (advisory mode)" and its Outcome stays "Withhold nothing; the result proceeds". A row is added for blocking mode: Error condition "Check throws, times out, or cannot read its rules after the hook has read the result (blocking mode)", Handling strategy "Platform failure path; record in `hook-health.jsonl`; withhold the result through `updatedToolOutput`", Outcome "The result is withheld; fail-closed for the guarded class (NFR-028)". The unqualified outcome contradicts Requirement: Fail closed for the guarded class in blocking mode, which withholds a result the hook cannot finish evaluating in blocking mode and keeps pass-through in advisory mode only.
+
+### ADDED Requirements
+
+#### Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`
+
+While its mode in the rule-mode store `.agent/governance/rule-modes.json` is blocking, the `goal-guard` hook SHALL, on a hijack-rule match, withhold or rewrite the tool result the model sees by emitting a JSON stdout object whose `hookSpecificOutput.hookEventName` is `"PostToolUse"` and whose `updatedToolOutput` replaces the tool output, and SHALL record a deny record with the rule id to the governance audit log; an absent or malformed store SHALL keep the mode advisory and withhold nothing.
+
+**Requirement refs:** FR-219, FR-238, NFR-028 | **Status:** Planned (harness-governance Tranche 5) | **Source:** FR-NFR-harness-governance.md v1.3, FR-219 (section 2.6, "withhold the result from the agent"), FR-238 (section 2.25); task plan Step 36; the Claude Code PostToolUse output shape (confirmed from the hooks documentation, high confidence); `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) approved for build" (choice 3)
+
+The PostToolUse event fires after the tool has already executed, so the hook governs only what the model then sees, not whether the tool ran. The confirmed suppression path is `updatedToolOutput`: a `decision` of `"block"` with a `reason` appends the reason to the transcript but does not suppress the tool result, so a hijack result would still reach the model; replacing the result through `updatedToolOutput` is the mechanism that withholds or rewrites it. Withholding replaces the result with a short safe notice that names the rule id; rewriting strips the hijack span and keeps the benign remainder. The mode comes from the shared rule-mode store (spec-hooks-code-scan.md, Requirement: Rule-mode store governs advisory versus blocking); the default is advisory, and an absent, malformed, or non-promoting store never turns `goal-guard` blocking. This release wires the mode read and the `updatedToolOutput` path but performs no promotion, so `goal-guard` stays advisory until a user runs `scripts/promote-rule.js` (spec-hooks-code-scan.md, Requirement: Promotion gate).
+
+##### Scenario: Blocking mode withholds a hijack result
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and a fetched page tells the agent to send repository files to a URL
+- **WHEN** the `WebFetch` result reaches the hook
+- **THEN** the hook SHALL emit a PostToolUse JSON object whose `updatedToolOutput` replaces the result the model sees
+- **AND** the hook SHALL record a deny record with the rule id to the governance audit log
+
+##### Scenario: A block decision alone does not suppress the result
+
+- **GIVEN** the hook is in blocking mode on a hijack-matching result
+- **WHEN** the hook forms its output
+- **THEN** the hook SHALL use `updatedToolOutput` to replace the result, because a `decision` of `"block"` with a `reason` appends a reason and does not suppress the tool output
+
+##### Scenario: Known limit, the tool has already run
+
+- **GIVEN** a `WebFetch` whose result matches a hijack rule in blocking mode
+- **WHEN** the hook runs
+- **THEN** the hook SHALL govern only the result the model sees through `updatedToolOutput`
+- **AND** the hook SHALL NOT be able to prevent the `WebFetch` from having run, which is a recorded limit of the PostToolUse timing
+
+#### Requirement: Fail closed for the guarded class in blocking mode
+
+While its mode is blocking, the `goal-guard` hook SHALL fail closed for its guarded class: when it errors or times out after reading its input on a result it cannot finish evaluating (a would-block result), it SHALL withhold that result through `updatedToolOutput` rather than pass it through; in advisory mode the hook SHALL continue to fail open and withhold nothing.
+
+**Requirement refs:** NFR-028, FR-219 | **Status:** Planned (harness-governance Tranche 5) | **Source:** FR-NFR-harness-governance.md v1.3, NFR-028 (section 3.2, "MUST deny its own guarded operation class when it cannot evaluate because of an error or timeout"); task plan Step 36; `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) approved for build" (choice 3); `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode" (the basis for FR-219's NFR-028 membership)
+
+FR-219 is a member of the NFR-028 fail-closed set in blocking mode only, by the explicit user decision `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode", which mirrors the 2026-10-30 FR-246 addition. The NFR-028 enumeration in FR-NFR-harness-governance.md (section 3.2) names FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, and FR-246 and does not yet list FR-219; that enumeration is updated to add FR-219 (blocking mode) in the Tranche 5 documentation sync (task plan Step 8), so this spec does not claim the enumeration already lists it. Advisory mode is outside the NFR-028 membership and stays fail-open (NFR-026).
+
+The guarded class is a `WebFetch`, `WebSearch`, or `mcp__*` result in blocking mode. When the hook has the result in hand but cannot complete the alignment check because it threw or hit its `timeout`, it treats the uncovered result as a would-block result and withholds it, because passing attacker-controlled text through on an evaluation failure is the unsafe direction. This fail-closed behavior is scoped to blocking mode only: in advisory mode, and before any user-run promotion, the hook withholds nothing and records the failure in `hook-health.jsonl` (Requirement: Fails open and records to the audit log, as modified 2026-11-06). The record of the failure still reaches `hook-health.jsonl`.
+
+##### Scenario: Evaluation error in blocking mode withholds
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and the alignment check throws or times out after reading a `WebFetch` result
+- **WHEN** the hook returns
+- **THEN** the hook SHALL withhold the result through `updatedToolOutput`
+- **AND** the hook SHALL record the failure in `hook-health.jsonl`
+
+##### Scenario: Evaluation error in advisory mode passes through
+
+- **GIVEN** the rule-mode store is absent or marks `goal-guard` advisory and the alignment check throws
+- **WHEN** the hook returns
+- **THEN** the hook SHALL pass the result to the agent unchanged
+- **AND** the hook SHALL record the failure in `hook-health.jsonl`
+
+### MODIFIED Requirements
+
+#### Requirement: Mode read from the rule-mode store, promotion disabled this release
+
+**Was:** The `goal-guard` hook SHALL read its advisory-or-blocking mode from the rule-mode store `.agent/governance/rule-modes.json`, treating an absent or malformed store as advisory and never failing open into blocking, and SHALL stay advisory this release; a switch to blocking SHALL be only the user-run `scripts/promote-rule.js` of task plan Step 36, which the advisory baseline and the precision bar gate (FR-238, NFR-034).
+
+**Now:** The `goal-guard` hook SHALL read its advisory-or-blocking mode from the rule-mode store `.agent/governance/rule-modes.json`, treating an absent, malformed, or non-promoting store as advisory and never failing open into blocking, and SHALL act on a blocking mode by withholding or rewriting the result through the PostToolUse `updatedToolOutput` path (Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`); this release wires the mode read and the withhold path but performs no promotion, so `goal-guard` stays advisory until a user runs `scripts/promote-rule.js` of task plan Step 36, which the advisory baseline and the precision bar gate (FR-238, NFR-034).
+
+**Reason:** Tranche 5 builds the deferred FR-219 blocking wiring (`DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 ... approved for build", choice 3): the hook now reads the store and acts on a blocking mode through the confirmed `updatedToolOutput` path, where the Tranche 4 build left `goal-guard.js` hardcoded advisory. The default stays advisory and no promotion is performed, so the release enables no blocking.
+
+**Requirement refs:** FR-219, FR-238, NFR-034 | **Status:** Planned (harness-governance Tranche 5)
+
+The scenarios Absent store keeps goal-guard advisory and Promotion is user-run and off this release are unchanged.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-219 | Change Log 2026-11-13 (Tranche 5): Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput` | In blocking mode a hijack-matching result is replaced through `updatedToolOutput` and a deny record holds the rule id; a `block` decision alone does not suppress the result (`tests/hooks/goal-guard.test.js`, task plan Step 41) |
+| NFR-028 | Change Log 2026-11-13 (Tranche 5): Requirement: Fail closed for the guarded class in blocking mode | In blocking mode an evaluation error or timeout withholds the result through `updatedToolOutput`; in advisory mode the same error passes the result through (`tests/hooks/goal-guard.test.js`). FR-219 (blocking mode) joins the NFR-028 set by `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode"; the FR-NFR NFR-028 enumeration (section 3.2) gains FR-219 in the Tranche 5 documentation sync (task plan Step 8) |
+| FR-219, FR-238 | Change Log 2026-11-13 (Tranche 5): Requirement: Mode read from the rule-mode store, promotion disabled this release | The hook reads the store and acts on a blocking mode; the default stays advisory and no promotion is performed this release (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`) |

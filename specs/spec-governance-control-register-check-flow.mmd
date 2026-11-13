@@ -1,0 +1,12 @@
+flowchart TD
+  S(["node check-control-register.js [--check]"]) --> READ["Read rules/control-register.md"]
+  READ --> RD{"File readable and<br/>holds a control table?"}
+  RD -->|"no"| E2(["exit 2: operational error"])
+  RD -->|"yes"| PARSE["Parse the first control table into rows<br/>(id, requirement IDs, ASI, NIST function,<br/>owner, cadence+escalation, status)"]
+  PARSE --> FIELDS["For each row, check four fields non-empty:<br/>ASI (an ASI0N:2026 id or 'not applicable' + reason),<br/>NIST function in GOVERN/MEASURE/MANAGE,<br/>owner, cadence with escalation"]
+  FIELDS --> F230["Find the FR-230 row (FERPA internal log):<br/>fail if it cites 34 CFR 99.32"]
+  F230 --> F232["Find the FR-232 row (HIPAA audit):<br/>fail if it omits 45 CFR 164.312(b)<br/>or claims full HIPAA compliance"]
+  F232 --> F246["Find the FR-246 row (FERPA disclosure):<br/>status 'to verify' prints a notice,<br/>never a failure"]
+  F246 --> AGG{"Any field or regulation<br/>failure, and --check?"}
+  AGG -->|"yes"| E1(["exit 1: print each failure<br/>and the control id"])
+  AGG -->|"no"| E0(["exit 0: print the report<br/>and the FR-246 to-verify notice"])

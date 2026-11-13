@@ -438,3 +438,59 @@ None.
 | FR-239, FR-237, FR-238 | Change Log 2026-11-13 (Tranche 4 as-built reconciliation): Requirement: Severity routing policy function | `route`, `applyMode`, `parseRuleModes`, `modeOf`, `labelOf`, and `checkFinding` are exported and pure; the store is a flat map and only `"blocking"` marks a rule blocking (`tests/hooks/severity.test.js`, task plan Step 37) |
 | FR-237, FR-238, NFR-034 | Change Log 2026-11-13 (Tranche 4 as-built reconciliation): Requirement: Promotion gate | The four refusals (store-unreadable, missing-policy, missing-baseline, precision); exactly 90% passes; the three-part baseline-complete test; the atomic write and exit codes 0/1/2 (`tests/scripts/promote-rule.test.js`, task plan Step 37) |
 | NFR-028, FR-220 | Change Log 2026-11-13 (Tranche 4 as-built reconciliation): Requirement: Fail-closed class is defined and dormant while advisory | `failClosedFor` is exported and unwired; the hook runs as `health.transform`, so the advisory fail-open path holds (`tests/hooks/code-scan.test.js`, task plan Step 37) |
+
+## Change Log: 2026-11-13 (Tranche 5)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-220 (section 2.7), FR-238 (section 2.25), NFR-028 (section 3.2); task plan `docs/task-plans/task-plan-harness-governance-20261028-0759.md`, Step 36 (promote FR-220 to blocking after the baseline); `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) approved for build" (choice 3: the FR-220 code-scan fail-closed activation path is built now; the runbook documents the FR-220 promotion per rule and performs no promotion). This entry specifies the activation of the exported `failClosedFor(input)` path when a user-run promotion makes the code-scan rule blocking, and reaffirms that advisory stays the default when the rule-mode store does not promote it. It enables no blocking; the default stays advisory. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- None. Requirement refs NFR-028 and FR-220 are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Change Log 2026-11-13 (Tranche 4 as-built reconciliation), Requirement: Fail-closed class is defined and dormant while advisory, the "Now" wiring note ("`hooks/impl/code-scan.js` exports `failClosedFor(input)` ... but does not wire it to a runner: the hook runs on the filter runtime (`health.transform`) ... The classifier activates only when the Step 36 promotion makes the hook a guard (`health.guard`)"): now reads that the activation path is built (Requirement: Fail-closed activation when the rule is promoted to blocking). The wiring runs the hook as `health.guard` with `failClosedFor` live when the rule-mode store marks the code-scan rule blocking, and keeps `health.transform` (advisory, fail-open) when the store does not promote it. No promotion is performed this release, so the default stays advisory.
+
+### ADDED Requirements
+
+#### Requirement: Fail-closed activation when the rule is promoted to blocking
+
+When a user-run promotion sets the code-scan rule to blocking in the rule-mode store `.agent/governance/rule-modes.json`, the `code-scan` hook SHALL run as a guard (`health.guard`) with its exported `failClosedFor(input)` classifier live, SHALL deny a code-file write whose finding routes `block-merge`, naming the rule id and line, and SHALL deny the code-file write when it errors, times out, or cannot read its configuration while judging that write (fail closed for the code-file class, NFR-028); when the rule-mode store is absent, malformed, or does not mark the rule blocking, the hook SHALL stay advisory, run on the filter runtime (`health.transform`), record a would-deny finding and allow, and fail open.
+
+**Requirement refs:** FR-220, FR-238, NFR-028 | **Status:** Planned (harness-governance Tranche 5) | **Source:** FR-NFR-harness-governance.md v1.3, FR-220 (section 2.7), NFR-028 (section 3.2); task plan Step 36; `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) approved for build" (choice 3); builds on Requirement: Fail-closed class is defined and dormant while advisory and Requirement: Rule-mode store governs advisory versus blocking
+
+FR-220 is a member of the NFR-028 security-critical class, and its guarded fail-closed class is a write of a code file (the code-extension set of Requirement: Code-file class and no overlap with prose-gate). The activation path this entry specifies is the one the Tranche 4 as-built reconciliation named but left unwired: at promotion the hook moves from `health.transform` (advisory, fail-open) to `health.guard` (blocking, fail-closed), where `failClosedFor(input)` returns true for a code-file write, so an evaluation error, a timeout, or an unreadable store denies that write rather than letting it through. The default remains advisory and never fails open into blocking: an absent, malformed, or non-`"blocking"` rule-mode store keeps the hook on `health.transform`, so a store defect never turns the code scan into a deny. Promotion is the user-run `scripts/promote-rule.js` (Requirement: Promotion gate), which the policy, the baseline, and the precision bar gate; this release wires the activation path and performs no promotion, so the code scan ships advisory-only.
+
+##### Scenario: Blocking rule denies a block-merge finding
+
+- **GIVEN** a user-run promotion marked the code-scan rule blocking and a `Write` to `src/db.js` builds an SQL string from request input whose finding routes `block-merge`
+- **WHEN** the hook scans the write
+- **THEN** the hook SHALL deny the write and name the rule id and line, running as `health.guard`
+
+##### Scenario: Blocking evaluation error denies the code-file write
+
+- **GIVEN** the code-scan rule is blocking and the scan throws, times out, or cannot read its configuration while judging a write to `src/app.py`
+- **WHEN** the hook returns
+- **THEN** the hook SHALL deny the code-file write, because `failClosedFor(input)` is live for the code-file class
+
+##### Scenario: Non-promoting store keeps the hook advisory
+
+- **GIVEN** the rule-mode store is absent, malformed, or does not mark the code-scan rule `"blocking"`
+- **WHEN** a code-file write matches a HIGH-severity rule
+- **THEN** the hook SHALL run on `health.transform`, record a would-deny finding, and allow the write
+- **AND** an evaluation error on that write SHALL let the write proceed (fail open)
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-220, NFR-028 | Change Log 2026-11-13 (Tranche 5): Requirement: Fail-closed activation when the rule is promoted to blocking | A promoted (blocking) rule denies a `block-merge` finding and denies a code-file write on an evaluation error (`health.guard`); a non-promoting store keeps the hook advisory on `health.transform` and fails open (`tests/hooks/code-scan.test.js`, task plan Step 41) |
+| FR-238 | Change Log 2026-11-13 (Tranche 5): Requirement: Fail-closed activation when the rule is promoted to blocking | The activation path is wired but dormant; no promotion is performed, so the default stays advisory until a user runs `scripts/promote-rule.js` (`tests/scripts/promote-rule.test.js`) |
