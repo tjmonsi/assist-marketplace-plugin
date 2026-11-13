@@ -618,6 +618,7 @@ A finding routes by severity and confidence under [severity-policy.md](severity-
 - **Rule-mode store:** `.agent/governance/rule-modes.json` maps each rule id to `advisory` or `blocking`. An absent, unreadable, or malformed store, and a rule it does not name, mean advisory; no store defect turns a rule blocking. A subagent write of the store is denied ([Write guard lists](#write-guard-lists), [Shell Write Path](#shell-write-path)); a hook, the `/do` orchestrator, or the user-run `scripts/promote-rule.js` writes it.
 - **Baseline:** advisory findings go to `.agent/governance/review-findings.jsonl`, which is not a protected path. The user sets the true or false `label` of each finding with `scripts/label-findings.js`, and `scripts/baseline-report.js` computes precision from those labels only (14 days or 20 reviews, whichever is later; an estimate). An unlabelled finding shows as unlabelled and never counts as an agent judgment (NFR-034).
 - **Promotion:** only the user runs `scripts/promote-rule.js`. It switches a rule to `blocking` only when `DECISIONS.md` holds the latest "Severity policy approved" entry naming the policy's current version, a baseline report exists, and precision is at least 90% (an estimate). Otherwise it refuses with the missing-policy reason, the missing-baseline reason, or the precision value (FR-237, FR-238).
+- **Runbook:** [PROMOTION_RUNBOOK.md](../docs/PROMOTION_RUNBOOK.md) gives the user-run steps and exact commands, including promotion per code-scan rule (FR-220) and for `goal-guard` (FR-219).
 
 ---
 
