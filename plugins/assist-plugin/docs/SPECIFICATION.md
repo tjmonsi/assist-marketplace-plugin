@@ -41,6 +41,8 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Security/OWASP analysis
   - Performance and scalability review
   - Approve or request revisions
+  - Give each finding a `severity` (CRITICAL, HIGH, MEDIUM, or LOW), a `confidence` (High, Medium, or Low), and a `routing` (`block-merge`, `inline-comment`, or `log-only`) from [rules/severity-policy.md](../rules/severity-policy.md); `block-merge` is recorded and does not block the merge this release (advisory only)
+  - Return the findings, or a SARIF 2.1.0 document built from them, in the reply and write no file; `/do` writes `.agent/reviews/review-<slug>.sarif`
 - **Model default:** Opus
 - **Tools:** Read, Grep, Glob, LSP
 
@@ -131,6 +133,7 @@ assist-plugin is a token-optimized Claude marketplace plugin providing orchestra
   - Architectural evaluation
   - Best-practice enforcement
   - Sign-off on critical changes
+  - Report `severity`, `confidence`, and `routing` on each finding and return SARIF content in the reply, as `reviewer` does
 - **Model default:** Opus
 - **Tools:** Read, Grep, Glob, LSP
 
@@ -214,7 +217,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 - Model overrides offered in the plan approval call
 - Plan-based execution
 - Spec-first development: a build request gets requirements, a spec, and a task plan, approved by the user, before any step that writes code, config, pipelines, infrastructure, or tests
-- Review gate enforcement
+- Review gate enforcement, with severity routing: `/do` rejects a `reviewer` or `code-reviewer` report whose finding lacks `severity`, `confidence`, or `routing`, and writes the complete report's findings to `.agent/reviews/review-<slug>.sarif` through `hooks/lib/sarif.js` (CRITICAL and HIGH map to `error`, MEDIUM to `warning`, LOW to `note`; uploading the file is a posting action under the FR-214 confirmation rule)
 - `stop` and `resume <plan>`: a stop lets running steps finish and starts no new ones, and a resume asks for approval again before it re-dispatches the pending steps
 - Partial and Paused ends keep the plan file, so the user sees what ran, what failed, and what remains
 - PR review for `github.com` remotes and for Bitbucket Cloud and Data Center remotes through `bkt` (host pinned to one `bkt` context before any `bkt pr` or `bkt api` call); the main conversation posts the confirmed review, `pr-post-ask` may ask before each post, a rejected prompt makes the post `declined`, not failed, and the PR files under `.agent/pr-review/` are removed after use and at Cleanup
@@ -378,7 +381,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 **Purpose:** Report assist-plugin hook health: Node version, guard, injection-filter, prose-hook, FSA-hook, and writing-context self-tests, recent hook failures, subagent reports with terminal-block problems, disabled guards
 
 **Workflow:**
-1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `pr-post-ask`, `commit-attribution-guard`, `pr-verdict-guard`, `phi-outbound-guard`, `ferpa-disclosure-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `confirmation-record`, and `purpose-capture` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only, and `audit-log`, `data-access-log`, `gate-evidence`, and `goal-guard` against fixed record and no-record cases, also reporting only; 19 hooks in all, every hook script except `health-check`)
+1. Run `hooks/health-check.js` (self-tests `sa-mermaid-only`, `doc-cli-guard`, `pr-post-ask`, `commit-attribution-guard`, `pr-verdict-guard`, `phi-outbound-guard`, `ferpa-disclosure-guard`, `injection-filter`, `prose-gate`, `prose-advisor`, `fsa-write-bar`, `fsa-log`, `confirmation-record`, and `purpose-capture` against fixed allow and deny cases, and `writing-context` against fixed silent and context cases, reporting only, and `audit-log`, `data-access-log`, `gate-evidence`, and `goal-guard` against fixed record and no-record cases, also reporting only, and `code-scan` against fixed flagged and clean write cases, reporting only; 20 hooks in all, every hook script except `health-check`)
 2. Show the Node version, self-test results, disabled guards, and recent entries of `hook-health.jsonl`
 3. Explain each finding with its fix (install or upgrade Node, re-run after fixing, report a guard bug)
 4. With `--clear`, truncate `hook-health.jsonl` after showing it
@@ -390,6 +393,7 @@ The full skill list appears in the [plugins/assist-plugin/Claude.md](../Claude.m
 - Hooks fail open: a failure lets the command run with a `systemMessage` warning; only a positive guard match denies
 - A guard whose self-test denies, or for `pr-post-ask` asks on, a known-safe command is disabled via `hooks-disabled.json` until a later self-test passes (an ask on a known-safe command counts as a false deny). A posting command that `pr-post-ask` does not ask on leaves it enabled and reports weak protection
 - `audit-log` (PostToolUse on every tool), `data-access-log` (PreToolUse on `Read`, `Grep`, `Glob`, `Write`, `Edit`, `MultiEdit`, and `NotebookEdit`), `gate-evidence` (PostToolUse and PostToolUseFailure on `Bash`), and `goal-guard` (PostToolUse on `WebFetch`, `WebSearch`, and `mcp__*`) write to the governance audit log `.agent/logs/governance/audit.jsonl` and never block. A failed self-test of any of the four is reported and never disables the hook
+- `code-scan` (PreToolUse on `Write`, `Edit`, and `MultiEdit`) scans the text written to a code file for insecure patterns and, this release, records a would-deny finding to `.agent/governance/review-findings.jsonl` and allows the write. A rule blocks only after the user runs `scripts/promote-rule.js`, which refuses unless the severity policy is approved at its current version, the baseline window is complete, and labelled precision is at least 90% (an estimate). `scripts/label-findings.js` sets the user's true or false labels and `scripts/baseline-report.js` reports precision from them. A failed self-test is reported and never disables the hook
 - The health log never holds command text, arguments, environment values, or stdin
 
 ---
