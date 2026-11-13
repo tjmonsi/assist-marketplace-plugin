@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box tests for the hook registration file, release 1.12.0 plus the pr-post-ask follow-up and the
-// harness-governance Tranche 1, Tranche 2, and Tranche 3 hooks (plugins/assist-plugin/hooks/hooks.json).
+// harness-governance Tranche 1, Tranche 2, Tranche 3, and Tranche 4 hooks (plugins/assist-plugin/hooks/hooks.json).
 //
 // Sources: specs/spec-hooks-platform.md (Requirement: Hook registration, registration table
 // and Scenarios "Registration count" and "Timeouts"; Change Log 2026-10-16, Requirement: Hook
-// registration, Scenarios "Documentation guard matcher" and "Count unchanged"; Change Log
-// 2026-10-22, Requirement: Hook registration, Scenarios "Registration count after the ask hook" and
-// "Timeouts with the ask hook") and docs/requirements/FR-NFR-assist-plugin.md (FR-086, FR-094,
+// registration, Scenarios "Documentation guard matcher" and "Count unchanged"; Change Log 2026-10-22,
+// Requirement: Hook registration, Scenarios "Registration count after the ask hook" and "Timeouts with the ask
+// hook") and docs/requirements/FR-NFR-assist-plugin.md (FR-086, FR-094,
 // FR-206, NFR-007). Task plan steps 29 (1.12.0) and 22 (pr-post-ask follow-up).
 // Harness governance Tranche 1: docs/requirements/FR-NFR-harness-governance.md (FR-214 PR verdict guard,
 // FR-242 confirmation-recording hook, NFR-035 timeout and ES5 entry); docs/task-plans/task-plan-harness-governance-20261028-0759.md,
@@ -18,11 +18,15 @@
 // Harness governance Tranche 3: spec-hooks-platform.md (Change Log 2026-11-06 (Tranche 3), rows 24 to 27 of the
 // registration table); FR-230 (data-access-log), FR-233 (phi-outbound-guard), FR-246 (ferpa-disclosure-guard),
 // FR-247 (purpose-capture), FR-086 (the count: 27 commands from 20 scripts).
+// Harness governance Tranche 4: spec-hooks-platform.md (Change Log 2026-11-13 (Tranche 4), Requirement: Hook registration,
+// row 28 and the Scenarios "Registration count after Tranche 4" and "Timeouts with the Tranche 4 hook"); FR-220
+// (code-scan), FR-086 (the count: 28 commands from 21 scripts), NFR-029 (the timeout for the per-write budget), NFR-035;
+// task plan Step 35.
 //
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
-// The registration table after Tranche 3 (27 command entries from 20 scripts; rows 24 to 27 are new):
+// The registration table after Tranche 4 (28 command entries from 21 scripts; row 28 is new):
 //   event        matcher                                   script                    timeout
 //   PreToolUse   Bash                                      sa-mermaid-only           5
 //   PreToolUse   Bash|PowerShell                           doc-cli-guard             5
@@ -32,6 +36,7 @@
 //   PreToolUse   Agent                                     injection-filter          5
 //   PreToolUse   Write|Edit|MultiEdit|NotebookEdit         prose-gate                5
 //   PreToolUse   Write|Edit|MultiEdit|NotebookEdit         fsa-write-bar             5
+//   PreToolUse   Write|Edit|MultiEdit                      code-scan                 5   (row 28)
 //   PreToolUse   Bash                                      fsa-write-bar             5   (row 19, the shell write path)
 //   PreToolUse   Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit  data-access-log   5   (row 24)
 //   PreToolUse   WebFetch|Bash|PowerShell                  phi-outbound-guard        5   (row 25)
@@ -53,8 +58,8 @@
 //   SubagentStop .*                                        fsa-log                   5
 //
 // The Scenario "Count holds until the hook is built" (15 entries from 10 scripts), the 16-entry
-// count of the pr-post-ask follow-up, the 18-entry count of Tranche 1, and the 23-entry count of
-// Tranche 2 no longer apply and have no test.
+// count of the pr-post-ask follow-up, the 18-entry count of Tranche 1, the 23-entry count of
+// Tranche 2, and the 27-entry count of Tranche 3 no longer apply and have no test.
 //
 // Run: node --test tests/hooks/hooks-registration.test.js
 
@@ -98,6 +103,7 @@ const COMMANDS = ALL.filter((e) => e.type === "command");
 const WRITE_TOOLS = "Write|Edit|MultiEdit|NotebookEdit";
 const ACCESS_TOOLS = "Read|Grep|Glob|Write|Edit|MultiEdit|NotebookEdit";
 const OUTBOUND_TOOLS = "WebFetch|Bash|PowerShell";
+const SCAN_TOOLS = "Write|Edit|MultiEdit";
 
 const EXPECTED = [
   ["PreToolUse", "Bash", "sa-mermaid-only", null, 5],
@@ -108,6 +114,7 @@ const EXPECTED = [
   ["PreToolUse", "Agent", "injection-filter", null, 5],
   ["PreToolUse", WRITE_TOOLS, "prose-gate", null, 5],
   ["PreToolUse", WRITE_TOOLS, "fsa-write-bar", null, 5],
+  ["PreToolUse", SCAN_TOOLS, "code-scan", null, 5],
   ["PreToolUse", "Bash", "fsa-write-bar", null, 5],
   ["PreToolUse", ACCESS_TOOLS, "data-access-log", null, 5],
   ["PreToolUse", OUTBOUND_TOOLS, "phi-outbound-guard", null, 5],
@@ -346,21 +353,52 @@ test("[FR-247 | NFR-035] purpose-capture.js is registered once, under UserPrompt
 });
 
 // ---------------------------------------------------------------------------
+// The Tranche 4 hook (FR-220)
+// ---------------------------------------------------------------------------
+
+test("[Scenario: Registration count after Tranche 4 | spec-hooks-platform.md Change Log 2026-11-13 (Tranche 4), Requirement: Hook registration | FR-220 | FR-086 | NFR-035] code-scan.js is registered once, under PreToolUse, with the matcher Write|Edit|MultiEdit and no argument", () => {
+  const all = ALL.filter((e) => e.script === "code-scan");
+  assert.strictEqual(all.length, 1, "exactly one registration");
+  assert.strictEqual(all[0].event, "PreToolUse");
+  assert.strictEqual(all[0].matcher, SCAN_TOOLS);
+  assert.strictEqual(all[0].args, null, "no extra argument");
+});
+
+test("[Scenario: Registration count after Tranche 4 | spec-hooks-platform.md Change Log 2026-11-13 (Tranche 4) | FR-220 | NFR-029] code-scan.js does not register for NotebookEdit or for any non-write tool (a notebook cell is not a code file write)", () => {
+  const entry = ALL.filter((e) => e.script === "code-scan")[0];
+  const tools = entry.matcher.split("|");
+  assert.deepStrictEqual(tools, ["Write", "Edit", "MultiEdit"]);
+  assert.ok(tools.indexOf("NotebookEdit") === -1);
+});
+
+test("[Scenario: Timeouts with the Tranche 4 hook | spec-hooks-platform.md Change Log 2026-11-13 (Tranche 4) | FR-086 | NFR-029 | NFR-035] the entry that runs code-scan.js has the standard command form and an explicit timeout of 5", () => {
+  const e = COMMANDS.filter((x) => x.script === "code-scan");
+  assert.strictEqual(e.length, 1);
+  assert.strictEqual(e[0].type, "command");
+  assert.strictEqual(e[0].timeout, 5);
+  assert.strictEqual(
+    e[0].command,
+    'cd "${CLAUDE_PLUGIN_ROOT}" 2>/dev/null || true; node "${CLAUDE_PLUGIN_ROOT}/hooks/code-scan.js"'
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Count, scripts, timeouts
 // ---------------------------------------------------------------------------
 
-test("hooks.json parses and holds exactly 27 entries whose type is command", () => {
-  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; two entries added by harness-governance Tranche 1 | FR-214 FR-242; five entries added by Tranche 2 | FR-219 FR-221 FR-223 FR-224; four entries added by Tranche 3 | FR-230 FR-233 FR-246 FR-247]
-  assert.strictEqual(COMMANDS.length, 27);
-  assert.strictEqual(ALL.length, 27, "no entry of another type");
+test("hooks.json parses and holds exactly 28 entries whose type is command", () => {
+  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; two entries added by harness-governance Tranche 1 | FR-214 FR-242; five entries added by Tranche 2 | FR-219 FR-221 FR-223 FR-224; four entries added by Tranche 3 | FR-230 FR-233 FR-246 FR-247; one entry added by Tranche 4 | FR-220]
+  assert.strictEqual(COMMANDS.length, 28);
+  assert.strictEqual(ALL.length, 28, "no entry of another type");
 });
 
-test("the 27 entries are built from 20 scripts", () => {
-  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 | FR-214 FR-242; Tranche 2 | FR-219 FR-221 FR-224; Tranche 3 | FR-230 FR-233 FR-246 FR-247]
+test("the 28 entries are built from 21 scripts", () => {
+  // [Scenario: Registration count after the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 | FR-214 FR-242; Tranche 2 | FR-219 FR-221 FR-224; Tranche 3 | FR-230 FR-233 FR-246 FR-247; Scenario: Registration count after Tranche 4 | spec-hooks-platform.md Change Log 2026-11-13 (Tranche 4) | FR-220 FR-086]
   const names = Array.from(new Set(COMMANDS.map((e) => e.script))).sort();
-  assert.strictEqual(names.length, 20);
+  assert.strictEqual(names.length, 21);
   assert.deepStrictEqual(names, [
     "audit-log",
+    "code-scan",
     "commit-attribution-guard",
     "confirmation-record",
     "data-access-log",
@@ -400,8 +438,8 @@ test("every registered script has an ES5 entry file in hooks/ and an implementat
   });
 });
 
-test("every timeout is 5, pr-post-ask, pr-verdict-guard, and confirmation-record included, except the SessionStart health-check.js entry, which is 10", () => {
-  // [Scenario: Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 NFR-007; Tranche 1 | NFR-035]
+test("every timeout is 5, pr-post-ask, pr-verdict-guard, confirmation-record, and code-scan included, except the SessionStart health-check.js entry, which is 10", () => {
+  // [Scenario: Timeouts with the ask hook | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 NFR-007; Tranche 1 | NFR-035; Scenario: Timeouts with the Tranche 4 hook | spec-hooks-platform.md Change Log 2026-11-13 (Tranche 4) | NFR-029]
   COMMANDS.forEach((e) => {
     const expected = e.script === "health-check" ? 10 : 5;
     assert.strictEqual(e.timeout, expected, e.event + " " + e.script + " timeout");
@@ -412,10 +450,10 @@ test("every timeout is 5, pr-post-ask, pr-verdict-guard, and confirmation-record
   assert.strictEqual(health[0].args, "--session-start");
 });
 
-test("the file matches the 27-row registration table (event, matcher, script, argument, timeout)", () => {
-  // [Scenario: Registration count after the ask hook (every row as in the registration table) | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 rows 17 and 18 | FR-214 FR-242; Tranche 2 rows 19 to 23 | FR-219 FR-221 FR-223 FR-224; Tranche 3 rows 24 to 27 | FR-230 FR-233 FR-246 FR-247]
+test("the file matches the 28-row registration table (event, matcher, script, argument, timeout)", () => {
+  // [Scenario: Registration count after the ask hook (every row as in the registration table) | spec-hooks-platform.md "Hook registration" (Change Log 2026-10-22) | FR-086 FR-206 | NFR-007; Tranche 1 rows 17 and 18 | FR-214 FR-242; Tranche 2 rows 19 to 23 | FR-219 FR-221 FR-223 FR-224; Tranche 3 rows 24 to 27 | FR-230 FR-233 FR-246 FR-247; Tranche 4 row 28 | FR-220]
   const actual = COMMANDS.map((e) => key([e.event, e.matcher, e.script, e.args, e.timeout])).sort();
   const expected = EXPECTED.map(key).sort();
-  assert.strictEqual(EXPECTED.length, 27);
+  assert.strictEqual(EXPECTED.length, 28);
   assert.deepStrictEqual(actual, expected);
 });

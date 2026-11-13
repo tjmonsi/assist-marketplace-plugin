@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box contract tests for the self-test corpora and wrappers of the health check,
-// release 1.13.1 (plugins/assist-plugin/hooks/impl/health-check.js).
+// release 1.13.1 (plugins/assist-plugin/hooks/impl/health-check.js), plus the code-scan self-test of
+// harness-governance Tranche 4 (twenty self-tested hooks).
 //
 // Sources: specs/spec-hooks-health-check.md (Change Log 2026-10-23: Requirement: Self-tests, the
 // case table, Rules, and the scenarios Docs/tts self-test cases after the skip is removed, Stale
 // docs/tts allow case, Advisor case in docs/tts uses an advisory tell, and Fenced em dash in
-// docs/tts), specs/spec-hooks-prose-hooks.md (Change Log 2026-10-23: Requirement: Self-test
+// docs/tts; Change Log 2026-11-13 (Tranche 4): Requirement: Self-tests and Requirement: Auto-disable and re-enable,
+// scenarios Code-scan self-test passes, Code-scan misses the SQL case, and Code-scan failure never disables it),
+// specs/spec-hooks-prose-hooks.md (Change Log 2026-10-23: Requirement: Self-test
 // isolation for the project root, scenarios Real project variable during SessionStart and Case
 // without the project-root keys), specs/spec-hooks-fsa-write-bar.md (Requirement: Task-planner write
 // scope in docs/task-plans/, self-test table and Scenario: Self-test case without a git-root stub),
 // and docs/requirements/FR-NFR-assist-plugin.md (FR-118, FR-091, FR-104, FR-213, FR-186; FR-181 is
-// retired history and no assertion depends on it). Upstream ids: UR-018, UR-058.
+// retired history and no assertion depends on it). Upstream ids: UR-018, UR-058. Tranche 4 ids: FR-220, FR-238, NFR-035.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -23,6 +26,8 @@
 //   selfTest(guard)   returns { ok, falseDeny[], falseAllow[], errors[], allowCount, denyCount }
 //                     ("errors" are the cases listed under "case threw")
 //   main()            the entry point behind the HEALTH command and --session-start
+// The code-scan corpora hold wrapped cases { label, expect, input, verify }: the hook input sits under `.input`, so the
+// target path of a case is at `c.input.tool_input.file_path`.
 // and the HEALTH command (node plugins/assist-plugin/hooks/health-check.js), whose report is
 // public output. The command runs with CLAUDE_PLUGIN_DATA unset, so it writes nothing. The
 // session-start tests give it a fresh data folder, a fresh working directory, and a fresh
@@ -97,6 +102,13 @@ function labelOf(c, i) {
 
 function targetOf(c) {
   const ti = c && c.tool_input;
+  return ti ? ti.file_path || ti.notebook_path : undefined;
+}
+
+// The code-scan corpora wrap each case as {label, expect, input, verify}; the hook input sits under .input.
+function wrappedTargetOf(c) {
+  const input = c && c.input ? c.input : c;
+  const ti = input && input.tool_input;
   return ti ? ti.file_path || ti.notebook_path : undefined;
 }
 
@@ -700,7 +712,7 @@ function assertHealthyReport(res) {
   const out = res.stdout;
   assert.ok(!/case threw/.test(out), "report lists a 'case threw' entry:\n" + out);
   assert.ok(!/: FAIL\b/.test(out), "report lists a failing hook:\n" + out);
-  ["prose-gate", "prose-advisor", "fsa-write-bar"].forEach((name) => {
+  ["prose-gate", "prose-advisor", "fsa-write-bar", "code-scan"].forEach((name) => {
     assert.ok(new RegExp("^\\s+" + name + ": PASS \\(", "m").test(out), name + " must pass in the report:\n" + out);
   });
   assert.ok(/^ {2}prose-gate: PASS \(24 allow cases, 38 deny cases\)$/m.test(out), "prose-gate line with 24 and 38:\n" + out);
@@ -708,11 +720,70 @@ function assertHealthyReport(res) {
 }
 
 test("HEALTH: the report lists every hook as passing with no 'case threw' and the 1.13.1 corpus sizes (project variable unset)", () => {
-  // [Scenario: Docs/tts self-test cases after the skip is removed (HEALTH report) | spec-hooks-health-check.md Change Log 2026-10-23, Traceability added | FR-118 | FR-104 | FR-213 | FR-186]
+  // [Scenario: Docs/tts self-test cases after the skip is removed (HEALTH report) | spec-hooks-health-check.md Change Log 2026-10-23, Traceability added | FR-118 | FR-104 | FR-213 | FR-186; Scenario: Code-scan self-test passes | spec-hooks-health-check.md Change Log 2026-11-13 (Tranche 4) | FR-220 | NFR-035]
   assertHealthyReport(runHealth(null));
 });
 
 test("HEALTH-PROJ: the same result under CLAUDE_PROJECT_DIR=/home/u/app", () => {
   // [Scenario: Real project variable during SessionStart | spec-hooks-prose-hooks.md Change Log 2026-10-23, Requirement: Self-test isolation for the project root | FR-118 | FR-091]
   assertHealthyReport(runHealth("/home/u/app"));
+});
+
+// ---------------------------------------------------------------------------
+// Tranche 4: the code-scan self-test (report-only logging filter, advisory release)
+// ---------------------------------------------------------------------------
+
+test("[Scenario: Code-scan self-test passes | spec-hooks-health-check.md Change Log 2026-11-13 (Tranche 4), Requirement: Self-tests | FR-220 | FR-238 | NFR-035] code-scan is the twentieth GUARDS entry, a report-only logging filter with a record case and a no-record case, and its self-test passes", () => {
+  assert.strictEqual(hc.GUARDS.length, 20);
+  const g = guard("code-scan");
+  assert.strictEqual(g.filter, true, "code-scan is listed as a filter");
+  assert.strictEqual(g.reportOnly, true, "code-scan is report-only");
+  assert.ok(g.allow.length >= 1, "at least one no-record case (a parameterized query or a non-code write)");
+  assert.ok(g.deny.length >= 1, "at least one record case (an SQL string built from request input)");
+  const r = hc.selfTest(g);
+  assert.deepStrictEqual(r.errors, []);
+  assert.deepStrictEqual(r.falseDeny, []);
+  assert.deepStrictEqual(r.falseAllow, []);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.allowCount, g.allow.length);
+  assert.strictEqual(r.denyCount, g.deny.length);
+});
+
+test("[Scenario: Code-scan self-test passes (no-record cases) | spec-hooks-health-check.md Change Log 2026-11-13 (Tranche 4), Requirement: Self-tests | FR-220 | NFR-029] the no-record corpus holds a non-code write that code-scan does not judge, so it never overlaps prose-gate", () => {
+  const g = guard("code-scan");
+  // The corpus cases are wrapped as {label, expect, input, verify}; the target path is at c.input.tool_input.file_path.
+  const targets = g.allow.map((c) => String(wrappedTargetOf(c) || ""));
+  assert.ok(
+    targets.some((t) => /\.(md|json)$/i.test(t)),
+    "no .md or .json no-record case among: " + JSON.stringify(targets)
+  );
+  g.allow.forEach((c, i) => assert.ok(!isDeny(g.evaluate(c)), "a no-record case was flagged: " + labelOf(c, i)));
+  g.deny.forEach((c, i) => assert.ok(isDeny(g.evaluate(c)), "a record case was not flagged: " + labelOf(c, i)));
+});
+
+test("[Scenario: Code-scan misses the SQL case | spec-hooks-health-check.md Change Log 2026-11-13 (Tranche 4), Requirement: Self-tests | FR-220 | FR-238 | NFR-035] a code-scan that records nothing for its SQL case fails its self-test as a missed finding, not as a false deny", () => {
+  const g = guard("code-scan");
+  const defective = Object.assign({}, g, { evaluate: () => ({ deny: false }) });
+  const r = hc.selfTest(defective);
+  assert.strictEqual(r.ok, false);
+  assert.strictEqual(r.falseAllow.length, g.deny.length, "every record case is missed");
+  assert.deepStrictEqual(r.falseDeny, [], "a missed finding is not a false deny");
+  assert.deepStrictEqual(r.errors, []);
+});
+
+test("[Scenario: Code-scan failure never disables it | spec-hooks-health-check.md Change Log 2026-11-13 (Tranche 4), Requirement: Auto-disable and re-enable | FR-091 | FR-220 | NFR-035] a code-scan self-test failure is reported and the hook is not added to hooks-disabled.json", () => {
+  // A hand-built wrapper is not needed: the report-only flag is what keeps the hook out of the disabled list.
+  assert.strictEqual(guard("code-scan").reportOnly, true);
+  const dataDir = tempDir("hc-selftest-codescan-data-");
+  const res = childProcess.spawnSync(process.execPath, [path.join(PLUGIN, "hooks", "health-check.js"), "--session-start"], {
+    cwd: tempDir("hc-selftest-codescan-cwd-"),
+    env: cleanEnv({ CLAUDE_PLUGIN_DATA: dataDir, CLAUDE_CONFIG_DIR: tempDir("hc-selftest-codescan-claude-") }),
+    encoding: "utf8",
+    timeout: 60000,
+  });
+  assert.strictEqual(res.status, 0, "exit 0; stderr: " + res.stderr);
+  assert.ok(res.stdout.indexOf("code-scan") === -1, "the notice must not name code-scan on a full pass:\n" + res.stdout);
+  const file = path.join(dataDir, "hooks-disabled.json");
+  const disabled = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+  assert.ok(!("code-scan" in disabled), "code-scan is never in hooks-disabled.json");
 });

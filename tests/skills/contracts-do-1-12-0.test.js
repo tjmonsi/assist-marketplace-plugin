@@ -28,6 +28,12 @@
 // code-reviewer.md sentence) now assert the escalation wording. The cap itself is tested in
 // tests/skills/contracts-revision-cap.test.js.
 //
+// Harness governance Tranche 4 (docs/requirements/FR-NFR-harness-governance.md, FR-241, FR-214;
+// specs/spec-orchestration-dispatch.md, Change Log 2026-11-13 (Tranche 4), Requirement 16 and the as-built
+// reconciliation): /do now names two user-confirmed delivery exceptions, posting a PR review draft and uploading a
+// review's SARIF file. The test of the intro and the Constraints line asserts both. The SARIF flow itself is tested in
+// tests/hooks/sarif.test.js.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -538,14 +544,14 @@ test("hooks/lib/fsa-tables.js is unchanged by this release: check-fsa-tables.js 
 // FR-195: PR review hooks in SKILL.md and plan-format.md (A9a to A9d)
 // ---------------------------------------------------------------------------
 
-test("SKILL.md intro and Constraints carry the one exception: posting a user-confirmed PR review draft", () => {
-  // [Scenario: Post is not an out-of-scope request; Draft confirmed and posted | spec-orchestration-dispatch.md Requirement 14 | FR-195]
+test("SKILL.md intro and Constraints carry the two user-confirmed delivery exceptions: posting a PR review draft and uploading a review's SARIF file", () => {
+  // [Scenario: Post is not an out-of-scope request; Draft confirmed and posted | spec-orchestration-dispatch.md Requirement 14 | FR-195; Tranche 4 | spec-orchestration-dispatch.md Change Log 2026-11-13 (Tranche 4), Requirement 16 and Reconciliation to as-built: the SARIF upload is the second user-confirmed delivery action | FR-241 | FR-214]
   const intro = linesOf(DO).find((l) => l.indexOf("Route every incoming task to the right specialized subagent") === 0);
   assert.ok(intro, "intro line missing");
-  assert.ok(/never does delivery work itself, with one exception: posting a user-confirmed PR review draft \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\)/.test(intro));
+  assert.ok(/never does delivery work itself, except in two user-confirmed cases: posting a PR review draft \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file \(see \[SARIF file\]\(#sarif-file\)\)/.test(intro));
   const rule = linesOf(DO).find((l) => l.indexOf("- Never do delivery work in the main agent.") === 0);
   assert.ok(rule, "constraint line missing");
-  assert.ok(/The one exception is posting a user-confirmed PR review draft with `gh` or `bkt` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\)/.test(rule));
+  assert.ok(/The only exceptions are user-confirmed: posting a PR review draft with `gh` or `bkt` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file with `gh api` \(see \[SARIF file\]\(#sarif-file\)\)/.test(rule));
 });
 
 test("SKILL.md Done bullet: a PR review step runs no gate, waits in waiting-user, and completes after a post, a post declined at the hook prompt, or a 'do not post' answer", () => {

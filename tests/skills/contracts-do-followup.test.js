@@ -17,6 +17,11 @@
 // cleanup by name" (the cleanup is one glob-free command, the body-hash check runs as its own
 // command before bkt pr approve, both forms work in bash and zsh).
 //
+// Harness governance Tranche 4 (specs/spec-orchestration-dispatch.md, Change Log 2026-11-13 (Tranche 4), Requirement 16
+// and Reconciliation to as-built; FR-241, FR-214): the Constraints line of SKILL.md names two user-confirmed delivery
+// exceptions, posting a PR review draft with gh or bkt and uploading a review's SARIF file with gh api. The one test that
+// read the one-exception wording asserts both.
+//
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
 // use named requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -658,7 +663,7 @@ test("the guards sit at the states that write: Branch path, resume, Dispatch, th
 // ---------------------------------------------------------------------------
 
 test("SKILL.md PR-flow pointers name both hosts: Decompose, the plan line, Dispatch, the Done bullet, Failed steps, and Constraints", () => {
-  // [A14 | Scenario: Host that is not supported; Bitbucket remote (ORCH); Declined post completes the step | spec-orchestration-dispatch.md Requirement 14; Requirement 5; Requirement 9 | FR-195 | FR-048 | FR-052]
+  // [A14 | Scenario: Host that is not supported; Bitbucket remote (ORCH); Declined post completes the step | spec-orchestration-dispatch.md Requirement 14; Requirement 5; Requirement 9 | FR-195 | FR-048 | FR-052; Tranche 4 | spec-orchestration-dispatch.md Change Log 2026-11-13 (Tranche 4), Reconciliation to as-built: the Constraints line names two user-confirmed delivery exceptions | FR-241 | FR-214]
   const dec = sectionText(DO, "### PR review requests");
   has(dec, "The flow supports `github.com` remotes with `gh` and Bitbucket remotes with `bkt` after the host pin; `/do` runs no `bkt` command at Decompose. Any other host fails the step at start with `precondition-failed` and a message that names both options.");
   const plan = linesOf(sectionText(DO, "### Show the plan in chat")).find((l) => l.indexOf("- For a PR review step:") === 0);
@@ -675,7 +680,8 @@ test("SKILL.md PR-flow pointers name both hosts: Decompose, the plan line, Dispa
   has(failed, "Its dependents are `skipped` as above.");
   const rule = linesOf(DO).find((l) => l.indexOf("- Never do delivery work in the main agent.") === 0);
   assert.ok(rule, "constraint missing");
-  has(rule, "The one exception is posting a user-confirmed PR review draft with `gh` or `bkt`");
+  has(rule, "The only exceptions are user-confirmed: posting a PR review draft with `gh` or `bkt`");
+  has(rule, "uploading a review's SARIF file with `gh api`");
   const limits = [];
   walk(path.join(PLUGIN, "skills/do")).forEach((p) => {
     linesOf(fs.readFileSync(p, "utf8")).forEach((l, i) => {

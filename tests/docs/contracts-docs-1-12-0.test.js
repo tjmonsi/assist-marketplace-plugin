@@ -16,6 +16,8 @@
 //
 // Harness-governance Tranche 2: the Hook Fail-Open Rule now also names goal-guard as a hook whose failed
 // self-test is reported only (FR-219, NFR-035); the test for that line reads the current rule text.
+// Harness-governance Tranche 4: the MARKETPLACE.md scripts line also names baseline-report.js, promote-rule.js, and
+// label-findings.js, the three severity-routing scripts (FR-238, FR-237, NFR-034; spec-hooks-code-scan.md).
 //
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -459,13 +461,17 @@ test("SPECIFICATION.md health entry says writing-context is self-tested and repo
 const MARKETPLACE = readRepo("MARKETPLACE.md");
 
 test("MARKETPLACE.md scripts line names every script in the scripts folder", () => {
-  // [Scenario: Scripts listed | spec-skills-manifests-docs.md "Catalog copies" | FR-201]
+  // [Scenario: Scripts listed | spec-skills-manifests-docs.md "Catalog copies" | FR-201; Tranche 4 | FR-238 | FR-237 | NFR-034: baseline-report.js, promote-rule.js, and label-findings.js]
   const line = linesOf(MARKETPLACE).find((l) => /scripts\/ \(/.test(l));
   assert.ok(line, "no scripts/ line in the structure tree");
   const scripts = fs.readdirSync(path.join(PLUGIN, "scripts")).filter((n) => /\.js$/.test(n));
   assert.ok(scripts.length >= 2);
   scripts.forEach((n) => assert.ok(line.indexOf(n) !== -1, "the scripts line lacks " + n));
   assert.ok(line.indexOf("sync-writing-standard.js") !== -1 && line.indexOf("check-fsa-tables.js") !== -1);
+  ["baseline-report.js", "promote-rule.js", "label-findings.js"].forEach((n) => {
+    assert.ok(fs.existsSync(path.join(PLUGIN, "scripts", n)), "scripts/" + n + " is missing");
+    assert.ok(line.indexOf(n) !== -1, "the scripts line lacks the Tranche 4 script " + n);
+  });
 });
 
 test("MARKETPLACE.md tag example uses the vX.Y.Z form and holds no 'assist-plugin--v' string", () => {

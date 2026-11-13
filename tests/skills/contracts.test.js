@@ -22,6 +22,9 @@
 // Harness governance Tranche 3: the Protected globs table also holds `**/.claude/settings.json`,
 // `**/.agent/governance/profile.json`, and `**/.agent/governance/session-purpose.json` (FR-245, FR-231, FR-247),
 // so it holds seven entries.
+// Harness governance Tranche 4: the Protected globs table also holds the rule-mode store glob
+// `**/.agent/governance/rule-modes.json` (FR-245, FR-238; spec-hooks-code-scan.md, Requirement: Rule-mode store governs
+// advisory versus blocking; the same task plan, Step 32), so it holds eight entries.
 //
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -509,8 +512,8 @@ test("rule file values equal the code lists in hooks/lib/fsa-paths.js", () => {
   });
 });
 
-test("rule file binding strings: protected globs (plan files, the two confirmation-store files, the governance audit log, the project settings file, the governance profile, and the session purpose record), protected file, auto-loaded names, and the task-plan glob", () => {
-  // [Scenario: Tables present | same requirement | FR-180 | FR-186; Tranche 1 | FR-242 | FR-245: the confirmation store directory .agent/governance/confirmations/ holds confirmations.jsonl and pending.jsonl; Tranche 2 | FR-224 | FR-245: **/.agent/logs/governance/** is the audit log; Tranche 3 | FR-245 | FR-231 | FR-247: **/.claude/settings.json, **/.agent/governance/profile.json, and **/.agent/governance/session-purpose.json]
+test("rule file binding strings: protected globs (plan files, the two confirmation-store files, the governance audit log, the project settings file, the governance profile, the session purpose record, and the rule-mode store), protected file, auto-loaded names, and the task-plan glob", () => {
+  // [Scenario: Tables present | same requirement | FR-180 | FR-186; Tranche 1 | FR-242 | FR-245: the confirmation store directory .agent/governance/confirmations/ holds confirmations.jsonl and pending.jsonl; Tranche 2 | FR-224 | FR-245: **/.agent/logs/governance/** is the audit log; Tranche 3 | FR-245 | FR-231 | FR-247: **/.claude/settings.json, **/.agent/governance/profile.json, and **/.agent/governance/session-purpose.json; Tranche 4 | FR-245 | FR-238: **/.agent/governance/rule-modes.json is the rule-mode store]
   assert.deepStrictEqual(values(guardTable("### Protected globs"), "globs"), [
     "**/.agent/main-plan/**",
     "**/.agent/governance/confirmations/confirmations.jsonl",
@@ -519,14 +522,15 @@ test("rule file binding strings: protected globs (plan files, the two confirmati
     "**/.claude/settings.json",
     "**/.agent/governance/profile.json",
     "**/.agent/governance/session-purpose.json",
+    "**/.agent/governance/rule-modes.json",
   ]);
   assert.deepStrictEqual(values(guardTable("### Protected files"), "files"), ["DECISIONS.md"]);
   assert.deepStrictEqual(values(guardTable("### Auto-loaded names"), "names").slice().sort(), ["AGENTS.md", "CLAUDE.local.md", "CLAUDE.md"]);
   assert.deepStrictEqual(values(guardTable("### Task-plan glob"), "glob"), ["docs/task-plans/task-plan-*.md"]);
 });
 
-test("fsa-paths.js protected globs hold the two confirmation-store files, the governance audit log, the project settings file, the governance profile, and the session purpose record next to the plan files", () => {
-  // [FR-242 | FR-245 | 2.29 Pending record is not a confirmation | 2.32 Evidence and toggle stores denied; Tranche 2 | FR-224: the audit log glob; Tranche 3 | FR-245 | FR-231 | FR-247: the settings file, the profile, and the session purpose record]
+test("fsa-paths.js protected globs hold the two confirmation-store files, the governance audit log, the project settings file, the governance profile, the session purpose record, and the rule-mode store next to the plan files", () => {
+  // [FR-242 | FR-245 | 2.29 Pending record is not a confirmation | 2.32 Evidence and toggle stores denied; Tranche 2 | FR-224: the audit log glob; Tranche 3 | FR-245 | FR-231 | FR-247: the settings file, the profile, and the session purpose record; Tranche 4 | FR-245 | FR-238: the rule-mode store]
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/main-plan/**") !== -1);
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/confirmations/confirmations.jsonl") !== -1);
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/confirmations/pending.jsonl") !== -1);
@@ -534,7 +538,8 @@ test("fsa-paths.js protected globs hold the two confirmation-store files, the go
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.claude/settings.json") !== -1);
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/profile.json") !== -1);
   assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/session-purpose.json") !== -1);
-  assert.strictEqual(fsaPaths.PROTECTED_GLOBS.length, 7);
+  assert.ok(fsaPaths.PROTECTED_GLOBS.indexOf("**/.agent/governance/rule-modes.json") !== -1);
+  assert.strictEqual(fsaPaths.PROTECTED_GLOBS.length, 8);
 });
 
 test("task-planner.md holds a one-row table under '## Write scope' whose first cell is the single code span of the glob", () => {

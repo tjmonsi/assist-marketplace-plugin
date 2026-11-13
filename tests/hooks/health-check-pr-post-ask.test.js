@@ -26,6 +26,9 @@
 // Self-tests, NFR-035, FR-230, FR-233, FR-246, FR-247, FR-086): GUARDS lists nineteen hooks, the fifteen of Tranche 2
 // plus the guards phi-outbound-guard and ferpa-disclosure-guard, the filter purpose-capture, and the report-only
 // logging filter data-access-log. The pr-post-ask corpus is unchanged.
+// Harness governance Tranche 4 (specs/spec-hooks-health-check.md, Change Log 2026-11-13 (Tranche 4), Requirement:
+// Self-tests, NFR-035, FR-220, FR-238, FR-086): GUARDS lists twenty hooks, the nineteen of Tranche 3 plus the report-only
+// logging filter code-scan. The pr-post-ask corpus is unchanged.
 //
 // Traceability format: [Scenario title | spec section | requirement ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -267,8 +270,8 @@ function keysOf(rows) {
 // The GUARDS entry
 // ---------------------------------------------------------------------------
 
-test("[Scenario: Ask-hook self-test passes (nineteen hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22, 2026-11-05, and 2026-11-06 (Tranche 2 and Tranche 3)) | FR-118 FR-206 FR-086 NFR-035] GUARDS lists nineteen hooks, the nine of 1.12.0, pr-post-ask, the Tranche 1 pr-verdict-guard and confirmation-record, the Tranche 2 audit-log, gate-evidence, and goal-guard, and the Tranche 3 data-access-log, phi-outbound-guard, ferpa-disclosure-guard, and purpose-capture", () => {
-  assert.strictEqual(hc.GUARDS.length, 19);
+test("[Scenario: Ask-hook self-test passes (twenty hooks) | " + SPEC + " Self-tests (Change Log 2026-10-22, 2026-11-05, 2026-11-06 (Tranche 2 and Tranche 3), and 2026-11-13 (Tranche 4)) | FR-118 FR-206 FR-086 FR-220 NFR-035] GUARDS lists twenty hooks, the nine of 1.12.0, pr-post-ask, the Tranche 1 pr-verdict-guard and confirmation-record, the Tranche 2 audit-log, gate-evidence, and goal-guard, the Tranche 3 data-access-log, phi-outbound-guard, ferpa-disclosure-guard, and purpose-capture, and the Tranche 4 code-scan", () => {
+  assert.strictEqual(hc.GUARDS.length, 20);
   assert.ok(hc.GUARDS.some((g) => g.name === NAME));
   assert.ok(hc.GUARDS.some((g) => g.name === "pr-verdict-guard"));
   assert.ok(hc.GUARDS.some((g) => g.name === "confirmation-record"));
@@ -279,6 +282,7 @@ test("[Scenario: Ask-hook self-test passes (nineteen hooks) | " + SPEC + " Self-
   assert.ok(hc.GUARDS.some((g) => g.name === "phi-outbound-guard"));
   assert.ok(hc.GUARDS.some((g) => g.name === "ferpa-disclosure-guard"));
   assert.ok(hc.GUARDS.some((g) => g.name === "purpose-capture"));
+  assert.ok(hc.GUARDS.some((g) => g.name === "code-scan"));
 });
 
 test("[Requirement: Self-tests, GUARDS entry | " + SPEC + " (Change Log 2026-10-22) | FR-118 FR-206] the pr-post-ask entry holds 13 allow cases and 14 deny cases", () => {
