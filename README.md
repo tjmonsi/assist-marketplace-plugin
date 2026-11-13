@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.13.1
+### assist-plugin v1.14.0
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
@@ -68,6 +68,8 @@ Then use the `/do` orchestrator:
 - OWASP Top 10 security review
 - >=70% test coverage requirement
 - Formal code review sign-off
+- A [control register](plugins/assist-plugin/rules/control-register.md) maps each harness-governance control to an OWASP Agentic AI Top 10 item (directional) and a NIST AI RMF function, with an owner and a review cadence
+- The `goal-guard` and `code-scan` hooks are advisory by default; a rule blocks only after you run the [promotion runbook](plugins/assist-plugin/docs/PROMOTION_RUNBOOK.md) steps
 
 **Platform support:**
 - GitHub (auto-detect, use `gh` CLI)
@@ -118,6 +120,8 @@ For a full breakdown of token savings by scenario, cost implications, and method
 - **[plugins/assist-plugin/rules/writing-standard.md](plugins/assist-plugin/rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth for the prose hooks)
 - **[plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md](plugins/assist-plugin/docs/DOCUMENTATION_STANDARD.md)**: Writing standards and conciseness checklist
 - **[plugins/assist-plugin/docs/TRACING_MARKERS.md](plugins/assist-plugin/docs/TRACING_MARKERS.md)**: Traceability marker convention
+- **[plugins/assist-plugin/rules/control-register.md](plugins/assist-plugin/rules/control-register.md)**: Control register (OWASP Agentic AI Top 10 and NIST AI RMF mapping)
+- **[plugins/assist-plugin/docs/PROMOTION_RUNBOOK.md](plugins/assist-plugin/docs/PROMOTION_RUNBOOK.md)**: Runbook for switching an advisory rule to blocking
 - **[docs/requirements/](docs/requirements/)**: Requirements documents (BRD, URD, FR-NFR)
 - **[specs/](specs/)**: Feature specs
 - **[docs/task-plans/](docs/task-plans/)**: Task plans

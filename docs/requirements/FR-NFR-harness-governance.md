@@ -3,7 +3,7 @@
 **Version:** 1.3
 **Date:** 2026-10-30
 **Author:** [Author]
-**Status:** DRAFT
+**Status:** Approved
 
 ---
 
@@ -858,7 +858,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 |----|-------------|-----------|---------------------|
 | NFR-026 | Every deny, ask, guardrail, and gate decision MUST produce a log record with timestamp, agent identity, decision, and rule id. | BR-019, BR-020 | SOC 2 logging; HIPAA 164.312(b) (verified for FR-232 scope, NFR-033) |
 | NFR-027 | Each new hook, agent, or skill MUST hold the fewest tools it needs; the guardrail MUST NOT hold write tools and no new unscoped `Bash` grant MUST appear. | BR-018 | OWASP LLM06; `agents/` `tools:` frontmatter |
-| NFR-028 | A control marked security-critical (FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, FR-246) MUST deny its own guarded operation class when it cannot evaluate because of an error or timeout, or when `.agent/governance/profile.json` is malformed while a profile is enforced; the denial MUST last until the file is fixed. When `profile.json` is absent the controls MUST run in log-only mode and MUST NOT hard-deny, because nothing is tagged to match. | BR-018, BR-020 | Settled exception to the Hook Fail-Open Rule, `rules/assist-plugin-rule.md:404-416`, by `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (D-1 settled); FR-246's membership in the set by `DECISIONS.md`, 2026-10-30, "FERPA disclosure control denies on missing attribution and is fail-closed" |
+| NFR-028 | A control marked security-critical (FR-214, FR-217, FR-219 in blocking mode only, FR-220, FR-223, FR-231, FR-233, FR-246) MUST deny its own guarded operation class when it cannot evaluate because of an error or timeout, or when `.agent/governance/profile.json` is malformed while a profile is enforced; the denial MUST last until the file is fixed. When `profile.json` is absent the controls MUST run in log-only mode and MUST NOT hard-deny, because nothing is tagged to match. | BR-018, BR-020 | Settled exception to the Hook Fail-Open Rule, `rules/assist-plugin-rule.md:404-416`, by `DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default" (D-1 settled); FR-246's membership in the set by `DECISIONS.md`, 2026-10-30, "FERPA disclosure control denies on missing attribution and is fail-closed"; FR-219's membership in blocking mode only (advisory mode still fails open per NFR-026) by `DECISIONS.md`, 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode" |
 | NFR-031 | Logs MUST NOT hold prompt text, file contents, or secret values; the data-accessed field MUST hold a path and a data-class tag only. | BR-020 | Data minimization; `skills/health/SKILL.md:97` |
 | NFR-036 | Every change to the LLM surface made for this roadmap MUST carry `✓ LLM Security Clear` before merge, and any write-guard narrowing MUST follow a DECISIONS.md entry. | BR-018, BR-019 | `rules/assist-plugin-rule.md:335`, `:422` |
 
@@ -1002,24 +1002,24 @@ Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when 
 
 | BR | UR | FR | NFR | Status |
 |----|----|----|-----|--------|
-| BR-018 | UR-059 | FR-214, FR-242 | NFR-026, NFR-027, NFR-028, NFR-029, NFR-035, NFR-036 | Draft |
-| BR-018 | UR-060 | FR-215, FR-216, FR-217 | NFR-028, NFR-031 | Draft |
-| BR-018 | UR-061 | FR-218 | NFR-036 | Draft |
-| BR-018 | UR-062 | FR-219, FR-220 | NFR-027, NFR-028, NFR-035 | Draft |
-| BR-019 | UR-063 | FR-221 | NFR-026 | Draft |
-| BR-019 | UR-064 | FR-222, FR-223 | NFR-028, NFR-036 | Draft |
-| BR-019, BR-020 | UR-065 | FR-224, FR-225 | NFR-030, NFR-032 | Draft |
-| BR-020 | UR-066 | FR-226, FR-227 | NFR-026, NFR-031 | Draft |
-| BR-020 | UR-067 | FR-228, FR-229 | NFR-032 | Draft |
-| BR-020 | UR-068 | FR-230, FR-231, FR-247 | NFR-028, NFR-033 | Draft |
-| BR-020 | UR-069 | FR-231, FR-232, FR-233, FR-234, FR-247 | NFR-028, NFR-033, NFR-035 | Draft |
-| BR-020 | UR-075 | FR-243, FR-244, FR-245 | NFR-026, NFR-028, NFR-036 | Draft |
-| BR-020 | UR-076 | FR-246 | NFR-026, NFR-028, NFR-031, NFR-033, NFR-035 | Draft |
-| BR-021 | UR-070 | FR-235, FR-236 | NFR-033 | Draft |
-| BR-022 | UR-071 | FR-237, FR-238 | NFR-034 | Draft |
-| BR-022 | UR-072 | FR-239 | NFR-034 | Draft |
-| BR-022 | UR-073 | FR-240 | | Draft |
-| BR-022 | UR-074 | FR-241 | | Draft |
+| BR-018 | UR-059 | FR-214, FR-242 | NFR-026, NFR-027, NFR-028, NFR-029, NFR-035, NFR-036 | Approved |
+| BR-018 | UR-060 | FR-215, FR-216, FR-217 | NFR-028, NFR-031 | Approved |
+| BR-018 | UR-061 | FR-218 | NFR-036 | Approved |
+| BR-018 | UR-062 | FR-219, FR-220 | NFR-027, NFR-028, NFR-035 | Approved |
+| BR-019 | UR-063 | FR-221 | NFR-026 | Approved |
+| BR-019 | UR-064 | FR-222, FR-223 | NFR-028, NFR-036 | Approved |
+| BR-019, BR-020 | UR-065 | FR-224, FR-225 | NFR-030, NFR-032 | Approved |
+| BR-020 | UR-066 | FR-226, FR-227 | NFR-026, NFR-031 | Approved |
+| BR-020 | UR-067 | FR-228, FR-229 | NFR-032 | Approved |
+| BR-020 | UR-068 | FR-230, FR-231, FR-247 | NFR-028, NFR-033 | Approved |
+| BR-020 | UR-069 | FR-231, FR-232, FR-233, FR-234, FR-247 | NFR-028, NFR-033, NFR-035 | Approved |
+| BR-020 | UR-075 | FR-243, FR-244, FR-245 | NFR-026, NFR-028, NFR-036 | Approved |
+| BR-020 | UR-076 | FR-246 | NFR-026, NFR-028, NFR-031, NFR-033, NFR-035 | Approved |
+| BR-021 | UR-070 | FR-235, FR-236 | NFR-033 | Approved |
+| BR-022 | UR-071 | FR-237, FR-238 | NFR-034 | Approved |
+| BR-022 | UR-072 | FR-239 | NFR-034 | Approved |
+| BR-022 | UR-073 | FR-240 | | Approved |
+| BR-022 | UR-074 | FR-241 | | Approved |
 
 No orphans. No BR is a dead end. NFR-029 to NFR-036 trace to BR or FR as their origin requires.
 
@@ -1054,3 +1054,4 @@ Gap traceability:
 | 1.3 (note) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)": FR-219 states a rule-based, advisory-first check that does not call a model, with the corrected hook facts (default command-hook timeout 600 seconds, 30 on `UserPromptSubmit`; no documented offline sandbox; `prompt`, `agent`, and `http` hook types can call a model), labeled directional; D-13 added. FR-242 adds the per-action token binding; D-10 notes it. FR-221 and FR-241 already read consistently with the Step 18 and Step 34 decisions and are unchanged. "Push grant scoped per named remote, not origin-only (D-3 refined)": FR-216 recommends one grant per named remote and flags only a wildcard or unscoped grant; D-3 refined. Also closes the severity approval status per `DECISIONS.md`, "2026-10-30: Severity policy approved": D-4 settled, FR-237 Origin records the approval of `severity-policy.md` draft-1, and OQ-12 resolved in the JSON mirror and the URD; NFR-033 states the same approved status. No version bump: the BRD and URD are unchanged |
 | 1.3 (note 2) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "PN-10 pending-action store split and token lifetime settled": FR-242 states the confirmation store as a directory with `confirmations.jsonl` (hook-only, denied to every tool caller) and `pending.jsonl` (main-session `/do` writable, denied to every subagent), the guard reading `confirmations.jsonl` only, and a single-use, time-expiring token with the window an estimate until measured; an expired-or-reused-token scenario and a pending-record-is-not-a-confirmation scenario added. FR-245 notes the directory form, still one of the six paths (no seventh path); D-10 notes the split. No version bump: the BRD and URD are unchanged, since the decision was a build-time plan item the URD never tracked as an open question |
 | 1.3 (note 3) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Baseline precision labeller settled (PN-3)": NFR-034 names the user as the labeller of each baseline advisory finding, with precision computed from those labels, and gains an unlabelled-finding scenario. "Secret-scan tool settled as the in-plugin pattern scanner (PN-4)": FR-217 names the in-plugin pattern-scanner script as the default scan tool, with an external scanner as a later substitute keeping the clean, findings, and cannot-run outcomes; the scanner-unavailable scenario reads to match. "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)": FR-214 states the guard is additive, the `pr-post-ask` hook is unchanged, and two prompts may appear as defense in depth; a scenario added. "Proposed governance file names and store paths approved (PN-8)" is a task-plan naming decision with no requirements change: no FR-245 path added or renamed, the six-path count stands. No version bump: the BRD and URD are unchanged |
+| 1.3 (note 4) | 2026-11-13 | [Author] | Tranche 5 documentation sync per `DECISIONS.md` 2026-11-05, "Harness-governance requirements and task plan approved for build" (the Status label flips from DRAFT to Approved in a later requirements sync) and 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode": the Status label reads Approved, the section 6 traceability rows read Approved, and the NFR-028 enumeration adds FR-219 for blocking mode only (advisory mode still fails open per NFR-026). No version bump: no requirement statement other than the NFR-028 membership changed |

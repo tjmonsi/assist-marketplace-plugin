@@ -211,6 +211,21 @@ Guards around the chain:
 
 ---
 
+## Governance Controls
+
+### Control register
+- **Source of truth:** `rules/control-register.md`, one row per harness-governance control (31 rows)
+- **Format:** Table of seven fields: control id, requirement IDs, OWASP Agentic AI Top 10 item (directional) or a reasoned "not applicable", NIST AI RMF function, owner role, review cadence with escalation path, and status
+- **Validated by:** `scripts/check-control-register.js --check` (exit 0 clean, 1 row problem, 2 operational error)
+
+### Severity-routing rules and promotion
+- **Advisory by default:** `code-scan` rules and `goal-guard` record findings to `.agent/governance/review-findings.jsonl` and block nothing. Both read the rule-mode store `.agent/governance/rule-modes.json`; an absent or malformed store means advisory, and every hook fails open in advisory mode.
+- **Blocking after promotion:** the user runs `scripts/promote-rule.js <rule-id>`, which writes `"<rule-id>": "blocking"` to the store only after the severity policy is approved at its current version, the baseline window is complete, and labelled precision is at least 90% (an estimate). No hook, agent, or orchestrator runs it, and the write bar denies every subagent a write of the store.
+- **Blocking behavior:** a blocking `code-scan` rule denies a code-file write for a finding at High confidence and HIGH or CRITICAL severity. A blocking `goal-guard` withholds a matching result by replacing it through the PostToolUse `updatedToolOutput` path; the tool has already run, so the control limits what reaches the model, not the call. Both fail closed (NFR-028) in blocking mode only.
+- **Procedure:** [PROMOTION_RUNBOOK.md](PROMOTION_RUNBOOK.md) lists the steps, the refusal reasons, and how to return a rule to advisory.
+
+---
+
 ## Reference Data Model
 
 ### agent-registry.md
@@ -254,6 +269,7 @@ Guards around the chain:
 1. Edit `rules/assist-plugin-rule.md`
 2. Update review-protocol if it affects review gates
 3. Update SPECIFICATION.md if user-facing
+4. For a control (a guard, a record, or a policy), add or update its row in `rules/control-register.md` and run `node scripts/check-control-register.js --check`
 
 ---
 

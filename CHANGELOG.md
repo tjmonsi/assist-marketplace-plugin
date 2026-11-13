@@ -2,6 +2,29 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.0] - 2026-11-13
+
+### Added
+
+- Control register `rules/control-register.md`: 31 rows, each mapping a harness-governance control to an OWASP Agentic AI Top 10 item (or a reasoned "not applicable"), a NIST AI RMF function, an owner role, a review cadence with an escalation path, and a status (FR-235, FR-236)
+  - The ASI mapping is directional (NFR-033); HIPAA FR-232 is verified against 45 CFR 164.312(b) as one safeguard only, FERPA FR-230 is general support with no disclosure-recordation citation, and FERPA FR-246 stays "to verify"
+- `scripts/check-control-register.js [--check] [--root DIR]` validates the register: an ASI id or a reasoned "not applicable", a NIST function, an owner, and a cadence per row, plus the per-regulation checks. Exit 0 clean, 1 on a problem under `--check`, 2 on an operational error
+- `docs/PROMOTION_RUNBOOK.md`: the user-run procedure for switching an advisory rule to blocking (accrue findings, label them, check the baseline, run `promote-rule.js`, verify), with notes for `code-scan` (FR-220) and `goal-guard` (FR-219). The runbook promotes nothing
+
+### Changed
+
+- `goal-guard` (FR-219) reads the rule-mode store `.agent/governance/rule-modes.json`. Advisory stays the default and fails open. In blocking mode, after a user-run promotion, it withholds a matching result through the PostToolUse `updatedToolOutput` path and fails closed (NFR-028) for a result it cannot finish checking
+- `goal-guard` records each advisory would-deny match as a finding with rule_id `goal-guard` in `.agent/governance/review-findings.jsonl`, so `baseline-report.js` and `promote-rule.js` find its FR-238 baseline
+- `code-scan` (FR-220) fails closed on a code-file write while at least one code rule is blocking (NFR-028); with no rule blocking it still fails open
+- FR-219 joins the NFR-028 fail-closed set in blocking mode only (`docs/requirements/FR-NFR-harness-governance.md`); the requirements document Status reads Approved
+- LLM security checklist gap 4 is closed (evidence-backed gates, protected approval paths, and the hash-chained audit log from Tranche 2) and the checklist links the control register
+
+### Compatibility
+
+- No rule is promoted and no blocking is enabled by default: an absent or malformed rule-mode store means advisory for every rule
+- Per-write hook cost shows no regression in the Tranche 5 measurement (a clean code-file write took about 44 to 49 ms; estimate from one measurement run)
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.13.1] - 2026-10-23
 
 ### Changed
