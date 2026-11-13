@@ -466,6 +466,7 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 | `**/.claude/settings.json` | The committed project settings file, whose `env` block holds the [governance profile](#governance-profiles) flag; the user applies any change, and no subagent writes it (the plugin never writes a settings file) |
 | `**/.agent/governance/profile.json` | The governance profile data file (data-class globs, PHI patterns, FERPA receiving-party allowlist, student-record patterns, 99.32(d) exceptions, BAA references); the user maintains it, and no subagent writes it. A subagent may read it |
 | `**/.agent/governance/session-purpose.json` | The [session purpose record](#session-purpose), written only by the `UserPromptSubmit` purpose-capture hook; `fsa-write-bar` denies a write of it to every caller, the main session included. A subagent may read it |
+| `**/.agent/governance/rule-modes.json` | The [rule-mode store](#severity-routing): the advisory or blocking mode of each severity-routing rule, written by a hook, the `/do` orchestrator, or the user-run `scripts/promote-rule.js`; `fsa-write-bar` denies a subagent write of it, and the main session is not judged. A subagent may read it. An absent or malformed store means advisory for every rule |
 
 ### Protected files
 
@@ -491,7 +492,7 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 
 ## Shell Write Path
 
-`fsa-write-bar` also judges a `Bash` call from a subagent (an `agent_id` is present), so the protected paths in [Write guard lists](#write-guard-lists) cannot be written through the shell. `hooks/lib/shell-writes.js` reads the command and returns the paths it would write; the call is denied when one of them is on the Protected globs or Protected files lists (`.agent/main-plan/**`, `DECISIONS.md`, `.agent/logs/governance/**`, the confirmation store, `.claude/settings.json`, `.agent/governance/profile.json`, and `.agent/governance/session-purpose.json`), and any path a later step adds to those lists is covered without a change here.
+`fsa-write-bar` also judges a `Bash` call from a subagent (an `agent_id` is present), so the protected paths in [Write guard lists](#write-guard-lists) cannot be written through the shell. `hooks/lib/shell-writes.js` reads the command and returns the paths it would write; the call is denied when one of them is on the Protected globs or Protected files lists (`.agent/main-plan/**`, `DECISIONS.md`, `.agent/logs/governance/**`, the confirmation store, `.claude/settings.json`, `.agent/governance/profile.json`, `.agent/governance/session-purpose.json`, and `.agent/governance/rule-modes.json`), and any path a later step adds to those lists is covered without a change here.
 
 - **Forms judged:** output redirection (`>`, `>>`, `>|`, `N>`, `>&FILE`, and a here-document that feeds a redirected command), `tee`, `sed -i`, `perl -i`, `cp`, `mv` (the source too, because it is removed), `rm`, and the same-shaped `unlink`, `rmdir`, `shred`, `truncate`, `touch`, `dd of=`, `install`, `ln`, `curl -o`, and `wget -O`. Each lexed part of a chained command is judged on its own. The text of a `$( )` substitution, `eval`, `sh -c` and `bash -c`, and a here-document that feeds a shell is judged as a command of its own.
 - **Reads stay allowed:** `cat DECISIONS.md`, `grep x .agent/main-plan/plan.md`, and `<` input redirection yield no write target. A write to any other path is not judged, and the per-agent limits (test paths, task-plan scope, dot paths) apply to the four write tools only.
@@ -606,6 +607,17 @@ The FERPA and HIPAA access logs record why an agent touched a tagged path. The r
 - **No declaration:** the hook writes no record and prints nothing. The access-logging hooks then log the purpose as `unstated` and flag the record. A missing purpose is never a reason to deny an access (FR-230).
 - **Fail-open for the prompt:** a hook failure lets the user's message through and records no purpose, so the access logs show `unstated`. The [Hook Fail-Open Rule](#hook-fail-open-rule) applies.
 - **Known limit:** one project holds one record, so two sessions on the same project overwrite each other and the older session then reads `unstated`.
+
+---
+
+## Severity routing
+
+A finding routes by severity and confidence under [severity-policy.md](severity-policy.md) (policy version `draft-2`, approved in `DECISIONS.md`). `hooks/lib/severity.js` holds the policy as one pure function, `route(finding)`, which returns `block-merge`, `inline-comment`, or `log-only` and applies no mode (FR-239). The caller applies the mode.
+
+- **Every severity-routing rule is advisory in this release; no rule blocks.** A rule in advisory mode records its finding, routes it as `log-only`, and allows the call, whatever `route(finding)` returns (FR-238).
+- **Rule-mode store:** `.agent/governance/rule-modes.json` maps each rule id to `advisory` or `blocking`. An absent, unreadable, or malformed store, and a rule it does not name, mean advisory; no store defect turns a rule blocking. A subagent write of the store is denied ([Write guard lists](#write-guard-lists), [Shell Write Path](#shell-write-path)); a hook, the `/do` orchestrator, or the user-run `scripts/promote-rule.js` writes it.
+- **Baseline:** advisory findings go to `.agent/governance/review-findings.jsonl`, which is not a protected path. The user sets the true or false `label` of each finding with `scripts/label-findings.js`, and `scripts/baseline-report.js` computes precision from those labels only (14 days or 20 reviews, whichever is later; an estimate). An unlabelled finding shows as unlabelled and never counts as an agent judgment (NFR-034).
+- **Promotion:** only the user runs `scripts/promote-rule.js`. It switches a rule to `blocking` only when `DECISIONS.md` holds the latest "Severity policy approved" entry naming the policy's current version, a baseline report exists, and precision is at least 90% (an estimate). Otherwise it refuses with the missing-policy reason, the missing-baseline reason, or the precision value (FR-237, FR-238).
 
 ---
 

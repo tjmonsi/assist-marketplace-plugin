@@ -57,13 +57,19 @@ const PROFILE_GLOB = "**/.agent/governance/profile.json";
 // file text cannot forge the declared purpose through any tool.
 const PURPOSE_GLOB = "**/.agent/governance/session-purpose.json";
 
+// [FR-245|FR-238] The rule-mode store (.agent/governance/rule-modes.json, the sixth FR-245 path): the advisory or blocking
+// mode of each severity-routing rule. A hook, the /do orchestrator, or the user-run scripts/promote-rule.js writes it, and
+// none of them is judged by the write bar, so only a subagent is denied (not ALL_CALLER_GLOBS). A subagent that could write
+// it could flip a rule to blocking without the baseline and precision checks of promote-rule.js.
+const RULE_MODES_GLOB = "**/.agent/governance/rule-modes.json";
+
 // Paths no subagent may write: the /do plan files (they hold sign-off and waiver state), the confirmation store, the
-// audit store, the two governance configuration files, the session purpose record, and the decision log. Only the user,
-// through the main conversation, changes the plan files and the decision log.
-const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB, AUDIT_GLOB, SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB];
+// audit store, the two governance configuration files, the session purpose record, the rule-mode store, and the decision
+// log. Only the user, through the main conversation, changes the plan files and the decision log.
+const PROTECTED_GLOBS = ["**/.agent/main-plan/**", CONFIRMATIONS_GLOB, PENDING_GLOB, AUDIT_GLOB, SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB, RULE_MODES_GLOB];
 // The part of PROTECTED_GLOBS that protects one named file, not a directory of its own. The parent directories (.claude/,
 // .agent/governance/) hold other files a subagent may add, so protectedDirectoryRule skips these globs.
-const FILE_LEVEL_GLOBS = [SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB];
+const FILE_LEVEL_GLOBS = [SETTINGS_GLOB, PROFILE_GLOB, PURPOSE_GLOB, RULE_MODES_GLOB];
 // [FR-242] [FR-247] The part of PROTECTED_GLOBS that holds for every tool caller, the main session included.
 const ALL_CALLER_GLOBS = [CONFIRMATIONS_GLOB, PURPOSE_GLOB];
 const PROTECTED_FILES = ["DECISIONS.md"];
