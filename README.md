@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.14.1
+### assist-plugin v1.14.2
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first

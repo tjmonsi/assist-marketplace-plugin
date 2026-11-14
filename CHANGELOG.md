@@ -2,6 +2,18 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.2] - 2026-11-14
+
+### Changed
+
+- `goal-guard` (FR-219) blocking-match withhold now blanks MCP discriminator values (`type`, `mimeType`, `role`) and renames object key names for `mcp__*` tools on a hijack match too, symmetric with the fail-closed path shipped in 1.14.1
+- Ordinary strings keep whole-string match replacement. `WebFetch` and `WebSearch` keep the verbatim carve-out so the validated output shape holds
+
+### Compatibility
+
+- The scanner is unchanged, so a key-name-only hijack stays a known limit deferred to the blocking-mode promotion. Blocking mode stays off by default
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.14.1] - 2026-11-14
 
 ### Changed
