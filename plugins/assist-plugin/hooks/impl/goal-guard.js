@@ -24,33 +24,36 @@
 // result, so it is never used here. Claude Code ignores an updatedToolOutput that does not match a built-in tool's real
 // output shape (MCP output is not validated), which would fail open without any error, so the replacement is a shape-preserving
 // clone of the real result (withheldOutput). The clone is bounded to what the scan reads: it descends no deeper than
-// collectText (MAX_DEPTH), clones at most MAX_ITEMS items per level, keeps every array at its original length by putting the
-// notice in place of each item past the cap, and keeps every object key. It replaces a container at the scan depth with the
-// notice, so no content from below the depth the scan read survives. On a match the hook strips the hijack span and keeps the
-// bounded benign remainder: the text-bearing strings and any string a rule flags become the notice, and the other strings stay.
-// A string under a shape-discriminator key (SHAPE_KEYS: type, mimeType, role) is kept unchanged on the blocking-match path for
-// every tool, even where a rule flags it, so the result still validates against the tool's output shape (the fail-closed path
-// splits by tool class, below). A PostToolUse hook runs after the tool did, so it governs only what the model sees: the fetch
-// or search has already happened (a recorded limit of this timing). A result that matches no rule passes unchanged, with a
-// pass record.
+// collectText (MAX_DEPTH), clones at most MAX_ITEMS items per level, and keeps every array at its original length by putting the
+// notice in place of each item past the cap. It replaces a container at the scan depth with the notice, so no content from
+// below the depth the scan read survives. On a match the hook replaces a matched string wholesale: the text-bearing strings
+// and any string a rule flags become the notice (no benign remainder of such a string is kept), and an unmatched short
+// structural string (a title, a url, an id) stays verbatim. The match path is not blank-all. The shape-discriminator strings
+// (SHAPE_KEYS: type, mimeType, role) and the object key names split by tool class, below (the same split on both paths). A
+// PostToolUse hook runs after the tool did, so it governs only what the model sees: the fetch or search has already happened
+// (a recorded limit of this timing). A result that matches no rule passes unchanged, with a pass record.
+//
+// TOOL CLASS SPLIT [FR-219|NFR-028], the same on the blocking-match path and the fail-closed path, chosen from the tool name
+// (never from the match set). WebFetch, WebSearch, and a missing or non-string tool name keep the SHAPE_KEYS strings and every
+// object key name verbatim: Claude Code validates the output shape of WebFetch and WebSearch and silently ignores a replacement
+// that breaks it (a fail open), and those fields are not attacker-controllable. An mcp__* tool is the untrusted source and
+// Claude Code does not validate its output shape, so there is no shape-validation fail open to avoid: on both paths its SHAPE_KEYS
+// values become the notice and every object key is renamed (cloneWithNotice, policy.blankShape), closing the
+// discriminator-value and key-name channels. Known limit: collectText reads string values and never object key names, so a
+// hijack only in an mcp__* key name (nothing matching in any string value) is not matched and not withheld on the match path;
+// extending the scanner is deferred to the Step 36 reassessment (FR-238).
 //
 // FAIL CLOSED IN BLOCKING MODE [NFR-028]. FR-219 joins the NFR-028 class in blocking mode only (DECISIONS.md, 2026-11-13).
 // While the store marks the hook blocking, a governed result that the hook cannot finish checking is withheld the same way
 // (health.transform with failClosedFor): the check throws, the rule library cannot be loaded, an uncaught exception or an
 // unhandled rejection occurs, or the watchdog times out after the input was parsed. The withheld result is the same bounded clone
 // in blank-all mode (closedOutput): the hook cannot trust any part of a result it could not check, so every string, a short
-// url, title, query, and id included, becomes the failure notice. Blank-all is the fail-closed path only. [FR-219|NFR-028] It
-// splits by tool class, chosen from the tool name (never from the match set). WebFetch and WebSearch keep the SHAPE_KEYS
-// strings and every object key name verbatim: Claude Code validates their output shape and silently ignores a replacement that
-// breaks it (a fail open), and those fields are not attacker-controllable. An mcp__* tool is the untrusted source and Claude
-// Code does not validate its output shape, so there is no shape-validation fail open to avoid: the blank-all path also replaces
-// the SHAPE_KEYS values with the notice and renames every object key (cloneWithNotice), closing the discriminator-value and
-// key-name channels. The failure is still noted in hook-health.jsonl and a deny record under the rule id
+// url, title, query, and id included, becomes the failure notice. Blank-all is the fail-closed path only; the tool class split
+// above applies to it unchanged. The failure is still noted in hook-health.jsonl and a deny record under the rule id
 // "goal-guard.fail-closed" is appended; no finding is written for it (an evaluation failure is not a hijack match). Input that
 // cannot be read or parsed, a disabled hook, and a mode that cannot be read (advisory by the store contract) still proceed. A
 // scan stopped early by the size cap or the time budget (hijack-rules.js `truncated`) is a recall limit, not an evaluation
-// failure, and is not withheld. Known limit: SHAPE_KEYS values and object key names survive on the blocking-match path (all
-// tools) and on the fail-closed path for WebFetch and WebSearch; they do not survive the fail-closed path for an mcp__* tool.
+// failure, and is not withheld.
 //
 // BASELINE FINDINGS [FR-238|NFR-034]. Besides the audit record, each hijack match (a would-deny in advisory mode, a deny in
 // blocking mode; never a pass) appends one finding to the shared baseline store .agent/governance/review-findings.jsonl through
@@ -111,12 +114,13 @@ const FINDING_PREFIX = "gg";
 // unless a rule matches it (withheldOutput); on the fail-closed path every string is replaced (blankAll).
 const TEXT_KEYS = new Set(["text", "result", "content", "output", "body", "message", "description", "summary", "snippet", "stdout", "stderr", "html", "markdown", "excerpt", "page_content"]);
 // [FR-219|NFR-028] Fixed-vocabulary shape-discriminator keys (an MCP content block's `type`, an image's `mimeType`, a
-// message's `role`). A string under one of these keys is kept unchanged on the blocking-match path for every tool and on the
-// fail-closed path for WebFetch and WebSearch, even where a rule flags it, because replacing it would break a validated tool
-// shape and Claude Code would then silently ignore the replacement (a silent fail open). The one exception is the fail-closed
-// path for an mcp__* tool (policy.blankShape), whose shape Claude Code does not validate. It is kept only when it is a
-// string: an object under such a key is cloned and bounded like any other value. A discriminator key past the item cap of an
-// object keeps its string value too (shape over cap), except under blankShape.
+// message's `role`). For WebFetch, WebSearch, and a missing or non-string tool name, a string under one of these keys is kept
+// unchanged on both the blocking-match path and the fail-closed path, even where a rule flags it, because replacing it would
+// break a validated tool shape and Claude Code would then silently ignore the replacement (a silent fail open). The exception
+// is an mcp__* tool (policy.blankShape, both paths), whose shape Claude Code does not validate and whose server sets these
+// values: there the value becomes the notice. Only a string is treated this way: an object under such a key is cloned and
+// bounded like any other value. A discriminator key past the item cap of an object keeps its string value too (shape over
+// cap), except under blankShape.
 const SHAPE_KEYS = new Set(["type", "mimeType", "role"]);
 const MIN_MATCHED_CHARS = 12; // a shorter string is not tested against the rules on its own
 const MAX_RESIDUE_PASSES = 200;
@@ -298,7 +302,7 @@ function failClosedNotice(kind) {
 }
 
 // True for a string held under a shape-discriminator key (SHAPE_KEYS): the one string a clone never replaces, except under
-// policy.blankShape (the fail-closed path for an mcp__* tool).
+// policy.blankShape (an mcp__* tool, on both the blocking-match and the fail-closed path).
 function isShapeValue(key, value) {
   return SHAPE_KEYS.has(key) && typeof value === "string";
 }
@@ -318,12 +322,14 @@ function blankedKey(notice, index) {
 // the cap, so no array is shortened and no key is dropped. Non-string primitives within the cap are kept as they were.
 // `policy` is {matches, blankAll, blankShape}. With `blankAll` every ordinary string becomes `notice` (the fail-closed path).
 // Without it a text-bearing string (the root, a bare array item, or the value of a TEXT_KEYS key), or any other string of
-// MIN_MATCHED_CHARS or more for which `matches` (may be null) is true, becomes `notice` (the blocking-match path: the benign
-// remainder stays). A string under a SHAPE_KEYS key and every object key name are kept verbatim, unless `blankShape` is set:
-// then (the fail-closed path for an mcp__* tool, whose output shape Claude Code does not validate) each SHAPE_KEYS value
-// becomes `notice` and each key name is replaced by blankedKey, so no discriminator value or key name of an untrusted server
-// survives. `blankShape` is only ever set together with `blankAll` (withheldOutput). Keeps the shape of a WebFetch, WebSearch,
-// or blocking-match result, so Claude Code does not discard it.
+// MIN_MATCHED_CHARS or more for which `matches` (may be null) is true, becomes `notice` (the blocking-match path: the matched
+// string is replaced wholesale, and an unmatched short structural string stays verbatim). A string under a SHAPE_KEYS key and
+// every object key name are kept verbatim, unless `blankShape` is set: then (an mcp__* tool, whose output shape Claude Code
+// does not validate) each SHAPE_KEYS string value becomes `notice` whether or not a rule flags it, and each key name is
+// replaced by blankedKey, so no discriminator value or key name of an untrusted server survives. `blankShape` and `blankAll`
+// are independent: `blankShape` follows the tool class on both paths, `blankAll` is set only on the fail-closed path
+// (withheldOutput). The key name is tested against TEXT_KEYS before the rename, so a text-bearing string is still replaced.
+// Keeps the shape of a WebFetch or WebSearch result, so Claude Code does not discard it.
 function cloneWithNotice(value, notice, policy, depth, textual) {
   if (typeof value === "string") {
     const flagged = policy.matches !== null && value.length >= MIN_MATCHED_CHARS && policy.matches(value);
@@ -344,7 +350,7 @@ function cloneWithNotice(value, notice, policy, depth, textual) {
   Object.keys(value).forEach((key, index) => {
     const child = value[key];
     let cloned;
-    if (isShapeValue(key, child) && !policy.blankShape) cloned = child;
+    if (isShapeValue(key, child)) cloned = policy.blankShape ? notice : child;
     else if (index >= MAX_ITEMS) cloned = notice;
     else cloned = cloneWithNotice(child, notice, policy, depth + 1, TEXT_KEYS.has(key));
     const name = policy.blankShape ? blankedKey(notice, index) : key;
@@ -377,43 +383,45 @@ function longestString(value, notice) {
 // A match can span two strings of a result (collectText joins them), so a clone that still matches as a whole has its longest
 // remaining string replaced, one at a time, until it no longer matches. When the passes run out, every string of 12 characters
 // or more is replaced, so the output never keeps text the rules match. A string under a shape-discriminator key is never
-// replaced, so a match that survives only there is left in place (the shape is kept over the text).
-function clearResidue(output, notice, matches) {
+// replaced by the passes, so for WebFetch and WebSearch a match that survives only there is left in place (the shape is kept
+// over the text). An mcp__* clone holds no such key (the rename dropped it, and the former values are already the notice), so
+// the passes see every string. `blankShape` is passed through to the final fallback clone; it is idempotent there, because
+// blankedKey is positional and the clone is already renamed.
+function clearResidue(output, notice, matches, blankShape) {
   let current = output;
   for (let pass = 0; pass < MAX_RESIDUE_PASSES && matches(collectText(current)); pass++) {
     const longest = longestString(current, notice);
     if (longest === null) return current;
     longest.holder[longest.key] = notice;
   }
-  return matches(collectText(current)) ? cloneWithNotice(current, notice, { matches: () => true, blankAll: false, blankShape: false }, 0, false) : current;
+  return matches(collectText(current)) ? cloneWithNotice(current, notice, { matches: () => true, blankAll: false, blankShape }, 0, false) : current;
 }
 
 // [FR-219|NFR-028] The PostToolUse output that replaces the result the model sees: {hookSpecificOutput: {hookEventName,
 // updatedToolOutput}}. updatedToolOutput is a clone of the result with the same shape, bounded to the scan depth and item cap
 // (cloneWithNotice), because Claude Code ignores a replacement that does not match the tool's real output shape. A result that
 // is not a string, array, or object becomes the plain notice. Two modes, chosen by the caller and never inferred:
-//   blankAll false (the blocking-match path, `matches` given): strip the hijack span and keep the bounded benign remainder. The
-//     text-bearing strings are replaced, strings `matches` (text -> boolean) flags in a non-text key are replaced too, and any text
-//     it still flags after the first pass is replaced (clearResidue).
+//   blankAll false (the blocking-match path, `matches` given): a matched string is replaced wholesale. The text-bearing strings
+//     are replaced, strings `matches` (text -> boolean) flags in a non-text key are replaced too, and any text it still flags
+//     after the first pass is replaced (clearResidue). An unmatched short structural string (title, url, id) stays verbatim.
 //   blankAll true (the fail-closed path, where the check cannot run): every string is replaced by the notice, a url, a title, a
-//     query, and an id included, because no part of the result could be checked. `matches` is not used. The shape carve-out
-//     splits by tool class, read from input.tool_name: for WebFetch and WebSearch (Claude Code validates their shape) the
-//     SHAPE_KEYS strings and the object key names stay; for an mcp__* tool (shape not validated, server untrusted) they are
-//     blanked too (blankShape).
-// A string under a shape-discriminator key (SHAPE_KEYS) and the object key names are kept on the blocking-match path for every
-// tool: blankShape is set only on the blank-all path and never on the match path, whatever the tool.
+//     query, and an id included, because no part of the result could be checked. `matches` is not used.
+// The shape carve-out is independent of that choice. `blankShape` follows the tool class, read from input.tool_name, and holds
+// on both paths: for WebFetch, WebSearch, and a missing or non-string tool name (Claude Code validates the first two shapes) the
+// SHAPE_KEYS strings and the object key names stay; for an mcp__* tool (shape not validated, server untrusted) the SHAPE_KEYS
+// strings become the notice and the object keys are renamed.
 function withheldOutput(input, notice, matches, blankAll) {
   const response = isObject(input) ? input.tool_response : undefined;
   const blank = blankAll === true;
   const policy = {
     matches: typeof matches === "function" ? matches : null,
     blankAll: blank,
-    blankShape: blank && isObject(input) && isMcpTool(input.tool_name),
+    blankShape: isObject(input) && isMcpTool(input.tool_name),
   };
   let updated;
   if (typeof response === "string" || (response !== null && typeof response === "object")) {
     updated = cloneWithNotice(response, notice, policy, 0, true);
-    if (policy.matches !== null && !policy.blankAll && typeof updated === "object") updated = clearResidue(updated, notice, policy.matches);
+    if (policy.matches !== null && !policy.blankAll && typeof updated === "object") updated = clearResidue(updated, notice, policy.matches, policy.blankShape);
   } else {
     updated = notice;
   }
@@ -421,8 +429,9 @@ function withheldOutput(input, notice, matches, blankAll) {
 }
 
 // [NFR-028] The output of a fail-closed failure for `input`: the failure notice in the result's shape, with every string blanked
-// (withheldOutput in blank-all mode, so a short url or title that the failed check could not flag is replaced too; an mcp__*
-// result also has its discriminator values and key names blanked, a WebFetch or WebSearch result keeps them). If the shape
+// (withheldOutput in blank-all mode, so a short url or title that the failed check could not flag is replaced too; the tool
+// class split is the same as on the match path: an mcp__* result has its discriminator values and key names blanked, a WebFetch
+// or WebSearch result keeps them). If the shape
 // cannot be built the plain notice still replaces the result. A fail-closed withhold writes no finding (recordFailClosed).
 function closedOutput(hook, kind, input) {
   const notice = failClosedNotice(kind);
@@ -453,7 +462,9 @@ function main() {
       // withholds the result.
       if (record === null || record.decision !== DENY) return null;
       const matches = (text) => loadRules().analyze(text).findings.length > 0;
-      // Blank-all is the fail-closed path only (closedOutput): a match strips the hijack span and keeps the bounded remainder.
+      // Blank-all is the fail-closed path only (closedOutput): a match replaces each matched string wholesale and keeps an
+      // unmatched short structural string. The tool class split (blankShape) still applies, so an mcp__* result is also blanked
+      // in its discriminator values and renamed in its key names.
       return { stdout: withheldOutput(input, withholdNotice(record.rule_id), matches, false) };
     },
     {
