@@ -7,7 +7,7 @@
 | **Feature** | Goal-hijack guardrail: a rule-based, advisory-first alignment check on tool results |
 | **Parent feature** | spec-hooks-platform.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-028 (blocking mode, per `DECISIONS.md` 2026-11-13), NFR-034, NFR-035 |
+| **Requirement refs** | BR-018, UR-062, FR-219, FR-238, NFR-026, NFR-027, NFR-028 (blocking mode, per `DECISIONS.md` 2026-11-13), NFR-031, NFR-034, NFR-035 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -548,3 +548,94 @@ None.
 | FR-238, NFR-034 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Advisory would-deny finding written to the baseline store | With the findings-write `promote-rule.js goal-guard` reads a non-empty baseline and is gated on the 90% precision bar; without it the switch refuses with the missing-baseline reason (`tests/hooks/goal-guard.test.js`, `tests/scripts/promote-rule.test.js`) |
 | FR-219, FR-238 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Rule-mode store key for goal-guard is the flat key "goal-guard" | `promote-rule.js goal-guard` writes `{"goal-guard": "blocking"}`; no per-hijack id is a rule-mode key, and the baseline finding's `rule_id` equals the key `"goal-guard"` so `baseline-report.js` and `promote-rule.js` find the findings (`tests/scripts/promote-rule.test.js`, `tests/hooks/goal-guard.test.js`) |
 | FR-238, NFR-034 | Change Log 2026-11-13 (Tranche 5, FR-219 end-to-end): Requirement: Findings keep accruing in blocking mode | A blocking-mode hijack match records a finding, and the promotion gate computes precision over the advisory-period baseline (`tests/hooks/goal-guard.test.js`) |
+
+## Change Log: 2026-11-14 (goal-guard blocking-mode fail-closed hardening)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), NFR-028 (section 3.2, "MUST deny its own guarded operation class when it cannot evaluate because of an error or timeout"; the enumeration now names FR-219 in blocking mode only), NFR-031 (section 3.2, "Logs MUST NOT hold prompt text, file contents, or secret values"); `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 (control register) built, gated, merged, and released as v1.14.0" (the deferred follow-up: the goal-guard fail-closed structural-field residual where a short url or title can survive a fail-closed withhold because the rules that would flag it are the ones that failed, and the clone breadth cap and the `collectText` depth-6 versus clone depth-32 mismatch, to be reconsidered, for example by blanking every string on fail-closed, when Step 36 makes the vector live); `DECISIONS.md`, 2026-11-14, "goal-guard blocking-mode fail-closed hardening approved for build" (choice 1, blank scope; choice 2, caps scope). This entry hardens the blocking-mode withhold the earlier Tranche 5 deltas specified (Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`, Requirement: Fail closed for the guarded class in blocking mode). It touches only the blocking-mode paths: advisory mode still fails open and withholds nothing, promotion stays user-run (`scripts/promote-rule.js`), and the audit and finding records are unchanged (NFR-031; a fail-closed withhold still writes no finding, Requirement: Advisory would-deny finding written to the baseline store). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: NFR-031 added, for the data-minimization rule the unchanged audit and finding records and the no-finding-on-fail-closed behavior follow; the basis is `DECISIONS.md`, 2026-11-14, "goal-guard blocking-mode fail-closed hardening approved for build" ("the audit and finding records are unchanged (NFR-031)"). NFR-031 governs logs and the data-accessed field, so it does not anchor the model-facing blanked `updatedToolOutput`; that property rests on FR-219 and NFR-028. FR-219 and NFR-028 (blocking mode) are already present.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Change Log 2026-11-13 (Tranche 5), Requirement: Blocking-mode result withhold via PostToolUse `updatedToolOutput`, the sentence "Withholding replaces the result with a short safe notice that names the rule id; rewriting strips the hijack span and keeps the benign remainder": now reads that the withhold and the rewrite are built as a structure-preserving clone bounded to the alignment-check scan depth and the scan's per-level item cap (Requirement: Depth- and breadth-bounded shape-preserving withhold clone), so the benign remainder a rewrite keeps is bounded by the same depth and breadth the scan read, and content past the scan depth or the item cap no longer survives on a blocking match. The "names the rule id" part of the notice is unchanged.
+- Change Log 2026-11-13 (Tranche 5), Requirement: Fail closed for the guarded class in blocking mode (statement and the scenario Evaluation error in blocking mode withholds), the clause "it SHALL withhold that result through `updatedToolOutput`": refined to the blank-all-text scope of the MODIFIED requirement below. On a fail-closed withhold the hook replaces every attacker-controllable text string in the cloned result with the safe notice, not only the body-text fields, because it cannot trust any part of a result it could not finish evaluating. The advisory-mode scenario Evaluation error in advisory mode passes through is unchanged.
+- Change Log 2026-11-13 (Tranche 5), Requirement: Fail closed for the guarded class in blocking mode, the sentence "The NFR-028 enumeration in FR-NFR-harness-governance.md (section 3.2) names FR-214, FR-217, FR-220, FR-223, FR-231, FR-233, and FR-246 and does not yet list FR-219; that enumeration is updated to add FR-219 (blocking mode) in the Tranche 5 documentation sync (task plan Step 8), so this spec does not claim the enumeration already lists it"; and the matching clauses in the Change Log 2026-11-13 (Tranche 5) preamble, in the Change Log 2026-11-13 (Tranche 5) "Body text this entry supersedes" FR-219-not-a-member bullet's final enumeration sentence (its "until that sync lands the enumeration does not list it" clause), and in the Change Log 2026-11-13 (Tranche 5) traceability row for NFR-028: superseded. The Tranche 5 documentation sync has landed (`DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 ... released as v1.14.0": "the FR-NFR status flipped to Approved with FR-219 added to the NFR-028 enumeration"), so the NFR-028 enumeration in FR-NFR-harness-governance.md section 3.2 now names FR-219 in blocking mode only (FR-NFR-harness-governance.md revision history note 4, 2026-11-13). Advisory mode still fails open per NFR-026.
+
+### ADDED Requirements
+
+#### Requirement: Depth- and breadth-bounded shape-preserving withhold clone
+
+While its mode is blocking, the `goal-guard` hook SHALL build the withheld or rewritten tool output as a structure-preserving clone that recurses no deeper than the alignment-check scan (`collectText`) reads, clones no more items per level than the scan's per-level item cap, replaces each item past that cap with the safe notice rather than dropping it so every array keeps its original length, and keeps each fixed-vocabulary shape-discriminator key (for example an MCP content block's `type`, and the like such as `mimeType` and `role`) unchanged, so the result still validates against its tool's output shape and Claude Code does not silently ignore the `updatedToolOutput`. This depth and breadth bound SHALL apply to both the blocking-match withhold and the fail-closed withhold.
+
+**Requirement refs:** FR-219, NFR-028 | **Status:** Planned (goal-guard blocking-mode fail-closed hardening) | **Source:** FR-NFR-harness-governance.md v1.3, FR-219 (section 2.6), NFR-028 (section 3.2); `DECISIONS.md`, 2026-11-13, "Harness-governance Tranche 5 ... released as v1.14.0" (the deferred follow-up naming the clone breadth cap and the `collectText` depth-6 versus clone depth-32 mismatch, and the as-built shape-preserving `updatedToolOutput` clone); `DECISIONS.md`, 2026-11-14, "goal-guard blocking-mode fail-closed hardening approved for build" (choice 2, caps scope)
+
+The Tranche 5 build already withholds through a shape-preserving `updatedToolOutput` clone, because Claude Code silently ignores an `updatedToolOutput` whose shape does not match the tool's real output and the result then reaches the model (a silent fail-open). This hardening bounds that clone. Depth parity aligns the clone recursion with `collectText`: the as-built clone recursed to depth 32 while the scan read to depth 6, so structured content between those depths was cloned but never scanned. The breadth cap adds the matching per-level item cap, keeping array lengths by substituting the safe notice for each over-cap item. Applying the bound to the blocking-match path as well as the fail-closed path is a deliberate behavior change: content past the scan depth or the item cap no longer survives on a blocking match, where it survived before. The rationale is that content the scanner never read must not survive in a result the hook has already judged hostile. The fail-closed path adds the blank-all-text scope (Requirement: Fail closed for the guarded class in blocking mode); the depth and breadth bound here is shared by both paths and is the only part that changes the match path.
+
+##### Scenario: Result wider than the item cap stays bounded
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and a tool result holds an array with more items than the scan's per-level item cap, one of them a hijack
+- **WHEN** the hook builds the withheld result
+- **THEN** the hook SHALL clone no more items per level than the scan's item cap
+- **AND** the hook SHALL replace each item past the cap with the safe notice so the array keeps its original length
+- **AND** the hook SHALL NOT emit an array shorter than the tool's real output
+
+##### Scenario: Content past the scan depth does not survive a blocking match
+
+- **GIVEN** `goal-guard` is blocking and a hijack rule matches a result that also carries structured content nested deeper than the `collectText` scan depth
+- **WHEN** the hook rewrites or withholds the result through `updatedToolOutput`
+- **THEN** the emitted clone SHALL carry no content from below the scan depth
+- **AND** the clone SHALL keep the shape-discriminator keys so the result still validates against the tool's output shape
+
+##### Scenario: Content past the scan depth is blanked on a fail-closed withhold
+
+- **GIVEN** `goal-guard` is blocking and the alignment check throws or times out after reading a result that carries structured content nested deeper than the `collectText` scan depth
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the emitted clone SHALL carry no content from below the scan depth
+- **AND** every attacker-controllable text string the clone does carry SHALL be the safe notice
+
+##### Scenario: Real tool output validates after blanking
+
+- **GIVEN** a real `WebFetch`, `WebSearch`, and MCP tool output
+- **WHEN** the hook blanks each through the withhold clone
+- **THEN** each blanked result SHALL validate against its tool's output shape
+- **AND** Claude Code SHALL NOT silently ignore the `updatedToolOutput` and pass the original result to the model
+
+### MODIFIED Requirements
+
+#### Requirement: Fail closed for the guarded class in blocking mode
+
+**Was:** While its mode is blocking, the `goal-guard` hook SHALL fail closed for its guarded class: when it errors or times out after reading its input on a result it cannot finish evaluating (a would-block result), it SHALL withhold that result through `updatedToolOutput` rather than pass it through; in advisory mode the hook SHALL continue to fail open and withhold nothing.
+
+**Now:** While its mode is blocking, the `goal-guard` hook SHALL fail closed for its guarded class: when it errors or times out after reading its input on a result it cannot finish evaluating (a would-block result), it SHALL withhold that result through `updatedToolOutput` rather than pass it through, replacing every attacker-controllable text string in the structure-preserving clone (Requirement: Depth- and breadth-bounded shape-preserving withhold clone) with the safe notice, not only the body-text fields; in advisory mode the hook SHALL continue to fail open and withhold nothing.
+
+**Reason:** `DECISIONS.md`, 2026-11-14, "goal-guard blocking-mode fail-closed hardening approved for build" (choice 1): on a fail-closed withhold the hook cannot trust any part of a result it could not finish evaluating, and the withheld result already carries a do-not-act notice, so it blanks every attacker-controllable string rather than only the body-text fields. This closes the fail-closed structural-field residual the Tranche 5 completion recorded, where a short url or title could survive a fail-closed withhold because the rules that would flag it were the ones that failed. The match-path rewrite still strips the hijack span and keeps the bounded benign remainder; blank-all-text is the fail-closed path only.
+
+**Requirement refs:** NFR-028, FR-219, NFR-031 (NFR-031 only for the unchanged audit and finding records and the no-finding-on-fail-closed behavior, not for the blanked `updatedToolOutput`) | **Status:** Planned (goal-guard blocking-mode fail-closed hardening)
+
+The blanked result keeps only the safe notice as its text, so the withhold removes every attacker-controllable text string, and with it any prompt text, file contents, or secret value the result carried, from what the model sees (FR-219; NFR-028 for a result the hook could not finish evaluating). NFR-031 governs logs and the data-accessed field, so it is not the anchor for this model-facing result. NFR-031 anchors the records this change leaves unchanged: a fail-closed withhold is an evaluation failure, not a hijack match, so it still writes no finding to the baseline store (Requirement: Advisory would-deny finding written to the baseline store), and the audit and finding records hold no prompt text, file contents, or secret value (NFR-031). The scenarios Evaluation error in blocking mode withholds and Evaluation error in advisory mode passes through stay in force; the advisory-mode scenario is unchanged, and the blocking-mode scenario now also blanks every attacker-controllable string per the scenario below.
+
+##### Scenario: Hijack in a short structural field is blanked on fail-closed
+
+- **GIVEN** `goal-guard` is blocking, the alignment check throws or times out after reading a result, and the result carries a hijack in a short structural field such as a title or a url rather than in the body text
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the hook SHALL replace that title or url, and every other attacker-controllable text string, with the safe notice
+- **AND** the hook SHALL keep the shape-discriminator keys so the result still validates against the tool's output shape
+- **AND** the withheld result SHALL carry no prompt text, file contents, or secret value (FR-219, NFR-028)
+
+### REMOVED Requirements
+
+None.
+
+### Diagram
+
+Not re-rendered in this pass. The hardening changes the blocking-mode withhold internals, not the advisory start-to-end flow the Algorithmic steps diagram shows. The `.mmd` source and PNG are re-rendered at the next fold with the other deferred diagram edits.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-219, NFR-028 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Depth- and breadth-bounded shape-preserving withhold clone | A result wider than the item cap stays bounded with its array length kept; content past the `collectText` scan depth does not survive on a blocking match or a fail-closed withhold; a real `WebFetch`, `WebSearch`, and MCP output still validates against its tool shape after blanking (`tests/hooks/goal-guard.test.js`) |
+| NFR-028, FR-219 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Fail closed for the guarded class in blocking mode | A fail-closed withhold replaces every attacker-controllable string, including a short title or url, with the safe notice and still emits a shape-valid `updatedToolOutput`; the blanked withheld result holds only the safe notice and no prompt, file, or secret text (`tests/hooks/goal-guard.test.js`) |
+| NFR-031 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Fail closed for the guarded class in blocking mode | A fail-closed withhold writes no finding, and the audit and finding records hold no prompt, file, or secret text, unchanged by this hardening (`tests/hooks/goal-guard.test.js`) |
