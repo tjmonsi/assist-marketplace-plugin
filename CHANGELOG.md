@@ -2,6 +2,19 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.1] - 2026-11-14
+
+### Changed
+
+- `goal-guard` (FR-219) blocking-mode withhold clone is bounded: depth matches the alignment-check scan depth (6) and each level keeps at most 500 items, on both the blocking-match path and the fail-closed path
+- The fail-closed withhold blanks every attacker-controllable text string in the result
+- For `mcp__*` tools the withhold also blanks discriminator values (`type`, `mimeType`, `role`) and object key names. `WebFetch` and `WebSearch` keep them verbatim so the validated output shape holds
+
+### Compatibility
+
+- Advisory mode, the user-run promotion, and the audit and finding records are unchanged. Blocking mode stays off by default
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.14.0] - 2026-11-13
 
 ### Added
