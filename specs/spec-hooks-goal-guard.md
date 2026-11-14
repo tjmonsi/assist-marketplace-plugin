@@ -639,3 +639,101 @@ Not re-rendered in this pass. The hardening changes the blocking-mode withhold i
 | FR-219, NFR-028 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Depth- and breadth-bounded shape-preserving withhold clone | A result wider than the item cap stays bounded with its array length kept; content past the `collectText` scan depth does not survive on a blocking match or a fail-closed withhold; a real `WebFetch`, `WebSearch`, and MCP output still validates against its tool shape after blanking (`tests/hooks/goal-guard.test.js`) |
 | NFR-028, FR-219 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Fail closed for the guarded class in blocking mode | A fail-closed withhold replaces every attacker-controllable string, including a short title or url, with the safe notice and still emits a shape-valid `updatedToolOutput`; the blanked withheld result holds only the safe notice and no prompt, file, or secret text (`tests/hooks/goal-guard.test.js`) |
 | NFR-031 | Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening): Requirement: Fail closed for the guarded class in blocking mode | A fail-closed withhold writes no finding, and the audit and finding records hold no prompt, file, or secret text, unchanged by this hardening (`tests/hooks/goal-guard.test.js`) |
+
+## Change Log: 2026-11-14 (goal-guard fail-closed MCP discriminator and key-name hardening)
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-219 (section 2.6), NFR-028 (section 3.2, "MUST deny its own guarded operation class when it cannot evaluate because of an error or timeout"; the enumeration names FR-219 in blocking mode only), NFR-031 (section 3.2, "Logs MUST NOT hold prompt text, file contents, or secret values"); `DECISIONS.md`, 2026-11-14, "goal-guard fail-closed MCP discriminator and key-name hardening folded in" (the basis: the OWASP for LLM review of the fail-closed hardening code found that keeping shape-discriminator values and object key names verbatim on the fail-closed blank-all path lets attacker goal-hijack text survive for an MCP tool, because the MCP server is itself the untrusted source and Claude Code does not validate MCP output shape, so the shape-preservation justification that holds for `WebFetch` and `WebSearch` does not apply to MCP); `DECISIONS.md`, 2026-11-14, "goal-guard blocking-mode fail-closed hardening approved for build" (the prior blocking-mode fail-closed hardening this entry refines). This entry refines the blocking-mode fail-closed withhold the prior section (Change Log 2026-11-14, goal-guard blocking-mode fail-closed hardening) specified: it adds a tool-class split on the fail-closed blank-all path so that, for an `mcp__*` tool, the withhold also blanks the shape-discriminator values (`type`, `mimeType`, `role`) and the object key names, while the existing carve-out that keeps those keys, their values, and the object key names verbatim is kept for `WebFetch` and `WebSearch`, where Claude Code validates the output shape and those fields are not attacker-controllable.
+
+This entry touches only the fail-closed blank-all path in blocking mode. The blocking-MATCH path (the bounded strip-the-span rewrite) is unchanged, as are the depth parity and the breadth/item cap on both paths, and the blank-all-text scope for ordinary string fields (already blanked for all tools). Advisory mode is unchanged: it fails open and withholds nothing. The governance audit-log and the baseline finding-store records are unchanged (NFR-031), and a fail-closed withhold still writes no finding (an evaluation failure is not a hijack match). Blocking mode is off by default this release; the vector goes live only at the user-run Step 36 promotion (`scripts/promote-rule.js`). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Requirement refs: unchanged. FR-219, NFR-028, and NFR-031 are already present (added in the Change Log 2026-11-13 (Tranche 5) and Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening) sections). This entry adds no new ID.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening), Requirement: Fail closed for the guarded class in blocking mode, the scenario Hijack in a short structural field is blanked on fail-closed, the clause "the hook SHALL keep the shape-discriminator keys so the result still validates against the tool's output shape": now tool-class-dependent on the fail-closed path. It holds for a `WebFetch` or `WebSearch` result, whose output shape Claude Code validates; for an `mcp__*` result the hook instead blanks the discriminator values (`type`, `mimeType`, `role`) and the object key names, because Claude Code does not validate MCP output shape and the MCP server is the untrusted source (Requirement: Fail closed for the guarded class in blocking mode, as modified below; Requirement: Depth- and breadth-bounded shape-preserving withhold clone, as modified below).
+- Change Log 2026-11-14 (goal-guard blocking-mode fail-closed hardening), Requirement: Depth- and breadth-bounded shape-preserving withhold clone, the scenario Real tool output validates after blanking, the step "each blanked result SHALL validate against its tool's output shape": now tool-class-dependent. A blanked `WebFetch` or `WebSearch` result still validates against its tool's output shape; a blanked `mcp__*` result instead forms a usable, well-formed withheld result the model receives in place of the original, because Claude Code does not validate MCP output shape (so there is no shape-validation fail-open to preserve for MCP). The clause "Claude Code SHALL NOT silently ignore the `updatedToolOutput`" is unchanged for every tool.
+
+### ADDED Requirements
+
+None.
+
+### MODIFIED Requirements
+
+#### Requirement: Depth- and breadth-bounded shape-preserving withhold clone
+
+**Was:** While its mode is blocking, the `goal-guard` hook SHALL build the withheld or rewritten tool output as a structure-preserving clone that recurses no deeper than the alignment-check scan (`collectText`) reads, clones no more items per level than the scan's per-level item cap, replaces each item past that cap with the safe notice rather than dropping it so every array keeps its original length, and keeps each fixed-vocabulary shape-discriminator key (for example an MCP content block's `type`, and the like such as `mimeType` and `role`) unchanged, so the result still validates against its tool's output shape and Claude Code does not silently ignore the `updatedToolOutput`. This depth and breadth bound SHALL apply to both the blocking-match withhold and the fail-closed withhold.
+
+**Now:** While its mode is blocking, the `goal-guard` hook SHALL build the withheld or rewritten tool output as a structure-preserving clone that recurses no deeper than the alignment-check scan (`collectText`) reads, clones no more items per level than the scan's per-level item cap, and replaces each item past that cap with the safe notice rather than dropping it so every array keeps its original length. On the blocking-match path for every tool, and on the fail-closed path for a `WebFetch` or `WebSearch` result, the clone SHALL keep each fixed-vocabulary shape-discriminator key `type`, `mimeType`, and `role`, their values, and each object key name unchanged, so the result still validates against its tool's output shape and Claude Code does not silently ignore the `updatedToolOutput`; on the fail-closed path for an `mcp__*` tool, whose output shape Claude Code does not validate, the clone SHALL instead replace the discriminator values (`type`, `mimeType`, `role`) and the object key names with the safe notice, and the emitted clone SHALL remain well-formed so Claude Code does not silently ignore the `updatedToolOutput`. This depth and breadth bound SHALL apply to both the blocking-match withhold and the fail-closed withhold.
+
+**Reason:** `DECISIONS.md`, 2026-11-14, "goal-guard fail-closed MCP discriminator and key-name hardening folded in": the shape-discriminator-key carve-out was justified by Claude Code validating the tool's output shape, which holds for the built-in `WebFetch` and `WebSearch` tools but not for an `mcp__*` tool, whose output shape Claude Code does not validate and whose server is the untrusted source. Keeping the discriminator values and object key names verbatim for MCP therefore left a channel for attacker goal-hijack text to survive a fail-closed withhold. The carve-out is now scoped to the built-in tools on the fail-closed path; for MCP the fail-closed path also blanks the discriminator values and the object key names. The blocking-match path, the `collectText` depth parity, and the per-level item (breadth) cap are unchanged, and the carve-out on the blocking-match path is unchanged for every tool.
+
+**Requirement refs:** FR-219, NFR-028 | **Status:** Planned (goal-guard fail-closed MCP discriminator and key-name hardening)
+
+The fail-closed split closes two residual channels for an MCP result: the discriminator-value channel (an MCP server that sets `type`, `mimeType`, or `role` to hijack text) and the object-key-name channel (an MCP server that sets a key name to hijack text). Because Claude Code does not validate MCP output shape, blanking these fields on the fail-closed path raises no silent fail-open risk; for `WebFetch` and `WebSearch`, whose shape Claude Code validates, the same fields are not attacker-controllable and stay verbatim, so the result still validates and Claude Code does not pass the original to the model. The scenarios Result wider than the item cap stays bounded, Content past the scan depth does not survive a blocking match, and Content past the scan depth is blanked on a fail-closed withhold are unchanged.
+
+##### Scenario: WebFetch result keeps discriminators and key names verbatim on fail-closed
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and the alignment check throws or times out after reading a `WebFetch` result that carries a hijack
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the clone SHALL keep the shape-discriminator keys `type`, `mimeType`, and `role`, their values, and every object key name verbatim
+- **AND** the withheld result SHALL still validate against the `WebFetch` output shape so Claude Code does not silently ignore the `updatedToolOutput` and pass the original to the model
+- **AND** every ordinary attacker-controllable text string value the clone carries SHALL be the safe notice
+
+##### Scenario: Real MCP output forms a usable withheld result after the broader blanking
+
+- **GIVEN** a real `mcp__<server>__<tool>` output
+- **WHEN** the hook fails closed and blanks the output through the withhold clone, blanking the discriminator values (`type`, `mimeType`, `role`) and the object key names as well as the ordinary string values
+- **THEN** the emitted `updatedToolOutput` SHALL be a well-formed value the model receives as the tool result in place of the original
+- **AND** every attacker-controllable string the clone carries, including each former discriminator value and each former object key name, SHALL be the safe notice
+- **AND** Claude Code SHALL NOT silently ignore the `updatedToolOutput`
+
+#### Requirement: Fail closed for the guarded class in blocking mode
+
+**Was:** While its mode is blocking, the `goal-guard` hook SHALL fail closed for its guarded class: when it errors or times out after reading its input on a result it cannot finish evaluating (a would-block result), it SHALL withhold that result through `updatedToolOutput` rather than pass it through, replacing every attacker-controllable text string in the structure-preserving clone (Requirement: Depth- and breadth-bounded shape-preserving withhold clone) with the safe notice, not only the body-text fields; in advisory mode the hook SHALL continue to fail open and withhold nothing.
+
+**Now:** While its mode is blocking, the `goal-guard` hook SHALL fail closed for its guarded class: when it errors or times out after reading its input on a result it cannot finish evaluating (a would-block result), it SHALL withhold that result through `updatedToolOutput` rather than pass it through, replacing every attacker-controllable text string in the structure-preserving clone (Requirement: Depth- and breadth-bounded shape-preserving withhold clone) with the safe notice, not only the body-text fields; for a `WebFetch` or `WebSearch` result the clone SHALL keep the shape-discriminator keys `type`, `mimeType`, and `role`, their values, and the object key names verbatim, because Claude Code validates those built-in tools' output shape and those fields are not attacker-controllable; for an `mcp__*` tool, whose output shape Claude Code does not validate and whose server is the untrusted source, the fail-closed blank-all withhold SHALL also replace the discriminator values (`type`, `mimeType`, `role`) and the object key names with the safe notice; in advisory mode the hook SHALL continue to fail open and withhold nothing.
+
+**Reason:** `DECISIONS.md`, 2026-11-14, "goal-guard fail-closed MCP discriminator and key-name hardening folded in": on a fail-closed withhold the hook cannot trust any part of a result it could not finish evaluating, and for an MCP tool the discriminator values and object key names are attacker-controllable (the MCP server sets them) and Claude Code does not validate MCP output shape, so blanking them closes the residual hijack channel without a shape-validation fail-open. The `WebFetch` and `WebSearch` carve-out stays, because Claude Code validates those shapes and the fields are not attacker-controllable. The blank-all-text scope for ordinary string fields, the depth parity, and the breadth cap are unchanged.
+
+**Requirement refs:** NFR-028, FR-219, NFR-031 (NFR-031 only for the unchanged audit and finding records and the no-finding-on-fail-closed behavior, not for the blanked `updatedToolOutput`) | **Status:** Planned (goal-guard fail-closed MCP discriminator and key-name hardening)
+
+For an `mcp__*` result the blanked withhold removes every attacker-controllable text string, including each discriminator value and each object key name, from what the model sees, so no prompt text, file contents, or secret value in any of those fields survives (FR-219; NFR-028 for a result the hook could not finish evaluating). NFR-031 is unaffected by this split: a fail-closed withhold is an evaluation failure, not a hijack match, so it still writes no finding to the baseline store (Requirement: Advisory would-deny finding written to the baseline store), and the audit and finding records hold no prompt text, file contents, or secret value (NFR-031). The scenarios Evaluation error in blocking mode withholds, Evaluation error in advisory mode passes through, and Hijack in a short structural field is blanked on fail-closed stay in force; the advisory-mode scenario is unchanged, and the short-structural-field scenario's discriminator-key clause is now tool-class-dependent per the supersedes list above and the two scenarios below.
+
+##### Scenario: Hijack in an MCP discriminator value is blanked on fail-closed
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and the alignment check throws or times out after reading an `mcp__<server>__<tool>` result whose `type`, `mimeType`, or `role` value carries hijack text
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the hook SHALL replace that discriminator value with the safe notice
+- **AND** the withheld `mcp__*` result SHALL carry no prompt text, file contents, or secret value in any discriminator value (FR-219, NFR-028)
+
+##### Scenario: Hijack in an MCP object key name is blanked on fail-closed
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and the alignment check throws or times out after reading an `mcp__<server>__<tool>` result that carries hijack text as an object key name
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the hook SHALL replace that object key name with the safe notice, so the key name becomes the notice
+- **AND** no attacker-controllable object key name from the MCP result SHALL survive in the withheld result
+
+##### Scenario: WebFetch discriminator and key names survive the fail-closed blanking
+
+- **GIVEN** the rule-mode store marks `goal-guard` blocking and the alignment check throws or times out after reading a `WebFetch` result whose body text carries a hijack and whose `type` and object key names are the tool's own fixed vocabulary
+- **WHEN** the hook fails closed and withholds the result through `updatedToolOutput`
+- **THEN** the hook SHALL replace the body text, and every other ordinary attacker-controllable string, with the safe notice
+- **AND** the hook SHALL keep the `type`, `mimeType`, and `role` values and the object key names verbatim so the result still validates against the `WebFetch` output shape and Claude Code does not pass the original to the model
+
+### REMOVED Requirements
+
+None.
+
+### Diagram
+
+Not re-rendered in this pass. The split changes the fail-closed blank-all internals for an MCP result, not the advisory start-to-end flow the Algorithmic steps diagram shows. The `.mmd` source and PNG are re-rendered at the next fold with the other deferred diagram edits.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-219, NFR-028 | Change Log 2026-11-14 (goal-guard fail-closed MCP discriminator and key-name hardening): Requirement: Depth- and breadth-bounded shape-preserving withhold clone | On a fail-closed withhold a `WebFetch` result keeps `type`, `mimeType`, `role`, their values, and object key names verbatim and still validates against the tool shape; a real `mcp__*` output blanks the discriminator values and object key names too and still forms a usable, well-formed withheld result Claude Code does not silently ignore (`tests/hooks/goal-guard.test.js`) |
+| NFR-028, FR-219 | Change Log 2026-11-14 (goal-guard fail-closed MCP discriminator and key-name hardening): Requirement: Fail closed for the guarded class in blocking mode | On a fail-closed withhold an `mcp__*` result with a hijack in a `type`/`mimeType`/`role` value has that value blanked, and an `mcp__*` result with a hijack in an object key name has that key name blanked to the notice; a `WebFetch` result keeps its discriminators and key names verbatim (`tests/hooks/goal-guard.test.js`) |
+| NFR-031 | Change Log 2026-11-14 (goal-guard fail-closed MCP discriminator and key-name hardening): Requirement: Fail closed for the guarded class in blocking mode | A fail-closed withhold still writes no finding, and the audit and finding records hold no prompt, file, or secret text, unchanged by the MCP split (`tests/hooks/goal-guard.test.js`) |
