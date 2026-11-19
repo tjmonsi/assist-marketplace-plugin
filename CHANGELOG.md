@@ -2,6 +2,18 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.3] - 2026-11-19
+
+### Added
+
+- Skills and rules now forbid polling a background task to wait for it. Instead of polling, an agent relies on the Claude Code background-completion notification and reads the task output file once, or uses the Monitor tool to react to output while other work continues
+- The plugin manifest declares `engines["claude-code"]` as `>=2.1.323`, the minimum Claude Code version the plugin supports
+
+### Compatibility
+
+- No hook, test, or script was added. Hook behavior and test coverage are unchanged
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.14.2] - 2026-11-14
 
 ### Changed
