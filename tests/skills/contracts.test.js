@@ -26,6 +26,12 @@
 // `**/.agent/governance/rule-modes.json` (FR-245, FR-238; spec-hooks-code-scan.md, Requirement: Rule-mode store governs
 // advisory versus blocking; the same task plan, Step 32), so it holds eight entries.
 //
+// SKILL.md split (task plan Step 5): the Dispatch body (Send, Failed steps, Review gates, SARIF file), Read each
+// result, Change check, Symlink guards, and Decision records moved verbatim (apart from headings and links) into
+// skills/do/references/dispatch.md, read-each-result.md, change-check.md, symlink-guards.md, and decision-records.md.
+// The /do tests below read each moved text from the file that now holds it; the Project root, SpecGate, Decompose,
+// Preflight, and DocSignOff sections stay in SKILL.md.
+//
 // Traceability format: [Scenario title | spec section | FR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -655,6 +661,9 @@ test("intake-reviewer States table still pairs Decide and Verify with their verd
 // ---------------------------------------------------------------------------
 
 const DO = read("skills/do/SKILL.md");
+const DISPATCH_REF = read("skills/do/references/dispatch.md");
+const CHANGE_CHECK_REF = read("skills/do/references/change-check.md");
+const DECISION_REF = read("skills/do/references/decision-records.md");
 
 test("/do resolves the project root once per run with the hooks' .git entry test, not git rev-parse", () => {
   // [Scenario: Subdirectory session; Worktree session; Outside a git repository
@@ -674,9 +683,15 @@ test("/do resolves the project root once per run with the hooks' .git entry test
 
 test("/do uses the shared <root> in SpecGate, Decompose, Decision records, Preflight, and Send", () => {
   // [Scenario: Subdirectory session | spec-orchestration-spec-first.md / spec-orchestration-chain-signoff.md | FR-187 | FR-190 | FR-192]
-  ["## SpecGate", "## Decompose", "### Decision records", "## Preflight", "### Send"].forEach((h) => {
-    const sec = joined(section(DO, h, false));
-    assert.ok(sec.indexOf("<root>") !== -1 || /SpecGate step 2|Project root/.test(sec), h + " refers to the shared root");
+  [
+    [DO, "## SpecGate"],
+    [DO, "## Decompose"],
+    [DECISION_REF, "# Decision records"],
+    [DO, "## Preflight"],
+    [DISPATCH_REF, "### Send"],
+  ].forEach((p) => {
+    const sec = joined(section(p[0], p[1], false));
+    assert.ok(sec.indexOf("<root>") !== -1 || /SpecGate step 2|Project root/.test(sec), p[1] + " refers to the shared root");
   });
 });
 
@@ -757,7 +772,7 @@ test("Decompose rework of a root-level plan: the prompt names a new path under d
 test("Send: chain prompts name the root and the absolute output path; a fix pass overwrites only a file in docs/task-plans", () => {
   // [Scenario: Chain steps; Subdirectory session; Rework of a legacy task plan
   //  | spec-orchestration-spec-first.md "Requirement 17" | FR-190 | FR-035 | FR-182 | FR-184]
-  const send = joined(section(DO, "### Send"));
+  const send = joined(section(DISPATCH_REF, "### Send"));
   const chain = linesOf(send).find((l) => l.indexOf("For a document-chain step") !== -1);
   assert.ok(chain, "document-chain bullet in Send");
   assert.ok(/names `<root>`|names the root/.test(chain));
@@ -771,7 +786,7 @@ test("Send: chain prompts name the root and the absolute output path; a fix pass
 test("root notes: both anchored title patterns, CRLF-tolerant, match count only, no Location line", () => {
   // [Scenario: Older project; Note already written; Heading text is data; Root-level task plan
   //  | spec-orchestration-spec-first.md "Requirement 15" | FR-188 | FR-191]
-  const dr = joined(section(DO, "### Decision records", false));
+  const dr = joined(section(DECISION_REF, "# Decision records", false));
   ["Requirements kept at the repository root", "Task plans kept at the repository root"].forEach((title) => {
     const m = new RegExp("`(\\^## [^`]*" + title + "[^`]*)`").exec(dr);
     assert.ok(m, "no pattern for " + title);
@@ -795,7 +810,7 @@ test("root notes: both anchored title patterns, CRLF-tolerant, match count only,
 
 test("root notes: a move happens only on request, as its own step at PlanApproval", () => {
   // [Scenario: Move on request | spec-orchestration-spec-first.md "Requirement 15" | FR-188]
-  const dr = joined(section(DO, "### Decision records", false));
+  const dr = joined(section(DECISION_REF, "# Decision records", false));
   assert.ok(/a move happens only when the user asks/.test(dr));
   assert.ok(/own step at PlanApproval/.test(dr));
 });
@@ -812,7 +827,7 @@ test("Preflight takes the change-check baseline against <root> and hashes the fi
 
 test("Change check: compare-before-write uses the same root and the task-planner scope reads docs/task-plans/", () => {
   // [Scenario: Subdirectory session | spec-orchestration-chain-signoff.md | FR-192 | FR-033]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/task-planner may write only a `task-plan-\*\.md` directly under `docs\/task-plans\/`/.test(cc));
   assert.ok(/<root>/.test(cc));
   assert.ok(/DECISIONS\.md/.test(cc));

@@ -2,6 +2,23 @@
 
 All code must use structured logging only. Unstructured logging (print, console.log, etc.) is prohibited in production code.
 
+**Contents**
+
+- [Log Levels](#log-levels)
+- [Structured Logging Tools](#structured-logging-tools)
+- [Output Format](#output-format)
+- [Never Log](#never-log)
+- [Mask Before Logging](#mask-before-logging)
+- [Minimum Necessary Exposure](#minimum-necessary-exposure)
+- [Per-Language Configuration](#per-language-configuration)
+  - [Python (logging + JSON)](#python-logging--json)
+  - [TypeScript/Node.js (Pino)](#typescriptnodejs-pino)
+  - [Go (slog)](#go-slog)
+  - [Rust (tracing + tracing-subscriber)](#rust-tracing--tracing-subscriber)
+  - [Kotlin (Timber for Android, SLF4J for backend)](#kotlin-timber-for-android-slf4j-for-backend)
+  - [C++ (spdlog)](#c-spdlog)
+- [Rules](#rules)
+
 ## Log Levels
 
 Use the standard taxonomy:

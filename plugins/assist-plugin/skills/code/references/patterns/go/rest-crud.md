@@ -4,6 +4,11 @@ Full Create/Read/Update/Delete endpoint set with `validator` and explicit
 error handling. See [../../languages/go.md](../../languages/go.md) and
 [../../frameworks/go-fiber.md](../../frameworks/go-fiber.md) for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Notes](#notes)
+
 ## Pattern
 
 ```go

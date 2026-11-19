@@ -238,7 +238,7 @@ successful injection has a large blast radius.
   `reviewer` and `code-reviewer` hold `Read, Grep, Glob, LSP` (no write, no shell), and
   `agents/explore.md` holds `Read, Grep, Glob`, so the reviewer/implementer separation of duties
   holds at runtime. Re-check the lists on every change to an agent file.
-- `skills/do/SKILL.md` Step 5 launches sub-agents with `run_in_background: true`, so delegated work
+- `skills/do/SKILL.md` (section "Dispatch invariants") launches sub-agents with `run_in_background: true`, so delegated work
   executes with no intervening human checkpoint.
 - `skills/pr-review/SKILL.md` Constraints assert "Cannot review own PR": asserted in prose, with no
   enforcement mechanism.
@@ -330,7 +330,7 @@ terminates.
   or reviewer round and escalates to the user with continue, waive, or abort (FR-218).
 - `effort: xhigh` is set on `do`, `reviewer`, `planner`, `solutions-architect`. Four of the
   most-invoked paths run at the highest reasoning budget.
-- `skills/do/SKILL.md` Step 5 supports parallel background agents with no concurrency cap.
+- `skills/do/references/dispatch.md` (section "Send") supports parallel background agents with no concurrency cap.
 - `agents/researcher.md` `WebFetch` can pull arbitrarily large pages into an Opus context.
 
 **Verification:**

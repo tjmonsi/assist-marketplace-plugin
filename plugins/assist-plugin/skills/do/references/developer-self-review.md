@@ -2,6 +2,14 @@
 
 Reference guide for developers to self-audit code before submitting for review.
 
+**Contents**
+
+- [Purpose](#purpose)
+- [Pre-Review Checklist](#pre-review-checklist)
+- [Common Issues Caught in Self-Review vs. Reviewer Feedback](#common-issues-caught-in-self-review-vs-reviewer-feedback)
+- [Iteration Loop: Addressing Feedback](#iteration-loop-addressing-feedback)
+- [Self-Review vs. Reviewer: Division of Labor](#self-review-vs-reviewer-division-of-labor)
+
 ## Purpose
 
 Before submitting code for security and code review gates, developers self-review to catch obvious issues and improve initial quality. This step precedes the reviewer audit and iteration loop.
@@ -50,7 +58,7 @@ Before submitting code for security and code review gates, developers self-revie
 
 ### Code Slop
 
-- [ ] Diff checked against the "When Reviewing" list in [code-slop.md](../../code/references/code-slop.md): narrating comments, swallowed errors, speculative options, type escapes, module mocks, hollow or skipped tests, drive-by edits
+- [ ] Diff checked against the "When Reviewing" list in `code-slop.md` (in the code skill's references): narrating comments, swallowed errors, speculative options, type escapes, module mocks, hollow or skipped tests, drive-by edits
 
 ### Performance
 

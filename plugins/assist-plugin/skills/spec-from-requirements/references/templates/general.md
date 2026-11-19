@@ -4,6 +4,12 @@ Use when the requirement does not fit architecture, API endpoint, frontend actio
 
 Unique to this template: the **Dependencies** table, and a **Feature type** field that names the specific category instead of a fixed value.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Template](#template)
+
 ## Template
 
 ````markdown

@@ -7,7 +7,7 @@
 | **Feature** | Area C: skill catalog, shared skill contract, manifests, and repository documents |
 | **Parent feature** | None |
 | **Sub-features** | spec-skills-ask-debug.md, spec-skills-git.md, spec-skills-pr-review.md, spec-skills-docs-review.md, spec-skills-requirements-specs.md, spec-skills-plan-test.md, spec-skills-deslop-voice-clarify.md, spec-skills-health.md, spec-skills-internal.md, spec-skills-manifests-docs.md, spec-skills-untrusted-input.md |
-| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, UR-058, FR-130, FR-183, FR-185, FR-211, FR-213, FR-214, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019 |
+| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, UR-058, FR-130, FR-183, FR-185, FR-211, FR-213, FR-214, FR-216, FR-217, FR-218, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019, NFR-026 |
 | **Feature type** | Tooling |
 | **Status** | Review |
 
@@ -855,3 +855,112 @@ None.
 ### Direct edits in this pass (no behavior change)
 
 Status stays `Review`; Requirement refs gain FR-214.
+
+## Change Log: 2026-11-19
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.7 (2026-11-19, section C.13 "Release 1.14.4" and section 5.1): NFR-026 (`:5345`, `SKILL.md` under 500 lines with its must-hold invariants in the first 5,000 tokens), FR-216 (`:5261`, reference files one level deep), FR-217 (`:5278`, a contents list on reference files over 100 lines), and FR-218 (`:5294`, eval suites for `do`, `code`, and `debug`), all PLANNED (1.14.4) and all settled by the user; `docs/research/research-cc-skills-token-opt-20261118.md` (read as data) is the fact source each requirement cites. FR-219 (the `model-routing.md` migration note) belongs to Area A and is not carried here. This spec received a delta, so its Status stays `Review` (FR-154).
+
+This entry adds four skill-file contract rules to the contract every skill file keeps. Each is a behavior-neutral authoring and structure rule enforced by review, with no code path and no test added, so the entry carries no data-flow diagram.
+
+### ADDED Requirements
+
+#### Requirement: SKILL.md size and invariant-placement bar
+
+Each `SKILL.md` under `plugins/assist-plugin/skills/` SHALL stay under 500 lines, with its must-hold invariants inside its first 5,000 tokens (the post-compaction retention window).
+
+**Requirement refs:** NFR-026, BR-003, UR-042 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5345` (NFR-026); `docs/research/research-cc-skills-token-opt-20261118.md:6`, `:63`
+
+The line count is `wc -l`; the 5,000-token figure is an estimate (characters divided by 4). The `do` skill (625 lines at 1.14.3, per the NFR-026 metric) is the first file the bar applies to. Its restructure (the Dispatch, Read-each-result, and Change-check bodies move to one-level references and the dispatch invariants hoist near the top of `skills/do/SKILL.md`) is an Area A change carried in spec-orchestration-dispatch.md and spec-orchestration.md (Change Logs 2026-11-19); this requirement holds the catalog-wide bar only.
+
+##### Scenario: Skill over the line bar
+
+- **GIVEN** a `SKILL.md` of 625 lines
+- **WHEN** a reviewer applies NFR-026
+- **THEN** the reviewer SHALL flag it, and the invariants SHALL move into the first 5,000 tokens or the detail SHALL move to a reference
+
+##### Scenario: Skill within the bar
+
+- **GIVEN** a `SKILL.md` of 300 lines whose must-hold invariants sit in its first 5,000 tokens
+- **WHEN** a reviewer applies NFR-026
+- **THEN** the skill SHALL pass
+
+#### Requirement: Reference files are one level deep
+
+A reference file under `plugins/assist-plugin/skills/*/references/` SHALL NOT link to another reference file, except that a link feeding a table checked by `scripts/check-fsa-tables.js` or `scripts/sync-writing-standard.js` SHALL stay a link.
+
+**Requirement refs:** FR-216, UR-042, BR-003 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5261` (FR-216); `docs/research/research-cc-skills-token-opt-20261118.md:70-71`, `:146`
+
+A partial read of a reference file can miss a nested link's target, so a reference cites one level only: the needed lines are inlined or the link is flattened. The script-checked tables stay linked, because the drift checks of NFR-021 (`check-fsa-tables.js`) and NFR-018 (`sync-writing-standard.js`) read those links.
+
+##### Scenario: Nested link removed
+
+- **GIVEN** a reference file that links to a second reference file
+- **WHEN** a reviewer applies FR-216
+- **THEN** the link SHALL be flattened to one level or the needed lines SHALL be inlined
+
+##### Scenario: Script-checked link kept
+
+- **GIVEN** a link that a `check-fsa-tables.js` or `sync-writing-standard.js` table reads
+- **WHEN** a reviewer applies FR-216
+- **THEN** the link SHALL stay and the reviewer SHALL NOT flag it
+
+#### Requirement: Long reference files carry a contents list
+
+Every reference file over 100 lines under `plugins/assist-plugin/skills/*/references/` SHALL carry a contents list of its headings.
+
+**Requirement refs:** FR-217, UR-042, BR-003 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5278` (FR-217); `docs/research/research-cc-skills-token-opt-20261118.md:70-71`, `:147`
+
+A `head` read of a long file otherwise misses its later sections; the contents list names every heading so a partial read still finds them.
+
+##### Scenario: Long file with a list
+
+- **GIVEN** a reference file of 140 lines with a contents list naming its headings
+- **WHEN** a reviewer applies FR-217
+- **THEN** the file SHALL pass
+
+##### Scenario: Long file without a list
+
+- **GIVEN** a reference file of 140 lines with no contents list
+- **WHEN** a reviewer applies FR-217
+- **THEN** the reviewer SHALL flag it
+
+#### Requirement: The highest-traffic skills ship eval suites
+
+The `do`, `code`, and `debug` skills SHALL each carry an eval suite under `plugins/assist-plugin/`, in a path that ships with the plugin, runnable with `claude plugin eval`.
+
+**Requirement refs:** FR-218, UR-042, BR-003 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5294` (FR-218); `docs/research/research-cc-skills-token-opt-20261118.md:23`, `:79-80`, `:148`
+
+No skill eval suite exists at the 1.14.3 baseline; this adds one per named skill. The `do` behavior the suite exercises belongs to Area A; this requirement records only the suite's presence and that it runs. This FR-218 is from `docs/requirements/FR-NFR-assist-plugin.md` (eval suites); it is a different requirement from the harness-governance FR-218 (the review-gate revision-loop cap) that the Area A specs cite.
+
+##### Scenario: Suite present
+
+- **GIVEN** the plugin source after the change
+- **WHEN** a reviewer lists the eval suites under `plugins/assist-plugin/`
+- **THEN** one suite SHALL exist for each of `do`, `code`, and `debug`
+
+##### Scenario: Suite runs
+
+- **GIVEN** an eval suite for one of the three skills
+- **WHEN** `claude plugin eval` runs on it
+- **THEN** the command SHALL start the suite without a path or format error
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-026 | Change Log 2026-11-19: Requirement: SKILL.md size and invariant-placement bar | `wc -l` of each `skills/*/SKILL.md` under 500; must-hold invariants within the first 5,000 tokens (estimate) |
+| FR-216 | Change Log 2026-11-19: Requirement: Reference files are one level deep | No reference-to-reference link under `skills/*/references/`, except a `check-fsa-tables.js` or `sync-writing-standard.js` table link |
+| FR-217 | Change Log 2026-11-19: Requirement: Long reference files carry a contents list | Every `skills/*/references/` file over 100 lines carries a headings contents list |
+| FR-218 | Change Log 2026-11-19: Requirement: The highest-traffic skills ship eval suites | An eval suite for `do`, `code`, and `debug` under `plugins/assist-plugin/`, started by `claude plugin eval` |
+
+### Direct edits in this pass (no behavior change)
+
+Status stays `Review`; Requirement refs gain NFR-026, FR-216, FR-217, and FR-218.

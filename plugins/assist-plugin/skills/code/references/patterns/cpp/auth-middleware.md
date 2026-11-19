@@ -3,6 +3,12 @@
 Bearer JWT verification as a `set_pre_routing_handler`, with a role-based
 guard. See [../../languages/cpp.md](../../languages/cpp.md) for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage](#usage)
+- [Notes](#notes)
+
 ## Pattern
 
 ```cpp

@@ -4,6 +4,11 @@ Full Create/Read/Update/Delete endpoint set with `validator` and typed error
 responses. See [../../languages/rust.md](../../languages/rust.md) for
 conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Notes](#notes)
+
 ## Pattern
 
 ```rust

@@ -1,5 +1,18 @@
 # Python Testing: pytest
 
+**Contents**
+
+- [Test Structure](#test-structure)
+- [Naming Conventions](#naming-conventions)
+- [Assertions](#assertions)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+- [Fixtures (Reusable Setup)](#fixtures-reusable-setup)
+- [Running Tests](#running-tests)
+- [Markers for Categorization](#markers-for-categorization)
+- [Mocking External Boundaries](#mocking-external-boundaries)
+- [Context Managers for Setup/Teardown](#context-managers-for-setupteardown)
+- [Best Practices](#best-practices)
+
 ## Test Structure
 
 `pytest` is the de-facto standard; use it with fixtures for reusable setup.

@@ -4,6 +4,12 @@ Bounded goroutine pool consuming a job channel, with graceful shutdown and
 per-job panic recovery. See [../../languages/go.md](../../languages/go.md)
 for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage from a Request Handler](#usage-from-a-request-handler)
+- [Notes](#notes)
+
 ## Pattern
 
 ```go

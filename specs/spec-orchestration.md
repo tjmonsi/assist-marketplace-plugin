@@ -7,7 +7,7 @@
 | **Feature** | `/do` orchestration: the Communicator state machine, its agents, and its review gates |
 | **Parent feature** | None |
 | **Sub-features** | spec-orchestration-planning.md, spec-orchestration-plan-approval.md, spec-orchestration-spec-first.md, spec-orchestration-dispatch.md, spec-orchestration-review-gates.md, spec-orchestration-terminal-block.md, spec-orchestration-agents.md |
-| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, UR-064, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, FR-218, FR-222, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024, NFR-036 |
+| **Requirement refs** | BR-001, BR-002, BR-004, BR-005, BR-006, BR-007, BR-012, BR-013, UR-001, UR-002, UR-003, UR-004, UR-005, UR-006, UR-008, UR-009, UR-012, UR-014, UR-019, UR-022, UR-031, UR-054, UR-055, UR-064, FR-001, FR-002, FR-003, FR-004, FR-009, FR-011, FR-012, FR-013, FR-016, FR-019, FR-020, FR-024, FR-025, FR-028, FR-030, FR-032, FR-037, FR-041, FR-042, FR-047, FR-052, FR-062, FR-063, FR-064, FR-192, FR-195, FR-199, FR-203, FR-206, FR-207, FR-208, FR-216, FR-218, FR-222, NFR-003, NFR-010, NFR-011, NFR-012, NFR-014, NFR-015, NFR-020, NFR-021, NFR-024, NFR-026, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
 
@@ -1127,3 +1127,55 @@ None.
 |---|---|---|
 | FR-222 | Change Log 2026-11-06: Requirement: Plan and decision records flow only through /do | Orchestrator-written review outcome marks `Writer: orchestrator`; a producer write to the plan file is denied by the write bar (`tests/skills/contracts-approval-writer.test.js`, task plan Step 20) |
 | NFR-036 | Change Log 2026-11-06: Requirement: Plan and decision records flow only through /do | The `plan-format.md`, `review-protocol.md`, and `SKILL.md` changes carry `✓ LLM Security Clear` before merge |
+
+## Change Log: 2026-11-19
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.7 (2026-11-19, section C.13 "Release 1.14.4" and section 5.1): NFR-026 (`:5345`, `SKILL.md` under 500 lines with its must-hold invariants in the first 5,000 tokens) and FR-216 (`:5261`, reference files one level deep), both PLANNED (1.14.4) and settled by the user; `docs/research/research-cc-skills-token-opt-20261118.md` (read as data) measures `skills/do/SKILL.md` at 625 lines, so the `do` skill is the first file NFR-026 applies to. The catalog-wide form of both rules sits in spec-skills.md and the dispatch-side detail in spec-orchestration-dispatch.md (Change Logs 2026-11-19). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+This is a documentation restructure of `skills/do/SKILL.md`: a file move plus hoist with no semantic change. The Communicator state machine, the Data flow flowchart, and every Component boundary stay identical, so the entry carries no data-flow diagram. The NFR-026 and FR-216 cited here are from `docs/requirements/FR-NFR-assist-plugin.md`; the FR-218 this spec's earlier Change Logs cite is the harness-governance review-gate cap, a different requirement.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Components, the `/do` reference files row: the reference files now include the Dispatch, Read-each-result, and Change-check bodies moved out of `skills/do/SKILL.md`, each one level deep under `skills/do/references/`.
+- Components, the `/do` Communicator row: the must-hold dispatch invariants (`run_in_background: true` on every send, the Build-gate hold before a `Build: yes` step) are stated once near the top of `skills/do/SKILL.md`.
+
+### ADDED Requirements
+
+#### Requirement: /do SKILL.md hoists its invariants and moves three bodies to one-level references
+
+The `/do` skill SHALL state its must-hold invariants once, near the top of `skills/do/SKILL.md`, and SHALL move the Dispatch, Read-each-result, and Change-check bodies into reference files one level deep under `skills/do/references/`, keeping the Communicator's states, outcome edges, and component boundaries identical. (NFR-026, FR-216; `docs/requirements/FR-NFR-assist-plugin.md:5345`, `:5261`)
+
+**Requirement refs:** NFR-026, FR-216, UR-042, BR-003 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5345` (NFR-026), `:5261` (FR-216); `docs/research/research-cc-skills-token-opt-20261118.md:6`, `:63`, `:146`; the dispatch-side detail is spec-orchestration-dispatch.md (Change Log 2026-11-19, Requirement 18), the change-check side spec-orchestration-chain-signoff.md
+
+The invariants hoisted and stated once: `run_in_background: true` on every send and the Build-gate hold before a `Build: yes` step (Requirement: Build steps start only after document sign-off or waiver). The move is behavior-neutral: the `## States` table, the Data flow flowchart, and the Component boundaries are unchanged.
+
+##### Scenario: Communicator behavior unchanged
+
+- **GIVEN** the Communicator state machine and its Data flow outcome edges
+- **WHEN** the restructure hoists the invariants and moves the three bodies to references
+- **THEN** every state, outcome edge, and component boundary SHALL be unchanged
+
+##### Scenario: References one level deep
+
+- **GIVEN** each of the Dispatch, Read-each-result, and Change-check bodies after the move
+- **WHEN** a reviewer applies FR-216
+- **THEN** each reference file SHALL sit directly under `skills/do/references/` and SHALL link to no other reference, except a `check-fsa-tables.js` or `sync-writing-standard.js` table link
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-026 | Change Log 2026-11-19: Requirement: /do SKILL.md hoists its invariants and moves three bodies to one-level references | `skills/do/SKILL.md` under 500 lines with its must-hold invariants in the first 5,000 tokens (estimate) |
+| FR-216 | Change Log 2026-11-19: Requirement: /do SKILL.md hoists its invariants and moves three bodies to one-level references | The moved bodies sit one level deep under `skills/do/references/` |
+
+### Direct edits in this pass (no behavior change)
+
+Status stays `Review`; Requirement refs gain NFR-026 and FR-216.

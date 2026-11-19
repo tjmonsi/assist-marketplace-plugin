@@ -4,6 +4,12 @@ Bounded thread pool consuming a job queue, with per-job exception isolation
 and graceful shutdown. See [../../languages/cpp.md](../../languages/cpp.md)
 for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage from a Request Handler](#usage-from-a-request-handler)
+- [Notes](#notes)
+
 ## Pattern
 
 ```cpp

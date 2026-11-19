@@ -2,6 +2,14 @@
 
 Source of truth for all agents in assist-plugin. Used by `do` skill for routing. `/do` dispatches each agent by its qualified name, `assist-plugin:<name>`.
 
+**Contents**
+
+- [All Agents (16)](#all-agents-16)
+- [Agent-Specific Skills](#agent-specific-skills)
+- [Routing Decision Tree](#routing-decision-tree)
+- [Model Tier Guidance](#model-tier-guidance)
+- [Override Model Strategy](#override-model-strategy)
+
 ## All Agents (16)
 
 | Agent | Responsibilities | Default Model | Tools | Primary Intent Match |
@@ -115,7 +123,7 @@ No clear match?
 | **Medium** | Sonnet | Most development work, analysis | ask, developer, developer-tester, planner, qa, requirements-gatherer, intake-reviewer, task-planner, devops, general-purpose, worker |
 | **High** | Opus | Complex decisions, security, formal review | orchestrator (`do`), reviewer, code-reviewer, solutions-architect, researcher |
 
-Planner moved from the High/Opus tier to the Medium/Sonnet tier; see [model-routing.md](model-routing.md#planner-cost-savings-sonnet-default) for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
+Planner moved from the High/Opus tier to the Medium/Sonnet tier; see "Planner Cost Savings (Sonnet default)" in model-routing.md for rationale. Opus remains available as an override for high-stakes or highly ambiguous architecture (see Override Model Strategy below).
 
 ---
 

@@ -1,5 +1,27 @@
 # C++ Testing: Catch2 / GoogleTest
 
+**Contents**
+
+- [Test Structure](#test-structure)
+  - [Catch2 Style](#catch2-style)
+  - [GoogleTest Style](#googletest-style)
+- [Naming Conventions](#naming-conventions)
+- [Assertions](#assertions)
+  - [Catch2](#catch2)
+  - [GoogleTest](#googletest)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+  - [Catch2 Sections](#catch2-sections)
+  - [GoogleTest Parameterized Tests](#googletest-parameterized-tests)
+- [Fixtures (Setup/Teardown)](#fixtures-setupteardown)
+  - [Catch2](#catch2-1)
+  - [GoogleTest](#googletest-1)
+- [Mocking with Google Mock (gmock)](#mocking-with-google-mock-gmock)
+- [Running Tests](#running-tests)
+  - [Catch2](#catch2-2)
+  - [GoogleTest](#googletest-2)
+- [Best Practices](#best-practices)
+- [Compiler Flags for Test Builds](#compiler-flags-for-test-builds)
+
 ## Test Structure
 
 `Catch2` (single-header, simpler syntax) or `GoogleTest/GTest` (more features, widely used).

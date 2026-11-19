@@ -2,6 +2,26 @@
 
 Integration testing patterns for vanilla JavaScript projects using Jest or Vitest.
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies (Jest)](#dependencies-jest)
+  - [Dependencies (Vitest alternative)](#dependencies-vitest-alternative)
+- [Test Database](#test-database)
+  - [With testcontainers](#with-testcontainers)
+- [HTTP Client Testing](#http-client-testing)
+  - [With Express](#with-express)
+  - [With custom fetch-based client](#with-custom-fetch-based-client)
+- [Mocking External APIs](#mocking-external-apis)
+  - [With jest mock](#with-jest-mock)
+  - [With nock (HTTP mocking library)](#with-nock-http-mocking-library)
+- [Database Testing](#database-testing)
+  - [With raw SQL](#with-raw-sql)
+- [Example Integration Test](#example-integration-test)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+- [Running Tests](#running-tests)
+
 ## Setup
 
 ### Dependencies (Jest)

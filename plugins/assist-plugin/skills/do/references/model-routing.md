@@ -2,6 +2,24 @@
 
 Decision table for assigning Claude models to agents in the `do` orchestrator.
 
+**Contents**
+
+- [Model Tier Assignment](#model-tier-assignment)
+- [Cost vs. Quality Trade-Off](#cost-vs-quality-trade-off)
+  - [Low Cost (Haiku)](#low-cost-haiku)
+  - [Medium Cost (Sonnet): Core Development](#medium-cost-sonnet-core-development)
+  - [High Cost (Opus): Decisions & Architecture](#high-cost-opus-decisions--architecture)
+- [Effort Level Assignment](#effort-level-assignment)
+- [Override Decision Matrix](#override-decision-matrix)
+  - [✓ YES, Can Downgrade to Sonnet](#-yes-can-downgrade-to-sonnet)
+  - [↑ YES, Can Upgrade to Opus](#-yes-can-upgrade-to-opus)
+  - [✗ NO, Keep Default (Non-Negotiable)](#-no-keep-default-non-negotiable)
+  - [Fix Phase (Non-Negotiable)](#fix-phase-non-negotiable)
+  - [Guidance](#guidance)
+  - [Planner Cost Savings (Sonnet default)](#planner-cost-savings-sonnet-default)
+  - [Cost Savings vs. Token Context](#cost-savings-vs-token-context)
+- [When migrating to Opus 5.5 or Sonnet 5.5](#when-migrating-to-opus-55-or-sonnet-55)
+
 ## Model Tier Assignment
 
 | Agent | Default Model | Can Override | Conditions |
@@ -106,7 +124,7 @@ When should you override the default model?
 - **All fixing agents (including developer-tester):** Always Sonnet (non-negotiable)
 - **Rationale:** Sonnet provides sufficient precision for applying specific identified fixes while saving cost
 - **Scope constraint:** Fix phase only modifies code/docs related to reviewer's identified findings
-- **See:** [fix-phase-rules.md](fix-phase-rules.md) for complete constraints and procedure
+- **See:** `fix-phase-rules.md` (same folder) for complete constraints and procedure
 
 ### Guidance
 - Cost optimization: Sonnet + iterate beats one Opus pass for 80% of tasks
@@ -142,4 +160,15 @@ The 3-tier routing strategy (Haiku/Sonnet/Opus) optimizes **cost and latency**, 
 **Example:** Routing the `explore` agent (pure search, no reasoning) to Haiku saves ~$0.10 per typical call vs. routing to Opus, while reading identical documentation/agent context.
 
 For per-scenario token measurements and optimization strategy, see [../../../docs/TOKEN_OPTIMIZATION.md](../../../docs/TOKEN_OPTIMIZATION.md).
+
+---
+
+## When migrating to Opus 5.5 or Sonnet 5.5
+
+This section proposes default-effort values for the 5.5 model family. It changes nothing today.
+
+- **Opus 5.5:** medium effort as the proposed default.
+- **Sonnet 5.5:** high effort as the proposed default.
+
+The values in the Effort Level Assignment table above stay the source of truth. Adopting any proposed value needs a separate recorded user decision. Until then, no agent frontmatter, tier, or override changes.
 

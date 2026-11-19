@@ -2,6 +2,25 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.4] - 2026-11-19
+
+### Added
+
+- `claude plugin eval` suites under `plugins/assist-plugin/evals/` for the `do`, `code`, and `debug` skills. Each suite holds trigger-rate indicators and task cases. The `debug` suite is limited where the sandbox backend for its on-load git commands is absent
+
+### Changed
+
+- The `do` skill's `SKILL.md` was split into reference files (Dispatch, Read-each-result, Change-check, Symlink guards, and Decision records) to bring it under 500 lines and lower token cost. Behavior is unchanged: the FSA states, outcomes, and all invariants stay as they were
+- Reference files over 100 lines now carry a contents list
+- Reference-to-reference links in the `do` references were flattened to one level
+- The `model-routing.md` reference adds a note with proposed Opus 5.5 and Sonnet 5.5 effort defaults. The current effort values are unchanged and remain the source of truth
+
+### Compatibility
+
+- No hook or runtime behavior change
+- The `do` contract tests were repointed to the moved reference text with their assertions unchanged, and the full suite stays green
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.14.3] - 2026-11-19
 
 ### Added

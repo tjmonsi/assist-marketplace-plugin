@@ -34,6 +34,14 @@
 // review's SARIF file. The test of the intro and the Constraints line asserts both. The SARIF flow itself is tested in
 // tests/hooks/sarif.test.js.
 //
+// SKILL.md split (task plan Step 5): the Dispatch body (Send, Failed steps, Review gates, SARIF file), Read each
+// result, Change check, Symlink guards, and Decision records moved verbatim (apart from headings and links) into
+// skills/do/references/dispatch.md, read-each-result.md, change-check.md, symlink-guards.md, and decision-records.md.
+// The tests below read each moved text from the file that now holds it; the States and Loops tables, the intro,
+// Decompose, PlanApproval, Display, Cleanup, and the Constraints stay in SKILL.md. The link and pointer wording that
+// the split changed is asserted in its new form: the SKILL.md link to references/dispatch.md#sarif-file, and the bare
+// "pr-review-flow.md" and "fsa-template.md" pointers inside the references.
+//
 // Traceability format: [Scenario title | spec section | FR/NFR ids]. The specs use named
 // requirement blocks and carry no SPEC-NNN id, so none is cited.
 //
@@ -129,6 +137,10 @@ function rowOf(text, firstCell) {
 }
 
 const DO = read("skills/do/SKILL.md");
+const DISPATCH_REF = read("skills/do/references/dispatch.md");
+const RESULT_REF = read("skills/do/references/read-each-result.md");
+const CHANGE_CHECK_REF = read("skills/do/references/change-check.md");
+const DECISION_REF = read("skills/do/references/decision-records.md");
 const PROTOCOL = read("skills/do/references/review-protocol.md");
 
 // ---------------------------------------------------------------------------
@@ -293,7 +305,7 @@ test("plan-format.md Error status carries the no-plan-file case", () => {
 
 test("Change check: a snapshot-file mismatch or lost hashes is an unexpected change that holds every Build: yes step", () => {
   // [Scenario: Snapshot file tampered, one step ran; Hashes lost, one step ran | spec-orchestration-chain-signoff.md | FR-032]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/a snapshot-file mismatch is an unexpected change/.test(cc));
   assert.ok(/every `Build: yes` step is held/.test(cc));
   assert.ok(/lost hashes also count as an unexpected change and hold every `Build: yes` step/.test(cc));
@@ -301,7 +313,7 @@ test("Change check: a snapshot-file mismatch or lost hashes is an unexpected cha
 
 test("Change check: with exactly one step run the step fails with policy-rejection and no sign-off is asked; with several, no step is blamed", () => {
   // [Scenario: Snapshot file tampered, one step ran; Snapshot file tampered, several steps ran | spec-orchestration-chain-signoff.md | FR-032]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/With exactly one step run since the last snapshot, that step fails with `policy-rejection`/.test(cc));
   assert.ok(/the mismatch is named in its \*\*Done\*\* field/.test(cc));
   assert.ok(/the Failed steps rule skips the task plan step and every `Build: yes` step, so no sign-off is asked/.test(cc));
@@ -310,23 +322,23 @@ test("Change check: with exactly one step run the step fails with policy-rejecti
 
 test("Change check: the compare-before-write sentence says 'during Dispatch' and the window runs through DocSignOff", () => {
   // [Scenario: Architectural edit at DocSignOff is compared | spec-orchestration-plan-approval.md | FR-032]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/Just before each \/do write to `<root>\/DECISIONS\.md` during Dispatch, compare the file['’]s hash with the baseline/.test(cc));
   assert.ok(/The window runs from the Preflight baseline to the end of the run, DocSignOff included/.test(cc));
 });
 
 test("Change check and Decision records: the appends at Approve come before the baseline and compare nothing", () => {
   // [Scenario: Append at Approve is not compared; Append at Approve before any baseline | spec-orchestration-plan-approval.md | FR-032]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/The appends at Approve \(decisions, the waiver, the root note\) come before the baseline exists and compare nothing/.test(cc));
-  const dr = joined(section(DO, "### Decision records (decision D5)"));
+  const dr = joined(section(DECISION_REF, "# Decision records"));
   assert.ok(/The append runs before Preflight takes the change-check baseline, so the baseline already holds it/.test(dr));
 });
 
 test("Change check refreshes the baseline after /do's own writes and removals under <root>/.agent/pr-review/", () => {
   // [Scenario: Scratch and body files not judged as prose (refresh part); No step is blamed for the removal
   //  | spec-orchestration-dispatch.md Requirements 14 and 15 | FR-195 | FR-208 | FR-032]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/after each \/do write or removal under `<root>\/\.agent\/pr-review\/` for a PR review \(Cleanup included\), refresh that file['’]s status line/.test(cc));
 });
 
@@ -374,7 +386,7 @@ test("Decompose Prompts bullet: the Spec step's prompt names <root> and the abso
 
 test("Send: chain prompts name <root> and the absolute output path, including <root>/specs/...", () => {
   // [Scenario: Spec step prompt in a subdirectory session; Spec artifact under the session directory | spec-orchestration-spec-first.md | FR-190]
-  const send = joined(section(DO, "### Send"));
+  const send = joined(section(DISPATCH_REF, "### Send"));
   const chain = linesOf(send).find((l) => l.indexOf("For a document-chain step") !== -1);
   assert.ok(chain, "document-chain bullet in Send");
   assert.ok(chain.indexOf("`<root>/specs/...`") !== -1, "Send does not name <root>/specs/...");
@@ -384,7 +396,7 @@ test("Send: chain prompts name <root> and the absolute output path, including <r
 
 test("Change check names the mermaid rule as a relative path or an absolute path under <root>", () => {
   // [Scenario: Spec step in a subdirectory session (diagram paths) | spec-orchestration-spec-first.md | FR-190 | FR-093]
-  const cc = joined(section(DO, "### Change check"));
+  const cc = joined(section(CHANGE_CHECK_REF, "### Change check"));
   assert.ok(/under `specs\/` or `<dir>\/specs\/`, as a relative path or an absolute path under `<root>`/.test(cc));
 });
 
@@ -466,7 +478,7 @@ test("review-protocol.md Fast-Track exclusion holds the NFR-011 path set with sr
 
 test("/do Review gates: the OWASP for LLM Gate clause, signature, path set, and checklist path", () => {
   // [Scenario: Gate dispatch; LLM gate prompt; Plugin path anchor; Skill metadata file | spec-orchestration-review-gates.md Requirement 13 | FR-199 | FR-061 | NFR-011; FR-218: a gate at its cap escalates to the user]
-  const g = joined(section(DO, "### Review gates"));
+  const g = joined(section(DISPATCH_REF, "### Review gates"));
   assert.ok(/also run the OWASP for LLM Gate, in addition to the type['’]s gate/.test(g));
   ["`agents/`", "`skills/` at any depth (`metadata.json` included)", "`rules/`", "`hooks/`", "`plugins/<name>/`", "`.claude/`", "`CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth", "`.claude/settings*.json`"].forEach((s) => {
     assert.ok(g.indexOf(s) !== -1, "Review gates lack " + s);
@@ -548,23 +560,23 @@ test("SKILL.md intro and Constraints carry the two user-confirmed delivery excep
   // [Scenario: Post is not an out-of-scope request; Draft confirmed and posted | spec-orchestration-dispatch.md Requirement 14 | FR-195; Tranche 4 | spec-orchestration-dispatch.md Change Log 2026-11-13 (Tranche 4), Requirement 16 and Reconciliation to as-built: the SARIF upload is the second user-confirmed delivery action | FR-241 | FR-214]
   const intro = linesOf(DO).find((l) => l.indexOf("Route every incoming task to the right specialized subagent") === 0);
   assert.ok(intro, "intro line missing");
-  assert.ok(/never does delivery work itself, except in two user-confirmed cases: posting a PR review draft \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file \(see \[SARIF file\]\(#sarif-file\)\)/.test(intro));
+  assert.ok(/never does delivery work itself, except in two user-confirmed cases: posting a PR review draft \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file \(see \[SARIF file\]\(references\/dispatch\.md#sarif-file\)\)/.test(intro));
   const rule = linesOf(DO).find((l) => l.indexOf("- Never do delivery work in the main agent.") === 0);
   assert.ok(rule, "constraint line missing");
-  assert.ok(/The only exceptions are user-confirmed: posting a PR review draft with `gh` or `bkt` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file with `gh api` \(see \[SARIF file\]\(#sarif-file\)\)/.test(rule));
+  assert.ok(/The only exceptions are user-confirmed: posting a PR review draft with `gh` or `bkt` \(see \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\)\) and uploading a review['’]s SARIF file with `gh api` \(see \[SARIF file\]\(references\/dispatch\.md#sarif-file\)\)/.test(rule));
 });
 
 test("SKILL.md Done bullet: a PR review step runs no gate, waits in waiting-user, and completes after a post, a post declined at the hook prompt, or a 'do not post' answer", () => {
   // [Scenario: Waiting for the confirmation; Draft not confirmed; Declined post completes the step | spec-orchestration-dispatch.md Requirements 14 Status and 5 | FR-195 | FR-051 | FR-052 | FR-048]
-  const done = linesOf(DO).find((l) => l.indexOf("- **Done:**") === 0);
+  const done = linesOf(RESULT_REF).find((l) => l.indexOf("- **Done:**") === 0);
   assert.ok(done, "Done bullet missing");
   assert.ok(/except for a PR review step: it runs no gate, sets the step `waiting-user` while the confirmation is open, and becomes `completed` only after a successful post, a post the user declined at the hook prompt, or a "do not post" answer/.test(done));
-  assert.ok(done.indexOf("references/pr-review-flow.md") !== -1);
+  assert.ok(done.indexOf("pr-review-flow.md") !== -1);
 });
 
 test("SKILL.md relay rule: the PR review draft in its one confirmation prompt is shown as it stands", () => {
   // [Scenario: Waiting for the confirmation; Confirmation names the target, verdict, and commands | spec-orchestration-dispatch.md | FR-195 | FR-052]
-  const line = linesOf(DO).find((l) => l.indexOf("A relayed question and the PR review draft in its one confirmation prompt") !== -1);
+  const line = linesOf(RESULT_REF).find((l) => l.indexOf("A relayed question and the PR review draft in its one confirmation prompt") !== -1);
   assert.ok(line, "relay rule line missing");
   assert.ok(/the only places agent text is shown as it stands/.test(line));
 });
@@ -604,23 +616,23 @@ test("SKILL.md PlanApproval: the plan names /do's own fetch and post with gh for
 
 test("SKILL.md Dispatch and Send point to pr-review-flow.md for a PR review step, naming both hosts and one Bash command per bkt post", () => {
   // [Scenario: Fetch and hand off; Bitbucket Cloud fetch | spec-orchestration-dispatch.md Requirement 14 Send | FR-195]
-  const dispatch = joined(section(DO, "## Dispatch"));
-  assert.ok(/A PR review step follows \[references\/pr-review-flow\.md\]\(references\/pr-review-flow\.md\): `\/do` classifies the `origin` \(the classification order is in that file\), fetches with `gh` for a `github\.com` remote or with `bkt` for a Bitbucket remote after the host pin/.test(dispatch));
+  const dispatch = joined(section(DISPATCH_REF, "## Dispatch"));
+  assert.ok(/A PR review step follows pr-review-flow\.md: `\/do` classifies the `origin` \(the classification order is in that file\), fetches with `gh` for a `github\.com` remote or with `bkt` for a Bitbucket remote after the host pin/.test(dispatch));
   assert.ok(/each `bkt` post as its own Bash command/.test(dispatch));
-  const send = joined(section(DO, "### Send"));
+  const send = joined(section(DISPATCH_REF, "### Send"));
   const line = linesOf(send).find((l) => l.indexOf("- For a PR review step:") === 0);
   assert.ok(line, "Send has no PR review bullet");
   assert.ok(/the gate name Security, the artifact type `code`/.test(line));
   assert.ok(line.indexOf("`<root>/.agent/pr-review/pr-<N>.diff`") !== -1);
-  assert.ok(line.indexOf("references/pr-review-flow.md#send") !== -1);
+  assert.ok(line.indexOf("Send in pr-review-flow.md") !== -1);
 });
 
 test("SKILL.md Display does not raise a post request the reviewer lists for a PR review; Failed steps points at the flow's failures", () => {
   // [Scenario: Post is not an out-of-scope request; Dependent of a failed Bitbucket fetch | spec-orchestration-dispatch.md Requirements 14 and 9 | FR-195 | FR-052]
   const d = joined(section(DO, "## Display"));
   assert.ok(/A post request the `reviewer` lists for a PR review is not raised: `\/do` posts a confirmed draft itself/.test(d));
-  const f = joined(section(DO, "### Failed steps (decision D3)"));
-  assert.ok(f.indexOf("references/pr-review-flow.md#failures") !== -1);
+  const f = joined(section(DISPATCH_REF, "### Failed steps (decision D3)"));
+  assert.ok(f.indexOf("Failures section of pr-review-flow.md") !== -1);
   assert.ok(/a host that is neither `github\.com` nor a Bitbucket remote by that file['’]s classification \(`precondition-failed`\)/.test(f));
   assert.ok(/A post the user declined at the hook prompt is not a failure: the step is `completed`/.test(f));
   assert.ok(/Its dependents are `skipped` as above/.test(f));
@@ -950,7 +962,7 @@ test("the reviewer prompt names the gate, the untrusted-file wrapper, the citati
   assert.ok(/never a line of `\.agent\/pr-review\/`/.test(send));
   assert.ok(/read the whole scratch file in parts and list each part not read in `skipped` as `not read \(part\): <path> lines A-B`/.test(send));
   assert.ok(/at or under 16,000 bytes/.test(send) && /how many were left out/.test(send));
-  assert.ok(/"Dispatch prompt text" from \[fsa-template\.md\]/.test(send));
+  assert.ok(/"Dispatch prompt text" from fsa-template\.md/.test(send));
   assert.ok(/A scratch path that does not exist ends the reviewer in `Error` with class `missing-input`/.test(send));
   assert.ok(/`\/do` sets the step `failed` and posts nothing/.test(send));
 });

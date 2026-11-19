@@ -4,6 +4,12 @@ Use when the requirement defines a user-facing interaction, UI flow, screen tran
 
 Unique to this template: the **Accessibility** section, which is mandatory and holds the interaction to WCAG 2.2 AA. Visual design (tokens, layout, component variants) belongs in a UI/UX design spec, not here; link the two as parent and sub-feature.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Template](#template)
+
 ## Template
 
 ````markdown

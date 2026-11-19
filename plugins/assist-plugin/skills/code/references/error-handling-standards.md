@@ -1,5 +1,23 @@
 # Error Handling Standards
 
+**Contents**
+
+- [Boundary Doctrine](#boundary-doctrine)
+  - [Controlled Boundaries (No wrapping needed)](#controlled-boundaries-no-wrapping-needed)
+  - [Uncontrolled Boundaries (Always wrap)](#uncontrolled-boundaries-always-wrap)
+  - [Wrapping Pattern](#wrapping-pattern)
+- [Error Classification](#error-classification)
+- [Process-Level Handlers](#process-level-handlers)
+  - [Node.js](#nodejs)
+  - [Python](#python)
+  - [Go](#go)
+  - [Rust](#rust)
+  - [C++](#c)
+  - [Kotlin](#kotlin)
+- [Logging in Error Handlers](#logging-in-error-handlers)
+- [Exception Specifications (C++ and Languages with Checked Exceptions)](#exception-specifications-c-and-languages-with-checked-exceptions)
+- [Rules](#rules)
+
 ## Boundary Doctrine
 
 **Wrap every uncontrolled boundary. Do not wrap pure calculations over validated data.**

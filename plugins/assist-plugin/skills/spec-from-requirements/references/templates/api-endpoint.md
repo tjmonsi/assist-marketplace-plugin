@@ -4,6 +4,12 @@ Use when the requirement defines an HTTP endpoint, webhook receiver, or RPC meth
 
 Unique to this template: the **Endpoint contract** block and the OpenAPI 3.1 fragment derived from it. After filling the contract, parameters, request body, and responses, generate the fragment per [../openapi-output.md](../openapi-output.md) rather than hand-writing the schema twice.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Template](#template)
+
 ## Template
 
 ````markdown

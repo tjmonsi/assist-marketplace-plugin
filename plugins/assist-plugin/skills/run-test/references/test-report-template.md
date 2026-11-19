@@ -2,6 +2,21 @@
 
 Template for consolidated test execution reports.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Report Structure](#report-structure)
+- [Field Guidance](#field-guidance)
+  - [Verdict](#verdict)
+  - [Test Results Table](#test-results-table)
+  - [Coverage](#coverage)
+  - [Test Failures](#test-failures)
+  - [Recommendations](#recommendations)
+  - [Next Steps](#next-steps)
+- [Report Writing Standard (Apply Throughout)](#report-writing-standard-apply-throughout)
+- [Template Sections Checklist](#template-sections-checklist)
+
 ---
 
 ## Report Structure

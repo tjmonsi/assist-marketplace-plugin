@@ -2,6 +2,21 @@
 
 Integration testing patterns for Python projects using pytest and async frameworks (FastAPI, etc.).
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies](#dependencies)
+- [Test Database](#test-database)
+  - [With testcontainers (recommended for CI/CD)](#with-testcontainers-recommended-for-cicd)
+- [HTTP Client Testing](#http-client-testing)
+  - [With FastAPI](#with-fastapi)
+- [Example Tests](#example-tests)
+  - [Simple API test](#simple-api-test)
+  - [Mock external API](#mock-external-api)
+  - [Redis testing](#redis-testing)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+
 ## Setup
 
 ### Dependencies

@@ -22,6 +22,12 @@
 // exceptions, posting a PR review draft with gh or bkt and uploading a review's SARIF file with gh api. The one test that
 // read the one-exception wording asserts both.
 //
+// SKILL.md split (task plan Step 5): the Dispatch body, Read each result, Change check, Symlink guards, and Decision
+// records moved verbatim (apart from headings and links) into skills/do/references/dispatch.md, read-each-result.md,
+// change-check.md, symlink-guards.md, and decision-records.md. The tests below read each moved text from the file that
+// now holds it; the States and Loops tables, Cleanup, the Constraints, and the other SKILL.md sections stay in SKILL.md.
+// The pointers to pr-review-flow.md inside those references are bare file names, and the tests assert that form.
+//
 // Traceability format: [Ax | Scenario title | spec section | FR/NFR ids]. Ax is the acceptance row
 // of the task plan docs/task-plans/task-plan-post-1-12-0-followups-20261022-143806.md. The specs
 // use named requirement blocks and carry no SPEC-NNN id, so none is cited.
@@ -154,6 +160,10 @@ function walk(dir) {
 }
 
 const DO = read("skills/do/SKILL.md");
+const DISPATCH_REF = read("skills/do/references/dispatch.md");
+const RESULT_REF = read("skills/do/references/read-each-result.md");
+const CHANGE_CHECK_REF = read("skills/do/references/change-check.md");
+const SYMLINK_REF = read("skills/do/references/symlink-guards.md");
 const FLOW = read("skills/do/references/pr-review-flow.md");
 const PLAN_FORMAT = read("skills/do/references/plan-format.md");
 const PRR_SKILL = read("skills/pr-review/SKILL.md");
@@ -621,7 +631,7 @@ test("terminal row: the two sentences about the symlink guard are present verbat
 test("Symlink guards: the plan-file and snapshot guard commands, where each runs, no rm -f of the plan file, and what a non-zero exit does", () => {
   // [A13 | Scenario: Symlinked .agent at Branch; Plan file edited in place; Plan file is a symlink; Symlinked snapshot folder without a scratchpad; Snapshots in the scratchpad;
   //  Planted file at a snapshot target; Plain folders; Guard Error writes no Status | spec-orchestration.md the symlink guard requirement | FR-207 | FR-032 | NFR-021]
-  const g = sectionText(DO, "### Symlink guards");
+  const g = sectionText(SYMLINK_REF, "# Symlink guards");
   const lines = fencedLines(g);
   assert.ok(lines.indexOf("test ! -L '<root>/.agent' && test ! -L '<root>/.agent/main-plan' && test ! -L '<plan path>'") !== -1, "the plan-file guard command is missing or differs");
   assert.ok(lines.indexOf("test ! -L '<root>/.agent' && test ! -L '<root>/.agent/change-check'") !== -1, "the snapshot guard command is missing or differs");
@@ -637,20 +647,23 @@ test("Symlink guards: the plan-file and snapshot guard commands, where each runs
   has(g, "In Dispatch, `/do` sends no new dispatch and no SendMessage, names the steps still running in the reply, and ends.");
   has(g, "A terminal Status write that the plan-file guard blocks is reported as `Error(policy-rejection)` in place of the terminal it was about to write, with no Status written. That covers `Complete`, `Partial`, and `Paused` from Cleanup, `Cancelled` from the PlanApproval cancel and the Preflight stop, and an `Error` of another class, the `Error(plan-invalid)` rows included.");
   has(g, "A non-zero plan-file or snapshot guard exit takes this outcome ahead of every other outcome of the state, `resume` at Ingest and the terminal choices at Cleanup included.");
-  has(g, "Only the plan-file and snapshot guards raise this Error. A symlink found by the PR-file guard fails only the PR step (see [references/pr-review-flow.md](references/pr-review-flow.md)), and one found by the Cleanup sweep or the removal after a post changes no terminal.");
+  has(g, "Only the plan-file and snapshot guards raise this Error. A symlink found by the PR-file guard fails only the PR step (see pr-review-flow.md), and one found by the Cleanup sweep or the removal after a post changes no terminal.");
   // /do text names no rm -f of the plan file: each rm -f mention concerns a snapshot file, a PR file, or says never.
-  linesOf(DO).forEach((l, i) => {
-    if (l.indexOf("rm -f") !== -1) assert.ok(/snapshot|never|that file|PR review/i.test(l), "SKILL.md:" + (i + 1) + ": an rm -f mention that is not about a snapshot or PR file: " + l.slice(0, 140));
+  [["SKILL.md", DO], ["references/symlink-guards.md", SYMLINK_REF]].forEach((pair) => {
+    linesOf(pair[1]).forEach((l, i) => {
+      if (l.indexOf("rm -f") !== -1) assert.ok(/snapshot|never|that file|PR review/i.test(l), pair[0] + ":" + (i + 1) + ": an rm -f mention that is not about a snapshot or PR file: " + l.slice(0, 140));
+    });
   });
   assert.ok(fencedLines(DO).every((l) => !/^rm\b/.test(l)), "a fenced rm command in SKILL.md");
+  assert.ok(fencedLines(SYMLINK_REF).every((l) => !/^rm\b/.test(l)), "a fenced rm command in references/symlink-guards.md");
 });
 
 test("the guards sit at the states that write: Branch path, resume, Dispatch, the Done update, Preflight snapshots, and the Cleanup outcome", () => {
   // [A13 | Scenario: Symlinked .agent at Branch; Plan file edited in place; Symlinked snapshot folder without a scratchpad | spec-orchestration.md Request flow | FR-207 | FR-032]
   has(DO, "Branch writes the plan file at `<root>/.agent/main-plan/plan-[slug]-[timestamp].md` using [references/plan-format.md](references/plan-format.md)");
   has(DO, "On `resume`, run the plan-file guard (see Symlink guards), then set every step still `in_progress` or `waiting-user` back to `pending`");
-  has(DO, "Run the plan-file guard (see Symlink guards) before each plan-file Edit, then use the Edit tool to set each step **Status** to `in_progress` when it starts.");
-  has(DO, "Run the plan-file guard, then update the plan file before proceeding.");
+  has(DISPATCH_REF, "Run the plan-file guard (see Symlink guards) before each plan-file Edit, then use the Edit tool to set each step **Status** to `in_progress` when it starts.");
+  has(RESULT_REF, "Run the plan-file guard, then update the plan file before proceeding.");
   has(DO, "Without a scratchpad directory, run the snapshot guard (see Symlink guards) before each snapshot write.");
   has(DO, "start the write command's `&&` chain with `rm -f --` of the snapshot file");
   const c = sectionText(DO, "## Cleanup");
@@ -669,12 +682,12 @@ test("SKILL.md PR-flow pointers name both hosts: Decompose, the plan line, Dispa
   const plan = linesOf(sectionText(DO, "### Show the plan in chat")).find((l) => l.indexOf("- For a PR review step:") === 0);
   assert.ok(plan, "no PR review line under the Order line");
   has(plan, "`/do`'s own fetch and post with `gh` for a `github.com` remote or with `bkt` for a Bitbucket remote after the host pin, decided when the step starts. Any other host fails with `precondition-failed` and a message that names both options. Approve covers the fetch; nothing is posted without the later confirmation.");
-  const dispatch = sectionText(DO, "## Dispatch");
-  has(dispatch, "A PR review step follows [references/pr-review-flow.md](references/pr-review-flow.md): `/do` classifies the `origin` (the classification order is in that file), fetches with `gh` for a `github.com` remote or with `bkt` for a Bitbucket remote after the host pin, hands the scratch file to the `reviewer`, asks the user once, and posts the confirmed draft itself, each `bkt` post as its own Bash command.");
-  const done = linesOf(DO).find((l) => l.indexOf("- **Done:**") === 0);
+  const dispatch = sectionText(DISPATCH_REF, "## Dispatch");
+  has(dispatch, "A PR review step follows pr-review-flow.md: `/do` classifies the `origin` (the classification order is in that file), fetches with `gh` for a `github.com` remote or with `bkt` for a Bitbucket remote after the host pin, hands the scratch file to the `reviewer`, asks the user once, and posts the confirmed draft itself, each `bkt` post as its own Bash command.");
+  const done = linesOf(RESULT_REF).find((l) => l.indexOf("- **Done:**") === 0);
   assert.ok(done, "Done bullet missing");
   has(done, "becomes `completed` only after a successful post, a post the user declined at the hook prompt, or a \"do not post\" answer");
-  const failed = sectionText(DO, "### Failed steps (decision D3)");
+  const failed = sectionText(DISPATCH_REF, "### Failed steps (decision D3)");
   has(failed, "including a missing `gh` or `bkt`, a host that is neither `github.com` nor a Bitbucket remote by that file's classification (`precondition-failed`), the Bitbucket pin failures");
   has(failed, "A post the user declined at the hook prompt is not a failure: the step is `completed`.");
   has(failed, "Its dependents are `skipped` as above.");
@@ -693,7 +706,7 @@ test("SKILL.md PR-flow pointers name both hosts: Decompose, the plan line, Dispa
 
 test("SKILL.md Change check refresh covers each write or removal under <root>/.agent/pr-review/, Cleanup included", () => {
   // [A15 | Scenario: No step is blamed for the removal | spec-orchestration-dispatch.md Requirement 15 | FR-208 | FR-032]
-  const cc = sectionText(DO, "### Change check");
+  const cc = sectionText(CHANGE_CHECK_REF, "### Change check");
   has(cc, "and after each /do write or removal under `<root>/.agent/pr-review/` for a PR review (Cleanup included), refresh that file's status line and, for `DECISIONS.md` and the PR review files, its hash in the baseline, so /do's own writes are never attributed to a step.");
 });
 

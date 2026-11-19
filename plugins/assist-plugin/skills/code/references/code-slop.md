@@ -4,6 +4,25 @@ Generated code has recognizable tells. Each one adds lines a reader must parse w
 
 Fix the tell; do not suppress it. A lint disable, a broader type, or a skipped test moves the problem somewhere harder to see.
 
+**Contents**
+
+- [Comments That Narrate the Next Line](#comments-that-narrate-the-next-line)
+- [Docstrings That Restate the Name](#docstrings-that-restate-the-name)
+- [Swallowed or Blanket-Caught Errors](#swallowed-or-blanket-caught-errors)
+- [Speculative Parameters, Options, and Config](#speculative-parameters-options-and-config)
+- [Premature Abstraction](#premature-abstraction)
+- [Unexplained Type Escapes](#unexplained-type-escapes)
+- [Defensive Checks for Impossible States](#defensive-checks-for-impossible-states)
+- [Runtime Type Checks That Re-Prove the Types](#runtime-type-checks-that-re-prove-the-types)
+- [Module-Wide Mocks in Tests](#module-wide-mocks-in-tests)
+- [Hollow Tests](#hollow-tests)
+- [Skipped or Commented-Out Failing Tests](#skipped-or-commented-out-failing-tests)
+- [Dead Code and TODO Litter](#dead-code-and-todo-litter)
+- [Logging Noise](#logging-noise)
+- [Copy-Paste Near-Duplicates](#copy-paste-near-duplicates)
+- [Drive-By Edits to Untouched Code](#drive-by-edits-to-untouched-code)
+- [When Reviewing](#when-reviewing)
+
 ## Comments That Narrate the Next Line
 
 **Why it hurts:** The comment repeats what the code already says, doubles the reading cost, and drifts out of date the first time the code changes.

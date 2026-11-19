@@ -1,9 +1,11 @@
 # assist-plugin: Functional and Non-Functional Requirements
 
-**Version:** 1.6
-**Date:** 2026-11-18
+**Version:** 1.7
+**Date:** 2026-11-19
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
+
+Version 1.7 (2026-11-19) adds five requirements for patch release 1.14.4, all PLANNED (1.14.4) and all settled by the user: NFR-026 (SKILL.md under 500 lines, invariants in the first 5,000 tokens), FR-216 (references one level deep), FR-217 (contents list on reference files over 100 lines), FR-218 (eval suites for `do`, `code`, and `debug`), and FR-219 (model-routing note of proposed effort values, current values unchanged). Nothing else changes.
 
 Version 1.6 (2026-11-18) adds two requirements for patch release 1.14.3, both PLANNED (1.14.3) and both settled by the user: FR-214 (agents do not wait on background work with shell polling loops; documentation-only enforcement) and FR-215 (`engines["claude-code"]` set to `>=2.1.323` in `plugin.json`). Nothing else changes. Statuses of other requirements keep the values of version 1.5.
 
@@ -37,7 +39,7 @@ Baseline note (version 1.3): assist-plugin 1.12.0 is released (commit `bb09e29`)
 |------|---------|--------|----------|
 | A | 2 | `/do` orchestration, routing, review gates, spec-first flow, agents, terminal blocks | FR-001 to FR-085, FR-187 to FR-192, and FR-199 |
 | B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181 (retired), FR-186, and FR-198 |
-| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), FR-211 to FR-213, and FR-214 and FR-215 |
+| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), FR-211 to FR-213, FR-214 and FR-215, and FR-216 to FR-219 |
 
 Section 5 holds the non-functional requirements. Each FR heading is followed by its scenarios. Each scenario is a `#### Scenario:` block in GIVEN/WHEN/THEN form. Source references (`path (section)`) point at the file that documents or implements the behavior, so a reader can verify the requirement.
 
@@ -5252,6 +5254,76 @@ Both requirements are PLANNED (1.14.3). The user settled them on 2026-11-18; the
 - **WHEN** FR-173 and FR-194 are checked
 - **THEN** every file the checklist names SHALL read 1.14.3 and the install id SHALL stay `assist-plugin@assist-plugin-marketplace`
 
+### C.13 Release 1.14.4: skill structure, evals, and the model-routing note
+
+FR-216 to FR-219 and NFR-026 (section 5.1) are PLANNED (1.14.4). The user settled all five policies; the Claude Code facts come from `docs/research/research-cc-skills-token-opt-20261118.md`, read as data. No URD row names these rules; each traces to the nearest row, and a dedicated user requirement is a follow-up for the URD owner.
+
+### FR-216: Reference files are one level deep
+
+**Statement (rule):** A reference file under `plugins/assist-plugin/skills/*/references/` SHALL NOT link to another reference file.
+**Statement (exemption):** A link that feeds a table checked by `scripts/check-fsa-tables.js` or `scripts/sync-writing-standard.js` SHALL stay a link.
+**Traces to:** UR-042 | **Priority:** Must | **Status:** PLANNED (1.14.4)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md:70-71` and `:146` (nested references can be read partially; the cross-skill `elicitation-methodology.md` link is the named example).
+
+#### Scenario: Nested link removed
+- **GIVEN** a reference file that links to a second reference file
+- **WHEN** a reviewer applies FR-216
+- **THEN** the link SHALL be flattened to one level or the needed lines SHALL be inlined
+
+#### Scenario: Script-checked link kept
+- **GIVEN** a link that a script-checked table reads
+- **WHEN** a reviewer applies FR-216
+- **THEN** the link SHALL stay and the reviewer SHALL NOT flag it
+
+### FR-217: Long reference files carry a contents list
+
+**Statement:** Every reference file over 100 lines under `plugins/assist-plugin/skills/*/references/` SHALL carry a contents list of its headings.
+**Traces to:** UR-042 | **Priority:** Must | **Status:** PLANNED (1.14.4)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md:70-71` and `:147` (a partial `head` read of a long file otherwise misses later sections).
+
+#### Scenario: Long file with a list
+- **GIVEN** a reference file of 140 lines with a contents list naming its headings
+- **WHEN** a reviewer applies FR-217
+- **THEN** the file SHALL pass
+
+#### Scenario: Long file without a list
+- **GIVEN** a reference file of 140 lines with no contents list
+- **WHEN** a reviewer applies FR-217
+- **THEN** the reviewer SHALL flag it
+
+### FR-218: The highest-traffic skills ship eval suites
+
+**Statement:** The `do`, `code`, and `debug` skills SHALL each carry an eval suite under `plugins/assist-plugin/`, in a path that ships with the plugin, runnable with `claude plugin eval`.
+**Traces to:** UR-042 | **Priority:** Must | **Status:** PLANNED (1.14.4)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md:23`, `:79-80`, and `:148` (no skill eval suite exists at the 1.14.3 baseline).
+
+#### Scenario: Suite present
+- **GIVEN** the plugin source after the change
+- **WHEN** a reviewer lists the eval suites under `plugins/assist-plugin/`
+- **THEN** one suite SHALL exist for each of `do`, `code`, and `debug`
+
+#### Scenario: Suite runs
+- **GIVEN** an eval suite for one of the three skills
+- **WHEN** `claude plugin eval` runs on it
+- **THEN** the command SHALL start the suite without a path or format error
+
+### FR-219: model-routing carries a migration note for Opus 5.5 and Sonnet 5.5
+
+**Statement (note):** `plugins/assist-plugin/skills/do/references/model-routing.md` SHALL carry a note of proposed default-effort values for Opus 5.5 and Sonnet 5.5.
+**Statement (source of truth):** The current effort values SHALL remain the source of truth, with any change to a proposed value held for a separate user decision.
+**Traces to:** UR-002 | **Priority:** Must | **Status:** PLANNED (1.14.4)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md:99` and `:145` (effort levels are recalibrated for Opus 5.5 and Sonnet 5.5). FR-010 keeps the model and effort assignment rule.
+
+#### Scenario: Note added, values unchanged
+- **GIVEN** `model-routing.md` after the change
+- **WHEN** a reviewer compares its effort table with the 1.14.3 file
+- **THEN** every current effort value SHALL be unchanged and the proposed values SHALL appear only in the note
+
+#### Scenario: Proposed values adopted
+- **GIVEN** a request to move an agent to a proposed value
+- **WHEN** no separate user decision is recorded
+- **THEN** the current value SHALL stay in force
+
 ## 5. Non-functional requirements
 
 Each requirement uses the form:
@@ -5270,6 +5342,7 @@ Every threshold below is copied from the cited source. This document does not cl
 | NFR-004 | A new feature SHOULD add fewer than 50 tokens to the always-loaded plugin text; for a new skill the counted text is its frontmatter `description` plus its `argument-hint`. | BR-003 | 50 tokens per feature (`docs/TOKEN_OPTIMIZATION.md`, Future Extensions). PLANNED (1.12.0) method, an estimate and not a measurement: the character count of the counted text divided by 4 (about 4 characters per token), so under about 200 characters; the answer to OP-5 in `plan-deferred-decisions-20261016-1059.md` |
 | NFR-005 | The prose hooks SHALL add no model tokens when the added text holds no tell. | BR-003, FR-103, FR-106 | 0 tokens on clean writes (`README.md`, Writing standard hooks) |
 | NFR-006 | Withdrawn in review. The documented footprint figures are estimates with no measurement method, so they are listed as notes in section 9 and not as a requirement. | BR-003 | none |
+| NFR-026 | Each `SKILL.md` under `plugins/assist-plugin/skills/` SHALL stay under 500 lines, with its must-hold invariants inside its first 5,000 tokens, the post-compaction retention window. PLANNED (1.14.4) | BR-003, UR-042 | 500 lines (`wc -l`); 5,000 tokens is an estimate (characters divided by 4), per `docs/research/research-cc-skills-token-opt-20261118.md:6` and `:63`. The `do` skill (625 lines at 1.14.3, same source) is the first file the bar applies to |
 
 #### Scenario: Context cap
 - **GIVEN** a compact standard file that grows past 10,000 characters with its header
@@ -5285,6 +5358,16 @@ Every threshold below is copied from the cited source. This document does not cl
 - **GIVEN** a new skill whose `description` and `argument-hint` together hold 320 characters
 - **WHEN** a reviewer applies NFR-004
 - **THEN** the estimate SHALL be about 80 tokens and the reviewer SHALL flag it as over the 50-token budget
+
+#### Scenario: Skill over the line bar (PLANNED, 1.14.4)
+- **GIVEN** a `SKILL.md` of 625 lines
+- **WHEN** a reviewer applies NFR-026
+- **THEN** the reviewer SHALL flag it and the invariants SHALL move into the first 5,000 tokens or the detail SHALL move to a reference
+
+#### Scenario: Skill within the bar (PLANNED, 1.14.4)
+- **GIVEN** a `SKILL.md` of 300 lines whose must-hold invariants sit in its first 5,000 tokens
+- **WHEN** a reviewer applies NFR-026
+- **THEN** the skill SHALL pass
 
 #### Scenario: Clean write adds no tokens
 - **GIVEN** a write to a prose file whose added text has no tell
@@ -5502,6 +5585,7 @@ Every threshold below is copied from the cited source. This document does not cl
 - The 1.12.0 changes, PLANNED, from the 40 deferred points answered on 2026-10-16: the named OWASP for LLM gate over `skills/**` (FR-054, FR-061, FR-199, NFR-011); Cleanup chooses the terminal and prints its report (FR-062 to FR-064); the snapshot-file outcome (FR-032); `ask` model row, registry-first routing, no plan file on a first-pass Error, the `general-purpose` body (FR-007, FR-009, FR-010, FR-012); skill rules (FR-136 to FR-139, FR-143, FR-147, FR-148, FR-175 to FR-177, FR-193 to FR-197, FR-200, FR-201, NFR-004, NFR-013, NFR-015, NFR-020); hook rules (FR-088, FR-091, FR-093, FR-094, FR-099, FR-118, FR-198).
 - The follow-up to 1.12.0, built for 1.13.0 (version 1.4), from the user's answers in the version 1.3 elicitation: Bitbucket support in `/pr-review` and the `/do` PR review flow (FR-142 to FR-144, FR-195, FR-202, FR-203); `/pr-review` direct-run hardening (FR-204, FR-205); `/do` PR flow hardening, the posting ask hook, `.agent` symlink checks, and PR file cleanup (FR-206 to FR-208); `/bump --path` validation (FR-209); and the checklist wording (FR-210).
 - PLANNED (1.14.3): the no-polling rule for background work, carried in skills and rules and enforced by documentation only (FR-214), and the `engines["claude-code"]` floor `>=2.1.323` in `plugin.json` (FR-215).
+- PLANNED (1.14.4): the skill-size bar (NFR-026), one-level reference depth (FR-216), contents lists on long references (FR-217), eval suites for `do`, `code`, and `debug` (FR-218), and the model-routing migration note (FR-219).
 
 #### Out of scope (system exclusions)
 
@@ -5541,15 +5625,15 @@ Each row lists the user requirements derived from the business requirement, the 
 | BR | UR | FR | NFR | Status |
 |----|----|----|-----|--------|
 | BR-001 | UR-001 to UR-005, UR-022 | FR-001 to FR-018, FR-025, FR-026, FR-045 to FR-053, FR-062 to FR-066, FR-068 to FR-070, FR-083 | NFR-010 | Built; PLANNED (1.12.0) parts: FR-007, FR-009, FR-010, FR-012, FR-062 to FR-064 |
-| BR-002 | UR-001, UR-002 | FR-001, FR-005, FR-008 to FR-018, FR-045, FR-046, FR-053, FR-065, FR-066 | none | Built; PLANNED (1.12.0) parts: FR-009, FR-010, FR-012 |
-| BR-003 | UR-024 | FR-107 | NFR-001 to NFR-005, NFR-008, NFR-025 (NFR-006 withdrawn) | Built; PLANNED (1.12.0) part: NFR-004; Built (1.13.0): NFR-025 |
+| BR-002 | UR-001, UR-002 | FR-001, FR-005, FR-008 to FR-018, FR-045, FR-046, FR-053, FR-065, FR-066, FR-219 | none | Built; PLANNED (1.12.0) parts: FR-009, FR-010, FR-012; PLANNED (1.14.4): FR-219 |
+| BR-003 | UR-024 | FR-107 | NFR-001 to NFR-005, NFR-008, NFR-025, NFR-026 (NFR-006 withdrawn) | Built; PLANNED (1.12.0) part: NFR-004; Built (1.13.0): NFR-025; PLANNED (1.14.4): NFR-026 |
 | BR-004 | UR-004, UR-006 to UR-009, UR-011 | FR-005, FR-006, FR-007, FR-019 to FR-030, FR-032 to FR-041, FR-043, FR-044, FR-049, FR-050, FR-070 to FR-073, FR-083, FR-151, FR-187 to FR-192 | none | Built; PLANNED (1.12.0) parts: FR-007, FR-032, FR-190 |
 | BR-005 | UR-013, UR-014, UR-034, UR-042, UR-049, UR-053, UR-057 | FR-048, FR-053 to FR-061, FR-077 to FR-082, FR-109, FR-130, FR-147, FR-148, FR-167 to FR-171, FR-193, FR-199, FR-210 | NFR-011, NFR-024 | Built; PLANNED (1.12.0) parts: FR-054, FR-061, FR-147, FR-148, FR-193, FR-199, NFR-011; Built (1.13.0): FR-210 |
 | BR-006 | UR-011, UR-012, UR-019 to UR-021, UR-031, UR-050, UR-054 to UR-056 | FR-022, FR-024, FR-027, FR-031 to FR-033, FR-035, FR-043, FR-044, FR-065, FR-067, FR-071, FR-074, FR-076, FR-085, FR-092 to FR-094, FR-099 to FR-102, FR-108 to FR-114, FR-142 to FR-144, FR-151, FR-175 to FR-177, FR-183, FR-185, FR-186, FR-190, FR-192, FR-195, FR-198, FR-202 to FR-209, FR-086 | NFR-012 to NFR-016 | Built; PLANNED (1.12.0) parts: FR-032, FR-093, FR-094, FR-099, FR-143, FR-175 to FR-177, FR-190, FR-195, FR-198, NFR-013, NFR-015; Built (1.13.0): FR-086 (counts), FR-202 to FR-209 |
 | BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118; Built (1.13.0): FR-086 (11 scripts and 16 commands), FR-091 and FR-118 (ask-hook clause); PLANNED (1.13.1): FR-118 (`docs/tts/` self-test cases) |
 | BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043, UR-058 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 (retired 1.13.1), FR-211, FR-212, FR-213 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148; PLANNED (1.13.1): FR-104 (exemption removed), FR-211, FR-212, FR-213, NFR-019; Retired (1.13.1): FR-181 |
 | BR-009 | UR-015, UR-028 | FR-095 to FR-098, FR-120, FR-135, FR-136, FR-196 | none | Built; PLANNED (1.12.0) parts: FR-136, FR-196 |
-| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213, FR-214 | none | Built; PLANNED (1.14.3): FR-214; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
+| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213, FR-214, FR-216 to FR-218 | none | Built; PLANNED (1.14.4): FR-216 to FR-218; PLANNED (1.14.3): FR-214; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
 | BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194, FR-215 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194; PLANNED (1.14.3): FR-215 |
 | BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195, FR-206, FR-207 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195; Built (1.13.0): FR-206, FR-207 |
 | BR-013 | UR-006, UR-035 to UR-038 | FR-005, FR-019, FR-020, FR-028 to FR-030, FR-032 to FR-035, FR-074 to FR-076, FR-078, FR-083 to FR-085, FR-149 to FR-160, FR-179, FR-182 to FR-187, FR-190 to FR-192, FR-197 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-197 |
@@ -5680,4 +5764,5 @@ Version 1.4 closes point 2 in part (the facts the build settled) and restates po
 | 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | Status after the follow-up build (`DECISIONS.md:243-271`), no new elicitation: PLANNED (follow-up to 1.12.0) set to Built (1.13.0) for FR-086 (11 scripts and 16 commands replace the 10 and 15 counts), FR-091 and FR-118 (ask-hook clauses), FR-139, FR-142 to FR-144, FR-195, FR-202 to FR-210, NFR-014, NFR-025, and the section 8 Status cells; nothing was found unbuilt. FR-206: the unrecognized-`bkt api`-option ask rule and the either-word-list rule, the best-effort stance, the 11-item known-gap list from the hook header comment, the three unverified items, and the closed forms (substitution spans, nested depth, run-time expansion, redirection words). FR-209 and FR-139: rule R8, the `test -d` check without `--`, an empty or `.` stripped absolute value as no `--path`, and the eight stop messages. FR-202 and FR-203: the step 1 results (`bkt api` methods and body, `--method`/`-X`, no repository flags on `bkt api`, version pattern, JSON-quoted `--jq` strings), the array-form filters, and `/do` counting contexts that meet the Match rule. NFR-008 and NFR-025: timing method confirmed, medians from the qa run (57.6, 67.2, 56.1, and 54.4 ms). Section 9: points settled by the build closed or narrowed. Fix pass 1 (same version, `DECISIONS.md:263-271`): FR-208 removes the five PR files by exact name with `rm -f --` after the symlink guard in one command that exits 3 on a symlink (no glob); FR-144 adds the run-folder removal bound to the `mktemp` prefix; FR-143 and FR-195 add the separate body-hash check before `bkt pr approve`; FR-202 clause (f) says "exactly one" for the context lookup means one element that meets the Match rule; FR-206 and the gap list live in five places with a pointer in `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md`; stale line citations corrected; section 9 points 6, 11, and 12 closed. Documents stay DRAFT until the user signs off |
 | 1.5 | 2026-10-23 | Toni-Jan Keith Monserrat | Release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `:278-281`), PLANNED (1.13.1). New FR-211 to FR-213. FR-181 retired (ID kept, Status Retired (1.13.1)). Changed FR-104 (statement keeps the temp-directory and allowlist exemptions; `docs/tts/` clause dropped; header-based scenarios and the fenced-block scenario; source ranges), FR-118 (two `docs/tts/` self-test scenarios and the health-check and test sources, tied to FR-091), FR-163 (Status, Source, and scenarios: save folder, header passes the gate, header denied then one retry), NFR-019 (whole-file count of U+2014 and curly quotes), section 1 table, section 6 scope, section 7 `DECISIONS.md` note, section 8 rows BR-007, BR-008, and BR-010, section 9 (new bullet for the files to change). Fix pass 1 (same version, 12 review findings): fenced script blocks stay exempt under FR-105 and FR-211 is the only control on script text; FR-211 scoped to dash-style pause marks (Gemini 3.8 double hyphen, no-dash models, Chatterbox-Turbo without line breaks, uncatalogued model with commas and periods, pause tags kept); FR-212 covers U+2015, header user text, a conditional curly-quote note, and other tells kept and flagged; FR-213 no longer applies the full writing standard to script text; one uppercase keyword per statement for FR-104, FR-211, FR-212, FR-213. Fix pass 2 (same version, `DECISIONS.md:283-286`, "Voice script curly quotes, header dashes, and save retry"): FR-211 statement forbids U+2014, U+2015, and curly quotes anywhere in a saved script whatever the text source, names ElevenLabs v2 (spaced hyphen), and gives ordinary-punctuation files and uncatalogued models commas and periods only (nine files cited); the whole-file scenario says a test counts; FR-212 header prose gets a comma or period for a dash (never a line break or double hyphen), refuses a typed voice id or clip path with U+2014, and flags kept tells by family and draft line without repeating text; FR-213 header scenario allows that flag form; FR-163 states the header-deny retry (one retry on the same path, second deny prints in chat); FR-118 advisor case uses an advisory-tier tell (an em dash is block-tier, so it stays a `prose-gate` case only); source ranges corrected (`prose-diff.js:146` goes, `:143-150` stays; test ranges added). Fix pass 3 (same version, `DECISIONS.md:288-291`, "Voice script typed values and tag-model pause marks"): FR-212 refuses a typed voice id, clip path, or model id (Other included) that holds U+2014, U+2015, or a curly quote, and its header-text statement is split in two; FR-211 names the seven remaining model files (ElevenLabs v3/v4, Deepgram Aura 2, Microsoft MAI-Voice, and the four tag models xAI Grok, Fish Audio S2, MiniMax Speech 2.8, Gemini 3.1 TTS Preview with commas and periods beside their tags, MiniMax newline kept) and the ordinary-punctuation rule with tags not counted; `DECISIONS.md` entries cited by line range everywhere (`:283-286`, `:288-291` added); `prose-diff.js:18-20`, `:26`, `:103-137` listed as dead code; health-check self-test test ranges `:110-146`, `:192-236`, `:418-438`; NFR-019 adds U+2015 and traces FR-212. Documents stay DRAFT until the user signs off |
 | 1.6 | 2026-11-18 | Toni-Jan Keith Monserrat | Release 1.14.3 delta, PLANNED (1.14.3), no new elicitation (both points settled by the user). New FR-214 (no shell polling loops for background work; completion notification plus one `Read`, or `Monitor`; documentation-only enforcement, no hook or test) and FR-215 (`engines["claude-code"]` of `>=2.1.323` in `plugin.json`). Updated: Area C range in section 1, section 6 scope and out-of-scope, section 8 rows BR-010 and BR-011. FR-214 traces to UR-042 as the nearest row; no URD row names it |
+| 1.7 | 2026-11-19 | Toni-Jan Keith Monserrat | Release 1.14.4 delta, PLANNED (1.14.4), no new elicitation (five policies settled by the user). New NFR-026 (skill-size bar), FR-216 (reference depth, script-checked links exempt), FR-217 (contents list over 100 lines), FR-218 (eval suites for `do`, `code`, `debug`), FR-219 (model-routing note; current effort values stay the source of truth). Updated: section 6 scope, section 8 rows BR-002, BR-003, BR-010. FR-216 to FR-218 and NFR-026 trace to UR-042 as the nearest row, FR-219 to UR-002; no URD row names them |
 

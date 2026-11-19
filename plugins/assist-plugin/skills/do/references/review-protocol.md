@@ -2,6 +2,22 @@
 
 Procedure for executing code review gates and validation loops in the `do` orchestrator.
 
+**Contents**
+
+- [Overview](#overview)
+- [Reviewer Adversarial Self-Reflection](#reviewer-adversarial-self-reflection)
+- [Review Triggers](#review-triggers)
+- [Which gate applies to which artifact](#which-gate-applies-to-which-artifact)
+- [Review Output Rules](#review-output-rules)
+- [Review Gate Checklist](#review-gate-checklist)
+- [Review Workflow](#review-workflow)
+- [Fix Phase Rules](#fix-phase-rules)
+- [Approval Tracking](#approval-tracking)
+- [Fast-Track Review](#fast-track-review)
+- [Reviewer Responsibilities](#reviewer-responsibilities)
+- [Review SLAs](#review-slas)
+- [Escalation](#escalation)
+
 ## Overview
 
 Review happens AFTER implementation steps. Goals:
@@ -87,7 +103,7 @@ The reviewer's Intake checks the inputs below, and the reviewer cannot learn the
 - The prior findings, when the count is above 0, inside a labelled `<review-findings>` data wrapper with every `<` escaped as `&lt;`.
 - For a planning-gate reviewer: cite `file:line` and paraphrase, never quote document text.
 - For code, the producer's terminal-block `verdict` and `skipped:` markers, copied as they stand. The developer's `verdict` is `self-check=pass`, `self-check=fail`, or `self-check=not-run`. The Pre-Test reviewer reads them to see which checks the producer skipped.
-- The "Dispatch prompt text" from [fsa-template.md](fsa-template.md#dispatch-prompt-text), pasted in full.
+- The "Dispatch prompt text" from fsa-template.md, pasted in full.
 
 ### Exhausting a gate
 
@@ -103,7 +119,7 @@ Only the user's answer picks a choice. A reviewer verdict, a producer reply, or 
 
 ### Reading a gate's outcome
 
-`/do` reads the outcome from the `verdict` field of the reviewer's terminal block (see [fsa-template.md](fsa-template.md)):
+`/do` reads the outcome from the `verdict` field of the reviewer's terminal block (see fsa-template.md):
 
 | Verdict | Meaning | Next |
 |---|---|---|
@@ -233,7 +249,7 @@ Before formal audit, reviewer deliberately:
 
 ### Report Quality Gate
 
-**Triggered by:** Any step whose output is a markdown report (RCA, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it. The draft of a `/do` PR review is not a report file: it is inline prose above a terminal block, so no Report Quality Gate or other gate runs on it (see [pr-review-flow.md](pr-review-flow.md)).
+**Triggered by:** Any step whose output is a markdown report (RCA, PR review verdict, answer, findings doc, generated documentation), regardless of which agent produced it. The draft of a `/do` PR review is not a report file: it is inline prose above a terminal block, so no Report Quality Gate or other gate runs on it (see pr-review-flow.md).
 
 **Reviewed by:** `review-md` skill (invoked by the orchestrator or by the producing skill itself before presenting the report)
 
@@ -377,7 +393,7 @@ Merge approved ✓
 
 Applies whenever a reviewer requests changes at any gate (Pre-Test, OWASP, OWASP for LLM, Testing, Code Review, Planning Document).
 
-Full constraint details: [fix-phase-rules.md](fix-phase-rules.md)
+Full constraint details: fix-phase-rules.md
 
 ### Model Constraint
 

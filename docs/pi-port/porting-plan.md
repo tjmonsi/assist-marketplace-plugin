@@ -2,7 +2,7 @@
 
 The port is feasible and its core value (per-agent model routing to reach other models) maps cleanly onto Pi, but one guarantee does not survive unchanged: assist-plugin's hooks see every subagent's tool calls through a single top-level registration, and Pi does not. In Pi a subagent runs in a child session the subagent extension constructs through the SDK, and a parent-bound `tool_call` handler is not invoked for that child's calls. The governance gate must instead be loaded into each subagent session. This is the main porting risk and it drives the recommended path: reuse `@tintinweb/pi-subagents` for the subagent layer (it already loads per-agent extensions into the child session and scopes models against `enabledModels`), port the 22 skills first (near-direct, same Agent Skills spec), then the 16 agents to prove model routing, then rewrite the 11 hooks as in-process TypeScript `pi.on(...)` handlers, and only then re-establish the governed core.
 
-Model-routing goal: achievable. Pi agents pin a model per agent via frontmatter `model:` (for example `anthropic/claude-haiku`, `openai/gpt-...`, or any provider you register), and Pi's provider and virtual-model APIs let you point an agent at a different model or a router without touching the agent file. The three-tier Haiku/Sonnet/Opus table in `skills/do/references/model-routing.md:7-26` becomes per-agent `model:` pins plus an optional `enabledModels` allowlist.
+Model-routing goal: achievable. Pi agents pin a model per agent via frontmatter `model:` (for example `anthropic/claude-haiku`, `openai/gpt-...`, or any provider you register), and Pi's provider and virtual-model APIs let you point an agent at a different model or a router without touching the agent file. The three-tier Haiku/Sonnet/Opus table in the Model Tier Assignment table of `skills/do/references/model-routing.md` becomes per-agent `model:` pins plus an optional `enabledModels` allowlist.
 
 Verification basis: Pi API claims are verified against the official docs at pi.dev. Subagent-extension claims are verified against the actual TypeScript source of `tintinweb/pi-subagents` where cited; claims verified only from a project README are labeled "README-only, not verified in code". Port-effort figures are estimates and labeled as such.
 
@@ -13,13 +13,13 @@ Verification basis: Pi API claims are verified against the official docs at pi.d
 | Plugin package (`plugin.json`, `marketplace.json`) | `plugins/assist-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` | Pi package: directory or npm package with conventional `extensions/`, `skills/`, `prompts/` dirs or an explicit `pi` key in `package.json`; installed with `pi install` | Low | Verified, https://pi.dev/docs/latest/packages |
 | 22 skills (`skills/*/SKILL.md`) | 22 `SKILL.md` files present (ls) | Pi Skills (same Agent Skills spec); drop into `skills/` or ship under the package `pi.skills` path | Low | Verified, https://pi.dev/docs/latest/skills |
 | 16 agents (`agents/*.md`, `type: agent`, `model`, `effort`, `tools`, `skills`) | `agents/*.md` frontmatter | Subagent extension agent files (markdown + YAML frontmatter) under `.pi/agents/*.md`, `.agents/agents/*.md`, or a package `pi.subagents.agents` path | Medium | Verified in source, `tintinweb/pi-subagents` `src/custom-agents.ts:158-213` |
-| Per-agent model pin (`model: sonnet` etc.) | all `agents/*.md`; table in `model-routing.md:7-26` | Frontmatter `model: provider/modelId` or fuzzy name (`"haiku"`); locks the agent | Low | Verified in source, `src/types.ts:54`, `src/custom-agents.ts:199` |
+| Per-agent model pin (`model: sonnet` etc.) | all `agents/*.md`; Model Tier Assignment table in `model-routing.md` | Frontmatter `model: provider/modelId` or fuzzy name (`"haiku"`); locks the agent | Low | Verified in source, `src/types.ts:54`, `src/custom-agents.ts:199` |
 | Effort tier (`effort: low\|medium\|high\|xhigh`) | all `agents/*.md` | Frontmatter `thinking:` (`off\|minimal\|low\|medium\|high\|xhigh\|max`), clamped to the model | Low; value rename | Verified in source, `src/custom-agents.ts:200`, `src/types.ts:55` |
 | enabledModels scoping of routing | `model-routing.md` intent | `scopeModels` policy reading `enabledModels` from `settings.json` | Low | Verified in source, `src/model-scope.ts`, `src/enabled-models.ts` |
 | Preloaded skills on an agent (`skills:` frontmatter) | `developer.md:9-10`, `qa.md:10-14`, etc. | Frontmatter `skills: true\|false\|csv` | Low | Verified in source, `src/types.ts:53`, `src/custom-agents.ts:198` |
 | Tool allowlist (`tools: [Read, Write, ...]`) | all `agents/*.md` | Frontmatter `tools:` csv of builtin names (`read, bash, edit, write, grep, find, ls`), `*`/`all`/`none`, or `ext:<ext>/<tool>` | Medium; name remap, gaps | Verified in source, `src/custom-agents.ts:362`, `src/agent-types.ts:14-23` |
 | `/do` orchestration skill | `skills/do/SKILL.md` | A skill plus a subagent-extension workflow or the `Agent` tool to dispatch; `/do` logic stays prose-driven | High | Partially verified (workflow in `tintinweb`); orchestration contract is prose |
-| Model-routing table (3 tiers) | `model-routing.md:7-26` | Per-agent `model:` pins + `enabledModels` + optional `registerVirtualModel` router | Medium | Verified, see sections 3 |
+| Model-routing table (3 tiers) | Model Tier Assignment table in `model-routing.md` | Per-agent `model:` pins + `enabledModels` + optional `registerVirtualModel` router | Medium | Verified, see sections 3 |
 | `fsa-write-bar` (PreToolUse Write) | `hooks/impl/fsa-write-bar.js` | `pi.on("tool_call")` returning `{ block: true, reason }` on write tools | Medium (logic ports; plumbing rewritten) | Verified, https://pi.dev/docs/latest/extensions |
 | `prose-gate` (PreToolUse Write, deny) | `hooks/impl/prose-gate.js`, `lib/prose-diff.js` | `pi.on("tool_call")` block on prose write | Medium | Verified |
 | `prose-advisor` (PostToolUse Write, note) | `hooks/impl/prose-advisor.js` | `pi.on("tool_result")` or `tool_execution_end`, notify-only | Medium | Verified |
@@ -69,7 +69,7 @@ Goal met: each of the 16 agents becomes one markdown agent file with a per-agent
 |---|---|---|---|
 | `type: agent` | present on all | drop | Pi infers agent from the file location |
 | `model: haiku\|sonnet\|opus` | `explore`/`commit` haiku; most sonnet; `code-reviewer`/`reviewer`/`researcher`/`solutions-architect` opus | `model: anthropic/claude-haiku` etc. or fuzzy `haiku` | Pin exact `provider/modelId` for `enabledModels` scope matches (section 3.4) |
-| `effort: low\|medium\|high\|xhigh` | per `model-routing.md:54-73` | `thinking:` same words | `low/medium/high/xhigh` shared; Pi adds `minimal`/`max`; Pi clamps |
+| `effort: low\|medium\|high\|xhigh` | per the Effort Level Assignment table in `model-routing.md` | `thinking:` same words | `low/medium/high/xhigh` shared; Pi adds `minimal`/`max`; Pi clamps |
 | `tools: [...]` | capitalized Claude Code names | `tools:` lowercase csv | See remap below |
 | `skills: [...]` | `code`, `pentest`, etc. | `skills:` csv | Direct |
 
@@ -87,9 +87,9 @@ Runtime model change: `pi.setModel(model)` switches the session's model but retu
 
 ### 3.4 Mapping the routing tiers to Pi
 
-The table at `model-routing.md:7-26` becomes:
+The Model Tier Assignment table in `model-routing.md` becomes:
 - Each agent's default tier -> the agent file `model:` pin.
-- "Can Override: No" agents (`orchestrator`, `reviewer`, `code-reviewer`, `explore`, `commit`, `researcher`, `requirements-gatherer`, `intake-reviewer`; `model-routing.md:95-104`) -> a pinned `model:` plus, if you want the pin enforced against caller overrides, rely on `tintinweb`'s rule that frontmatter `model` "locks the agent" and Agent-tool params "only fill unspecified fields" (README; the lock is the design in `src/agent-types.ts` and `src/types.ts:54`).
+- "Can Override: No" agents (`orchestrator`, `reviewer`, `code-reviewer`, `explore`, `commit`, `researcher`, `requirements-gatherer`, `intake-reviewer`; the "NO, Keep Default (Non-Negotiable)" list in `model-routing.md`) -> a pinned `model:` plus, if you want the pin enforced against caller overrides, rely on `tintinweb`'s rule that frontmatter `model` "locks the agent" and Agent-tool params "only fill unspecified fields" (README; the lock is the design in `src/agent-types.ts` and `src/types.ts:54`).
 - "Can Override" agents -> leave `model:` as the default; a caller (the `/do` equivalent) may pass a different model on the spawn, subject to scope.
 - `enabledModels` scope -> `tintinweb`'s `scopeModels` (opt-in via `/agents -> Settings -> Scope models`) validates a subagent's model against `enabledModels` from `~/.pi/agent/settings.json` and `<cwd>/.pi/settings.json` (`src/model-scope.ts` docstring, `src/enabled-models.ts`). A caller-supplied out-of-scope model is a hard error; a frontmatter-pinned out-of-scope model warns and still runs (`src/model-scope.ts` `checkModelScope`). Only exact `provider/modelId` entries are honored; globs and bare ids are dropped (README; `src/enabled-models.ts`). So to use `enabledModels` as the routing allowlist, pin agents with exact ids.
 

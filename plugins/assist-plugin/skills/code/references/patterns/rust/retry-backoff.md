@@ -4,6 +4,12 @@ Resilient outbound call helper built on `tokio::time`. See
 [../../languages/rust.md](../../languages/rust.md) and
 [../../error-handling-standards.md](../../error-handling-standards.md).
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage](#usage)
+- [Notes](#notes)
+
 ## Pattern
 
 ```rust

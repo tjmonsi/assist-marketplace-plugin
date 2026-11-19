@@ -2,6 +2,20 @@
 
 The single procedure for removing finished git worktrees, deleting their merged branches, and clearing build caches. `/branch cleanup` and the `/do` Cleanup state both run this file. Nothing here uses `--force`, `-D`, `git clean`, or `rm -rf`.
 
+**Contents**
+
+- [Modes](#modes)
+- [Failure rules](#failure-rules)
+- [Procedure](#procedure)
+  - [1. Record disk space](#1-record-disk-space)
+  - [2. Identify the default branch](#2-identify-the-default-branch)
+  - [3. List worktrees](#3-list-worktrees)
+  - [4. Check eligibility](#4-check-eligibility)
+  - [5. Remove each eligible worktree](#5-remove-each-eligible-worktree)
+  - [6. Check stale entries and clear caches](#6-check-stale-entries-and-clear-caches)
+  - [7. Report](#7-report)
+- [Guards](#guards)
+
 ## Modes
 
 | Mode | Caller | Candidate worktrees |

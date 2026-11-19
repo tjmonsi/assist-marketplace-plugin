@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //
 // Black-box acceptance tests for the SARIF output of harness-governance Tranche 4: the pure converter
-// plugins/assist-plugin/hooks/lib/sarif.js, the orchestrator-side write path in skills/do/SKILL.md, and the read-only
+// plugins/assist-plugin/hooks/lib/sarif.js, the orchestrator-side write path in skills/do/references/dispatch.md
+// (the "### SARIF file" section, moved there from skills/do/SKILL.md), and the read-only
 // reviewers. Task plan Step 37 (with a SARIF 2.1.0 schema check).
 //
 // Sources: specs/spec-orchestration-dispatch.md (Change Log 2026-11-13 (Tranche 4), Requirement 16: Write the SARIF file
@@ -525,7 +526,7 @@ test("[AC-1 | " + AS_BUILT + " | FR-241] the module exports only conversion help
 // The orchestrator-side write path is used and no reviewer write path exists
 // ---------------------------------------------------------------------------
 
-const DO = read("skills/do/SKILL.md");
+const DO = read("skills/do/references/dispatch.md");
 const SARIF_SECTION = section(DO, "### SARIF file");
 
 test("[AC-1 | " + DISPATCH + " | FR-241] /do writes the file at <root>/.agent/reviews/review-<slug>.sarif from the reviewer's content, through lib/sarif.js and the Write tool", () => {

@@ -2,6 +2,26 @@
 
 How `/do` runs a pull request review for a `github.com` remote or a Bitbucket remote: it fetches the PR with `gh` or `bkt` through Bash, hands the scratch file to a read-only `reviewer`, asks the user once, posts the confirmed draft itself, and removes the PR's files afterward. [SKILL.md](../SKILL.md) points here from Decompose, Dispatch, Display, and Failed steps.
 
+**Contents**
+
+- [Standing rules](#standing-rules)
+- [Plan](#plan)
+- [Host and repository](#host-and-repository)
+- [Bitbucket host pin](#bitbucket-host-pin)
+- [Paths](#paths)
+- [Fetch](#fetch)
+- [Tamper check](#tamper-check)
+- [Send](#send)
+- [Read the result](#read-the-result)
+- [Confirm](#confirm)
+- [SARIF upload](#sarif-upload)
+- [Post](#post)
+- [Hook prompt](#hook-prompt)
+- [Status](#status)
+- [Failures](#failures)
+- [Record](#record)
+- [Cleanup](#cleanup)
+
 ## Standing rules
 
 - `/do` fetches by a Bash redirect, so the PR text never enters its context. It reads only exit statuses, byte counts, line counts, and hashes, never the text of the diff or the PR.
@@ -32,7 +52,7 @@ A request such as "review PR 123" is `non-build` and decomposes into one `review
 
 ## Host and repository
 
-At Decompose and again when the step starts (`in_progress`), `/do` reads the `origin` URL, the remote that [pr-detection.md](../../pr-review/references/pr-detection.md) prefers. One command reads it and strips any `user:password@` or `token@` part after `://`, so no credential reaches `/do`'s context. The command holds a real pipe, so it runs under `set -o pipefail`:
+At Decompose and again when the step starts (`in_progress`), `/do` reads the `origin` URL, the remote that `pr-detection.md` (in the pr-review skill's references) prefers. One command reads it and strips any `user:password@` or `token@` part after `://`, so no credential reaches `/do`'s context. The command holds a real pipe, so it runs under `set -o pipefail`:
 
 ```bash
 set -o pipefail; git -C '<root>' remote get-url origin | sed -E 's#^([a-z+]+://)[^/@]*@#\1#'
@@ -189,7 +209,7 @@ The Agent call names `assist-plugin:reviewer`. The step prompt carries:
 - The citation rule: cite the PR file and the diff-hunk line, never a line of `.agent/pr-review/`; use the scratch-file line only for the re-read at Decide.
 - The rule to read the whole scratch file in parts and list each part not read in `skipped` as `not read (part): <path> lines A-B`.
 - The rule to keep the draft at or under 16,000 bytes and, when the findings do not fit, to list the most severe and state how many were left out.
-- The "Dispatch prompt text" from [fsa-template.md](fsa-template.md#dispatch-prompt-text), pasted in full.
+- The "Dispatch prompt text" from fsa-template.md, pasted in full.
 
 A scratch path that does not exist ends the reviewer in `Error` with class `missing-input`. `/do` sets the step `failed` and posts nothing.
 

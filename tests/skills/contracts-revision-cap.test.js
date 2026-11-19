@@ -3,7 +3,8 @@
 // Contract tests for the revision-loop cap and the human escalation (harness-governance Tranche 1, Step 8):
 // plugins/assist-plugin/skills/do/references/review-protocol.md ("Exhausting a gate" and every gate's exit
 // condition), plugins/assist-plugin/rules/assist-plugin-rule.md, plugins/assist-plugin/skills/do/SKILL.md
-// (Loops table, Review gates), plugins/assist-plugin/agents/code-reviewer.md, and the do references that
+// (Loops table) and plugins/assist-plugin/skills/do/references/dispatch.md (Review gates, moved there from
+// SKILL.md), plugins/assist-plugin/agents/code-reviewer.md, and the do references that
 // repeat the cap (fix-phase-rules.md, planning-review-agents.md, reviewer-adversarial-reflection.md,
 // agent-registry.md).
 //
@@ -64,6 +65,7 @@ const FILES = {
   protocol: "skills/do/references/review-protocol.md",
   rule: "rules/assist-plugin-rule.md",
   doSkill: "skills/do/SKILL.md",
+  dispatch: "skills/do/references/dispatch.md",
   codeReviewer: "agents/code-reviewer.md",
   fixPhase: "skills/do/references/fix-phase-rules.md",
   planning: "skills/do/references/planning-review-agents.md",
@@ -239,7 +241,7 @@ test("[FR-218 | 2.5 | Cap reached] the /do Loops row escalates to the user at th
 });
 
 test("[FR-218 | 2.5 | Cap reached] /do Review gates: a gate at its cap runs no further round, dispatches no code-reviewer pass, and escalates with the unresolved findings", () => {
-  const gates = section(TEXT.doSkill, /^### Review gates$/);
+  const gates = section(TEXT.dispatch, /^### Review gates$/);
   assert.ok(/A gate that reaches its cap of 10 iterations without approval \(the OWASP for LLM Gate included\) runs no further developer or reviewer round and dispatches no code-reviewer pass/.test(gates), gates);
   assert.ok(/escalates to the user with the unresolved findings and the choices continue, waive, or abort/.test(gates), gates);
   assert.ok(/Only the user's answer picks a choice/.test(gates), gates);

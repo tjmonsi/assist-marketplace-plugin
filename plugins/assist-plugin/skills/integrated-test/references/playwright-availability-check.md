@@ -2,6 +2,23 @@
 
 Before writing or running any Playwright-based E2E test, check for Playwright availability using this detection-then-fallback pattern.
 
+**Contents**
+
+- [Purpose](#purpose)
+- [Detection Pattern](#detection-pattern)
+  - [Step 1: Check for Playwright MCP Server](#step-1-check-for-playwright-mcp-server)
+  - [Step 2: Fall Back to CLI Check](#step-2-fall-back-to-cli-check)
+  - [Step 3: Handle Not Found](#step-3-handle-not-found)
+- [Example Implementation](#example-implementation)
+  - [As a skill check (pseudo-code)](#as-a-skill-check-pseudo-code)
+  - [In a Node.js script](#in-a-nodejs-script)
+  - [In a Bash script](#in-a-bash-script)
+- [Expected Outcomes](#expected-outcomes)
+  - [Success (Playwright Available)](#success-playwright-available)
+  - [Failure (Playwright Not Available)](#failure-playwright-not-available)
+- [User Communication](#user-communication)
+- [Integration with integrated-test Skill](#integration-with-integrated-test-skill)
+
 ---
 
 ## Purpose

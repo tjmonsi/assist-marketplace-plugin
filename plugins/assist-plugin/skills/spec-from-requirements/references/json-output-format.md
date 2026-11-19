@@ -4,6 +4,13 @@ Machine-readable projection of a spec file, emitted with `--json` to `specs/spec
 
 A spec's own Requirements are numbered per file as `REQ-spec-NNN`. **These IDs are local to the spec file and are not globally unique.** The stable, globally meaningful identifiers are the `BR-NNN`, `UR-NNN`, `FR-NNN`, and `NFR-NNN` IDs from `gather-requirements`, which appear in `metadata.requirement_refs` and in each `traceability[].traces_to` entry.
 
+**Contents**
+
+- [Schema](#schema)
+- [Field rules](#field-rules)
+- [Example](#example)
+- [Constraints](#constraints)
+
 ## Schema
 
 ```json

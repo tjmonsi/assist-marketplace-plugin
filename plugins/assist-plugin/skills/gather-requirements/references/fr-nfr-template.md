@@ -4,6 +4,20 @@ Use this template when producing the combined functional and non-functional requ
 
 Leave `[Author]` for the user to complete. Never hardcode a name.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [\[Project Name\]: Functional and Non-Functional Requirements](#project-name-functional-and-non-functional-requirements)
+  - [1. Introduction](#1-introduction)
+  - [2. Functional requirements](#2-functional-requirements)
+  - [3. Non-functional requirements](#3-non-functional-requirements)
+  - [4. Scope](#4-scope)
+  - [5. Constraints](#5-constraints)
+  - [6. Traceability matrix](#6-traceability-matrix)
+  - [7. Glossary](#7-glossary)
+  - [8. Revision history](#8-revision-history)
+
 ---
 
 ## [Project Name]: Functional and Non-Functional Requirements

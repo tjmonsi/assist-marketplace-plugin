@@ -2,6 +2,20 @@
 
 Integration testing patterns for Kotlin projects using Hilt, Room, and MockWebServer.
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies (build.gradle.kts)](#dependencies-buildgradlekts)
+- [Test Setup with Hilt](#test-setup-with-hilt)
+- [Database Testing with Room](#database-testing-with-room)
+  - [In-memory database per test](#in-memory-database-per-test)
+- [HTTP Client Testing with MockWebServer](#http-client-testing-with-mockwebserver)
+- [Coroutine Testing](#coroutine-testing)
+- [Example Integration Test](#example-integration-test)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+- [Running Tests](#running-tests)
+
 ## Setup
 
 ### Dependencies (build.gradle.kts)

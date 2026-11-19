@@ -1,5 +1,27 @@
 # Kotlin Testing: JUnit5 + Kotest
 
+**Contents**
+
+- [Test Structure](#test-structure)
+  - [JUnit5 Style](#junit5-style)
+  - [Kotest Style (Spec-based, more readable)](#kotest-style-spec-based-more-readable)
+- [Naming Conventions](#naming-conventions)
+- [Assertions](#assertions)
+  - [Kotlin's `kotlin.test` (minimal dependency)](#kotlins-kotlintest-minimal-dependency)
+  - [JUnit5 APIs](#junit5-apis)
+  - [Kotest Matchers (readable infix)](#kotest-matchers-readable-infix)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+  - [JUnit5 with @ParameterizedTest](#junit5-with-parameterizedtest)
+  - [Kotest with table tests](#kotest-with-table-tests)
+- [Fixtures and Setup](#fixtures-and-setup)
+  - [JUnit5](#junit5)
+  - [Kotest](#kotest)
+- [Mocking](#mocking)
+  - [Mockk (Kotlin-native)](#mockk-kotlin-native)
+  - [Manual test double](#manual-test-double)
+- [Running Tests](#running-tests)
+- [Best Practices](#best-practices)
+
 ## Test Structure
 
 Kotlin standard: `JUnit5` (widely compatible) or `Kotest` (more Kotlin-idiomatic).

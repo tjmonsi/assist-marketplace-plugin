@@ -2,6 +2,13 @@
 
 Template and format for execution plans created by the `do` orchestrator.
 
+**Contents**
+
+- [Plan Structure](#plan-structure)
+- [Field Definitions](#field-definitions)
+- [Example Plan](#example-plan)
+- [Best Practices](#best-practices)
+
 ## Plan Structure
 
 ```markdown

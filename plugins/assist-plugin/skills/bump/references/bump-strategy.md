@@ -2,6 +2,29 @@
 
 Detailed reference for version detection, bumping, and changelog generation.
 
+**Contents**
+
+- [Version File Detection](#version-file-detection)
+  - [Priority Order](#priority-order)
+  - [Multiple Version Files](#multiple-version-files)
+- [Semantic Versioning Rules](#semantic-versioning-rules)
+- [Commit Parsing (Auto Mode)](#commit-parsing-auto-mode)
+  - [Conventional Commits Format](#conventional-commits-format)
+  - [Detection Algorithm](#detection-algorithm)
+  - [No Commits Since Last Release](#no-commits-since-last-release)
+- [Changelog Format](#changelog-format)
+  - [Sections](#sections)
+  - [Comparison Links](#comparison-links)
+- [Workflow Example](#workflow-example)
+- [Edge Cases & Errors](#edge-cases--errors)
+  - [Current Version Already Released](#current-version-already-released)
+  - [Working Tree Not Clean](#working-tree-not-clean)
+  - [No Version File Found](#no-version-file-found)
+  - [Conflicting Versions](#conflicting-versions)
+  - [Private Git Repository](#private-git-repository)
+- [Shell Commands Used](#shell-commands-used)
+- [Subproject Bumping](#subproject-bumping)
+
 ## Version File Detection
 
 ### Priority Order

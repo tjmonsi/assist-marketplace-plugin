@@ -2,6 +2,18 @@
 
 Template used by the `bump` skill to generate and update CHANGELOG.md files.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Full Changelog Structure](#full-changelog-structure)
+- [Minimal Changelog (What `bump` Generates)](#minimal-changelog-what-bump-generates)
+- [Parsing Commits to Changelog](#parsing-commits-to-changelog)
+- [Formatting Rules](#formatting-rules)
+- [Date Format](#date-format)
+- [Comparison Links](#comparison-links)
+- [Unreleased Section](#unreleased-section)
+
 ## Full Changelog Structure
 
 ```markdown

@@ -2,6 +2,17 @@
 
 Rules governing the fix phase that follows a reviewer's request for changes. Applies to every review gate (Pre-Test, OWASP, OWASP for LLM, Testing, Code Review, Planning Document).
 
+**Contents**
+
+- [Rule 1: Sonnet-Only for Fixes](#rule-1-sonnet-only-for-fixes)
+- [Rule 1b: Route Each Finding to the Agent That May Write the File](#rule-1b-route-each-finding-to-the-agent-that-may-write-the-file)
+- [Rule 2: Identified Items Only](#rule-2-identified-items-only)
+- [Rule 3: Modification Checklist](#rule-3-modification-checklist)
+- [Example](#example)
+- [Hard Constraint: Fix Phase Failure](#hard-constraint-fix-phase-failure)
+- [Procedure Summary](#procedure-summary)
+- [See Also](#see-also)
+
 ---
 
 ## Rule 1: Sonnet-Only for Fixes
@@ -126,6 +137,6 @@ If the fixing agent adds unrelated changes:
 
 ## See Also
 
-- [review-protocol.md](review-protocol.md): Full review gate workflow and iteration tracking
-- [model-routing.md](model-routing.md): Model tier assignment for all agents
-- [developer-self-review.md](developer-self-review.md): Pre-review self-audit checklist
+- review-protocol.md: Full review gate workflow and iteration tracking
+- model-routing.md: Model tier assignment for all agents
+- developer-self-review.md: Pre-review self-audit checklist

@@ -4,6 +4,11 @@ Full Create/Read/Update/Delete endpoint set with manual validation and
 explicit error handling. See [../../languages/cpp.md](../../languages/cpp.md)
 for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Notes](#notes)
+
 ## Pattern
 
 ```cpp

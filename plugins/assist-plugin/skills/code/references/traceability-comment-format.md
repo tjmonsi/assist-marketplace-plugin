@@ -2,6 +2,23 @@
 
 Full-chain format for linking code to specifications and requirements.
 
+**Contents**
+
+- [Format](#format)
+- [Valid ID Chains](#valid-id-chains)
+- [When to Add Traceability Comments](#when-to-add-traceability-comments)
+- [ID Sourcing Rules](#id-sourcing-rules)
+- [Examples](#examples)
+  - [Good (Full chain from spec)](#good-full-chain-from-spec)
+  - [Good (Partial chain, only what applies)](#good-partial-chain-only-what-applies)
+  - [Good (Use case only)](#good-use-case-only)
+  - [Good (No ID, general logic)](#good-no-id-general-logic)
+  - [Bad (Invented ID)](#bad-invented-id)
+  - [Bad (Incomplete chain)](#bad-incomplete-chain)
+- [Per-Language Syntax](#per-language-syntax)
+- [Impact on Code Review](#impact-on-code-review)
+- [Updating Markers When Requirements Change](#updating-markers-when-requirements-change)
+
 ## Format
 
 Use square brackets with arrows linking the full requirement chain:

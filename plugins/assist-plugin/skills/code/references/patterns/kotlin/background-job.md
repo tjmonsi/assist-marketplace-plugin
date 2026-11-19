@@ -4,6 +4,13 @@ Bounded coroutine worker pool for server-side background jobs, plus a
 WorkManager variant for Android. See
 [../../languages/kotlin.md](../../languages/kotlin.md) for conventions.
 
+**Contents**
+
+- [Server-Side Pattern (Coroutines + Channel)](#server-side-pattern-coroutines--channel)
+- [Usage from a Request Handler](#usage-from-a-request-handler)
+- [Android Pattern (WorkManager)](#android-pattern-workmanager)
+- [Notes](#notes)
+
 ## Server-Side Pattern (Coroutines + Channel)
 
 ```kotlin

@@ -2,6 +2,23 @@
 
 Integration testing patterns for TypeScript projects using Vitest, Fastify, and Prisma.
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies](#dependencies)
+- [Test Database](#test-database)
+  - [With Prisma](#with-prisma)
+- [HTTP Client Testing](#http-client-testing)
+  - [With Fastify](#with-fastify)
+- [Mocking External APIs](#mocking-external-apis)
+  - [With Mock Service Worker (MSW)](#with-mock-service-worker-msw)
+  - [Runtime handler override](#runtime-handler-override)
+- [Example Tests](#example-tests)
+  - [With database](#with-database)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+- [Running Integration Tests](#running-integration-tests)
+
 ## Setup
 
 ### Dependencies

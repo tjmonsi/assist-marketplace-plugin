@@ -4,6 +4,12 @@ Resilient outbound call helper using context-aware sleep. See
 [../../languages/go.md](../../languages/go.md) and
 [../../error-handling-standards.md](../../error-handling-standards.md).
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage](#usage)
+- [Notes](#notes)
+
 ## Pattern
 
 ```go

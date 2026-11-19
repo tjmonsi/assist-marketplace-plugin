@@ -2,6 +2,15 @@
 
 Before conducting formal audit on any submission (code, planning document, requirements), reviewers deliberately execute an adversarial self-reflection phase to find issues early.
 
+**Contents**
+
+- [Purpose](#purpose)
+- [Five Categories: What to Look For](#five-categories-what-to-look-for)
+- [Reviewer Workflow](#reviewer-workflow)
+- [Common Issues: Adversarial vs. Formal Audit](#common-issues-adversarial-vs-formal-audit)
+- [Adversarial Mindset Starters](#adversarial-mindset-starters)
+- [Tips for Efficient Adversarial Review](#tips-for-efficient-adversarial-review)
+
 ## Purpose
 
 Reviewers approach the submission asking: "Where could this break? What's wrong with this?" This adversarial mindset catches problems that might be missed in a standard audit.
@@ -69,7 +78,7 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 - Nested if-statements 5 levels deep (hard to follow)
 - `arr.push(item); // Add item to array` (obvious comment, not helpful)
 
-**Code slop:** For code submissions, run the "When Reviewing" checklist in [code-slop.md](../../code/references/code-slop.md) (type escapes, swallowed errors, speculative options, module mocks, hollow or skipped tests, drive-by edits).
+**Code slop:** For code submissions, run the "When Reviewing" checklist in `code-slop.md` (in the code skill's references) (type escapes, swallowed errors, speculative options, module mocks, hollow or skipped tests, drive-by edits).
 
 ## Reviewer Workflow
 

@@ -1,5 +1,28 @@
 # JavaScript Testing: Node.js + Vitest / Jest
 
+**Contents**
+
+- [Test Structure](#test-structure)
+  - [With node:test (no dependencies)](#with-nodetest-no-dependencies)
+  - [With Vitest (ESM, faster)](#with-vitest-esm-faster)
+- [Naming Conventions](#naming-conventions)
+- [Assertions](#assertions)
+  - [node:test + assert](#nodetest--assert)
+  - [Vitest (preferred for modern code)](#vitest-preferred-for-modern-code)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+  - [node:test with sub-tests](#nodetest-with-sub-tests)
+  - [Vitest with it.each()](#vitest-with-iteach)
+- [Setup and Teardown](#setup-and-teardown)
+- [Mocking](#mocking)
+  - [node:test with module mocking](#nodetest-with-module-mocking)
+  - [Vitest with vi.mock()](#vitest-with-vimock)
+- [Async Testing](#async-testing)
+- [Running Tests](#running-tests)
+  - [node:test](#nodetest)
+  - [Vitest](#vitest)
+  - [Jest](#jest)
+- [Best Practices](#best-practices)
+
 ## Test Structure
 
 JavaScript can use `node:test` (built-in, Node 18+), `vitest` (ESM-native), or `jest` (CommonJS/ESM compatible).

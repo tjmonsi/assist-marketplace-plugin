@@ -4,6 +4,12 @@ Resilient outbound call helper using `std::function` and `std::this_thread`.
 See [../../languages/cpp.md](../../languages/cpp.md) and
 [../../error-handling-standards.md](../../error-handling-standards.md).
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage](#usage)
+- [Notes](#notes)
+
 ## Pattern
 
 ```cpp

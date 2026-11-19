@@ -4,6 +4,13 @@ Machine-readable projection of the requirements produced by `/gather-requirement
 
 The Markdown documents remain the source of truth. The JSON carries the same requirement IDs, statements, traceability links, and scenarios so that downstream tools (test generators, spec writers, ticket importers) do not have to parse prose.
 
+**Contents**
+
+- [Schema](#schema)
+- [Field rules](#field-rules)
+- [Example](#example)
+- [Constraints](#constraints)
+
 ## Schema
 
 ```json

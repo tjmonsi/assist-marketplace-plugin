@@ -4,6 +4,12 @@ Use when the requirement defines a backend process, business logic, data transfo
 
 Unique to this template: the **Business rules** table (rules carry their own `RULE-NNN` identifiers, kept distinct from requirement IDs) and **Events consumed** alongside events emitted.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Template](#template)
+
 ## Template
 
 ````markdown

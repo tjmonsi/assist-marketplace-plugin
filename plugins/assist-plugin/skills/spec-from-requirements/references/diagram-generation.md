@@ -2,6 +2,33 @@
 
 Mermaid diagram conventions and PNG rendering for specification documents.
 
+**Contents**
+
+- [Overview](#overview)
+- [Diagram Types & When to Use](#diagram-types--when-to-use)
+  - [Flowchart (Process Flow)](#flowchart-process-flow)
+  - [Sequence Diagram](#sequence-diagram)
+  - [Class Diagram](#class-diagram)
+  - [ER Diagram (Entity-Relationship)](#er-diagram-entity-relationship)
+- [Mermaid Syntax Essentials](#mermaid-syntax-essentials)
+  - [Common Patterns](#common-patterns)
+- [PNG Rendering](#png-rendering)
+  - [Availability Check](#availability-check)
+  - [Fallback Message](#fallback-message)
+- [When to Add Diagrams to Specs](#when-to-add-diagrams-to-specs)
+  - [Required Diagrams](#required-diagrams)
+  - [Optional but Recommended](#optional-but-recommended)
+  - [When NOT to Add Diagrams](#when-not-to-add-diagrams)
+- [Embedding Diagrams in Markdown](#embedding-diagrams-in-markdown)
+  - [Direct Mermaid Syntax (Most Platforms)](#direct-mermaid-syntax-most-platforms)
+  - [Markdown with Image Reference](#markdown-with-image-reference)
+  - [Fallback with Source Code](#fallback-with-source-code)
+- [Best Practices](#best-practices)
+- [Examples in Specs](#examples-in-specs)
+  - [Architecture Spec Data Flow](#architecture-spec-data-flow)
+  - [API Endpoint Spec Sequence](#api-endpoint-spec-sequence)
+- [Troubleshooting](#troubleshooting)
+
 ---
 
 ## Overview

@@ -1,5 +1,17 @@
 # Rust Testing: cargo test + assertion libraries
 
+**Contents**
+
+- [Test Structure](#test-structure)
+- [Naming Conventions](#naming-conventions)
+- [Assertions](#assertions)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+- [Attribute-Based Testing (proptest)](#attribute-based-testing-proptest)
+- [Running Tests](#running-tests)
+- [Fixtures and Setup](#fixtures-and-setup)
+- [Mocking External Boundaries](#mocking-external-boundaries)
+- [Best Practices](#best-practices)
+
 ## Test Structure
 
 Rust's built-in `#[test]` attribute + optional assertion libraries (`assert_matches`, `proptest`).

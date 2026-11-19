@@ -2,6 +2,13 @@
 
 For an **API endpoint** spec, derive an OpenAPI 3.1 path-item fragment from the endpoint contract already filled in the template. The Markdown tables are the source of truth; the fragment is generated from them, never maintained in parallel.
 
+**Contents**
+
+- [When to generate](#when-to-generate)
+- [Field mapping](#field-mapping)
+- [Example](#example)
+- [Constraints](#constraints)
+
 ## When to generate
 
 - The classification is API endpoint, and

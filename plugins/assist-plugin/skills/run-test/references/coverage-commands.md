@@ -2,6 +2,44 @@
 
 Reference for running coverage tools and interpreting output for each language.
 
+**Contents**
+
+- [Python (pytest + coverage.py)](#python-pytest--coveragepy)
+  - [Install coverage tool (user-run; agents never install, show this command to the user)](#install-coverage-tool-user-run-agents-never-install-show-this-command-to-the-user)
+  - [Run with coverage](#run-with-coverage)
+  - [Output interpretation](#output-interpretation)
+  - [HTML report](#html-report)
+- [TypeScript/JavaScript (Vitest with coverage)](#typescriptjavascript-vitest-with-coverage)
+  - [Install coverage (integrated with vitest) (user-run; agents never install, show this command to the user)](#install-coverage-integrated-with-vitest-user-run-agents-never-install-show-this-command-to-the-user)
+  - [Run with coverage](#run-with-coverage-1)
+  - [Config (vitest.config.ts)](#config-vitestconfigts)
+  - [Output](#output)
+  - [Jest alternative](#jest-alternative)
+- [Go (built-in coverage)](#go-built-in-coverage)
+  - [Run tests with coverage](#run-tests-with-coverage)
+  - [Generate coverage profile](#generate-coverage-profile)
+  - [Output](#output-1)
+  - [HTML report](#html-report-1)
+  - [Coverage by package](#coverage-by-package)
+- [Rust (cargo tarpaulin)](#rust-cargo-tarpaulin)
+  - [Install (user-run; agents never install, show this command to the user)](#install-user-run-agents-never-install-show-this-command-to-the-user)
+  - [Run coverage](#run-coverage)
+  - [Output](#output-2)
+  - [With thresholds](#with-thresholds)
+- [Kotlin (JaCoCo)](#kotlin-jacoco)
+  - [Configure in build.gradle.kts](#configure-in-buildgradlekts)
+  - [Run tests with coverage](#run-tests-with-coverage-1)
+  - [View report](#view-report)
+  - [Output format](#output-format)
+- [General Guidelines](#general-guidelines)
+  - [Minimum targets](#minimum-targets)
+  - [Interpreting percentages](#interpreting-percentages)
+  - [Uncovered lines to prioritize](#uncovered-lines-to-prioritize)
+  - [Ignore coverage for](#ignore-coverage-for)
+- [Continuous Integration](#continuous-integration)
+  - [GitHub Actions example](#github-actions-example)
+  - [Common CI integration](#common-ci-integration)
+
 ---
 
 ## Python (pytest + coverage.py)

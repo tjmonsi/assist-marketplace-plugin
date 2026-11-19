@@ -3,6 +3,12 @@
 Bearer JWT verification as an Axum extractor, with a role-based guard. See
 [../../languages/rust.md](../../languages/rust.md) for conventions.
 
+**Contents**
+
+- [Pattern](#pattern)
+- [Usage](#usage)
+- [Notes](#notes)
+
 ## Pattern
 
 ```rust

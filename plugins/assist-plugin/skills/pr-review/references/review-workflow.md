@@ -2,6 +2,42 @@
 
 Recommended workflow for reviewing pull requests with the `pr-review` skill.
 
+**Contents**
+
+- [Pre-Review Checklist](#pre-review-checklist)
+- [Confirmation Gate (Required Before Any State Change)](#confirmation-gate-required-before-any-state-change)
+  - [Injection-Safe Posting](#injection-safe-posting)
+  - [Hook Prompt Outcomes](#hook-prompt-outcomes)
+- [Review Workflow Steps](#review-workflow-steps)
+  - [Step 1: Fetch PR Information](#step-1-fetch-pr-information)
+  - [Step 2: Review Changes](#step-2-review-changes)
+  - [Step 3: Analyze Code](#step-3-analyze-code)
+  - [Step 4: Confirm, Then Submit Review](#step-4-confirm-then-submit-review)
+- [Review Verdicts](#review-verdicts)
+  - [Approve ✓](#approve-)
+  - [Changes Requested 🔄](#changes-requested-)
+  - [Comment Only 💬](#comment-only-)
+- [Common Review Patterns](#common-review-patterns)
+  - [Code Quality Review](#code-quality-review)
+  - [Security Review](#security-review)
+  - [Performance Review](#performance-review)
+  - [API Contract Review](#api-contract-review)
+- [Integration with Reviewer Agent](#integration-with-reviewer-agent)
+  - [Standalone Review](#standalone-review)
+  - [Agent-Assisted Review](#agent-assisted-review)
+  - [Two-Stage Review](#two-stage-review)
+- [Best Practices](#best-practices)
+  - [1. Be Constructive](#1-be-constructive)
+  - [2. Explain the Why](#2-explain-the-why)
+  - [3. Reference Standards](#3-reference-standards)
+  - [4. Suggest Solutions](#4-suggest-solutions)
+  - [5. Know When to Block](#5-know-when-to-block)
+- [GitHub-Specific Workflow](#github-specific-workflow)
+- [Bitbucket-Specific Workflow](#bitbucket-specific-workflow)
+  - [Host pin](#host-pin)
+  - [Fetch and post](#fetch-and-post)
+- [Handling Review Disputes](#handling-review-disputes)
+
 ## Pre-Review Checklist
 
 Before submitting a review, check:

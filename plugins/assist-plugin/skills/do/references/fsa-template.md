@@ -4,6 +4,14 @@ Shared template for finite-state automata (FSAs) in assist-plugin agents and ski
 
 Claude Code does not force a model to follow its states in order. The tables state the intended sequence. `/do` and the hooks check what is visible from outside: the terminal block, the plan file, and the files written.
 
+**Contents**
+
+- [Rules](#rules)
+- [State kinds](#state-kinds)
+- [States table format](#states-table-format)
+- [Terminal block](#terminal-block)
+- [Worked example: developer-tester with create-test](#worked-example-developer-tester-with-create-test)
+
 ## Rules
 
 | # | Rule | Form |

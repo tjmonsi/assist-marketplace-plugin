@@ -2,6 +2,22 @@
 
 Integration testing patterns for Rust projects using sqlx, tokio, axum, and reqwest.
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies (Cargo.toml)](#dependencies-cargotoml)
+  - [Database Setup](#database-setup)
+- [Test Database](#test-database)
+  - [With sqlx::test macro](#with-sqlxtest-macro)
+- [HTTP Client Testing](#http-client-testing)
+  - [With tower::ServiceExt (in-process)](#with-towerserviceext-in-process)
+  - [With reqwest (full HTTP)](#with-reqwest-full-http)
+- [Database Transactions in Tests](#database-transactions-in-tests)
+- [Example Integration Test](#example-integration-test)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+- [Running Tests](#running-tests)
+
 ## Setup
 
 ### Dependencies (Cargo.toml)

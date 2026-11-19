@@ -4,6 +4,12 @@ Use when the requirement defines system structure, component boundaries, service
 
 Unique to this template: the **Design decisions** section (Decision / Options considered / Chosen / Rationale) and the **Topology** diagram. Consult [../cloud-patterns.md](../cloud-patterns.md) when the architecture involves GCP or AWS services.
 
+**Contents**
+
+Contents of this reference file, not part of the template.
+
+- [Template](#template)
+
 ## Template
 
 ````markdown

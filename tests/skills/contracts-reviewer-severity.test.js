@@ -2,7 +2,8 @@
 //
 // Text contract tests for the reviewer finding format of harness-governance Tranche 4: the agents reviewer.md and
 // code-reviewer.md, the Review Output Rules of skills/do/references/review-protocol.md, and the rejection handling of
-// skills/do/SKILL.md. Task plan Step 37 (Steps 33 and 34).
+// skills/do/references/read-each-result.md (moved there from skills/do/SKILL.md) with the SARIF level map in
+// skills/do/references/dispatch.md. Task plan Step 37 (Steps 33 and 34).
 //
 // Sources: specs/spec-orchestration-review-gates.md (Change Log 2026-11-13 (Tranche 4), Requirement 15: Severity, confidence,
 // and routing on each reviewer finding, scenarios Complete finding, Missing field rejected, Block-merge displayed, not
@@ -175,10 +176,11 @@ test("[AC-3 | " + GATES + " | FR-240 | FR-237] review-protocol.md Review Output 
 });
 
 // ---------------------------------------------------------------------------
-// do/SKILL.md: rejection handling
+// do/references/read-each-result.md: rejection handling (moved from do/SKILL.md)
 // ---------------------------------------------------------------------------
 
-const DO = read("skills/do/SKILL.md");
+const DO = read("skills/do/references/read-each-result.md");
+const DISPATCH_MD = read("skills/do/references/dispatch.md");
 const REJECT = linesOf(DO).find((l) => l.indexOf("- **Incomplete reviewer report:**") === 0);
 
 test("[AC-1 | " + DISPATCH + " | FR-240] do/SKILL.md has an Incomplete reviewer report bullet beside the no-terminal-block rule", () => {
@@ -226,7 +228,7 @@ AGENTS.forEach((rel) => {
 });
 
 test("[AC-1 | " + GATES16 + " | FR-241] the level map the reviewers state matches the one in do/SKILL.md", () => {
-  const sarif = section(DO, "### SARIF file");
+  const sarif = section(DISPATCH_MD, "### SARIF file");
   const rows = linesOf(sarif).filter((l) => /^\| (CRITICAL|HIGH|MEDIUM|LOW) \|/.test(l));
   assert.strictEqual(rows.length, 4);
   const map = {};

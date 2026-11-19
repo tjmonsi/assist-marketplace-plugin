@@ -2,6 +2,23 @@
 
 Test acceptance criteria (Scenarios) without knowing implementation. Focus on the contract: what inputs are expected, what outputs result, what errors occur, and what state changes happen.
 
+**Contents**
+
+- [Core Rule: No Implementation Knowledge](#core-rule-no-implementation-knowledge)
+- [Input-Space Enumeration Checklist](#input-space-enumeration-checklist)
+  - [1. Valid Inputs (Happy Path)](#1-valid-inputs-happy-path)
+  - [2. Invalid Inputs (Failure Paths)](#2-invalid-inputs-failure-paths)
+  - [3. Boundary Inputs (Edge Cases)](#3-boundary-inputs-edge-cases)
+  - [4. Null and Empty Equivalents](#4-null-and-empty-equivalents)
+  - [5. Type Mismatches (If Applicable)](#5-type-mismatches-if-applicable)
+  - [6. Security-Adjacent / Injection-Shaped Inputs](#6-security-adjacent--injection-shaped-inputs)
+  - [Enumeration Table Template](#enumeration-table-template)
+- [API Endpoint (HTTP) Tests](#api-endpoint-http-tests)
+  - [Endpoint Test Structure](#endpoint-test-structure)
+- [Constraints for Black-Box Tests](#constraints-for-black-box-tests)
+- [Traceability](#traceability)
+- [Example: Black-Box Test for a Payment Endpoint](#example-black-box-test-for-a-payment-endpoint)
+
 ## Core Rule: No Implementation Knowledge
 
 - Never read function bodies, class implementations, or internal logic.

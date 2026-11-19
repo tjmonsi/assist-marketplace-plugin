@@ -2,6 +2,18 @@
 
 Verified: 2026-10-12. Id: `ResembleAI/chatterbox-turbo`. Runs locally from the open-source `chatterbox-tts` package, loaded with `ChatterboxTurboTTS.from_pretrained(device)` [CB1]. It is not on OpenRouter (tested: zero matches for "chatterbox" or "resemble" across all 659 models), so the live check does not apply. Code is pinned at GitHub commit `5de7a54` (2026-07-21) and model files at Hugging Face revision `749d1c1` (2025-12-15). Chatterbox-Nano (`nano=True`, 110M) shares the class and has the same 19 tag tokens (tested) [CB1, CB13].
 
+**Contents**
+
+- [Delivery handling](#delivery-handling)
+- [Tag syntax](#tag-syntax)
+- [Controls](#controls)
+- [Voices](#voices)
+- [Limits](#limits)
+- [Pauses and punctuation](#pauses-and-punctuation)
+- [Unconfirmed](#unconfirmed)
+- [Differences from the original Chatterbox](#differences-from-the-original-chatterbox)
+- [Sources](#sources)
+
 ## Delivery handling
 
 - Style field: none. `exaggeration`, `cfg_weight`, and `min_p` are ignored.

@@ -2,6 +2,32 @@
 
 Auto-detection strategy for identifying GitHub vs. Bitbucket repositories.
 
+**Contents**
+
+- [Git Remote Patterns](#git-remote-patterns)
+  - [GitHub](#github)
+  - [Bitbucket Cloud](#bitbucket-cloud)
+  - [Bitbucket Data Center](#bitbucket-data-center)
+- [Detection Algorithm](#detection-algorithm)
+- [CLI Tools Required](#cli-tools-required)
+  - [GitHub (`gh`)](#github-gh)
+  - [Bitbucket (`bkt`)](#bitbucket-bkt)
+- [PR Identification](#pr-identification)
+  - [Three Methods](#three-methods)
+- [URL Parsing](#url-parsing)
+  - [GitHub](#github-1)
+  - [Bitbucket Cloud](#bitbucket-cloud-1)
+  - [Bitbucket Server](#bitbucket-server)
+- [Fallback Logic](#fallback-logic)
+- [Authentication Handling](#authentication-handling)
+  - [GitHub](#github-2)
+  - [Bitbucket](#bitbucket)
+- [Edge Cases](#edge-cases)
+  - [Multiple Remotes](#multiple-remotes)
+  - [Fork Workflow](#fork-workflow)
+  - [Behind Corporate Proxy](#behind-corporate-proxy)
+- [Test Detection](#test-detection)
+
 ## Git Remote Patterns
 
 ### GitHub

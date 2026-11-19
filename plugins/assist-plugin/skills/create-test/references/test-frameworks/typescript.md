@@ -1,5 +1,17 @@
 # TypeScript Testing: Vitest / Jest
 
+**Contents**
+
+- [Test Structure](#test-structure)
+- [Naming Conventions](#naming-conventions)
+- [Assertions (Vitest/Jest)](#assertions-vitestjest)
+- [Parameterized Tests (Table-Driven)](#parameterized-tests-table-driven)
+- [Setup and Teardown](#setup-and-teardown)
+- [Mocking](#mocking)
+- [Async Testing](#async-testing)
+- [Running Tests](#running-tests)
+- [Best Practices](#best-practices)
+
 ## Test Structure
 
 `vitest` (recommended for modern TS projects; faster than Jest) or `jest` (more widely compatible).

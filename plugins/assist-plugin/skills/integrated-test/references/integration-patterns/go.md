@@ -2,6 +2,20 @@
 
 Integration testing patterns for Go projects using testcontainers, testify, and Fiber.
 
+**Contents**
+
+- [Setup](#setup)
+  - [Dependencies](#dependencies)
+- [Test Database](#test-database)
+  - [With testcontainers](#with-testcontainers)
+- [HTTP Client Testing](#http-client-testing)
+  - [With Fiber](#with-fiber)
+- [Database Transaction Testing](#database-transaction-testing)
+- [Example Integration Test](#example-integration-test)
+- [Best Practices](#best-practices)
+- [Coverage](#coverage)
+- [Running Tests](#running-tests)
+
 ## Setup
 
 ### Dependencies

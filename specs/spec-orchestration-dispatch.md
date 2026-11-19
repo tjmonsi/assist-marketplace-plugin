@@ -7,7 +7,7 @@
 | **Feature** | `/do` dispatch, result handling, and completion |
 | **Parent feature** | spec-orchestration.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-001, BR-005, BR-006, BR-007, BR-012, UR-001, UR-003, UR-004, UR-005, UR-012, UR-013, UR-019, UR-022, UR-030, UR-031, UR-054, UR-055, UR-059, FR-004, FR-031, FR-036, FR-043, FR-045, FR-046, FR-047, FR-048, FR-049, FR-050, FR-051, FR-052, FR-062, FR-063, FR-064, FR-190, FR-195, FR-202, FR-203, FR-206, FR-207, FR-208, FR-214, FR-242, NFR-010, NFR-012, NFR-014 |
+| **Requirement refs** | BR-001, BR-005, BR-006, BR-007, BR-012, UR-001, UR-003, UR-004, UR-005, UR-012, UR-013, UR-019, UR-022, UR-030, UR-031, UR-054, UR-055, UR-059, FR-004, FR-031, FR-036, FR-043, FR-045, FR-046, FR-047, FR-048, FR-049, FR-050, FR-051, FR-052, FR-062, FR-063, FR-064, FR-190, FR-195, FR-202, FR-203, FR-206, FR-207, FR-208, FR-214, FR-216, FR-242, NFR-010, NFR-012, NFR-014, NFR-026 |
 | **Feature type** | Functionality |
 | **Status** | Review |
 
@@ -2230,3 +2230,56 @@ This note records the shipped `hooks/lib/sarif.js` converter and the orchestrato
 - `convert()` is pure and never throws: it wraps its work and returns `{ok: false, error}` for an input that is neither a findings array nor a SARIF document, and `{ok: true, document, text, exported, notExported, report}` otherwise. Requirement 16 named only "a finding with no location" among the left-out findings; as built the converter also leaves out, and lists in `notExported` with the reason, a finding whose file path is absolute and outside `options.root`, a path that contains a `..` segment, a path over the length cap or holding a NUL, a finding whose severity is missing or not one of CRITICAL, HIGH, MEDIUM, or LOW (no level can be chosen), and a finding that is not an object. Each entry carries the 1-based input index, a one-line summary, and the reason.
 - The level map is `CRITICAL` and `HIGH` to `error`, `MEDIUM` to `warning`, and `LOW` to `note`; `severity`, `confidence` (High, Medium, or Low), and `routing` (block-merge, inline-comment, or log-only) travel in the result's `properties` bag, never in the SARIF `level`, so a reviewer-built level is never trusted and a reviewer-returned document is rebuilt through the same map from `properties.severity`.
 - The orchestrator writes `<root>/.agent/reviews/review-<slug>.sarif` with the Write tool under the same `.agent` symlink guard it applies to every `.agent` write, and no reviewer holds a write path; the SARIF upload to GitHub is the second of the orchestrator's two user-confirmed delivery actions (the PR review verdict post of Requirement 14 is the first), each gated by the FR-214 token-matched confirmation.
+
+## Change Log: 2026-11-19
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.7 (2026-11-19, section C.13 "Release 1.14.4" and section 5.1): NFR-026 (`:5345`, `SKILL.md` under 500 lines with its must-hold invariants in the first 5,000 tokens) and FR-216 (`:5261`, reference files one level deep), both PLANNED (1.14.4) and settled by the user; `docs/research/research-cc-skills-token-opt-20261118.md` (read as data) measures `skills/do/SKILL.md` at 625 lines, so the `do` skill is the first file NFR-026 applies to. The catalog-wide form of both rules sits in spec-skills.md (Change Log 2026-11-19). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+This is a documentation restructure of `skills/do/SKILL.md`: a file move plus hoist with no semantic change. Every `## States` table, every outcome table, every Requirement statement, and every Scenario in this spec's body stays identical, so the entry carries no data-flow diagram. The NFR-026 and FR-216 cited here are from `docs/requirements/FR-NFR-assist-plugin.md`; this spec cites no FR-218, the ID that in this spec family names the harness-governance review-gate cap, so no ambiguous cross-reference is introduced.
+
+### ADDED Requirements
+
+#### Requirement 18: /do SKILL.md hoists its dispatch invariants and moves the dispatch bodies to one-level references
+
+The `/do` skill SHALL state its must-hold dispatch invariants once, near the top of `skills/do/SKILL.md`, and SHALL move the Dispatch, Read-each-result, and Change-check bodies out of `skills/do/SKILL.md` into reference files one level deep under `skills/do/references/`, keeping the dispatch behavior, the `## States` table, and every outcome table of this spec identical. (NFR-026, FR-216; `docs/requirements/FR-NFR-assist-plugin.md:5345`, `:5261`)
+
+**Requirement refs:** NFR-026, FR-216, UR-042, BR-003 | **Status:** PLANNED (1.14.4) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5345` (NFR-026), `:5261` (FR-216); `docs/research/research-cc-skills-token-opt-20261118.md:6`, `:63`, `:146`
+
+The invariants hoisted and stated once in `skills/do/SKILL.md`, not copied into a reference: `run_in_background: true` on every send (Requirement 1) and the Build-gate hold before a `Build: yes` step (the Preconditions table; Requirement 1; spec-orchestration.md, Requirement: Build steps start only after document sign-off or waiver). The moved bodies become reference files one level deep (FR-216): the Dispatch body and the Read-each-result body under this spec's scope, and the Change-check body, whose behavior stays specified in spec-orchestration-chain-signoff.md. The move changes no edge of the Algorithmic steps flowchart and no Requirement or Scenario above; it is behavior-neutral.
+
+##### Scenario: Dispatch body moved to a one-level reference
+
+- **GIVEN** the Dispatch body in `skills/do/SKILL.md`
+- **WHEN** the restructure moves it under `skills/do/references/`
+- **THEN** the reference file SHALL sit directly under `skills/do/references/` (FR-216), and the dispatch behavior SHALL stay identical to Requirements 1 to 13 of this spec
+
+##### Scenario: Invariant stated once near the top
+
+- **GIVEN** the `run_in_background: true` invariant and the Build-gate hold
+- **WHEN** the restructure runs
+- **THEN** `skills/do/SKILL.md` SHALL state each near its top once and SHALL NOT duplicate it into a reference file
+
+##### Scenario: States and outcome tables unchanged
+
+- **GIVEN** the `## States` table and the outcome tables that this spec mirrors
+- **WHEN** the restructure runs
+- **THEN** the tables SHALL be byte-for-byte unchanged, so `node plugins/assist-plugin/scripts/check-fsa-tables.js --check` SHALL still exit 0 (NFR-021)
+
+### MODIFIED Requirements
+
+None. The restructure is behavior-neutral; no Requirement statement or Scenario changes.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| NFR-026 | Change Log 2026-11-19: Requirement 18 | `skills/do/SKILL.md` under 500 lines with its dispatch invariants in the first 5,000 tokens (estimate) |
+| FR-216 | Change Log 2026-11-19: Requirement 18 | The moved Dispatch and Read-each-result references sit one level deep under `skills/do/references/` and link to no other reference except a script-checked table |
+
+### Direct edits in this pass (no behavior change)
+
+Status stays `Review`; Requirement refs gain NFR-026 and FR-216.

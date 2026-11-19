@@ -2,6 +2,20 @@
 
 Interactively gather requirements through structured questioning. Used by `/gather-requirements elicit`.
 
+**Contents**
+
+- [Inputs](#inputs)
+- [Six-phase process](#six-phase-process)
+  - [1. Establish context](#1-establish-context)
+  - [2. Elicit business requirements](#2-elicit-business-requirements)
+  - [3. Elicit user requirements](#3-elicit-user-requirements)
+  - [4. Elicit functional requirements](#4-elicit-functional-requirements)
+  - [5. Elicit non-functional requirements](#5-elicit-non-functional-requirements)
+  - [6. Summarize and confirm](#6-summarize-and-confirm)
+- [Questioning technique](#questioning-technique)
+- [Output format](#output-format)
+- [Constraints](#constraints)
+
 ## Inputs
 
 - `$1+`: Topic, domain, or project name (optional; ask if not provided)

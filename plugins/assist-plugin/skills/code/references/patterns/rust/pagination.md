@@ -4,6 +4,12 @@ Offset-limit pagination with sort validation, plus a cursor variant for large
 tables. See [../../languages/rust.md](../../languages/rust.md) for
 conventions.
 
+**Contents**
+
+- [Offset-Limit Pattern](#offset-limit-pattern)
+- [Cursor Pattern](#cursor-pattern)
+- [Notes](#notes)
+
 ## Offset-Limit Pattern
 
 ```rust
