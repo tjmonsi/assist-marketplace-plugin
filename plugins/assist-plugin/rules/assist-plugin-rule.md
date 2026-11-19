@@ -503,6 +503,10 @@ Procedure: [worktree-cleanup.md](../skills/branch/references/worktree-cleanup.md
 
 ---
 
+**Background work:** an agent does not wait on background work with a shell loop (an `until`, `while`, or `for` loop whose body is a `sleep`, or a `sleep`-led command that watches a file, log, or process); it relies on the Claude Code background-completion notification plus a single `Read` of the task output file, and uses the `Monitor` tool to react to output or a status change while other work continues (see the `code` skill, "No polling for background work").
+
+---
+
 ## PR Confirmation Token Rule
 
 A PR verdict posts only after the user confirms it with a per-action token. The token binds the confirmation to one PR and one verdict, so a pasted or injected "yes" confirms nothing.

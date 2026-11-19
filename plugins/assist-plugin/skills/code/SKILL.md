@@ -48,6 +48,13 @@ Use only the exact command shapes above (no `-o`/`--output`, no `--base-url`/`--
 5. **No speculative abstractions**: Build only for stated requirements
 6. **Spec-driven**: When a spec exists, validate acceptance criteria before implementation
 
+### No polling for background work
+
+Do not wait on background work with a shell loop: an `until`, `while`, or `for` loop whose body is a `sleep`, or a command that starts with `sleep` and watches a file, log, or process for a result. Such a loop is exempt from timeout auto-backgrounding, has no time limit in a local session, and keeps spinning after the watched process exits, so it blocks the turn or wedges a shell.
+
+- Start the work with `run_in_background: true`, wait for the Claude Code background-completion notification, then `Read` the task output file once.
+- To react to a line of output or a status change while other work continues, use the `Monitor` tool, which feeds each output line back as it arrives.
+
 ## Implementation Checklist
 
 Before considering a task complete:

@@ -58,7 +58,7 @@ Before submitting code for security and code review gates, developers self-revie
 - [ ] Algorithms use efficient data structures
 - [ ] No unnecessary loops or iterations
 - [ ] Memory usage reasonable (no memory leaks)
-- [ ] No polling loops when events/callbacks available
+- [ ] No polling loops when events/callbacks are available, and no `until`, `while`, or `for` loop around `sleep` to wait on background work (use the `run_in_background` completion notification and one `Read` of the task output file, or `Monitor` for reactive watching)
 
 ### Architecture & Best Practices
 
