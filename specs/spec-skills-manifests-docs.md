@@ -7,9 +7,9 @@
 | **Feature** | Marketplace manifests, release metadata, and repository documents |
 | **Parent feature** | spec-skills.md |
 | **Sub-features** | None |
-| **Requirement refs** | BR-011, BR-014, BR-016, BR-017, UR-045, UR-046, UR-047, UR-048, UR-052, UR-053, FR-172, FR-173, FR-174, FR-178, FR-193, FR-194, FR-201, NFR-020, NFR-022, NFR-023 |
+| **Requirement refs** | BR-011, BR-014, BR-016, BR-017, UR-045, UR-046, UR-047, UR-048, UR-052, UR-053, FR-172, FR-173, FR-174, FR-178, FR-193, FR-194, FR-201, FR-215, NFR-020, NFR-022, NFR-023 |
 | **Feature type** | Configuration |
-| **Status** | Approved |
+| **Status** | Review |
 
 Status values: Draft, Review, Approved, Implemented.
 
@@ -516,3 +516,55 @@ None.
 ### Direct edits in this pass (no behavior change)
 
 Status set to `Review`; Requirement refs gain UR-053, FR-193, FR-194, and FR-201; baseline moved to 1.11.1; FR-174 and FR-178 marked Built with the 2026-10-16 reads; the OP-7, OP-10, and OP-14 notes replaced by the decided answers with pointers here; line cites refreshed (`CLAUDE.md:114-130` to `:117-133`, `:130` to `:133`; `README.md:126-127` to `:129-130`, `:332` to `:339`, `:333` to `:340`; `docs/requirements/BRD-assist-plugin.md:88-89` to `:89-90`; the FR-NFR cite `:368` replaced by FR-020 at `:393`, and every FR-NFR cite set to the final file; `README.md:368` to `:375`); one scenario baseline moved from commit 4803a0d to 41034c1; fix pass 1 reworded the pointer note under FR-178 as an illustration and listed all 14 `metadata.json` differences. On 2026-10-17 the FR-NFR cites were checked against the current file: FR-174 `:3738-3757` to `:3753-3772`, FR-193 `:4002-4041` to `:4017-4056` (Source `:4006` to `:4021`), and FR-194 `:4043-4062` to `:4058-4077`. FR-201, NFR-020, and open question 8, after the rewritten FR-195 of FR-NFR version 1.2, sit at `:4252-4271`, `:4449` (scenario `:4457-4460`), and `:4593`.
+
+## Change Log: 2026-11-18
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` (section C.12 "Release 1.14.3", 2026-11-18): FR-215 (`:5234-5253`) added, PLANNED (1.14.3); the user's decision of 2026-11-18, which fixes the `engines` floor at `>=2.1.323` (the Claude Code version that introduced the field) and the release at patch 1.14.3; `docs/research/research-cc-skills-token-opt-20261118.md:45` (at the repository root), which records that `engines["claude-code"]` was added in Claude Code v2.1.323 and that `plugin.json` sets it nowhere at the 1.14.2 baseline, read as data. This spec received a delta, so its Status returns to `Review` (FR-154).
+
+This is a behavior-neutral manifest change: a declared field, no code path and no test, so the entry carries no data-flow diagram.
+
+### ADDED Requirements
+
+#### Requirement: Plugin manifest declares a supported Claude Code range
+
+`plugins/assist-plugin/.claude-plugin/plugin.json` SHALL set `engines["claude-code"]` to `>=2.1.323`, the Claude Code version that introduced the `engines` field.
+
+**Requirement refs:** FR-215, UR-046 | **Status:** PLANNED (1.14.3) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5234-5253`; `docs/research/research-cc-skills-token-opt-20261118.md:45` (at the repository root)
+
+FR-173 keeps the `plugin.json` `version` equal to the marketplace entry's `version`; this requirement adds the `engines` range beside it and changes neither the marketplace name nor the install id (NFR-022).
+
+##### Scenario: Floor declared
+
+- **GIVEN** `plugins/assist-plugin/.claude-plugin/plugin.json` at release 1.14.3
+- **WHEN** a reviewer parses the file as JSON and reads `engines["claude-code"]`
+- **THEN** the value SHALL equal `>=2.1.323`
+
+##### Scenario: Manifest stays valid
+
+- **GIVEN** the manifest after the change
+- **WHEN** `claude plugin validate` runs on the plugin
+- **THEN** the command SHALL report no error for the `engines` field
+
+##### Scenario: Release version
+
+- **GIVEN** the 1.14.3 release candidate
+- **WHEN** FR-173 and FR-194 are checked
+- **THEN** every file the release checklist names SHALL read 1.14.3 and the install id SHALL stay `assist-plugin@assist-plugin-marketplace` (NFR-022)
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-215, UR-046 | Change Log 2026-11-18, ADDED Requirement: Plugin manifest declares a supported Claude Code range | JSON parse of `plugins/assist-plugin/.claude-plugin/plugin.json` for `engines["claude-code"]` equal to `>=2.1.323`; `claude plugin validate` reports no `engines` error |
+
+### Direct edits in this pass (no behavior change)
+
+Status set to `Review`; Requirement refs gain FR-215.

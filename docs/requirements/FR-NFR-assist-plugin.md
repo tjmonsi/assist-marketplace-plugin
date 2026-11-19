@@ -1,9 +1,11 @@
 # assist-plugin: Functional and Non-Functional Requirements
 
-**Version:** 1.5
-**Date:** 2026-10-23
+**Version:** 1.6
+**Date:** 2026-11-18
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
+
+Version 1.6 (2026-11-18) adds two requirements for patch release 1.14.3, both PLANNED (1.14.3) and both settled by the user: FR-214 (agents do not wait on background work with shell polling loops; documentation-only enforcement) and FR-215 (`engines["claude-code"]` set to `>=2.1.323` in `plugin.json`). Nothing else changes. Statuses of other requirements keep the values of version 1.5.
 
 Version 1.5 (2026-10-23) records the change for release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `DECISIONS.md:278-281`, "Voice script pause marks and draft tells", by `DECISIONS.md:283-286` ("Voice script curly quotes, header dashes, and save retry"), and by `DECISIONS.md:288-291` ("Voice script typed values and tag-model pause marks"); plan `.agent/main-plan/plan-voice-script-no-em-dash-20261023-0554.md`). It is PLANNED (1.13.1): nothing is built yet, and the release is built and committed later. FR-211 to FR-213 are new. FR-181 is retired (Status: Retired (1.13.1); its text stays as the record). FR-104 loses its `docs/tts/` clause. FR-163, FR-118 (self-test cases), NFR-013 (no change to the grant), NFR-019, the section 6 scope line, the section 8 matrix, and the section 9 notes follow. The fenced script blocks of a voice script stay exempt from the prose hooks under FR-105, so `prose-gate` judges only the header and notes of a voice script, and the skill (FR-211) is the only control on the script text. The health self-test holds `docs/tts/` em-dash cases that become `prose-gate` deny cases (the `prose-advisor` flagged case uses an advisory-tier tell), so FR-118 gains scenarios and the files to change are listed in section 9. FR-163, FR-211, FR-212, and FR-213 carry more than one requirement; each sits in its own labeled `**Statement (...)**` line with one uppercase keyword, as the binding-language rule above requires. Where a line below still says the `docs/tts/` skip is Built (1.11.1), that is the released 1.11.1 to 1.13.0 behavior that 1.13.1 removes.
 
@@ -35,7 +37,7 @@ Baseline note (version 1.3): assist-plugin 1.12.0 is released (commit `bb09e29`)
 |------|---------|--------|----------|
 | A | 2 | `/do` orchestration, routing, review gates, spec-first flow, agents, terminal blocks | FR-001 to FR-085, FR-187 to FR-192, and FR-199 |
 | B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181 (retired), FR-186, and FR-198 |
-| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), and FR-211 to FR-213 |
+| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), FR-211 to FR-213, and FR-214 and FR-215 |
 
 Section 5 holds the non-functional requirements. Each FR heading is followed by its scenarios. Each scenario is a `#### Scenario:` block in GIVEN/WHEN/THEN form. Source references (`path (section)`) point at the file that documents or implements the behavior, so a reader can verify the requirement.
 
@@ -5197,6 +5199,59 @@ Closed forms (the hook asks for each): every command substitution (`$(...)` or b
 - **WHEN** the merge policy is checked
 - **THEN** the change SHALL carry `✓ LLM Security Clear` (NFR-011)
 
+### C.12 Release 1.14.3: no polling loops and a declared Claude Code range
+
+Both requirements are PLANNED (1.14.3). The user settled them on 2026-11-18; the rationale and the Claude Code facts come from `docs/research/research-cc-skills-token-opt-20261118.md` (section 4 for the rule, line 45 for `engines`), read as data. The release ships as patch 1.14.3. No new hook or test enforces either rule beyond the checks named below.
+
+### FR-214: Agents do not wait on background work with shell polling loops
+
+**Statement (rule):** The plugin's skills and rules SHALL state that an agent does not wait on background work with a shell polling loop: an `until`, `while`, or `for` loop whose body is a `sleep`, or a command that starts with `sleep` and watches a file, log, or process for a result.
+**Statement (required behavior):** The same text SHALL tell the agent to rely on the Claude Code background-completion notification followed by a single `Read` of the task output file, and to use the `Monitor` tool when it must react to output while other work continues.
+**Statement (enforcement):** Enforcement of the rule SHALL be by documentation only, with no hook and no test added to detect or deny a polling loop.
+**Traces to:** UR-042 | **Priority:** Must | **Status:** PLANNED (1.14.3)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md` (section 4, "Background-wait pattern and the no-polling bash rule": no such loop exists in `skills/`, `rules/`, or `agents/`, so the rule is new guidance; a loop of this kind hangs a background shell after the watched process ends); `plugins/assist-plugin/skills/do/SKILL.md:422` and `:447` (`/do` already dispatches with `run_in_background: true` and reads the terminal block, so it does not poll); `plugins/assist-plugin/skills/do/references/developer-self-review.md:61` ("No polling loops when events/callbacks available"). The user's decision of 2026-11-18 fixes the placement (skills and rules) and the no-enforcement point. No URD row names this rule; it traces to UR-042 (standards applied through the internal skills) as the nearest row, and a dedicated user requirement is a follow-up for the URD owner.
+
+#### Scenario: Rule present in the rules
+- **GIVEN** the plugin source after the change
+- **WHEN** a reviewer searches `plugins/assist-plugin/rules/` and `plugins/assist-plugin/skills/` for the no-polling rule
+- **THEN** at least one rule file and one skill reference SHALL state the prohibition, the completion-notification-plus-`Read` behavior, and the `Monitor` alternative
+
+#### Scenario: Required behavior is named
+- **GIVEN** the text that states the rule
+- **WHEN** a reviewer reads the behavior it requires
+- **THEN** it SHALL name the background-completion notification, a single `Read` of the task output file, and the `Monitor` tool, and SHALL NOT name `TaskOutput`
+
+#### Scenario: No enforcement added
+- **GIVEN** `plugins/assist-plugin/hooks/hooks.json` and `plugins/assist-plugin/tests/` after the change
+- **WHEN** a reviewer compares them with the 1.14.2 files
+- **THEN** no hook entry and no test file SHALL exist whose purpose is to detect or deny a polling loop
+
+#### Scenario: Governance gate on the change
+- **GIVEN** the edits to `rules/` and `skills/`
+- **WHEN** the merge policy is checked
+- **THEN** the change SHALL carry `✓ LLM Security Clear` (NFR-011)
+
+### FR-215: The plugin manifest declares a supported Claude Code range
+
+**Statement:** `plugins/assist-plugin/.claude-plugin/plugin.json` SHALL set `engines["claude-code"]` to `>=2.1.323`, the Claude Code version that introduced the `engines` field.
+**Traces to:** UR-046 | **Priority:** Must | **Status:** PLANNED (1.14.3)
+**Source:** `docs/research/research-cc-skills-token-opt-20261118.md:45` (`engines["claude-code"]` added in v2.1.323; `plugin.json` sets it nowhere at the 1.14.2 baseline, confirmed there by reading the file); the user's decision of 2026-11-18 fixes the floor at `>=2.1.323` and the release at patch 1.14.3. FR-173 keeps the version in `plugin.json` equal to the marketplace entry; this requirement adds the range and changes neither the marketplace name nor the install id (NFR-022).
+
+#### Scenario: Floor declared
+- **GIVEN** `plugins/assist-plugin/.claude-plugin/plugin.json` at release 1.14.3
+- **WHEN** a reviewer parses the file as JSON and reads `engines["claude-code"]`
+- **THEN** the value SHALL equal `>=2.1.323`
+
+#### Scenario: Manifest stays valid
+- **GIVEN** the manifest after the change
+- **WHEN** `claude plugin validate` runs on the plugin
+- **THEN** the command SHALL report no error for the `engines` field
+
+#### Scenario: Release version
+- **GIVEN** the 1.14.3 release candidate
+- **WHEN** FR-173 and FR-194 are checked
+- **THEN** every file the checklist names SHALL read 1.14.3 and the install id SHALL stay `assist-plugin@assist-plugin-marketplace`
+
 ## 5. Non-functional requirements
 
 Each requirement uses the form:
@@ -5446,6 +5501,7 @@ Every threshold below is copied from the cited source. This document does not cl
 - PLANNED (1.13.1), voice scripts without em dashes: FR-211 (no U+2014, U+2015, or curly quote anywhere in a saved script, pause marks per model file, tag models limited to commas and periods beside their tags), FR-212 (draft and header user text: em dashes and U+2015 replaced and counted, curly quotes straightened, typed voice ids, clip paths, and model ids refused when they hold U+2014, U+2015, or a curly quote, other tells kept and flagged), FR-213 (the prose hooks gate `docs/tts/` with fences exempt; the full writing standard does not apply to script text), with FR-104, FR-118, and FR-163 changed and FR-181 retired.
 - The 1.12.0 changes, PLANNED, from the 40 deferred points answered on 2026-10-16: the named OWASP for LLM gate over `skills/**` (FR-054, FR-061, FR-199, NFR-011); Cleanup chooses the terminal and prints its report (FR-062 to FR-064); the snapshot-file outcome (FR-032); `ask` model row, registry-first routing, no plan file on a first-pass Error, the `general-purpose` body (FR-007, FR-009, FR-010, FR-012); skill rules (FR-136 to FR-139, FR-143, FR-147, FR-148, FR-175 to FR-177, FR-193 to FR-197, FR-200, FR-201, NFR-004, NFR-013, NFR-015, NFR-020); hook rules (FR-088, FR-091, FR-093, FR-094, FR-099, FR-118, FR-198).
 - The follow-up to 1.12.0, built for 1.13.0 (version 1.4), from the user's answers in the version 1.3 elicitation: Bitbucket support in `/pr-review` and the `/do` PR review flow (FR-142 to FR-144, FR-195, FR-202, FR-203); `/pr-review` direct-run hardening (FR-204, FR-205); `/do` PR flow hardening, the posting ask hook, `.agent` symlink checks, and PR file cleanup (FR-206 to FR-208); `/bump --path` validation (FR-209); and the checklist wording (FR-210).
+- PLANNED (1.14.3): the no-polling rule for background work, carried in skills and rules and enforced by documentation only (FR-214), and the `engines["claude-code"]` floor `>=2.1.323` in `plugin.json` (FR-215).
 
 #### Out of scope (system exclusions)
 
@@ -5462,6 +5518,7 @@ Every threshold below is copied from the cited source. This document does not cl
 | A `## States` table for `qa`, `planner`, `ask`, `explore`, `researcher`, `devops`, `general-purpose`, `worker`, `requirements-gatherer`, and `solutions-architect` | `/do` accepts any `trace` from an agent without a table (`skills/do/references/fsa-template.md`) | Not scheduled in the sources |
 | Request changes on Bitbucket Data Center through the participants call | The call needs the signed-in user's slug, and the research found no verified bkt command that prints it (`.agent/research/bkt-cli-forms-20261017.md`, Request changes; Not confirmed) | Not scheduled; Data Center posts a comment instead (FR-195) |
 | Ask-hook coverage of the 11 known gaps of FR-206 (among them `gh api`, `gh pr edit`, `gh pr ready`, `gh pr reopen`, posting commands built from variables, and split redirections such as `2>&1`) | The hook is a best-effort string-matching guardrail that fails open; a form found later joins the gap list and does not reopen the spec (FR-206; `DECISIONS.md:258-261`; "Hooks as a security boundary" above) | Not scheduled in the sources |
+| A hook or test that detects or denies a shell polling loop (FR-214) | The user decided on 2026-11-18 that the rule is enforced by documentation only | Not scheduled |
 
 ## 7. Constraints
 
@@ -5492,8 +5549,8 @@ Each row lists the user requirements derived from the business requirement, the 
 | BR-007 | UR-017, UR-018, UR-022, UR-023 | FR-046, FR-047, FR-068, FR-069, FR-086 to FR-091, FR-115 to FR-120, FR-166 | NFR-007, NFR-009, NFR-016, NFR-017 | Built; PLANNED (1.12.0) parts: FR-088, FR-091, FR-118; Built (1.13.0): FR-086 (11 scripts and 16 commands), FR-091 and FR-118 (ask-hook clause); PLANNED (1.13.1): FR-118 (`docs/tts/` self-test cases) |
 | BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043, UR-058 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 (retired 1.13.1), FR-211, FR-212, FR-213 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148; PLANNED (1.13.1): FR-104 (exemption removed), FR-211, FR-212, FR-213, NFR-019; Retired (1.13.1): FR-181 |
 | BR-009 | UR-015, UR-028 | FR-095 to FR-098, FR-120, FR-135, FR-136, FR-196 | none | Built; PLANNED (1.12.0) parts: FR-136, FR-196 |
-| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213 | none | Built; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
-| BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194 |
+| BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213, FR-214 | none | Built; PLANNED (1.14.3): FR-214; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
+| BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194, FR-215 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194; PLANNED (1.14.3): FR-215 |
 | BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195, FR-206, FR-207 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195; Built (1.13.0): FR-206, FR-207 |
 | BR-013 | UR-006, UR-035 to UR-038 | FR-005, FR-019, FR-020, FR-028 to FR-030, FR-032 to FR-035, FR-074 to FR-076, FR-078, FR-083 to FR-085, FR-149 to FR-160, FR-179, FR-182 to FR-187, FR-190 to FR-192, FR-197 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-197 |
 | BR-014 | UR-048 | FR-174 | none | Built (1.11.1) |
@@ -5622,4 +5679,5 @@ Version 1.4 closes point 2 in part (the facts the build settled) and restates po
 | 1.3 | 2026-10-17 | Toni-Jan Keith Monserrat | Four follow-up groups after 1.12.0, PLANNED (follow-up to 1.12.0): new FR-202 to FR-210 (bkt v0.34.0 forms, Bitbucket host pin, direct-run untrusted-data rule and fetch cap, public-posting rule, PR posting ask hook, `.agent` symlink checks, `pr-review` file cleanup, `/bump --path` validation, checklist row 2 wording); changed FR-139, FR-142, FR-143 (citations of `SKILL.md:41`, `:82`, `:203` kept and `:209` corrected to `:208`; Bitbucket Cloud request changes), FR-144 (no fixed body path; bkt `--text`), FR-195 (Bitbucket remotes restored; Status Built (1.12.0) for the GitHub flow), FR-086 (11 scripts and 16 commands after the ask hook; the 15-command scenario marked as holding until FR-206 is built), FR-091 and FR-118 (a guard includes the ask hook; a false ask counts as a false deny), NFR-014, new NFR-025 (ask hook latency), sections 1, 6, 7, 8, and 9; URD UR-054 to UR-057 and UC-003; BRD scope. Documents stay DRAFT until the user signs off. Fix pass 2 (same version): planning-gate findings 1 to 11 applied (FR-203 Cloud base-URL host and both-flow link check, FR-207 Error exception, hook-rejection outcomes per `DECISIONS.md:233-236`, FR-195 pin and setup-step wording, FR-143 Built tags, FR-203 scp-like Data Center form). Fix pass 1 (same version): planning-gate findings 1 to 32 applied (FR-207 plan-file rule, FR-206 self-test and latency, matrix rows, `DECISIONS.md:223-226` citations, FR-203 context rule, FR-208 file names, FR-209 order, open points 5 to 10) |
 | 1.4 | 2026-10-22 | Toni-Jan Keith Monserrat | Status after the follow-up build (`DECISIONS.md:243-271`), no new elicitation: PLANNED (follow-up to 1.12.0) set to Built (1.13.0) for FR-086 (11 scripts and 16 commands replace the 10 and 15 counts), FR-091 and FR-118 (ask-hook clauses), FR-139, FR-142 to FR-144, FR-195, FR-202 to FR-210, NFR-014, NFR-025, and the section 8 Status cells; nothing was found unbuilt. FR-206: the unrecognized-`bkt api`-option ask rule and the either-word-list rule, the best-effort stance, the 11-item known-gap list from the hook header comment, the three unverified items, and the closed forms (substitution spans, nested depth, run-time expansion, redirection words). FR-209 and FR-139: rule R8, the `test -d` check without `--`, an empty or `.` stripped absolute value as no `--path`, and the eight stop messages. FR-202 and FR-203: the step 1 results (`bkt api` methods and body, `--method`/`-X`, no repository flags on `bkt api`, version pattern, JSON-quoted `--jq` strings), the array-form filters, and `/do` counting contexts that meet the Match rule. NFR-008 and NFR-025: timing method confirmed, medians from the qa run (57.6, 67.2, 56.1, and 54.4 ms). Section 9: points settled by the build closed or narrowed. Fix pass 1 (same version, `DECISIONS.md:263-271`): FR-208 removes the five PR files by exact name with `rm -f --` after the symlink guard in one command that exits 3 on a symlink (no glob); FR-144 adds the run-folder removal bound to the `mktemp` prefix; FR-143 and FR-195 add the separate body-hash check before `bkt pr approve`; FR-202 clause (f) says "exactly one" for the context lookup means one element that meets the Match rule; FR-206 and the gap list live in five places with a pointer in `CLAUDE.md`, `Claude.md`, and `ARCHITECTURE.md`; stale line citations corrected; section 9 points 6, 11, and 12 closed. Documents stay DRAFT until the user signs off |
 | 1.5 | 2026-10-23 | Toni-Jan Keith Monserrat | Release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `:278-281`), PLANNED (1.13.1). New FR-211 to FR-213. FR-181 retired (ID kept, Status Retired (1.13.1)). Changed FR-104 (statement keeps the temp-directory and allowlist exemptions; `docs/tts/` clause dropped; header-based scenarios and the fenced-block scenario; source ranges), FR-118 (two `docs/tts/` self-test scenarios and the health-check and test sources, tied to FR-091), FR-163 (Status, Source, and scenarios: save folder, header passes the gate, header denied then one retry), NFR-019 (whole-file count of U+2014 and curly quotes), section 1 table, section 6 scope, section 7 `DECISIONS.md` note, section 8 rows BR-007, BR-008, and BR-010, section 9 (new bullet for the files to change). Fix pass 1 (same version, 12 review findings): fenced script blocks stay exempt under FR-105 and FR-211 is the only control on script text; FR-211 scoped to dash-style pause marks (Gemini 3.8 double hyphen, no-dash models, Chatterbox-Turbo without line breaks, uncatalogued model with commas and periods, pause tags kept); FR-212 covers U+2015, header user text, a conditional curly-quote note, and other tells kept and flagged; FR-213 no longer applies the full writing standard to script text; one uppercase keyword per statement for FR-104, FR-211, FR-212, FR-213. Fix pass 2 (same version, `DECISIONS.md:283-286`, "Voice script curly quotes, header dashes, and save retry"): FR-211 statement forbids U+2014, U+2015, and curly quotes anywhere in a saved script whatever the text source, names ElevenLabs v2 (spaced hyphen), and gives ordinary-punctuation files and uncatalogued models commas and periods only (nine files cited); the whole-file scenario says a test counts; FR-212 header prose gets a comma or period for a dash (never a line break or double hyphen), refuses a typed voice id or clip path with U+2014, and flags kept tells by family and draft line without repeating text; FR-213 header scenario allows that flag form; FR-163 states the header-deny retry (one retry on the same path, second deny prints in chat); FR-118 advisor case uses an advisory-tier tell (an em dash is block-tier, so it stays a `prose-gate` case only); source ranges corrected (`prose-diff.js:146` goes, `:143-150` stays; test ranges added). Fix pass 3 (same version, `DECISIONS.md:288-291`, "Voice script typed values and tag-model pause marks"): FR-212 refuses a typed voice id, clip path, or model id (Other included) that holds U+2014, U+2015, or a curly quote, and its header-text statement is split in two; FR-211 names the seven remaining model files (ElevenLabs v3/v4, Deepgram Aura 2, Microsoft MAI-Voice, and the four tag models xAI Grok, Fish Audio S2, MiniMax Speech 2.8, Gemini 3.1 TTS Preview with commas and periods beside their tags, MiniMax newline kept) and the ordinary-punctuation rule with tags not counted; `DECISIONS.md` entries cited by line range everywhere (`:283-286`, `:288-291` added); `prose-diff.js:18-20`, `:26`, `:103-137` listed as dead code; health-check self-test test ranges `:110-146`, `:192-236`, `:418-438`; NFR-019 adds U+2015 and traces FR-212. Documents stay DRAFT until the user signs off |
+| 1.6 | 2026-11-18 | Toni-Jan Keith Monserrat | Release 1.14.3 delta, PLANNED (1.14.3), no new elicitation (both points settled by the user). New FR-214 (no shell polling loops for background work; completion notification plus one `Read`, or `Monitor`; documentation-only enforcement, no hook or test) and FR-215 (`engines["claude-code"]` of `>=2.1.323` in `plugin.json`). Updated: Area C range in section 1, section 6 scope and out-of-scope, section 8 rows BR-010 and BR-011. FR-214 traces to UR-042 as the nearest row; no URD row names it |
 

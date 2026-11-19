@@ -7,7 +7,7 @@
 | **Feature** | Area C: skill catalog, shared skill contract, manifests, and repository documents |
 | **Parent feature** | None |
 | **Sub-features** | spec-skills-ask-debug.md, spec-skills-git.md, spec-skills-pr-review.md, spec-skills-docs-review.md, spec-skills-requirements-specs.md, spec-skills-plan-test.md, spec-skills-deslop-voice-clarify.md, spec-skills-health.md, spec-skills-internal.md, spec-skills-manifests-docs.md, spec-skills-untrusted-input.md |
-| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, UR-058, FR-130, FR-183, FR-185, FR-211, FR-213, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019 |
+| **Requirement refs** | BR-003, BR-005, BR-006, BR-008, BR-010, BR-016, UR-019, UR-042, UR-045, UR-058, FR-130, FR-183, FR-185, FR-211, FR-213, FR-214, NFR-004, NFR-011, NFR-013, NFR-015, NFR-018, NFR-019 |
 | **Feature type** | Tooling |
 | **Status** | Review |
 
@@ -797,3 +797,61 @@ Review findings applied: the ADDED Requirement Documents describe voice scripts 
 ### Fix pass 2 (2026-10-23)
 
 Review findings applied: the document requirement now states a mechanical end state (rules 1 to 5: the sentence rule, the required sentence with "like other prose" and "fenced" as its own sentence, and the forbidden sentences F1 to F5, where F3 is defined by the 1.13.0 strings "may use em dashes" and "may hold em dashes" and an "exempt" that refers to fenced blocks does not count), with scenarios for each rule; "like any prose" is no longer accepted; the conformance rows give per-document edits whose text passes the rules, and the `CLAUDE.md` row no longer quotes wording that F1 would catch.
+
+## Change Log: 2026-11-18
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` (section C.12 "Release 1.14.3", 2026-11-18): FR-214 (`:5206-5232`) added, PLANNED (1.14.3); the user's decision of 2026-11-18, which fixes the placement (the plugin's skills and rules) and the documentation-only enforcement, with the release as patch 1.14.3; `docs/research/research-cc-skills-token-opt-20261118.md` (at the repository root, section 4 "Background-wait pattern and the no-polling bash rule"), which records that no such wait-loop exists in `skills/`, `rules/`, or `agents/`, so the rule is net-new guidance, and whose copy-ready rule wording sits at research:125 and placement notes at research:130-133, read as data. This spec received a delta, so its Status stays `Review` (FR-154).
+
+This is a behavior-neutral documentation change: an as-built authoring rule with no code path and no test, so the entry carries no data-flow diagram.
+
+### ADDED Requirements
+
+#### Requirement: Agents do not wait on background work with shell polling loops
+
+The plugin's skills and rules SHALL state that an agent does not wait on background work with a shell polling loop: an `until`, `while`, or `for` loop whose body is a `sleep`, or a command that starts with `sleep` and watches a file, log, or process for a result. The same text SHALL tell the agent to rely on the Claude Code background-completion notification followed by a single `Read` of the task output file, and to use the `Monitor` tool when it must react to output while other work continues. Enforcement SHALL be by documentation only, with no hook and no test added to detect or deny a polling loop.
+
+**Requirement refs:** FR-214, UR-042 | **Status:** PLANNED (1.14.3) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md:5206-5232`; `docs/research/research-cc-skills-token-opt-20261118.md` (at the repository root, section 4; the copy-ready rule at research:125, placement notes at research:130-133); `skills/do/SKILL.md:422`, `:447` (already dispatch with `run_in_background: true` and read the terminal block, so `/do` does not poll); `skills/do/references/developer-self-review.md:61`
+
+The rule is net-new: the research found no `until grep ...; do sleep ...; done` or equivalent wait-loop in `skills/`, `rules/`, or `agents/`, so this adds authoring text and deletes nothing. It names no single owning skill; `skills/code/SKILL.md` and `rules/assist-plugin-rule.md` are the primary placements the research proposes (research:130-131).
+
+##### Scenario: Rule present in the rules
+
+- **GIVEN** the plugin source after the change
+- **WHEN** a reviewer searches `plugins/assist-plugin/rules/` and `plugins/assist-plugin/skills/` for the no-polling rule
+- **THEN** at least one rule file and one skill reference SHALL state the prohibition, the completion-notification-plus-`Read` behavior, and the `Monitor` alternative
+
+##### Scenario: Required behavior is named
+
+- **GIVEN** the text that states the rule
+- **WHEN** a reviewer reads the behavior it requires
+- **THEN** it SHALL name the background-completion notification, a single `Read` of the task output file, and the `Monitor` tool, and SHALL NOT name `TaskOutput`
+
+##### Scenario: No enforcement added
+
+- **GIVEN** `plugins/assist-plugin/hooks/hooks.json` and `plugins/assist-plugin/tests/` after the change
+- **WHEN** a reviewer compares them with the 1.14.2 files
+- **THEN** no hook entry and no test file SHALL exist whose purpose is to detect or deny a polling loop
+
+##### Scenario: Governance gate on the change
+
+- **GIVEN** the edits to `rules/` and `skills/`
+- **WHEN** the merge policy is checked
+- **THEN** the change SHALL carry `✓ LLM Security Clear` (NFR-011)
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-214, UR-042 | Change Log 2026-11-18, ADDED Requirement: Agents do not wait on background work with shell polling loops | Search of `plugins/assist-plugin/rules/` and `plugins/assist-plugin/skills/` for the prohibition, the completion-notification-plus-`Read` behavior, and the `Monitor` alternative; comparison of `hooks/hooks.json` and `tests/` with the 1.14.2 files for no added enforcement |
+
+### Direct edits in this pass (no behavior change)
+
+Status stays `Review`; Requirement refs gain FR-214.
