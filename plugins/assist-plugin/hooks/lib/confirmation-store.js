@@ -16,12 +16,13 @@
 // a function that returns milliseconds (tests). `log` receives one structured entry {level, event, ...fields} per
 // problem; entries never hold a token, a PR, or a message. The reads never throw: a missing, unreadable, or malformed
 // file yields no records, which the guard treats as no confirmation (fail closed). The writes throw a StoreError.
-// Paths are used as given: symlinks are not resolved. CommonJS, ES2015 syntax, no dependencies.
+// Paths are used as given: symlinks are not resolved. CommonJS, ES2015 syntax, no dependencies beyond lib/strict-json.js.
 "use strict";
 
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const strictJson = require("./strict-json.js");
 
 const STORE_DIR = path.join(".agent", "governance", "confirmations");
 const CONFIRMATIONS_FILE = "confirmations.jsonl";
@@ -44,6 +45,9 @@ const VERDICT_PATTERN = /^[a-z][a-z-]{0,31}$/;
 const MAX_PR_CHARS = 200;
 const TOKEN_ATTEMPTS = 5;
 const WRITER = "hook";
+
+// [FR-249] The read cap for a store file, 1 MiB, the value of MAX_FILE_BYTES in lib/data-class.js (not imported).
+const MAX_FILE_BYTES = 1024 * 1024;
 
 class StoreError extends Error {
   constructor(code, message) {
@@ -109,15 +113,16 @@ function requireField(ok, name) {
   if (!ok) throw new StoreError("bad-field", "invalid " + name);
 }
 
-// Splits JSONL text into parsed objects. Returns {records, skipped}: a blank line is ignored, an unparseable or
-// non-object line counts as skipped.
+// [FR-249] Splits JSONL text into parsed objects. Returns {records, skipped}: a blank line is ignored; an unparseable
+// line, a line the strict parser rejects (a duplicate key or nesting over 32 levels), and a non-object line count as
+// skipped, and the other lines are still read.
 function parseLines(text) {
   const records = [];
   let skipped = 0;
   text.split("\n").forEach((line) => {
     if (line.trim().length === 0) return;
     try {
-      const value = JSON.parse(line);
+      const value = strictJson.parse(line);
       if (isRecord(value)) records.push(value);
       else skipped++;
     } catch (err) {
@@ -127,11 +132,17 @@ function parseLines(text) {
   return { records, skipped };
 }
 
-// The parsed records of one store file, [] when the file is missing or unreadable.
+// The parsed records of one store file, [] when the file is missing, unreadable, or over MAX_FILE_BYTES. An over-cap
+// file yields no records, so the guard finds no confirmation (fail closed, NFR-028) and createPending finds no open token.
 function readRecords(options, name) {
   let text;
   try {
-    text = fs.readFileSync(path.join(storeDir(options), name), "utf8");
+    const file = path.join(storeDir(options), name);
+    if (fs.statSync(file).size > MAX_FILE_BYTES) {
+      note(options, "error", "store-too-large", { file: name });
+      return [];
+    }
+    text = fs.readFileSync(file, "utf8");
   } catch (err) {
     if (errorCode(err) !== "ENOENT") note(options, "error", "store-read-failed", { file: name, code: errorCode(err), message: err && err.message });
     return [];

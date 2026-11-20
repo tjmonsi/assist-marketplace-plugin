@@ -1,0 +1,12 @@
+flowchart TD
+  R(["Reader loads a governance JSON file or JSONL line"]) --> P["strictParse(text)"]
+  P --> DUP{"Duplicate key at any depth?"}
+  DUP -->|"yes"| REJ["Reject: error with a position, no input slice"]
+  DUP -->|"no"| DEP{"Nesting depth over 32?"}
+  DEP -->|"yes"| REJ
+  DEP -->|"no"| OK["Return the parsed value"]
+  OK --> USE(["Reader uses the value as before this change"])
+  REJ --> ROUTE{"Which reader?"}
+  ROUTE -->|"rule-modes.json"| ADV["Fall to all-advisory; health check reports it"]
+  ROUTE -->|"profile.json"| DENY["Deny guarded operations until fixed (FR-231, NFR-028); health check reports it"]
+  ROUTE -->|"confirmation record"| DROP["Drop the record as any unparseable line"]

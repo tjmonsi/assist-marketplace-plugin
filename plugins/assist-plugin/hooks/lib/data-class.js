@@ -51,12 +51,13 @@
 //
 // File reads only, each bounded (MAX_FILE_BYTES), and the paths are never resolved through symlinks. ES5 syntax, so
 // lib/health.js can load it on any Node version; lib/fsa-paths.js and lib/git-root.js use newer syntax and are loaded
-// lazily inside a try. No dependencies. Nothing here throws, and nothing it returns holds file contents beyond the
+// lazily inside a try. No dependencies beyond lib/strict-json.js (ES5 as well). Nothing here throws, and nothing it returns holds file contents beyond the
 // closed profile names and short problem codes.
 "use strict";
 
 var fs = require("fs");
 var path = require("path");
+var strictJson = require("./strict-json.js");
 
 var FLAG_NAME = "ASSIST_PLUGIN_COMPLIANCE_OPT_OUT";
 var PROFILES = ["soc2", "hipaa", "ferpa"];
@@ -134,10 +135,13 @@ function rootOf(options) {
   return null;
 }
 
-// Reads and parses one JSON file. Returns {status, value?, code?}: "ok" (value holds the parsed JSON), "absent" (no
-// such file), "malformed" (not JSON, or empty), "too-large", or "unreadable" (a directory, a permission error, or any
-// other I/O error; code names it). The parse error is never copied: it can quote the file.
-function readJson(file) {
+// Reads and parses one JSON file. Returns {status, value?, code?, strict?}: "ok" (value holds the parsed JSON), "absent"
+// (no such file), "malformed" (not JSON, or empty), "too-large", or "unreadable" (a directory, a permission error, or
+// any other I/O error; code names it). The parse error is never copied: it can quote the file.
+// [FR-249] With `strict` set, the file is read by lib/strict-json.js, and a duplicate key or nesting over 32 levels gives
+// {status: "malformed", strict: true}; plain bad JSON stays {status: "malformed"}. Without it the file is read by
+// JSON.parse, so the settings reader keeps its behavior.
+function readJson(file, strict) {
   var fd = -1;
   try {
     fd = fs.openSync(file, "r");
@@ -146,9 +150,10 @@ function readJson(file) {
     if (stat.size > MAX_FILE_BYTES) return { status: "too-large" };
     var text = fs.readFileSync(fd, "utf8").replace(/^﻿/, "");
     try {
-      return { status: "ok", value: JSON.parse(text) };
+      return { status: "ok", value: strict ? strictJson.parse(text) : JSON.parse(text) };
     } catch (parseError) {
-      return { status: "malformed" };
+      var rejected = strict && parseError instanceof strictJson.StrictJsonError && parseError.reason !== strictJson.REASONS.syntax;
+      return rejected ? { status: "malformed", strict: true } : { status: "malformed" };
     }
   } catch (err) {
     var code = errorCode(err);
@@ -284,15 +289,17 @@ function classesProblem(value) {
 //   "absent"     no such file (or no project root); profile is null and nothing is tagged
 //   "valid"      a JSON object whose `data_classes` key, when present, holds only the PHI and student-record glob lists
 //   "malformed"  not JSON, not an object, too large, unreadable, or a bad `data_classes`; profile is null and
-//                problem is a short code ("profile-malformed", "profile-too-large", "profile-unreadable",
-//                "profile-not-object", or a "data-classes-..." code)
+//                problem is a short code ("profile-malformed", "profile-strict-parse" for a duplicate key or nesting over
+//                32 levels [FR-249], "profile-too-large", "profile-unreadable", "profile-not-object", or a
+//                "data-classes-..." code)
 // options: {root} or {cwd}.
 function loadProfile(options) {
   try {
     var root = rootOf(options);
     if (!root) return { status: "absent", profile: null, problem: "no-project-root" };
-    var read = readJson(path.join(root, PROFILE_FILE));
+    var read = readJson(path.join(root, PROFILE_FILE), true);
     if (read.status === "absent") return { status: "absent", profile: null, problem: null };
+    if (read.strict) return { status: "malformed", profile: null, problem: "profile-strict-parse" };
     if (read.status !== "ok") return { status: "malformed", profile: null, problem: "profile-" + read.status };
     if (!isObject(read.value)) return { status: "malformed", profile: null, problem: "profile-not-object" };
     var problem = classesProblem(has(read.value, "data_classes") ? read.value.data_classes : undefined);

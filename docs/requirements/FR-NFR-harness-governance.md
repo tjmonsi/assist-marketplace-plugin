@@ -57,6 +57,8 @@
 | FR-245 | The files `.claude/settings.json` and `.agent/governance/profile.json`, the confirmation store (FR-242), `.agent/logs/governance/**`, the session purpose record (FR-247), and the rule-mode store MUST be protected from writes by every subagent. | UR-075 | Must | 2.32 |
 | FR-246 | While the FERPA profile is enforced (the default unless the project opts out), the plugin MUST log each disclosure of education-record data to an outside party with the receiving party and the legitimate interest, MUST NOT accept `unstated` for either, MUST deny the outbound disclosure when the receiving party or the legitimate interest is missing or the receiving party is not on the `profile.json` allowlist, and MUST apply the exceptions of 34 CFR 99.32(d). The receiving party and the legitimate interest are declared in the outbound call payload and parsed by the guard. | UR-076 | Should | 2.33 |
 | FR-247 | A hook MUST write the session purpose record from a purpose the user declares, and the access-logging hooks MUST read that record; model output and text from a PR, web page, or file MUST NOT create or alter it. | UR-068, UR-069 | Should | 2.34 |
+| FR-248 | The plugin MUST provide a dependency-free strict JSON parser that rejects a duplicate key at any depth and nesting deeper than 32 levels, with an error that carries a position and no slice of the input. | UR-071, UR-075 | Must | 2.35 |
+| FR-249 | The strict parser MUST be wired into exactly three readers (rule-modes.json, profile.json, the confirmation store), route a rejection through each reader's existing malformed-file path, and be reported by the health check. | UR-059, UR-068, UR-069, UR-071 | Must | 2.36 |
 
 Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
@@ -837,6 +839,93 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 - **THEN** the access log MUST hold the purpose `unstated`
 - **AND** the record MUST be flagged
 
+#### 2.35 FR-248: Strict JSON parser
+
+**Statement:** The plugin MUST provide a dependency-free strict JSON parser that rejects an object holding a duplicate key at any nesting depth and rejects nesting deeper than 32 levels. Its error MUST carry a position and MUST NOT carry any slice of the input.
+**Traces to:** UR-071, UR-075
+**Priority:** Must
+**Origin:** The user's design decision for this change (as-built intent). The no-echo rule follows NFR-016 (`specs/spec-hooks-platform.md:458`, `:548`), which keeps `JSON.parse` error text out of the logs because it can quote input that holds secrets. A duplicate key lets a later value silently override an earlier one in a governance file that the plugin trusts; this requirement closes that gap for the readers named in FR-249.
+
+##### Scenario: Duplicate key at the top level
+
+- **GIVEN** a JSON text with the key `a` twice in the same object
+- **WHEN** the strict parser reads it
+- **THEN** the parser MUST reject it
+- **AND** the error MUST carry a position
+
+##### Scenario: Duplicate key in a nested object
+
+- **GIVEN** a JSON text with a duplicate key inside an object nested at depth 5
+- **WHEN** the strict parser reads it
+- **THEN** the parser MUST reject it
+
+##### Scenario: Depth over 32
+
+- **GIVEN** a JSON text nested 33 levels deep
+- **WHEN** the strict parser reads it
+- **THEN** the parser MUST reject it
+
+##### Scenario: Depth at 32
+
+- **GIVEN** a JSON text nested exactly 32 levels deep with no duplicate key
+- **WHEN** the strict parser reads it
+- **THEN** the parser MUST accept it
+
+##### Scenario: Error holds no input
+
+- **GIVEN** a rejected JSON text that holds the string `secret-value`
+- **WHEN** the error text is read
+- **THEN** it MUST NOT hold `secret-value` or any other slice of the input
+
+##### Scenario: Valid input unchanged
+
+- **GIVEN** valid JSON with no duplicate key and depth of 32 or less
+- **WHEN** the strict parser reads it
+- **THEN** it MUST return the same value as `JSON.parse`
+
+#### 2.36 FR-249: Strict parser wired into three governance readers
+
+**Statement (wiring):** The strict parser (FR-248) MUST be the parser of exactly three readers: the rule-mode store reader (`parseRuleModes` in `hooks/lib/severity.js`, file `.agent/governance/rule-modes.json`), the profile reader (`hooks/lib/data-class.js`, file `.agent/governance/profile.json`), and the confirmation-store record reader (`hooks/lib/confirmation-store.js`).
+**Statement (routing):** A strict-parse rejection MUST route through the existing malformed-file path of that reader and MUST NOT create a new state: a rejected `rule-modes.json` MUST fall to all-advisory, a rejected `profile.json` MUST deny the guarded operations (FR-231, NFR-028), and the confirmation store MUST drop a rejected record as it drops any unparseable line.
+**Statement (health):** The health check MUST report a strict-parse failure of `rule-modes.json` or `profile.json`, so the rejection is not silent.
+**Statement (unchanged):** Behavior for valid, duplicate-free JSON of depth 32 or less MUST be unchanged for all three readers.
+**Traces to:** UR-059, UR-068, UR-069, UR-071
+**Priority:** Must
+**Origin:** The user's design decision for this change (as-built intent). The malformed-file behavior is the existing one in FR-231 (Scenario "Malformed profile.json") and NFR-028. FR-242 defines the confirmation store.
+
+##### Scenario: Duplicate key in rule-modes.json
+
+- **GIVEN** `.agent/governance/rule-modes.json` holds a duplicate key
+- **WHEN** a hook reads the rule-mode store
+- **THEN** every rule MUST run in advisory mode
+- **AND** the health check MUST report the strict-parse failure
+
+##### Scenario: Duplicate key in profile.json
+
+- **GIVEN** `.agent/governance/profile.json` holds a duplicate key and a profile is enforced
+- **WHEN** a hook loads it
+- **THEN** the guarded operations MUST be denied until the file is fixed (NFR-028)
+- **AND** the health check MUST report the strict-parse failure
+
+##### Scenario: Rejected confirmation record
+
+- **GIVEN** `confirmations.jsonl` holds one record with a duplicate key and one valid record
+- **WHEN** the PR-posting guard reads the store
+- **THEN** the guard MUST ignore the rejected record
+- **AND** the guard MUST read the valid record as before
+
+##### Scenario: Valid files unchanged
+
+- **GIVEN** valid, duplicate-free `rule-modes.json` and `profile.json`
+- **WHEN** the hooks read them
+- **THEN** the result MUST equal the result before this change
+
+##### Scenario: Other readers untouched
+
+- **GIVEN** a reader of any other JSON file that uses `JSON.parse`
+- **WHEN** this requirement is applied
+- **THEN** that reader MUST keep `JSON.parse` this release (follow-up in section 4)
+
 ### 3. Non-functional requirements
 
 #### 3.1 Performance
@@ -959,7 +1048,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 
 #### In scope (system behaviors)
 
-- All behaviors FR-214 to FR-247 and NFR-026 to NFR-036.
+- All behaviors FR-214 to FR-249 and NFR-026 to NFR-036.
 
 #### Out of scope (system exclusions)
 
@@ -970,6 +1059,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 | Content-level PHI detection beyond configured patterns and tagged paths | Paraphrase detection has no accepted method here | Future roadmap |
 | Session-level taint tracking that denies a payload holding content earlier read from a PHI-tagged path or student-record path (FR-233, FR-246) | A per-call hook has no session state; no tracking mechanism is named | Future roadmap |
 | Bash write coverage through symlinks and variable-built commands | Existing known limit of the write bar | Future roadmap |
+| Strict JSON parsing for every other plain `JSON.parse` reader | Only three readers carry governance trust in this release (FR-249); the rest are a follow-up | Follow-up release |
 
 ### 5. Constraints
 
@@ -1020,6 +1110,7 @@ Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when 
 | BR-022 | UR-072 | FR-239 | NFR-034 | Approved |
 | BR-022 | UR-073 | FR-240 | | Approved |
 | BR-022 | UR-074 | FR-241 | | Approved |
+| BR-018, BR-019, BR-020, BR-022 | UR-059, UR-068, UR-069, UR-071, UR-075 | FR-248, FR-249 | NFR-016 (spec), NFR-028 | PLANNED |
 
 No orphans. No BR is a dead end. NFR-029 to NFR-036 trace to BR or FR as their origin requires.
 
@@ -1055,3 +1146,4 @@ Gap traceability:
 | 1.3 (note 2) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "PN-10 pending-action store split and token lifetime settled": FR-242 states the confirmation store as a directory with `confirmations.jsonl` (hook-only, denied to every tool caller) and `pending.jsonl` (main-session `/do` writable, denied to every subagent), the guard reading `confirmations.jsonl` only, and a single-use, time-expiring token with the window an estimate until measured; an expired-or-reused-token scenario and a pending-record-is-not-a-confirmation scenario added. FR-245 notes the directory form, still one of the six paths (no seventh path); D-10 notes the split. No version bump: the BRD and URD are unchanged, since the decision was a build-time plan item the URD never tracked as an open question |
 | 1.3 (note 3) | 2026-10-30 | [Author] | Align with `DECISIONS.md` 2026-10-30, "Baseline precision labeller settled (PN-3)": NFR-034 names the user as the labeller of each baseline advisory finding, with precision computed from those labels, and gains an unlabelled-finding scenario. "Secret-scan tool settled as the in-plugin pattern scanner (PN-4)": FR-217 names the in-plugin pattern-scanner script as the default scan tool, with an external scanner as a later substitute keeping the clean, findings, and cannot-run outcomes; the scanner-unavailable scenario reads to match. "Second pr-post-ask prompt kept after a recorded confirmation (PN-5)": FR-214 states the guard is additive, the `pr-post-ask` hook is unchanged, and two prompts may appear as defense in depth; a scenario added. "Proposed governance file names and store paths approved (PN-8)" is a task-plan naming decision with no requirements change: no FR-245 path added or renamed, the six-path count stands. No version bump: the BRD and URD are unchanged |
 | 1.3 (note 4) | 2026-11-13 | [Author] | Tranche 5 documentation sync per `DECISIONS.md` 2026-11-05, "Harness-governance requirements and task plan approved for build" (the Status label flips from DRAFT to Approved in a later requirements sync) and 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode": the Status label reads Approved, the section 6 traceability rows read Approved, and the NFR-028 enumeration adds FR-219 for blocking mode only (advisory mode still fails open per NFR-026). No version bump: no requirement statement other than the NFR-028 membership changed |
+| 1.3 (note 5) | 2026-11-20 | [Author] | Strict JSON parser for governance-config readers, settled by the user, no new elicitation. FR-248 (strict parser: duplicate key at any depth, depth over 32, position-only error per NFR-016) and FR-249 (wired into the rule-modes, profile, and confirmation-store readers only; rejection uses the existing malformed-file path; health check reports it) added. Other plain `JSON.parse` readers recorded as a follow-up in section 4. No UR row names these requirements; they trace to the nearest rows. No version bump |

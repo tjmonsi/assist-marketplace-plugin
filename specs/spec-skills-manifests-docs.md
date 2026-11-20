@@ -6,7 +6,7 @@
 |---|---|
 | **Feature** | Marketplace manifests, release metadata, and repository documents |
 | **Parent feature** | spec-skills.md |
-| **Sub-features** | None |
+| **Sub-features** | spec-release-check.md |
 | **Requirement refs** | BR-011, BR-014, BR-016, BR-017, UR-045, UR-046, UR-047, UR-048, UR-052, UR-053, FR-172, FR-173, FR-174, FR-178, FR-193, FR-194, FR-201, FR-215, NFR-020, NFR-022, NFR-023 |
 | **Feature type** | Configuration |
 | **Status** | Review |
@@ -568,3 +568,75 @@ None.
 ### Direct edits in this pass (no behavior change)
 
 Status set to `Review`; Requirement refs gain FR-215.
+
+## Change Log: 2026-11-20
+
+**Source:** `docs/requirements/FR-NFR-assist-plugin.md` version 1.8 (2026-11-20): FR-173 extended to a six-place version agreement and FR-194 extended to name the root `CHANGELOG.md` heading as a sixth version place, both PLANNED with no release or version bump; the user settled the design. The automated enforcer is the release-check runner (FR-250 to FR-253), specified in the new child `specs/spec-release-check.md`. This spec received a delta, so its Status returns to `Review` (FR-154).
+
+This is a release-process delta: the version-agreement policy widens from the two manifests to six places, and a runner enforces it. The runner's own data flow sits in `specs/spec-release-check.md`, so this entry carries no diagram.
+
+### ADDED Requirements
+
+None. The enforcement behavior is owned by the new sibling `specs/spec-release-check.md` (FR-250 to FR-253); this entry modifies the two version requirements this spec owns and links the runner as a sub-feature.
+
+### MODIFIED Requirements
+
+#### Requirement: Manifest versions agree at release
+
+**Was:** The `version` in `plugins/assist-plugin/.claude-plugin/plugin.json` and the plugin entry's `version` in `.claude-plugin/marketplace.json` SHALL be equal at every release.
+**Now:** The two manifest versions SHALL be equal at every release, and both SHALL agree with the `CLAUDE.md` Plugin line, the `README.md` `### assist-plugin v` heading, the `MARKETPLACE.md` heading and Versioning sentence, and the newest heading of the root `CHANGELOG.md`, for a six-place version agreement.
+**Reason:** FR-173 extended to the six-place agreement that FR-194 names and the FR-251 runner section checks.
+**Requirement refs:** FR-173, FR-251, UR-046, BR-011 | **Status:** Built (manifest equality); PLANNED (six-place agreement) | **Source:** `docs/requirements/FR-NFR-assist-plugin.md` (FR-173, FR-251)
+
+##### Scenario: Manifests equal, another file differs
+
+- **GIVEN** both manifests read the same version and the `README.md` heading reads an older version
+- **WHEN** the version-agreement check compares the six places
+- **THEN** the check SHALL fail and name `README.md`
+
+##### Scenario: Changelog heading optional with no release
+
+- **GIVEN** the root `CHANGELOG.md` holds no heading for the manifest version and no release is requested
+- **WHEN** the version-agreement check runs
+- **THEN** the check SHALL NOT fail for `CHANGELOG.md`
+
+#### Requirement: Release checklist names every file that carries the version
+
+**Was:** The release checklist in `CLAUDE.md` SHALL name every file that carries the plugin version: the two manifests, `CLAUDE.md`, `README.md`, and `MARKETPLACE.md` (in both places it states the version).
+**Now:** The checklist SHALL also name the newest heading of the root `CHANGELOG.md` as the sixth version place, so the version agreement spans six places.
+**Reason:** FR-194 extended to name the root `CHANGELOG.md` heading as the sixth version-agreement file.
+**Requirement refs:** FR-194, FR-251, UR-046, BR-011 | **Status:** PLANNED | **Source:** `docs/requirements/FR-NFR-assist-plugin.md` (FR-194 extended, FR-251)
+
+##### Scenario: Sixth file in the checklist
+
+- **GIVEN** the release checklist after the change
+- **WHEN** a maintainer reads it
+- **THEN** it SHALL name the two manifests, `CLAUDE.md`, `README.md`, `MARKETPLACE.md` (both places), and the root `CHANGELOG.md` newest heading
+
+##### Scenario: Stale changelog heading at release
+
+- **GIVEN** a release to a version whose root `CHANGELOG.md` newest heading reads the prior version
+- **WHEN** the maintainer works through the checklist or runs the release-check runner
+- **THEN** the check SHALL flag `CHANGELOG.md` as out of date
+
+### REMOVED Requirements
+
+None.
+
+### Sub-feature added
+
+| Sub-feature | Spec file | Description |
+|---|---|---|
+| Release-check runner | spec-release-check.md | Independent-section runner for the release checks, the six-place version agreement, the staged-secret scan, and `.agent` hygiene (FR-250 to FR-253) |
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-173 (six-place) | Change Log 2026-11-20, MODIFIED Requirement: Manifest versions agree at release | Version comparison across the six places; a disagreeing non-manifest file fails |
+| FR-194 (sixth file) | Change Log 2026-11-20, MODIFIED Requirement: Release checklist names every file that carries the version | Read of the `CLAUDE.md` checklist for the root `CHANGELOG.md` entry; a stale changelog heading is flagged |
+| FR-251 | spec-release-check.md, Requirements 4 and 5 | The runner's version-agreement section (child spec) |
+
+### Direct edits in this pass (no behavior change, 2026-11-20)
+
+Status set to `Review`; Sub-features set to `spec-release-check.md`.

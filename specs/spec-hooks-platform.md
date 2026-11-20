@@ -6,7 +6,7 @@
 |---|---|
 | **Feature** | Hook platform: registration, launcher, fail-open runtime, disable flag, and health log |
 | **Parent feature** | None |
-| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md, spec-hooks-audit.md, spec-hooks-goal-guard.md, spec-hooks-compliance.md |
+| **Sub-features** | spec-hooks-bash-guards.md, spec-hooks-commit-attribution-guard.md, spec-hooks-injection-filter.md, spec-hooks-prose-hooks.md, spec-hooks-writing-context.md, spec-hooks-terse-output-style.md, spec-hooks-fsa-write-bar.md, spec-hooks-fsa-log.md, spec-hooks-health-check.md, spec-hooks-fsa-table-check.md, spec-hooks-writing-standard-sync.md, spec-hooks-pr-post-ask.md, spec-hooks-audit.md, spec-hooks-goal-guard.md, spec-hooks-compliance.md, spec-hooks-code-scan.md, spec-hooks-strict-json.md |
 | **Requirement refs** | BR-006, BR-007, UR-017, UR-018, UR-055, UR-059, UR-062, UR-063, UR-065, UR-067, UR-068, UR-069, UR-075, FR-086, FR-087, FR-088, FR-089, FR-090, FR-091, FR-094, FR-104, FR-206, FR-213, FR-214, FR-217, FR-219, FR-220, FR-221, FR-223, FR-224, FR-225, FR-228, FR-230, FR-231, FR-232, FR-233, FR-242, FR-243, FR-245, FR-246, FR-247, NFR-007, NFR-009, NFR-011, NFR-014, NFR-016, NFR-017, NFR-025, NFR-026, NFR-028, NFR-029, NFR-030, NFR-031, NFR-032, NFR-035, NFR-036 |
 | **Feature type** | Architecture |
 | **Status** | Review |
@@ -1333,3 +1333,39 @@ None.
 | FR-237, FR-239, FR-241, NFR-034 | Change Log 2026-11-13 (Tranche 4): Body (Components, new shared-logic and stores) | `lib/severity.js`, `lib/sarif.js`, and `lib/code-rules.js` and the rule-mode and review-findings stores are named; their behavior is in spec-hooks-code-scan.md, spec-orchestration-review-gates.md, and spec-orchestration-dispatch.md |
 | FR-245 | Change Log 2026-11-13 (Tranche 4): Body (Components, new store) | The rule-mode store `.agent/governance/rule-modes.json` is protected from every subagent write by `fsa-write-bar` (spec-hooks-fsa-write-bar.md) |
 | NFR-036 | Change Log 2026-11-13 (Tranche 4): Requirement: Hook registration | The new entry file sits on the LLM surface (`hooks/`) and carries `✓ LLM Security Clear` together with NFR-011 |
+
+## Change Log: 2026-11-20
+
+**Source:** FR-NFR-harness-governance.md v1.3 (2026-10-30): FR-248 (section 2.35) and FR-249 (section 2.36); the dependency-free strict JSON parser and its wiring into three governance readers (`parseRuleModes` in `hooks/lib/severity.js`, the `hooks/lib/data-class.js` profile reader, and the `hooks/lib/confirmation-store.js` record reader). The parser, its routing through each reader's existing malformed-file path, and its health-check reporting are specified in full in the new child spec spec-hooks-strict-json.md, which names this spec as its parent. This entry adds no requirement, registration row, or scenario; it records only the new child and its Sub-feature breakdown row, parallel to how the Change Log 2026-11-13 (Tranche 4) added spec-hooks-code-scan.md. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Direct edits in this pass (no behavior change)
+
+- Sub-features: spec-hooks-strict-json.md added, so the parent-child link resolves (the strict JSON parser and its three-reader wiring name this spec as their parent). The Sub-feature breakdown row follows at the fold.
+- Sub-features (audit-trail fix): spec-hooks-code-scan.md added to the metadata Sub-features line between spec-hooks-compliance.md and spec-hooks-strict-json.md. The Change Log 2026-11-13 (Tranche 4) recorded this child as added (Direct edits in this pass, "spec-hooks-code-scan.md added") but the metadata line never listed it; this closes that gap, and the parent-child link to spec-hooks-code-scan.md (which names this spec as its parent) now resolves. Source: backport task plan `docs/task-plans/task-plan-assist-pi-backport-20261120-0314.md`.
+- Requirement refs: unchanged. FR-248 and FR-249 are owned by the child spec spec-hooks-strict-json.md and are not added to this spec's top-level Requirement refs; this entry records the child only.
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Sub-feature breakdown: a new child row "Strict JSON parser | spec-hooks-strict-json.md | Dependency-free strict JSON parser that rejects a duplicate key at any depth and nesting deeper than 32 levels with a position-only error (NFR-016), wired into the rule-mode (`parseRuleModes`), profile, and confirmation-store readers through each reader's existing malformed-file path and reported by the health check (FR-248, FR-249); Planned (assist-pi backport, 2026-11-20)". Source: task plan `docs/task-plans/task-plan-assist-pi-backport-20261120-0314.md`.
+
+### Topology and data flow
+
+The strict JSON parser is shared logic owned by the child spec, not a hook: it adds no hook node and no registration row, so the topology and data-flow diagrams need no edit, the same treatment the earlier harness-governance entries gave their shared-logic additions. The parser's own validation and routing flow is drawn in spec-hooks-strict-json.md. Rendering of this spec's diagrams stays skipped (chrome-headless-shell note under Data flow); the `.mmd` sources are the record.
+
+### ADDED Requirements
+
+None. The strict JSON parser, its three-reader wiring, and its health-check reporting are specified in spec-hooks-strict-json.md (Requirements 1 to 8); the parser's self-test is in spec-hooks-health-check.md.
+
+### MODIFIED Requirements
+
+None.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-248, FR-249 | Change Log 2026-11-20: Body (Sub-features, Sub-feature breakdown row) | The strict JSON parser and its three-reader wiring are recorded as the child spec-hooks-strict-json.md; the parser's behavior, routing, and health-check reporting are verified in spec-hooks-strict-json.md (Requirements 1 to 8) and spec-hooks-health-check.md, not by this entry |

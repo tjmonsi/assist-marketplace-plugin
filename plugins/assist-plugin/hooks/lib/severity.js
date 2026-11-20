@@ -29,8 +29,10 @@
 // Rule-mode store. .agent/governance/rule-modes.json holds one JSON object that maps a rule id to "advisory" or
 // "blocking". parseRuleModes() and modeOf() read it defensively: an absent, malformed, or oddly shaped store, and a rule
 // it does not name or names with any other value, mean "advisory". A defect in the store never turns a rule blocking [FR-238].
-// CommonJS, ES2015 syntax, no dependencies; it runs from Node 6.
+// CommonJS, ES2015 syntax, no dependencies beyond lib/strict-json.js; it runs from Node 6.
 "use strict";
+
+const strictJson = require("./strict-json.js");
 
 const ROUTES = { block: "block-merge", inline: "inline-comment", log: "log-only" };
 const SEVERITIES = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
@@ -103,12 +105,12 @@ function ruleModesOf(parsed) {
   return modes;
 }
 
-// [FR-238] The rule modes in the store text, or an empty map (every rule advisory) when the text is absent, too long, or
-// not valid JSON. Never throws.
+// [FR-238|FR-249] The rule modes in the store text, or an empty map (every rule advisory) when the text is absent, too long,
+// not valid JSON, or rejected by the strict parser (a duplicate key at any depth, or nesting over 32 levels). Never throws.
 function parseRuleModes(text) {
   if (typeof text !== "string" || text.length === 0 || text.length > MAX_STORE_CHARS) return ruleModesOf(null);
   try {
-    return ruleModesOf(JSON.parse(text));
+    return ruleModesOf(strictJson.parse(text));
   } catch (err) {
     return ruleModesOf(null);
   }
@@ -156,4 +158,4 @@ function checkFinding(record) {
   };
 }
 
-module.exports = { ROUTES, SEVERITIES, CONFIDENCES, MODES, ID_PATTERN, route, applyMode, parseRuleModes, modeOf, labelOf, checkFinding };
+module.exports = { ROUTES, SEVERITIES, CONFIDENCES, MODES, ID_PATTERN, MAX_STORE_CHARS, route, applyMode, parseRuleModes, modeOf, labelOf, checkFinding };

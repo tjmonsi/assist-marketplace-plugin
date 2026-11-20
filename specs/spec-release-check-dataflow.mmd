@@ -1,0 +1,13 @@
+flowchart TD
+  S(["release-check.js starts"]) --> A["sync-writing-standard.js --check"]
+  A --> B["check-fsa-tables.js --check"]
+  B --> C["check-control-register.js --check"]
+  C --> D["scan-staged-secrets.js (clean when nothing staged)"]
+  D --> E["Version agreement across six places"]
+  E --> F[".agent hygiene: check-ignore, ls-files, negation"]
+  F --> AGG["Collect every section outcome, each reported separately"]
+  AGG --> Q{"Any operational error?"}
+  Q -->|"yes"| X2(["Exit 2"])
+  Q -->|"no"| Q1{"Any finding?"}
+  Q1 -->|"yes"| X1(["Exit 1"])
+  Q1 -->|"no"| X0(["Exit 0"])

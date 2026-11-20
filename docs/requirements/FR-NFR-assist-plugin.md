@@ -1,9 +1,11 @@
 # assist-plugin: Functional and Non-Functional Requirements
 
-**Version:** 1.7
-**Date:** 2026-11-19
+**Version:** 1.8
+**Date:** 2026-11-20
 **Author:** Toni-Jan Keith Monserrat
 **Status:** DRAFT
+
+Version 1.8 (2026-11-20) adds four PLANNED requirements with no release or version bump, all settled by the user: FR-250 (release-check runner), FR-251 (six-place version agreement), FR-252 (secret-scan section clean when nothing is staged), and FR-253 (`.agent` ignored and untracked). It extends FR-194 to name the root `CHANGELOG.md` as a sixth version-agreement file and brings FR-173 in line. Wiring strict JSON parsing into the other plain `JSON.parse` readers is a follow-up and not a requirement.
 
 Version 1.7 (2026-11-19) adds five requirements for patch release 1.14.4, all PLANNED (1.14.4) and all settled by the user: NFR-026 (SKILL.md under 500 lines, invariants in the first 5,000 tokens), FR-216 (references one level deep), FR-217 (contents list on reference files over 100 lines), FR-218 (eval suites for `do`, `code`, and `debug`), and FR-219 (model-routing note of proposed effort values, current values unchanged). Nothing else changes.
 
@@ -39,7 +41,7 @@ Baseline note (version 1.3): assist-plugin 1.12.0 is released (commit `bb09e29`)
 |------|---------|--------|----------|
 | A | 2 | `/do` orchestration, routing, review gates, spec-first flow, agents, terminal blocks | FR-001 to FR-085, FR-187 to FR-192, and FR-199 |
 | B | 3 | Hooks, guards, health, maintenance scripts, drift checks and write guard lists, program-name detection | FR-086 to FR-129, FR-180, FR-181 (retired), FR-186, and FR-198 |
-| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), FR-211 to FR-213, FR-214 and FR-215, and FR-216 to FR-219 |
+| C | 4 | Skills (user-invocable and internal), manifests, repository documents, untrusted-input rules, changelog pointer, output folders, skill metadata, release checklist, PR review under `/do` | FR-130 to FR-179, FR-182 to FR-185, FR-193 to FR-197, FR-200, FR-201, FR-202 to FR-210 (FR-206 is a hook requirement placed with its group), FR-211 to FR-213, FR-214 and FR-215, FR-216 to FR-219, and FR-250 to FR-253 |
 
 Section 5 holds the non-functional requirements. Each FR heading is followed by its scenarios. Each scenario is a `#### Scenario:` block in GIVEN/WHEN/THEN form. Source references (`path (section)`) point at the file that documents or implements the behavior, so a reader can verify the requirement.
 
@@ -4053,9 +4055,9 @@ The rule at `skills/voice-script/SKILL.md:181` that exempts the script text so i
 
 ### FR-173: Version agreement
 
-**Statement:** The `version` in `plugins/assist-plugin/.claude-plugin/plugin.json` and the plugin entry's `version` in `.claude-plugin/marketplace.json` SHALL be equal at every release.
-**Traces to:** UR-046 | **Priority:** Must | **Status:** Built
-**Source:** `CLAUDE.md` (Keeping counts in sync, releasing)
+**Statement:** The `version` in `plugins/assist-plugin/.claude-plugin/plugin.json` and the plugin entry's `version` in `.claude-plugin/marketplace.json` SHALL be equal at every release, and both SHALL agree with the other three files (`CLAUDE.md`, `README.md`, `MARKETPLACE.md`) and the root `CHANGELOG.md` heading that FR-194 names as the six-place version agreement.
+**Traces to:** UR-046 | **Priority:** Must | **Status:** Built (manifest equality); PLANNED (six-place agreement)
+**Source:** `CLAUDE.md` (Keeping counts in sync, releasing). The six-place set is the same set FR-194 names and FR-251 checks.
 
 #### Scenario: Equal
 - **GIVEN** both files read 1.11.0
@@ -4065,6 +4067,11 @@ The rule at `skills/voice-script/SKILL.md:181` that exempts the script text so i
 #### Scenario: Different
 - **GIVEN** `plugin.json` reads 1.11.1 and `marketplace.json` reads 1.11.0
 - **WHEN** a release check compares them
+- **THEN** the check SHALL fail
+
+#### Scenario: Manifests equal, another file differs
+- **GIVEN** both manifests read 1.11.1 and the `README.md` heading reads 1.11.0
+- **WHEN** a release check compares the six places
 - **THEN** the check SHALL fail
 
 ### FR-174: Self-hosted requirements, specs, and plans
@@ -4374,14 +4381,19 @@ The rule at `skills/voice-script/SKILL.md:181` that exempts the script text so i
 
 ### FR-194: Release checklist names every file that carries the version
 
-**Statement:** The release checklist in `CLAUDE.md` SHALL name every file that carries the plugin version: `plugins/assist-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `CLAUDE.md`, `README.md`, and `MARKETPLACE.md` (in both places it states the version).
-**Traces to:** UR-046 | **Priority:** Must | **Status:** PLANNED (1.12.0)
+**Statement:** The release checklist in `CLAUDE.md` SHALL name every file that carries the plugin version: `plugins/assist-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `CLAUDE.md`, `README.md`, and `MARKETPLACE.md` (in both places it states the version), and the newest heading of the root `CHANGELOG.md` as a sixth version-agreement file, where that heading is present.
+**Traces to:** UR-046 | **Priority:** Must | **Status:** PLANNED (1.12.0); the root `CHANGELOG.md` clause is PLANNED
 **Source:** `CLAUDE.md:10` (`v1.11.1`), `CLAUDE.md:133` (names the two manifests only); `README.md:28`; `MARKETPLACE.md:7` and `:76`; the answer to OP-14 in `plan-deferred-decisions-20261016-1059.md`. FR-173 states the equality of the two manifests; this requirement adds the other files to the checklist.
 
 #### Scenario: Checklist complete
 - **GIVEN** the release checklist after the change
 - **WHEN** a maintainer reads it
-- **THEN** it SHALL name both manifests, `CLAUDE.md`, `README.md`, and `MARKETPLACE.md` with its two places
+- **THEN** it SHALL name both manifests, `CLAUDE.md`, `README.md`, `MARKETPLACE.md` with its two places, and the root `CHANGELOG.md` newest heading
+
+#### Scenario: Stale changelog heading
+- **GIVEN** a release to 1.12.0 where the newest root `CHANGELOG.md` heading still reads 1.11.1
+- **WHEN** the maintainer works through the checklist
+- **THEN** the checklist SHALL flag `CHANGELOG.md` as out of date
 
 #### Scenario: Stale version in a listed file
 - **GIVEN** a release to 1.12.0 where `MARKETPLACE.md:76` still reads 1.11.1
@@ -5324,6 +5336,115 @@ FR-216 to FR-219 and NFR-026 (section 5.1) are PLANNED (1.14.4). The user settle
 - **WHEN** no separate user decision is recorded
 - **THEN** the current value SHALL stay in force
 
+### C.14 Unified release check and `.agent` hygiene
+
+FR-250 to FR-253 are PLANNED and carry no release number: no version bump or release is requested with them. The user settled the design; the as-built intent is recorded as requirements. No URD row names them; each traces to the nearest rows (FR-250: UR-044, UR-051; FR-251: UR-046; FR-252 and FR-253: UR-044), and a dedicated user requirement is a follow-up for the URD owner. FR-253 is distinct from the write protection of `.agent` paths in FR-245 (`FR-NFR-harness-governance.md`): FR-245 stops subagent writes, FR-253 checks what git ignores and tracks.
+
+### FR-250: Release-check runner with independent sections
+
+**Statement (sections):** The command `plugins/assist-plugin/scripts/release-check.js` SHALL run an ordered list of independent sections: `sync-writing-standard.js --check`, `check-fsa-tables.js --check`, `check-control-register.js --check`, and `scan-staged-secrets.js`, followed by the version-agreement section (FR-251) and the `.agent` hygiene section (FR-253).
+**Statement (independence):** The command SHALL run every section even when an earlier section reports a finding or an operational error, and SHALL report each section's outcome separately.
+**Statement (exit codes):** The command SHALL exit 0 when every section is clean, 1 when at least one section reports a finding, and 2 when at least one section hits an operational error.
+**Traces to:** UR-044, UR-051 | **Priority:** Must | **Status:** PLANNED
+**Source:** the user's design decision for this change, as-built intent; `CLAUDE.md` (Keeping counts in sync) lists the same checks as separate manual steps. The exit code for a run that holds both a finding and an operational error is not stated by the user; it is left to the spec.
+
+#### Scenario: All sections clean
+- **GIVEN** a tree where every section passes
+- **WHEN** `release-check.js` runs
+- **THEN** it SHALL report each section as clean and exit 0
+
+#### Scenario: One failing section does not hide another
+- **GIVEN** `check-fsa-tables.js --check` exits 1 and the version-agreement section also finds a mismatch
+- **WHEN** `release-check.js` runs
+- **THEN** it SHALL report both findings and exit 1
+
+#### Scenario: Operational error
+- **GIVEN** a section whose script cannot start
+- **WHEN** `release-check.js` runs
+- **THEN** it SHALL still run the remaining sections and exit 2
+
+### FR-251: Version agreement across six places
+
+**Statement (six places):** The version-agreement section of `release-check.js` SHALL compare the version in `plugins/assist-plugin/.claude-plugin/plugin.json`, the plugin entry in `.claude-plugin/marketplace.json`, the `CLAUDE.md` Plugin line, the `README.md` `### assist-plugin v` heading, the `MARKETPLACE.md` heading and Versioning sentence, and the newest heading of the root `CHANGELOG.md`.
+**Statement (changelog):** The section SHALL NOT report a finding for the newest `CHANGELOG.md` heading when no release is requested (the `--release` flag of `release-check.js` is absent), whether that heading is absent, older than the manifests, or equal to them, and SHALL report a finding when a release is requested and that heading is absent or differs from the manifests.
+**Traces to:** UR-046 | **Priority:** Must | **Status:** PLANNED
+**Source:** the user's design decision for this change; FR-173 and FR-194 name the same six places.
+
+#### Scenario: Six places agree
+- **GIVEN** all six places read the same version
+- **WHEN** the version-agreement section runs
+- **THEN** it SHALL report clean
+
+#### Scenario: Changelog heading differs, release requested
+- **GIVEN** the manifests read 1.14.4, the newest root `CHANGELOG.md` heading reads 1.14.3, and a release is requested (`--release`)
+- **WHEN** the version-agreement section runs
+- **THEN** it SHALL report a finding that names `CHANGELOG.md`
+
+#### Scenario: Changelog heading older, no release requested
+- **GIVEN** the manifests read 1.14.4, the newest root `CHANGELOG.md` heading reads 1.14.3, and no release is requested
+- **WHEN** the version-agreement section runs
+- **THEN** it SHALL NOT report a finding for `CHANGELOG.md`
+
+#### Scenario: No changelog heading, no release requested
+- **GIVEN** the root `CHANGELOG.md` holds no heading for the manifest version and no release is requested
+- **WHEN** the version-agreement section runs
+- **THEN** it SHALL NOT report a finding for `CHANGELOG.md`
+
+#### Scenario: Manifest mismatch
+- **GIVEN** `plugin.json` and `marketplace.json` read different versions
+- **WHEN** the version-agreement section runs
+- **THEN** it SHALL report a finding
+
+### FR-252: Secret-scan section reports clean when nothing is staged
+
+**Statement:** The `scan-staged-secrets.js` section of `release-check.js` SHALL report clean when no change is staged.
+**Traces to:** UR-044 | **Priority:** Must | **Status:** PLANNED
+**Source:** the user's design decision for this change; `plugins/assist-plugin/scripts/scan-staged-secrets.js` is the section's script.
+
+#### Scenario: Nothing staged
+- **GIVEN** an empty index
+- **WHEN** the secret-scan section runs
+- **THEN** it SHALL report clean
+
+#### Scenario: Secret staged
+- **GIVEN** a staged change that holds a secret pattern the scanner detects
+- **WHEN** the secret-scan section runs
+- **THEN** it SHALL report a finding
+
+### FR-253: `.agent` is ignored and untracked
+
+**Statement (ignored):** A section of `release-check.js` SHALL report a finding when `git check-ignore` shows `.agent/` is not git-ignored as a whole.
+**Statement (untracked):** The section SHALL report a finding for each path under `.agent/` that `git ls-files` lists as tracked.
+**Statement (negation):** The section SHALL report a finding for each negated gitignore rule whose pattern targets `.agent` or a path under it and reopens any part of it.
+**Statement (outside git):** The section SHALL report an operational error (exit code 2) when run outside a git repository, because both `git check-ignore` and `git ls-files` fail there.
+**Traces to:** UR-044 | **Priority:** Must | **Status:** PLANNED
+**Source:** the user's design decision for this change. Distinct from FR-245, which protects `.agent` paths from subagent writes.
+
+#### Scenario: Clean
+- **GIVEN** `.gitignore` ignores `.agent/`, no path under it is tracked, and no negated rule targets it
+- **WHEN** the hygiene section runs
+- **THEN** it SHALL report clean
+
+#### Scenario: Tracked file
+- **GIVEN** `.agent/logs/notes.md` is tracked
+- **WHEN** the hygiene section runs
+- **THEN** it SHALL report a finding that names the path
+
+#### Scenario: Negated rule reopens a path
+- **GIVEN** `.gitignore` holds `.agent/*` and then `!.agent/governance/`
+- **WHEN** the hygiene section runs
+- **THEN** it SHALL report a finding for the negated rule
+
+#### Scenario: Not ignored
+- **GIVEN** no rule ignores `.agent/`
+- **WHEN** the hygiene section runs
+- **THEN** it SHALL report a finding
+
+#### Scenario: Outside a git repository
+- **GIVEN** the working directory is not inside a git repository
+- **WHEN** the hygiene section runs
+- **THEN** it SHALL report an operational error and the command SHALL exit 2 when no section reports a finding
+
 ## 5. Non-functional requirements
 
 Each requirement uses the form:
@@ -5586,6 +5707,7 @@ Every threshold below is copied from the cited source. This document does not cl
 - The follow-up to 1.12.0, built for 1.13.0 (version 1.4), from the user's answers in the version 1.3 elicitation: Bitbucket support in `/pr-review` and the `/do` PR review flow (FR-142 to FR-144, FR-195, FR-202, FR-203); `/pr-review` direct-run hardening (FR-204, FR-205); `/do` PR flow hardening, the posting ask hook, `.agent` symlink checks, and PR file cleanup (FR-206 to FR-208); `/bump --path` validation (FR-209); and the checklist wording (FR-210).
 - PLANNED (1.14.3): the no-polling rule for background work, carried in skills and rules and enforced by documentation only (FR-214), and the `engines["claude-code"]` floor `>=2.1.323` in `plugin.json` (FR-215).
 - PLANNED (1.14.4): the skill-size bar (NFR-026), one-level reference depth (FR-216), contents lists on long references (FR-217), eval suites for `do`, `code`, and `debug` (FR-218), and the model-routing migration note (FR-219).
+- PLANNED (no release number): the unified release check (FR-250), six-place version agreement (FR-251), secret-scan section (FR-252), and `.agent` hygiene section (FR-253).
 
 #### Out of scope (system exclusions)
 
@@ -5634,11 +5756,11 @@ Each row lists the user requirements derived from the business requirement, the 
 | BR-008 | UR-016, UR-024, UR-025, UR-034, UR-039, UR-043, UR-058 | FR-103 to FR-107, FR-123 to FR-125, FR-147, FR-148, FR-161, FR-181 (retired 1.13.1), FR-211, FR-212, FR-213 | NFR-018, NFR-019 | Built; PLANNED (1.12.0) parts: FR-147, FR-148; PLANNED (1.13.1): FR-104 (exemption removed), FR-211, FR-212, FR-213, NFR-019; Retired (1.13.1): FR-181 |
 | BR-009 | UR-015, UR-028 | FR-095 to FR-098, FR-120, FR-135, FR-136, FR-196 | none | Built; PLANNED (1.12.0) parts: FR-136, FR-196 |
 | BR-010 | UR-026 to UR-033, UR-035 to UR-038, UR-040, UR-041, UR-042, UR-049, UR-054, UR-056, UR-058 | FR-200, FR-063, FR-074 to FR-078, FR-081, FR-083 to FR-085, FR-109, FR-130 to FR-146, FR-149 to FR-160, FR-162 to FR-165, FR-167 to FR-171, FR-179, FR-182 to FR-186, FR-195 to FR-197, FR-202 to FR-205, FR-209, FR-211, FR-212, FR-104, FR-213, FR-214, FR-216 to FR-218 | none | Built; PLANNED (1.14.4): FR-216 to FR-218; PLANNED (1.14.3): FR-214; PLANNED (1.13.1) parts: FR-104, FR-163, FR-211, FR-212, FR-213; PLANNED (1.12.0) parts: FR-063, FR-136 to FR-139, FR-143, FR-195 to FR-197, FR-200; Built (1.13.0): FR-202 to FR-205, FR-209, and the changes to FR-139, FR-142 to FR-144, FR-195 |
-| BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194, FR-215 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194; PLANNED (1.14.3): FR-215 |
+| BR-011 | UR-046, UR-047 | FR-172, FR-173, FR-194, FR-215, FR-251 | NFR-022, NFR-023 | Built; PLANNED (1.12.0): FR-194; PLANNED (1.14.3): FR-215; PLANNED: FR-251 and the six-place clause of FR-173 |
 | BR-012 | UR-007, UR-008, UR-010, UR-019 | FR-016, FR-020 to FR-027, FR-032, FR-033, FR-035, FR-041, FR-042, FR-065, FR-067, FR-072 to FR-074, FR-108 to FR-114, FR-183, FR-185 to FR-192, FR-195, FR-206, FR-207 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-195; Built (1.13.0): FR-206, FR-207 |
 | BR-013 | UR-006, UR-035 to UR-038 | FR-005, FR-019, FR-020, FR-028 to FR-030, FR-032 to FR-035, FR-074 to FR-076, FR-078, FR-083 to FR-085, FR-149 to FR-160, FR-179, FR-182 to FR-187, FR-190 to FR-192, FR-197 | none | Built; PLANNED (1.12.0) parts: FR-032, FR-190, FR-197 |
 | BR-014 | UR-048 | FR-174 | none | Built (1.11.1) |
-| BR-015 | UR-044, UR-051 | FR-121, FR-122, FR-126 to FR-129, FR-180 | NFR-021 | Built (1.11.1); FR-126 accepted limit noted |
+| BR-015 | UR-044, UR-051 | FR-121, FR-122, FR-126 to FR-129, FR-180, FR-250, FR-252, FR-253 | NFR-021 | Built (1.11.1); FR-126 accepted limit noted; PLANNED: FR-250, FR-252, FR-253 |
 | BR-016 | UR-045, UR-053, UR-057 | FR-130, FR-193, FR-201, FR-210 | NFR-020 | Built; PLANNED (1.12.0) parts: FR-193, FR-201, NFR-020; Built (1.13.0): FR-210 |
 | BR-017 | UR-052 | FR-178 | none | Built (1.11.1) |
 
@@ -5765,4 +5887,5 @@ Version 1.4 closes point 2 in part (the facts the build settled) and restates po
 | 1.5 | 2026-10-23 | Toni-Jan Keith Monserrat | Release 1.13.1, "voice scripts without em dashes" (`DECISIONS.md:273-276`, refined by `:278-281`), PLANNED (1.13.1). New FR-211 to FR-213. FR-181 retired (ID kept, Status Retired (1.13.1)). Changed FR-104 (statement keeps the temp-directory and allowlist exemptions; `docs/tts/` clause dropped; header-based scenarios and the fenced-block scenario; source ranges), FR-118 (two `docs/tts/` self-test scenarios and the health-check and test sources, tied to FR-091), FR-163 (Status, Source, and scenarios: save folder, header passes the gate, header denied then one retry), NFR-019 (whole-file count of U+2014 and curly quotes), section 1 table, section 6 scope, section 7 `DECISIONS.md` note, section 8 rows BR-007, BR-008, and BR-010, section 9 (new bullet for the files to change). Fix pass 1 (same version, 12 review findings): fenced script blocks stay exempt under FR-105 and FR-211 is the only control on script text; FR-211 scoped to dash-style pause marks (Gemini 3.8 double hyphen, no-dash models, Chatterbox-Turbo without line breaks, uncatalogued model with commas and periods, pause tags kept); FR-212 covers U+2015, header user text, a conditional curly-quote note, and other tells kept and flagged; FR-213 no longer applies the full writing standard to script text; one uppercase keyword per statement for FR-104, FR-211, FR-212, FR-213. Fix pass 2 (same version, `DECISIONS.md:283-286`, "Voice script curly quotes, header dashes, and save retry"): FR-211 statement forbids U+2014, U+2015, and curly quotes anywhere in a saved script whatever the text source, names ElevenLabs v2 (spaced hyphen), and gives ordinary-punctuation files and uncatalogued models commas and periods only (nine files cited); the whole-file scenario says a test counts; FR-212 header prose gets a comma or period for a dash (never a line break or double hyphen), refuses a typed voice id or clip path with U+2014, and flags kept tells by family and draft line without repeating text; FR-213 header scenario allows that flag form; FR-163 states the header-deny retry (one retry on the same path, second deny prints in chat); FR-118 advisor case uses an advisory-tier tell (an em dash is block-tier, so it stays a `prose-gate` case only); source ranges corrected (`prose-diff.js:146` goes, `:143-150` stays; test ranges added). Fix pass 3 (same version, `DECISIONS.md:288-291`, "Voice script typed values and tag-model pause marks"): FR-212 refuses a typed voice id, clip path, or model id (Other included) that holds U+2014, U+2015, or a curly quote, and its header-text statement is split in two; FR-211 names the seven remaining model files (ElevenLabs v3/v4, Deepgram Aura 2, Microsoft MAI-Voice, and the four tag models xAI Grok, Fish Audio S2, MiniMax Speech 2.8, Gemini 3.1 TTS Preview with commas and periods beside their tags, MiniMax newline kept) and the ordinary-punctuation rule with tags not counted; `DECISIONS.md` entries cited by line range everywhere (`:283-286`, `:288-291` added); `prose-diff.js:18-20`, `:26`, `:103-137` listed as dead code; health-check self-test test ranges `:110-146`, `:192-236`, `:418-438`; NFR-019 adds U+2015 and traces FR-212. Documents stay DRAFT until the user signs off |
 | 1.6 | 2026-11-18 | Toni-Jan Keith Monserrat | Release 1.14.3 delta, PLANNED (1.14.3), no new elicitation (both points settled by the user). New FR-214 (no shell polling loops for background work; completion notification plus one `Read`, or `Monitor`; documentation-only enforcement, no hook or test) and FR-215 (`engines["claude-code"]` of `>=2.1.323` in `plugin.json`). Updated: Area C range in section 1, section 6 scope and out-of-scope, section 8 rows BR-010 and BR-011. FR-214 traces to UR-042 as the nearest row; no URD row names it |
 | 1.7 | 2026-11-19 | Toni-Jan Keith Monserrat | Release 1.14.4 delta, PLANNED (1.14.4), no new elicitation (five policies settled by the user). New NFR-026 (skill-size bar), FR-216 (reference depth, script-checked links exempt), FR-217 (contents list over 100 lines), FR-218 (eval suites for `do`, `code`, `debug`), FR-219 (model-routing note; current effort values stay the source of truth). Updated: section 6 scope, section 8 rows BR-002, BR-003, BR-010. FR-216 to FR-218 and NFR-026 trace to UR-042 as the nearest row, FR-219 to UR-002; no URD row names them |
+| 1.8 | 2026-11-20 | Toni-Jan Keith Monserrat | Delta, PLANNED, no release or version bump, no new elicitation (design settled by the user). New FR-250 (release-check runner, independent sections, exit 0/1/2), FR-251 (six-place version agreement), FR-252 (secret scan clean when nothing is staged), FR-253 (`.agent` ignored, untracked, no reopening negation). Extended FR-194 (root `CHANGELOG.md` as sixth file) and FR-173 (six-place agreement; manifest equality kept). Updated: header, section 1 Area C range, section 6 scope, section 8 rows BR-011 and BR-015. Follow-up, not a requirement: strict JSON parsing for the other plain `JSON.parse` readers (see `FR-NFR-harness-governance.md`, FR-248 and FR-249). FR-250 to FR-253 trace to UR-044, UR-045, and UR-046 as the nearest rows; no URD row names them |
 

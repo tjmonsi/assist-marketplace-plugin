@@ -205,6 +205,7 @@ const ferpaDisclosureGuard = require("./ferpa-disclosure-guard.js");
 const goalGuard = require("./goal-guard.js");
 const codeScan = require("./code-scan.js");
 const severity = require("../lib/severity.js");
+const ruleModeStore = require("../lib/rule-mode-store.js");
 const confirmationStore = require("../lib/confirmation-store.js");
 const purposeRecord = require("../lib/purpose-record.js");
 const verifyAuditChain = require("../../scripts/verify-audit-chain.js");
@@ -2756,10 +2757,19 @@ function profileFileLine(root, state) {
   const file = dataClass.PROFILE_FILE.split(path.sep).join("/");
   if (loaded.status === "absent") return `  ${file}: absent, so nothing is tagged and the tagged-path controls run log-only`;
   if (loaded.status === "valid") return `  ${file}: valid`;
+  // [FR-249] A duplicate key or nesting over 32 levels is a strict-parse failure; plain bad JSON is a syntax error. Neither
+  // label carries a key, a value, or a parser message [NFR-016].
+  const strictParse = loaded.problem === "profile-strict-parse";
+  let failure = loaded.problem;
+  if (strictParse) failure = `strict-parse failure, ${loaded.problem}`;
+  else if (loaded.problem === "profile-malformed") failure = `malformed JSON (syntax), ${loaded.problem}`;
   if (state.hipaa || state.ferpa) {
-    return `  ${file}: MALFORMED (${loaded.problem}); the tagged-path controls deny their guarded operations until the file is fixed. Fix the JSON, or the \`data_classes\` key (only "student-record" and "PHI", each a list of path globs), then run /assist-plugin:health again.`;
+    const fix = strictParse
+      ? "Remove the duplicate key or the nesting over 32 levels"
+      : "Fix the JSON, or the \`data_classes\` key (only \"student-record\" and \"PHI\", each a list of path globs)";
+    return `  ${file}: MALFORMED (${failure}); the tagged-path controls deny their guarded operations until the file is fixed. ${fix}, then run /assist-plugin:health again.`;
   }
-  return `  ${file}: malformed (${loaded.problem}); no tagged-path profile (HIPAA or FERPA) is enforced, so nothing denies. Fix it before you turn a profile back on.`;
+  return `  ${file}: malformed (${failure}); no tagged-path profile (HIPAA or FERPA) is enforced, so nothing denies. Fix it before you turn a profile back on.`;
 }
 
 // [FR-234] The BAA readiness lines of the report: {line, findings}. Applies only while HIPAA is enforced. The check is that each
@@ -2820,6 +2830,17 @@ function governanceReport(options) {
     findings.push(`${profileLabel(name)} is off with no ${DECISIONS_FILE} entry; record the decision in an entry whose heading names ${profileLabel(name)} and says opt-out, disable, or off`);
   });
   lines.push(profileFileLine(root, state));
+  // [FR-249] A rule-modes.json the strict parser rejects reads as all-advisory; name it so the rejection is not silent.
+  // `reason` is a fixed code from the store status, never parser text [NFR-016].
+  const modeStore = ruleModeStore.status(root);
+  if (modeStore.state === "rejected") {
+    const modeFile = ruleModeStore.STORE_PATH.split(path.sep).join("/");
+    if (modeStore.reason === "syntax") {
+      findings.push(`${modeFile}: malformed JSON (syntax); every rule runs advisory until the file is fixed. Fix the JSON, then run /assist-plugin:health again`);
+    } else {
+      findings.push(`${modeFile}: strict-parse failure (${modeStore.reason}); every rule runs advisory until the file is fixed. Remove the duplicate key or the nesting over 32 levels, then run /assist-plugin:health again`);
+    }
+  }
   const readiness = baaReadiness(root, state);
   lines.push(readiness.line);
   readiness.findings.forEach((finding) => findings.push(finding));
