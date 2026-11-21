@@ -2,6 +2,28 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.5] - 2026-11-21
+
+### Added
+
+- Strict JSON parser at `hooks/lib/strict-json.js`: a dependency-free, single-pass scanner that rejects duplicate keys at any depth and caps nesting depth. Its error messages carry a fixed string and an integer position only, never input text
+- Release-check runner at `plugins/assist-plugin/scripts/release-check.js`: one command that runs six release-gate sections (`sync-writing-standard --check`, `check-fsa-tables --check`, `check-control-register --check`, `scan-staged-secrets`, version agreement, and `.agent` hygiene). It exits 0 when clean, 1 on a finding, and 2 on an operational error
+- Six-place version-agreement check in the release-check runner
+- Four-source `.agent` hygiene negation check in the release-check runner. It reads the root `.gitignore`, nested `.gitignore` files, `.git/info/exclude`, and the global `core.excludesFile`; a finding from the global file is flagged as machine-dependent
+
+### Changed
+
+- The strict JSON parser is wired into the `profile.json` reader (a rejection fails closed to the malformed/strict state), the severity rule-mode parser, and the confirmation-store line parser. The health check now tells plain syntax errors apart from strict-parse failures (duplicate key or depth)
+- The confirmation store caps a read at 1 MiB and fails closed above the cap
+
+### Fixed
+
+- Five pre-existing tracked files under `.agent/` are untracked (kept on disk), so `.agent` stays ignored
+
+### Compatibility
+
+- No agent or skill was added: 16 agents and 22 skills
+
 ## [1.14.4] - 2026-11-19
 
 ### Added
