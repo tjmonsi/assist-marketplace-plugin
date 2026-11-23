@@ -889,9 +889,12 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 **Statement (routing):** A strict-parse rejection MUST route through the existing malformed-file path of that reader and MUST NOT create a new state: a rejected `rule-modes.json` MUST fall to all-advisory, a rejected `profile.json` MUST deny the guarded operations (FR-231, NFR-028), and the confirmation store MUST drop a rejected record as it drops any unparseable line.
 **Statement (health):** The health check MUST report a strict-parse failure of `rule-modes.json` or `profile.json`, so the rejection is not silent.
 **Statement (unchanged):** Behavior for valid, duplicate-free JSON of depth 32 or less MUST be unchanged for all three readers.
+**Statement (read cap, PLANNED (1.14.6)):** The confirmation-store read cap of 1 MiB (`MAX_FILE_BYTES` in `hooks/lib/confirmation-store.js`) MUST apply to every read of a store file, including the read inside `markPendingUsed`, not only the record reader.
+**Statement (over-cap refusal, PLANNED (1.14.6)):** A read of an over-cap store file MUST be refused fail-closed (NFR-028), so `markPendingUsed` MUST mark nothing and return false, matching the record reader returning no records.
+**Statement (diagnostic fields, PLANNED (1.14.6)):** The confirmation-store `store-read-failed` and `store-write-failed` diagnostics MUST record the store file basename and the errno code only, and MUST NOT record the OS error message.
 **Traces to:** UR-059, UR-068, UR-069, UR-071
 **Priority:** Must
-**Origin:** The user's design decision for this change (as-built intent). The malformed-file behavior is the existing one in FR-231 (Scenario "Malformed profile.json") and NFR-028. FR-242 defines the confirmation store.
+**Origin:** The user's design decision for this change (as-built intent). The malformed-file behavior is the existing one in FR-231 (Scenario "Malformed profile.json") and NFR-028. FR-242 defines the confirmation store. The read-cap and diagnostic-field statements are defense-in-depth hardening for assist-plugin 1.14.6; no earlier text in this file or in `FR-NFR-assist-plugin.md` states the 1 MiB cap. Conformance note for NFR-016: the no-echo rule in NFR-016 (`FR-NFR-assist-plugin.md`, which lists `hook-health.jsonl` and `fsa-log.jsonl`) and FR-248 (no input slice in an error) already cover untrusted input and filesystem paths in diagnostic text in general; the diagnostic-fields statement applies that rule to the two store diagnostics, because the OS error message can embed an absolute path.
 
 ##### Scenario: Duplicate key in rule-modes.json
 
@@ -919,6 +922,26 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form.
 - **GIVEN** valid, duplicate-free `rule-modes.json` and `profile.json`
 - **WHEN** the hooks read them
 - **THEN** the result MUST equal the result before this change
+
+##### Scenario: Over-cap store file in markPendingUsed (PLANNED (1.14.6))
+
+- **GIVEN** a confirmation-store file larger than 1 MiB
+- **WHEN** `markPendingUsed` reads it
+- **THEN** the read MUST be refused
+- **AND** `markPendingUsed` MUST mark nothing and return false
+
+##### Scenario: At-cap store file unchanged (PLANNED (1.14.6))
+
+- **GIVEN** a valid confirmation-store file of 1 MiB or less
+- **WHEN** `markPendingUsed` reads it
+- **THEN** it MUST behave as before this change
+
+##### Scenario: Store diagnostic holds no OS message (PLANNED (1.14.6))
+
+- **GIVEN** a store read or write fails with an OS error whose message holds an absolute path
+- **WHEN** the `store-read-failed` or `store-write-failed` diagnostic is recorded
+- **THEN** it MUST hold the store file basename and the errno code
+- **AND** it MUST NOT hold the OS error message or any absolute path
 
 ##### Scenario: Other readers untouched
 

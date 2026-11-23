@@ -251,7 +251,7 @@ flowchart TD
 
 ## Change Log: 2026-11-20
 
-**Source:** Backport follow-up items from the assist-pi backport task plan `docs/task-plans/task-plan-assist-pi-backport-20261120-0314.md` (Steps 3 to 5 for the health-report labels, Step 4 for the confirmation-store reader): FR-249, NFR-028 (the confirmation-store size cap and its fail-closed direction), and FR-249, UR-069 (the health-report label distinction). FR-248 is unchanged. This spec received a delta, so its Status is set to `Review` (delta rule 6, no same-turn approval).
+**Source:** Backport follow-up items from the assist-pi backport task plan `docs/task-plans/task-plan-assist-pi-backport-20261120-0314.md` (Steps 3 and 5 for the health-report labels, Step 4 for the confirmation-store reader): FR-249, NFR-028 (the confirmation-store size cap and its fail-closed direction), and FR-249, UR-069 (the health-report label distinction). FR-248 is unchanged. This spec received a delta, so its Status is set to `Review` (delta rule 6, no same-turn approval).
 
 ### Direct edits in this pass (no behavior change)
 
@@ -312,3 +312,54 @@ None.
 |---|---|---|
 | FR-249, NFR-028 | Change Log 2026-11-20: MODIFIED Requirement 7 (size cap) | Integration test: a `confirmations.jsonl` over 1 MiB yields no records and the PR-verdict guard denies the verdict post; a store at or under the cap reads its valid records as before |
 | FR-249, UR-069 | Change Log 2026-11-20: MODIFIED Requirement 8 (report labels) | Health-check test for the post-change labels the code follow-up introduces: a plain-syntax-error `profile.json` is labeled "malformed JSON (syntax)" and not "strict-parse failure"; a duplicate-key `profile.json` or `rule-modes.json` is labeled "strict-parse failure" |
+
+## Change Log: 2026-11-23
+
+**Source:** FR-249 (PLANNED (1.14.6) statements) in `docs/requirements/FR-NFR-harness-governance.md`: the read-cap statement (every store-file read, including the read inside `markPendingUsed`), the over-cap-refusal statement (fail-closed, NFR-028), and the diagnostic-fields statement (NFR-016). This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### MODIFIED Requirements
+
+#### Requirement 7: The confirmation-store reader drops a rejected record
+
+**Was:** The record reader in `hooks/lib/confirmation-store.js` SHALL parse each `confirmations.jsonl` line with the strict parser and SHALL drop a rejected record as it drops any unparseable line (spec-hooks-pr-post-ask.md). A rejected record SHALL NOT stop the reader from reading the other valid records. The `readRecords` read SHALL be capped at 1 MiB, the data-class `MAX_FILE_BYTES` (`hooks/lib/data-class.js:105`, `1024 * 1024`); a file over the cap SHALL yield no records, so the fail-closed PR-verdict guard reads no confirmation for the PR and verdict and denies the verdict post (the NFR-028 direction).
+
+**Now:** The record reader in `hooks/lib/confirmation-store.js` SHALL parse each `confirmations.jsonl` line with the strict parser and SHALL drop a rejected record as it drops any unparseable line (spec-hooks-pr-post-ask.md). A rejected record SHALL NOT stop the reader from reading the other valid records. The `readRecords` read SHALL be capped at 1 MiB, the data-class `MAX_FILE_BYTES` (`hooks/lib/data-class.js:105`, `1024 * 1024`); a file over the cap SHALL yield no records, so the fail-closed PR-verdict guard reads no confirmation for the PR and verdict and denies the verdict post (the NFR-028 direction). The 1 MiB cap SHALL apply to every store-file read, including the read inside `markPendingUsed` (`hooks/lib/confirmation-store.js:299`), not only the `readRecords` path; a read of an over-cap store file SHALL be refused fail-closed, so `markPendingUsed` SHALL mark nothing and return `false`, matching the record reader yielding no records (NFR-028).
+
+**Reason:** The 2026-11-20 delta capped the `readRecords` path only; `markPendingUsed` read the pending file with no cap (`confirmation-store.js:299` reads with `fs.readFileSync` and no size check, unlike `readRecords` at `:141`, which refuses a file over `MAX_FILE_BYTES`). FR-249 (PLANNED 1.14.6) extends the same fail-closed cap to that read, so an over-cap `pending.jsonl` marks no token and returns false rather than reading an unbounded file.
+
+##### Scenario: Over-cap store file in markPendingUsed
+
+- **GIVEN** a confirmation-store file larger than 1 MiB
+- **WHEN** `markPendingUsed` reads it
+- **THEN** the read SHALL be refused
+- **AND** `markPendingUsed` SHALL mark nothing and return `false`
+
+##### Scenario: At-cap store file in markPendingUsed unchanged
+
+- **GIVEN** a valid confirmation-store file of 1 MiB or smaller
+- **WHEN** `markPendingUsed` reads it
+- **THEN** it SHALL behave as before this change
+
+### ADDED Requirements
+
+#### Requirement 10: The confirmation-store diagnostics hold the basename and errno code only
+
+The `store-read-failed` and `store-write-failed` diagnostics of `hooks/lib/confirmation-store.js` SHALL record the store file basename and the errno code only and SHALL NOT record the OS error message, which can embed an absolute path (NFR-016).
+
+##### Scenario: Store diagnostic holds no OS message
+
+- **GIVEN** a store read or write fails with an OS error whose message holds an absolute path
+- **WHEN** the `store-read-failed` or `store-write-failed` diagnostic is recorded
+- **THEN** it SHALL hold the store file basename and the errno code
+- **AND** it SHALL NOT hold the OS error message or any absolute path
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-249, NFR-028 | Change Log 2026-11-23: MODIFIED Requirement 7 (markPendingUsed cap) | Integration test: `markPendingUsed` on a store file over 1 MiB refuses the read, marks nothing, and returns false; a store at or under the cap behaves as before |
+| FR-249, NFR-016 | Change Log 2026-11-23: ADDED Requirement 10 (diagnostic fields) | Unit test: a `store-read-failed` or `store-write-failed` diagnostic holds the store file basename and the errno code and holds no OS error message or absolute path |
