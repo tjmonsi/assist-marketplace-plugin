@@ -2,6 +2,17 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.14.6] - 2026-11-23
+
+### Changed
+
+- The confirmation-store 1 MiB read cap now also covers the `markPendingUsed` read path, which was uncapped before. An over-cap store file is refused fail-closed, so `markPendingUsed` marks nothing and returns false (FR-249, NFR-028)
+- The confirmation-store `store-read-failed` and `store-write-failed` diagnostics no longer record the OS error message, which could embed an absolute path. They carry the store file basename and the errno code only (NFR-016)
+
+### Fixed
+
+- Doc: fixed an en dash in the README savings bullet
+
 ## [1.14.5] - 2026-11-21
 
 ### Added

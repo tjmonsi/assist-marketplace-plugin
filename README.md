@@ -25,7 +25,7 @@ Then use the `/do` orchestrator:
 
 ## What's Inside
 
-### assist-plugin v1.14.5
+### assist-plugin v1.14.6
 
 **18 user-invocable skills:**
 - `do`: Task orchestration and routing; a build request gets requirements, a spec, and a task plan approved first
@@ -85,7 +85,7 @@ The assist-plugin uses several strategies to reduce orchestration token overhead
 ### Defensible Claims (Verified by Analysis)
 
 - **~64% savings** on typical implementation tasks (e.g., user authentication, feature development)
-- **~65–70% savings** on design and architecture workflows  
+- **~65-70% savings** on design and architecture workflows  
 - **Up to 82% savings** on fast read-only operations (e.g., repository mapping)
 - **83% reduction** in static plugin footprint vs. software-development
 - **36.6% average savings** across multi-step orchestrated workflows
