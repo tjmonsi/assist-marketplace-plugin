@@ -144,7 +144,7 @@ function readRecords(options, name) {
     }
     text = fs.readFileSync(file, "utf8");
   } catch (err) {
-    if (errorCode(err) !== "ENOENT") note(options, "error", "store-read-failed", { file: name, code: errorCode(err), message: err && err.message });
+    if (errorCode(err) !== "ENOENT") note(options, "error", "store-read-failed", { file: name, code: errorCode(err) });
     return [];
   }
   const parsed = parseLines(text);
@@ -168,7 +168,7 @@ function readConfirmations(options) {
   try {
     return readRecords(options, CONFIRMATIONS_FILE).filter(validConfirmation);
   } catch (err) {
-    note(options, "error", "store-read-failed", { file: CONFIRMATIONS_FILE, code: errorCode(err), message: err && err.message });
+    note(options, "error", "store-read-failed", { file: CONFIRMATIONS_FILE, code: errorCode(err) });
     return [];
   }
 }
@@ -201,7 +201,7 @@ function appendLine(options, name, record) {
     fs.appendFileSync(path.join(dir, name), JSON.stringify(record) + "\n", { encoding: "utf8", mode: 0o600 });
   } catch (err) {
     if (err instanceof StoreError) throw err;
-    note(options, "error", "store-write-failed", { file: name, code: errorCode(err), message: err && err.message });
+    note(options, "error", "store-write-failed", { file: name, code: errorCode(err) });
     throw new StoreError("write-failed", "cannot write " + name + ": " + errorCode(err));
   }
 }
@@ -265,7 +265,7 @@ function findPending(token, sessionId, options) {
       .filter((record) => validPending(record) && record.token === token && record.session_id === sessionId && usable(record, options));
     return match.length > 0 ? Object.assign({}, match[match.length - 1]) : null;
   } catch (err) {
-    note(options, "error", "store-read-failed", { file: PENDING_FILE, code: errorCode(err), message: err && err.message });
+    note(options, "error", "store-read-failed", { file: PENDING_FILE, code: errorCode(err) });
     return null;
   }
 }
@@ -296,6 +296,11 @@ function markPendingUsed(record, options) {
   try {
     let text;
     try {
+      // [FR-249] [NFR-028] An over-cap file marks nothing, as readRecords returns no records for it.
+      if (fs.statSync(file).size > MAX_FILE_BYTES) {
+        note(options, "error", "store-too-large", { file: PENDING_FILE });
+        return false;
+      }
       text = fs.readFileSync(file, "utf8");
     } catch (err) {
       if (errorCode(err) === "ENOENT") return false;
@@ -319,7 +324,7 @@ function markPendingUsed(record, options) {
     return marked;
   } catch (err) {
     if (err instanceof StoreError) throw err;
-    note(options, "error", "store-write-failed", { file: PENDING_FILE, code: errorCode(err), message: err && err.message });
+    note(options, "error", "store-write-failed", { file: PENDING_FILE, code: errorCode(err) });
     throw new StoreError("write-failed", "cannot update " + PENDING_FILE + ": " + errorCode(err));
   }
 }
