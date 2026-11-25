@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** DRAFT
+**Status:** Approved (Themes 1 to 4); DRAFT (Theme 5, Group A, and Theme 6, Group B)
 
 ---
 
@@ -142,10 +142,10 @@
 - OQ-10: Resolved (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"). A `UserPromptSubmit` hook writes the confirmation store as JSONL under a path in `.agent/` protected under FR-245; the FR-214 guard reads it with file reads alone (FR-242).
 - OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records `unstated` and flags the record (FR-247; `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection").
 - OQ-12: Resolved (`DECISIONS.md`, "2026-10-30: Severity policy approved", re-approved by "2026-10-31: Severity policy approved"). The user approved `severity-policy.md` version `draft-2` (first approved at `draft-1`, superseded). The policy basis was settled earlier (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); a rule may block on severity only after the FR-238 advisory baseline (FR-237).
-- OQ-13: Open (Group A). Does the benchmark section run only on request, as FR-274 states, or by default in every release check? A full run is an estimated $25 to $75 (BRD A-12). The section also needs a delta to the section list of FR-250 in `FR-NFR-assist-plugin.md` (D-15).
+- OQ-13: Open (Group A). Does the benchmark section run only on request, as FR-274 states, or by default in every release check? A full run is an estimated $25 to $75 (BRD A-12). The delta to the section list of FR-250 in `FR-NFR-assist-plugin.md` is applied: the section reports the last stored scoreboard and does not auto-run the suite (D-15).
 - OQ-14: Open (Group A). No default is settled for the run count k, the regression margin (FR-277), the validation run count (FR-259), or the judge run count (FR-285); each is a configured value.
 - OQ-15: Open (Group A). Where do reference solutions and hidden suites live? The marketplace repository is published, and the research report's layout puts `reference/` under the shipped plugin tree, which conflicts with FR-261 (D-16).
-- OQ-16: Open (Group A). The judge must use a model family other than the agent's (FR-282), and the plugin's agents run on one vendor's models today. Does a judge of another family exist for this project, or does the judge wait for a later release?
+- OQ-16: Settled (Group A). The judge is of the same model family as the agent now, with candidate-order randomization, rubric anchoring, and a human-agreement check at each benchmark release (FR-282). A judge of a different family is a future enhancement, not a current requirement.
 - OQ-17: Open (Group B). The escalation counts of FR-300 and FR-301 (two each) and the precision floor and minimum label count of FR-313 and FR-314 are estimates. Which values does the user set?
 - OQ-18: Open (Group B). Which agent applies each lane in each gate, in particular the test-integrity lane in the Testing Gate that `qa` reviews today (FR-291, D-17)?
 - OQ-19: Open (Group B). The severity catalog changes the severity policy, so FR-237 requires the user's approval of the catalog contents before FR-306 and FR-307 take effect (D-14).

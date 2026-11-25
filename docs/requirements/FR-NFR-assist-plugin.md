@@ -5342,11 +5342,12 @@ FR-250 to FR-253 are PLANNED and carry no release number: no version bump or rel
 
 ### FR-250: Release-check runner with independent sections
 
-**Statement (sections):** The command `plugins/assist-plugin/scripts/release-check.js` SHALL run an ordered list of independent sections: `sync-writing-standard.js --check`, `check-fsa-tables.js --check`, `check-control-register.js --check`, and `scan-staged-secrets.js`, followed by the version-agreement section (FR-251) and the `.agent` hygiene section (FR-253).
+**Statement (sections):** The command `plugins/assist-plugin/scripts/release-check.js` SHALL run an ordered list of independent sections: `sync-writing-standard.js --check`, `check-fsa-tables.js --check`, `check-control-register.js --check`, and `scan-staged-secrets.js`, followed by the version-agreement section (FR-251), the `.agent` hygiene section (FR-253), and the benchmark scoreboard section (statement (benchmark section) below).
+**Statement (benchmark section):** The benchmark scoreboard section of `release-check.js` SHALL report the last stored evaluation scoreboard and SHALL NOT run the evaluation suite as part of a default release-check run. The command SHALL run the suite only when the user requests it, and the request SHALL start the evaluation harness of Group A in `FR-NFR-harness-governance.md` (FR-273, FR-274) and SHALL NOT start a second runner.
 **Statement (independence):** The command SHALL run every section even when an earlier section reports a finding or an operational error, and SHALL report each section's outcome separately.
 **Statement (exit codes):** The command SHALL exit 0 when every section is clean, 1 when at least one section reports a finding, and 2 when at least one section hits an operational error.
 **Traces to:** UR-044, UR-051 | **Priority:** Must | **Status:** PLANNED
-**Source:** the user's design decision for this change, as-built intent; `CLAUDE.md` (Keeping counts in sync) lists the same checks as separate manual steps. The exit code for a run that holds both a finding and an operational error is not stated by the user; it is left to the spec.
+**Source:** the user's design decision for this change, as-built intent; `CLAUDE.md` (Keeping counts in sync) lists the same checks as separate manual steps. The exit code for a run that holds both a finding and an operational error is not stated by the user; it is left to the spec. The statement (benchmark section) is the FR-250 delta that `FR-NFR-harness-governance.md` records as D-15 (FR-273, FR-274); the release-check runner belongs to this document, and the evaluation harness belongs to Group A there.
 
 #### Scenario: All sections clean
 - **GIVEN** a tree where every section passes
@@ -5362,6 +5363,22 @@ FR-250 to FR-253 are PLANNED and carry no release number: no version bump or rel
 - **GIVEN** a section whose script cannot start
 - **WHEN** `release-check.js` runs
 - **THEN** it SHALL still run the remaining sections and exit 2
+
+#### Scenario: Benchmark section reports the stored scoreboard
+- **GIVEN** a stored evaluation scoreboard and a default `release-check.js` run with no suite request
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL report the stored scoreboard values
+- **AND** it SHALL NOT start the evaluation suite
+
+#### Scenario: Suite run requested
+- **GIVEN** the user requests an evaluation suite run through `release-check.js`
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL start the evaluation harness of Group A and SHALL NOT start another runner
+
+#### Scenario: No stored scoreboard
+- **GIVEN** no stored evaluation scoreboard and a default run
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL report that no scoreboard is stored and SHALL NOT start the evaluation suite
 
 ### FR-251: Version agreement across six places
 

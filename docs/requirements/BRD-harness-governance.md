@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** DRAFT
+**Status:** Approved (Themes 1 to 4); DRAFT (Theme 5, Group A, and Theme 6, Group B)
 
 ---
 
@@ -97,7 +97,7 @@
 - A-12: A full benchmark run costs an estimated $25 to $75 (10 coding and 10 spec cases at 5 runs each), derived from one recorded 8-case run of about $4.85 and not measured on this repository (`docs/research/research-eval-benchmarks-coding-spec-20261124.md:112-116`). The benchmark section therefore runs on request only (FR-274; OQ-13).
 - A-13: A spec case "clears" the structural checklist when every deterministic item passes (FR-269). A looser level is a later choice.
 - A-14: Numeric values left to configuration have no settled default: the run count k, the regression margin, the validation run count (FR-259), the judge run count (FR-285), the escalation counts of FR-300 and FR-301, and the precision floor of FR-313 (OQ-14, OQ-17). Any figure shown in a scenario is an example.
-- A-15: Concurrent lane review costs about three times one reviewer pass (estimate, not measured), and the plugin's existing cap on parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:278-301`) sets at most three concurrent dispatches (FR-292).
+- A-15: Concurrent lane review costs about three times one reviewer pass (estimate, not measured), and the plugin's existing cap on parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:321-345`) sets at most three concurrent dispatches (FR-292).
 - A-16: Group A and Group B are DRAFT. They do not change the status or the approved text of FR-214 to FR-249 or NFR-026 to NFR-036.
 
 ### 7. Success criteria

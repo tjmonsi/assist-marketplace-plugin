@@ -192,7 +192,7 @@ The rule identifier is what lets Requirement 18 (catalog severity), Requirement 
 
 ### Requirement 4: Dispatch lane reviews concurrently and record the dispatch count
 
-The orchestrator MAY dispatch the lane reviews of one gate concurrently with at most three reviewer dispatches running at once, and the gate outcome SHALL record the number of reviewer dispatches used. (FR-292, NFR-041; extends the gate dispatch of spec-orchestration-review-gates.md Requirement 2 and the parallel-agent cap of `rules/llm-security-checklist.md:278-301`)
+The orchestrator MAY dispatch the lane reviews of one gate concurrently with at most three reviewer dispatches running at once, and the gate outcome SHALL record the number of reviewer dispatches used. (FR-292, NFR-041; extends the gate dispatch of spec-orchestration-review-gates.md Requirement 2 and the parallel-agent cap of `rules/llm-security-checklist.md:321-345`)
 
 The cap equals the number of lanes (three). The token cost of concurrent lanes is an estimate of about three times one pass, to confirm by measurement (NFR-041, assumption A-15).
 
@@ -330,7 +330,7 @@ On a re-review the reviewer SHALL mark a finding as `fix-induced`, with the iden
 
 ### Requirement 12: Run a design pass after repeated fix-induced findings
 
-When two consecutive passes of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. (FR-300; parallels the escalation to `code-reviewer` after two scope violations, spec-orchestration-review-gates.md Requirement 7. The count of two is a configured estimate, OQ-17)
+When two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. (FR-300; parallels the escalation to `code-reviewer` after two scope violations, spec-orchestration-review-gates.md Requirement 7. The count of two is a configured estimate, OQ-17)
 
 #### Scenario: Two fix-induced passes
 
@@ -346,7 +346,7 @@ When two consecutive passes of one gate each return a fix-induced finding, the o
 
 ### Requirement 13: Stop early on a finding that stays open
 
-When the same finding stays open after two consecutive fix passes and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. (FR-301; extends FR-218, which escalates only at iteration 10. The count of two is a configured estimate, OQ-17; the choices are those of FR-218)
+When two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. (FR-301; extends FR-218, which escalates only at iteration 10. The count of two is a configured estimate, OQ-17; the choices are those of FR-218)
 
 #### Scenario: Finding open after two fixes
 
@@ -459,7 +459,7 @@ Adding the catalog changes the severity policy, so it needs the re-approval FR-2
 
 ### Requirement 19: Keep a critic or filtering score out of severity and inclusion
 
-No score from a critic or filtering model SHALL set a finding's severity or remove a finding from the report. (FR-308; extends the reviewer rule that a model-emitted claim never raises confidence, `agents/reviewer.md` Finding Format, and the control that a gate not rest on a model-emitted string, `rules/llm-security-checklist.md:245-274`)
+No score from a critic or filtering model SHALL set a finding's severity or remove a finding from the report. (FR-308; extends the reviewer rule that a model-emitted claim never raises confidence, `agents/reviewer.md` Finding Format, and the control that a gate not rest on a model-emitted string, `rules/llm-security-checklist.md:286-317`)
 
 This guard is active now; it does not depend on the catalog of Requirement 18.
 
@@ -505,7 +505,7 @@ The record holds no file contents, secret values, or matched text (NFR-042, foll
 
 The plugin SHALL report, for each lane and each checklist item, the counts of findings labeled true, labeled false, deferred, and unlabeled and the precision over the labeled findings, SHALL list each item below a configured precision floor as a retirement candidate and each unmapped finding class at or above a configured count as an addition candidate in a checklist-change report, and SHOULD report finding precision and recall on a seeded-defect sample before and after a proposed change. (FR-310, FR-313, FR-314, FR-316; extends NFR-034 and FR-238, the advisory baseline with finding counts and precision)
 
-Precision is true divided by the sum of true and false. An item whose findings are all unlabeled reports precision not available, never 0. The floor, the minimum number of labeled findings, and the unmapped-class count are configured values with no settled default (OQ-17, assumption A-14). A seeded-defect sample MAY reuse the review tasks of the Group B seeded sample; the reuse is optional.
+Precision is true divided by the sum of true and false. An item whose findings are all unlabeled reports precision not available, never 0. The floor, the minimum number of labeled findings, and the unmapped-class count are configured values with no settled default (OQ-17, assumption A-14). A seeded-defect sample MAY reuse the review tasks of the Group A seeded sample; the reuse is optional.
 
 ```mermaid
 flowchart TD
@@ -716,7 +716,7 @@ Not applicable: no smaller unit has its own spec. The severity catalog of Requir
 
 | Concern | Target | Approach |
 |---|---|---|
-| Concurrent reviewer dispatches | At most 3 at once (FR-292) | RULE-003; the parallel-agent cap of `rules/llm-security-checklist.md:278-301` |
+| Concurrent reviewer dispatches | At most 3 at once (FR-292) | RULE-003; the parallel-agent cap of `rules/llm-security-checklist.md:321-345` |
 | Concurrent lane token cost | About 3 times one pass, an estimate to confirm (NFR-041, A-15) | Record the dispatch count in the gate outcome for measurement |
 | Iterations per gate | The one cap of 10 (FR-218); no new gate or cap added | Requirement 1; the early stop of Requirement 13 can end a loop sooner |
 

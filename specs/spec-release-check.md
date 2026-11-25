@@ -334,3 +334,61 @@ None.
 | Requirement | Spec section | Verified by |
 |---|---|---|
 | FR-253 | Change Log 2026-11-20: MODIFIED Requirement 7 (broadened negation sources) | Test: a negated `.agent` rule in a nested `.gitignore`, in `.git/info/exclude`, and in the global `core.excludesFile` each reports a finding that names its source and the rule; the root `.gitignore` negation case still reports a finding |
+
+## Change Log: 2026-11-25
+
+**Source:** FR-250 in `docs/requirements/FR-NFR-assist-plugin.md` gained its benchmark-scoreboard statement (the D-15 delta that `FR-NFR-harness-governance.md` records, FR-273 and FR-274), which lists a benchmark scoreboard section among the ordered sections of `release-check.js`. This spec owns the runner, so its section list (Requirement 1) adds that section. The section's scoring, release-over-release comparison, and regression-finding behavior stay owned by `specs/spec-evaluation-harness.md`; this entry wires the section into the runner only. This spec received a delta, so its Status stays `Review` (delta rule 6, no same-turn approval).
+
+### Body text this entry supersedes (applied at the next fold)
+
+- Description (currently `:19-20`): the sentence "adds a version-agreement section and a `.agent` hygiene section" becomes "adds a version-agreement section, a `.agent` hygiene section, and a benchmark scoreboard section".
+- Business rules RULE-001 (currently `:202`): its "Applied at step" becomes "Requirements 1, 2, 9" and its rule text notes the benchmark scoreboard section as the seventh section.
+
+### ADDED Requirements
+
+#### Requirement 9: Benchmark scoreboard section
+
+The benchmark scoreboard section SHALL report the last stored evaluation scoreboard and SHALL NOT run the evaluation suite on a default release-check run. WHEN the user requests a suite run, the section SHALL start the Group A evaluation harness (`spec-evaluation-harness.md`; FR-273, FR-274) and SHALL NOT start a second runner. The section's scoring, release-over-release comparison, and regression-finding behavior is owned by `spec-evaluation-harness.md`; on a default run the section is informational and reports no finding, so the exit-code precedence of Requirement 3 is unchanged.
+
+##### Scenario: Default run reports the stored scoreboard
+
+- **GIVEN** a stored evaluation scoreboard and a default `release-check.js` run with no suite request
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL report the stored scoreboard values
+- **AND** it SHALL NOT start the evaluation suite
+
+##### Scenario: No stored scoreboard
+
+- **GIVEN** no stored evaluation scoreboard and a default run
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL report that no scoreboard is stored
+- **AND** it SHALL NOT start the evaluation suite
+
+##### Scenario: Suite run requested
+
+- **GIVEN** the user requests an evaluation suite run through `release-check.js`
+- **WHEN** the benchmark scoreboard section runs
+- **THEN** it SHALL start the Group A evaluation harness (FR-273, FR-274)
+- **AND** it SHALL NOT start a second runner
+
+### MODIFIED Requirements
+
+#### Requirement 1: Run the ordered list of independent sections
+
+**Was:** The runner SHALL run an ordered list of independent sections: `sync-writing-standard.js --check`, `check-fsa-tables.js --check`, `check-control-register.js --check`, `scan-staged-secrets.js`, then the version-agreement section (Requirement 4) and the `.agent` hygiene section (Requirements 7 to 8).
+
+**Now:** The runner SHALL run an ordered list of independent sections: `sync-writing-standard.js --check`, `check-fsa-tables.js --check`, `check-control-register.js --check`, `scan-staged-secrets.js`, then the version-agreement section (Requirement 4), the `.agent` hygiene section (Requirements 7 to 8), and the benchmark scoreboard section (Requirement 9).
+
+**Reason:** FR-250 now lists a benchmark scoreboard section among the ordered sections of `release-check.js` (D-15, FR-273, FR-274). The runner spec owns the section list, so the section joins it; the section's behavior is owned by `spec-evaluation-harness.md`.
+
+The scenario All sections clean is unchanged: a default benchmark scoreboard section is informational and does not affect the clean outcome.
+
+### REMOVED Requirements
+
+None.
+
+### Traceability added
+
+| Requirement | Spec section | Verified by |
+|---|---|---|
+| FR-250 | Change Log 2026-11-25: ADDED Requirement 9 (benchmark scoreboard section) and MODIFIED Requirement 1 (section list) | Test: a default run reports the stored scoreboard and starts no suite; no stored scoreboard reports that none is stored and starts no suite; a requested run starts the Group A harness and starts no second runner |

@@ -35,6 +35,7 @@ flowchart TD
   FAM -->|"spec"| STRUCT["Run deterministic checklist (no model call): review-mode + gather-requirements + reference coverage"]
   STRUCT --> QREAD{"Reference readable and checklist runnable?"}
   QREAD -->|"no"| SERR(["Run = error; structural score not 0"])
+  SERR --> WRITE
   QREAD -->|"yes"| SSCORE["structural score = passed items / total items"]
   SSCORE --> QCLEAR{"Every deterministic item passed (cleared)?"}
   QCLEAR -->|"no"| JABS["judge score = absent"]

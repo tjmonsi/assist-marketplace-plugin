@@ -87,7 +87,7 @@
 | FR-279 | The benchmark section MUST report a judge-score decline as advisory only. | UR-079 | Must | 2.62 |
 | FR-280 | The benchmark harness MUST run its held-out cases only in the benchmark section of a release check. | UR-080 | Must | 2.63 |
 | FR-281 | The benchmark harness SHOULD add at least one new golden task to each suite in each release that runs the benchmark section. | UR-080 | Should | 2.64 |
-| FR-282 | The judge MUST use a model family different from the family of the agent under test. | UR-080 | Must | 2.65 |
+| FR-282 | WHEN the judge and the agent under test share a model family, the benchmark harness MUST apply three bias mitigations to the judge score (candidate-order randomization per FR-284, rubric anchoring per FR-283, and a human-agreement check at each benchmark release per FR-286) and MUST record the judge family and the agent family in the result. | UR-080 | Must | 2.65 |
 | FR-283 | The judge MUST score each subjective rubric item separately against the text of that item. | UR-080 | Must | 2.66 |
 | FR-284 | WHEN the judge compares two texts, the benchmark harness MUST run the comparison in both orders and average the two results. | UR-080 | Must | 2.67 |
 | FR-285 | The benchmark result MUST report each judge score as the mean of a configured number of judge runs and MUST state that number. | UR-080 | Must | 2.68 |
@@ -105,15 +105,15 @@
 | FR-297 | The orchestrator MUST NOT count a reviewer verdict toward a gate when the artifact has changed since the revision that the report names. | UR-083 | Should | 2.80 |
 | FR-298 | On a re-review the dispatch MUST list the paths changed since the previous pass. | UR-082 | Should | 2.81 |
 | FR-299 | On a re-review the reviewer MUST mark a finding as `fix-induced`, with the identifier of the prior finding, when a change made since the previous pass causes it. | UR-082 | Should | 2.82 |
-| FR-300 | WHEN two consecutive passes of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. | UR-082 | Should | 2.83 |
-| FR-301 | WHEN the same finding stays open after two consecutive fix passes and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. | UR-082 | Should | 2.84 |
+| FR-300 | WHEN two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. | UR-082 | Should | 2.83 |
+| FR-301 | WHEN two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. | UR-082 | Should | 2.84 |
 | FR-302 | At an escalation under FR-218 or FR-301, the orchestrator MUST show, for each round, the number of new, fixed, open, and withdrawn findings. | UR-082 | Should | 2.85 |
 | FR-303 | A reviewer MUST NOT return verdict `approved` when it did not examine every artifact path that the dispatch names. | UR-083 | Should | 2.86 |
 | FR-304 | The PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads immediately before it posts. | UR-085 | Should | 2.87 |
 | FR-305 | WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews before any retry. | UR-085 | Should | 2.88 |
 | FR-306 | A finding whose rule identifier is in the severity catalog MUST take its severity from that catalog entry. | UR-086 | Should | 2.89 |
 | FR-307 | A finding with no rule identifier in the severity catalog and no CWE identifier MUST be marked `unmapped` and MUST route no higher than `inline-comment`. | UR-086 | Should | 2.90 |
-| FR-308 | No score from a critic or filtering model MUST set a finding's severity or remove a finding from the report. | UR-086 | Should | 2.91 |
+| FR-308 | A score from a critic or filtering model MUST NOT set a finding's severity and MUST NOT remove a finding from the report. | UR-086 | Should | 2.91 |
 | FR-309 | The plugin MUST record a disposition of true, false, or deferred for a reviewer finding only from the user's own label. | UR-084 | Should | 2.92 |
 | FR-310 | The plugin MUST report, for each lane and each checklist item, the number of findings labeled true, labeled false, deferred, and unlabeled, and the precision over the labeled findings. | UR-084 | Should | 2.93 |
 | FR-311 | The dispatch for a review MUST pass the user's false labels for the same checklist items on the same artifact as data. | UR-084 | Should | 2.94 |
@@ -1394,7 +1394,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The release-check runner MUST provide a benchmark section that runs the coding and spec suites and compares the scores of each suite with the scores stored for the previous release. The suite score is the mean pass@1 of a coding suite and the mean structural score of a spec suite.
 **Traces to:** UR-079
 **Priority:** Must
-**Origin:** Report:97. `release-check.js` already runs an ordered list of independent sections and reports each on its own line (FR-250 in `FR-NFR-assist-plugin.md`; `plugins/assist-plugin/scripts/release-check.js:4-26`). Adding this section needs a delta to FR-250 in that document (D-15).
+**Origin:** Report:97. `release-check.js` already runs an ordered list of independent sections and reports each on its own line (FR-250 in `FR-NFR-assist-plugin.md`; `plugins/assist-plugin/scripts/release-check.js:4-26`). The delta to FR-250 in that document is its statement (benchmark section): the section reports the last stored scoreboard, does not auto-run the suite, and runs the suite only on request through this harness (D-15; FR-274).
 
 ##### Scenario: Comparison reported
 
@@ -1563,25 +1563,31 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 - **WHEN** the benchmark section runs
 - **THEN** the section MUST report an advisory note that names the suite
 
-#### 2.65 FR-282: Judge from a different model family
+#### 2.65 FR-282: Bias mitigations for a same-family judge
 
-**Statement:** The judge MUST use a model family different from the family of the agent under test.
+**Statement:** WHEN the judge and the agent under test share a model family, the benchmark harness MUST apply three bias mitigations to the judge score (candidate-order randomization per FR-284, rubric anchoring per FR-283, and a human-agreement check at each benchmark release per FR-286) and MUST record the judge family and the agent family in the result.
 **Traces to:** UR-080
 **Priority:** Must
-**Origin:** Report:43, `:74`, `:105`. A judge rates its own family's text higher. Availability of a second family is open (OQ-16); the requirement applies only when a judge runs (FR-268).
+**Origin:** Report:43, `:74`, `:105`. A judge rates its own family's text higher, so a same-family judge needs the mitigations. The user settled a same-family judge now, with these mitigations; the requirement applies only when a judge runs (FR-268). A judge from a different model family is a future enhancement and not a requirement of this version (section 4, OQ-16). Where no human-labeled sample exists, the check reports that no agreement figure exists (FR-286) and the judge score stays advisory (FR-279).
 
-##### Scenario: Different family
+##### Scenario: Same family with mitigations
 
-- **GIVEN** an agent under test of one model family and a judge of another
-- **WHEN** the judge grader starts
-- **THEN** the grader MUST run
+- **GIVEN** an agent under test and a judge of the same family, and a benchmark release with a human-labeled sample
+- **WHEN** the judge grader runs
+- **THEN** the harness MUST randomize the candidate order, MUST score each rubric item against its own text, and MUST report the human-agreement figure
+- **AND** the result MUST name the judge family and the agent family
 
-##### Scenario: Same family
+##### Scenario: Mitigation missing
 
-- **GIVEN** an agent under test and a judge of the same family
-- **WHEN** the judge grader starts
-- **THEN** the grader MUST refuse to run
-- **AND** the judge score MUST read absent
+- **GIVEN** a judge result for a same-family judge that records no candidate-order randomization
+- **WHEN** the result is validated
+- **THEN** the validation MUST fail
+
+##### Scenario: No human-labeled sample
+
+- **GIVEN** a same-family judge and no human-labeled sample at the benchmark release
+- **WHEN** the human-agreement check runs
+- **THEN** the report MUST state that no agreement figure exists
 
 #### 2.66 FR-283: Judge scores each rubric item
 
@@ -1803,7 +1809,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The orchestrator MAY dispatch the lane reviews of one gate concurrently, with at most three reviewer dispatches running at once.
 **Traces to:** UR-081
 **Priority:** May
-**Origin:** Extends the gate dispatch of `specs/spec-orchestration-review-gates.md` Requirement 2 and the LLM10 control to cap parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:278-301`). The cap equals the number of lanes. The token cost is an estimate of about three times one pass (NFR-041).
+**Origin:** Extends the gate dispatch of `specs/spec-orchestration-review-gates.md` Requirement 2 and the LLM10 control to cap parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:321-345`). The cap equals the number of lanes. The token cost is an estimate of about three times one pass (NFR-041).
 
 ##### Scenario: Three lanes at once
 
@@ -1953,39 +1959,39 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### 2.83 FR-300: Design pass after repeated fix-induced findings
 
-**Statement:** WHEN two consecutive passes of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass.
+**Statement:** WHEN two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass.
 **Traces to:** UR-082
 **Priority:** Should
 **Origin:** Parallels the escalation to `code-reviewer` after two scope violations (`specs/spec-orchestration-review-gates.md` Requirement 7). The count of two is an estimate (OQ-17).
 
 ##### Scenario: Two fix-induced passes
 
-- **GIVEN** pass 2 and pass 3 of one gate each return a fix-induced finding
+- **GIVEN** the re-reviews at pass 2 and pass 3 of one gate each return a fix-induced finding
 - **WHEN** the orchestrator plans the next step
 - **THEN** the orchestrator SHOULD dispatch one code-reviewer pass over the whole artifact
 
 ##### Scenario: One fix-induced pass
 
-- **GIVEN** only pass 2 returns a fix-induced finding
+- **GIVEN** only the re-review at pass 2 returns a fix-induced finding
 - **WHEN** the orchestrator plans the next step
 - **THEN** the orchestrator SHOULD dispatch the normal fix pass
 
 #### 2.84 FR-301: Early stop on a finding that stays open
 
-**Statement:** WHEN the same finding stays open after two consecutive fix passes and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort.
+**Statement:** WHEN two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort.
 **Traces to:** UR-082
 **Priority:** Should
 **Origin:** Extends FR-218, which escalates only at iteration 10. The count of two is an estimate (OQ-17). The choices are those of FR-218.
 
 ##### Scenario: Finding open after two fixes
 
-- **GIVEN** finding F-4 open after fix passes 1 and 2, with no new evidence in the re-review
+- **GIVEN** finding F-4 reported open by two consecutive re-reviews, with no new evidence in the second re-review
 - **WHEN** the orchestrator plans the next step
 - **THEN** the orchestrator SHOULD stop the loop and offer continue, waive, or abort
 
 ##### Scenario: New evidence cited
 
-- **GIVEN** finding F-4 open after two fix passes and the re-review cites new evidence
+- **GIVEN** finding F-4 reported open by two consecutive re-reviews and the second re-review cites new evidence
 - **WHEN** the orchestrator plans the next step
 - **THEN** the orchestrator SHOULD continue the loop
 
@@ -2109,10 +2115,10 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### 2.91 FR-308: Critic scores never decide
 
-**Statement:** No score from a critic or filtering model MUST set a finding's severity or remove a finding from the report.
+**Statement:** A score from a critic or filtering model MUST NOT set a finding's severity and MUST NOT remove a finding from the report.
 **Traces to:** UR-086
 **Priority:** Should
-**Origin:** Extends the reviewer rule that a model-emitted claim never raises confidence (`reviewer.md`, Finding Format) and the LLM09 control that a gate not rest on a model-emitted string (`plugins/assist-plugin/rules/llm-security-checklist.md:245-274`).
+**Origin:** Extends the reviewer rule that a model-emitted claim never raises confidence (`reviewer.md`, Finding Format) and the LLM09 control that a gate not rest on a model-emitted string (`plugins/assist-plugin/rules/llm-security-checklist.md:286-317`).
 
 ##### Scenario: Critic marks a finding as likely false
 
@@ -2405,7 +2411,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | ID | Requirement | Traces to | Metric |
 |----|-------------|-----------|--------|
 | NFR-037 | Scoring the same spec output with the deterministic checklist MUST give an identical structural score on every repetition. | FR-265 | 100% identical over 10 repeated scorings of one output |
-| NFR-038 | Each benchmark run result MUST record its total model cost in USD and its elapsed time. | BR-023 | Recorded in 100% of run results. Context: one recorded run of 8 cases took 165 seconds and about $4.85 (Report:6); a full run of 10 coding and 10 spec cases at 5 runs each is estimated at $25 to $75 (Report:114), not measured on this repository |
+| NFR-038 | Each benchmark run result MUST record its total model cost in USD and its elapsed time. | BR-023 | Recorded in 100% of run results. Context (estimates, not a guaranteed budget): the single source run recorded in the research report, 8 cases, took about 165 seconds and about $4.85 (Report:6); a full run of 10 coding and 10 spec cases at 5 runs each is estimated at $25 to $75 (Report:114), not measured on this repository |
 | NFR-039 | The scoreboard and the benchmark logs MUST hold scores, identifiers, and versions only, and MUST NOT hold reference solutions, hidden-suite text, or agent output text. | BR-023, FR-261 | Content test over the scoreboard and the logs: 0 reference or output strings |
 
 ##### Scenario: Repeated scoring (NFR-037)
@@ -2475,6 +2481,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | Comparing in-house scores with public leaderboard numbers (Group A) | A score moves with the scaffold and averaging method, so only in-house runs on the same harness version compare (Report:30) | Never |
 | Grading a coding case by a single run (Group A) | The agent is non-deterministic; pass@1 needs k runs (FR-271) | Never |
 | A merge gate that blocks on the judge score (Group A) | The judge is a noisy, advisory signal (FR-279) | Future roadmap, after judge-human agreement is measured (FR-286) |
+| A judge from a model family different from the agent under test (Group A) | The user settled a same-family judge now with bias mitigations (FR-282); a second family is a future enhancement, not a current requirement (OQ-16) | Future roadmap |
 | Reporting line coverage of new code and traceability-marker resolution as benchmark metrics (Group A) | Both appear in the report as metrics (Report:68) but no user requirement names them | Follow-up release |
 | Recording the random seed of a randomized hidden-suite run for replay (Group A) | Useful for flake triage (Report:73, `:106`) but not needed to score | Follow-up release |
 | Ingesting scanner output as structured findings for the reviewer (Group B) | The reviewers hold no shell; the orchestrator would need a new scanner-to-finding step | Future roadmap |
@@ -2513,7 +2520,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | D-13 | Settled (`DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", PN-1): the FR-219 alignment check stays rule-based and advisory-first (FR-238), not a model-calling hook, because it reads attacker-controlled text | FR-219 |
 
 | D-14 | Open (Group B): approve the severity catalog, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. FR-237 requires the user to approve the severity policy before a rule blocks on severity, so a catalog added to it needs the same approval (OQ-19) | FR-306, FR-307 |
-| D-15 | Open (Group A): add the benchmark section to the section list of FR-250 in `FR-NFR-assist-plugin.md` through a requirements delta, and settle whether the section runs by default or only on request (OQ-13) | FR-273, FR-274 |
+| D-15 | Applied (Group A): the benchmark section is added to the section list of FR-250 in `FR-NFR-assist-plugin.md` as its statement (benchmark section): the section reports the last stored scoreboard and does not auto-run the suite. Whether a default run should also run the suite stays OQ-13 | FR-273, FR-274 |
 | D-16 | Open (Group A): decide where reference solutions and hidden suites live, because the marketplace repository is published and the report's layout (Report:78-91) puts `reference/` under the shipped plugin tree (OQ-15) | FR-260, FR-261, NFR-039 |
 | D-17 | Open (Group B): settle which agent applies each lane in each gate, in particular who applies the test-integrity lane in the Testing Gate, which `qa` reviews today (OQ-18) | FR-291 |
 
@@ -2606,3 +2613,4 @@ Gap traceability:
 | 1.3 (note 4) | 2026-11-13 | [Author] | Tranche 5 documentation sync per `DECISIONS.md` 2026-11-05, "Harness-governance requirements and task plan approved for build" (the Status label flips from DRAFT to Approved in a later requirements sync) and 2026-11-13, "FR-219 (goal-guard) joins the NFR-028 fail-closed set in blocking mode": the Status label reads Approved, the section 6 traceability rows read Approved, and the NFR-028 enumeration adds FR-219 for blocking mode only (advisory mode still fails open per NFR-026). No version bump: no requirement statement other than the NFR-028 membership changed |
 | 1.3 (note 5) | 2026-11-20 | [Author] | Strict JSON parser for governance-config readers, settled by the user, no new elicitation. FR-248 (strict parser: duplicate key at any depth, depth over 32, position-only error per NFR-016) and FR-249 (wired into the rule-modes, profile, and confirmation-store readers only; rejection uses the existing malformed-file path; health check reports it) added. Other plain `JSON.parse` readers recorded as a follow-up in section 4. No UR row names these requirements; they trace to the nearest rows. No version bump |
 | 1.4 | 2026-11-24 | [Author] | Two DRAFT requirement groups added in place, existing entries unchanged. Group A (Theme 5): evaluation benchmark harness, FR-254 to FR-287 and NFR-037 to NFR-039, from `docs/research/research-eval-benchmarks-coding-spec-20261124.md` (golden tasks, execution grading, structural score and optional separate judge score, pass@1 over k runs, release-over-release regression through the release-check runner, and controls for contamination, overfitting, judge bias, and flakiness). Group B (Theme 6): reviewer and review-machinery capabilities, FR-288 to FR-316 and NFR-040 to NFR-042 (lane checklists, a round-by-round iteration record, a feedback loop from user labels to checklist changes, and review patterns that extend FR-218, FR-221, FR-222, and FR-237 to FR-241). IDs start at FR-254 and NFR-037 because FR-250 to FR-253 are taken in `FR-NFR-assist-plugin.md`. D-14 to D-17 and OQ-13 to OQ-19 added. Version bumped to 1.4 in lockstep with the BRD, URD, and JSON |
+| 1.4 (note) | 2026-11-25 | [Author] | Cleanup and reconciliation, no renumbering. FR-308 reworded as MUST NOT; FR-300 and FR-301 use the same re-review count language; NFR-038 figures labeled as estimates; two checklist line anchors corrected (FR-292, FR-308) and the same anchor in BRD A-15; BRD and URD status headers aligned with this file. FR-282 now requires a same-family judge with three bias mitigations and records a different-family judge as a future enhancement (section 4; OQ-16 settled). FR-273 and D-15 record the FR-250 benchmark-section delta, now stated in `FR-NFR-assist-plugin.md`. No version bump |
