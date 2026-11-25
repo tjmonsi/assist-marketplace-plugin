@@ -386,7 +386,23 @@ test("[R4 | spec-evaluation-harness | FR-260] an oracle-location pointer of the 
   });
   const result = config.loadConfig(file);
   assert.strictEqual(result.ok, false);
-  assert.ok(mentions(result.errors, "oracleLocation"));
+  assert.ok(mentions(result.errors, "oracleLocation (FR-260)"), JSON.stringify(result.errors));
+});
+
+test("[R8 | spec-evaluation-harness | FR-286] an invalid labeled-sample path is rejected under the judge-agreement tag, not the oracle tags", () => {
+  // Type mismatch and embedded credentials both report FR-286; the oracle tags stay with oracleLocation.
+  const wrongType = config.loadConfig(writeConfig((value) => {
+    value.labeledSamplePath = 42;
+  }));
+  assert.strictEqual(wrongType.ok, false);
+  assert.ok(mentions(wrongType.errors, "labeledSamplePath (FR-286)"), JSON.stringify(wrongType.errors));
+  assert.ok(!mentions(wrongType.errors, "labeledSamplePath (FR-260)"), JSON.stringify(wrongType.errors));
+  const credentials = config.loadConfig(writeConfig((value) => {
+    value.labeledSamplePath = "https://deploy-user:hunter2-secret@example.invalid/private/samples.json";
+  }));
+  assert.strictEqual(credentials.ok, false);
+  assert.ok(mentions(credentials.errors, "labeledSamplePath (FR-286)"), JSON.stringify(credentials.errors));
+  assert.ok(!mentions(credentials.errors, "labeledSamplePath (FR-261)"), JSON.stringify(credentials.errors));
 });
 
 test("[R5 | spec-evaluation-harness | FR-271] a missing configuration file is a failed load with an error and no config", () => {

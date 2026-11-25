@@ -150,18 +150,19 @@ function resolveFloor(raw, errors) {
   return override || shipped;
 }
 
-// [FR-260|FR-261|NFR-039] The oracle pointer is a location string only. It stays null until the user sets it, and it
-// must not embed credentials.
-function checkLocation(value, name, errors) {
+// [FR-260|FR-261|FR-286|NFR-039] A location field is a location string only. It stays null until the user sets it, and
+// it must not embed credentials. `tags` names the requirement that owns the field: { type, cred } holds the tag for the
+// wrong-type error and the tag for the embedded-credentials error.
+function checkLocation(value, name, errors, tags) {
   if (isUnset(value)) {
     return null;
   }
   if (typeof value !== "string" || value.trim() === "" || value.length > MAX_LOCATION_LENGTH || value.indexOf("\u0000") !== -1) {
-    errors.push(name + " (FR-260): must be a location string");
+    errors.push(name + " (" + tags.type + "): must be a location string");
     return null;
   }
   if (URL_CREDENTIALS.test(value)) {
-    errors.push(name + " (FR-261): must not embed credentials");
+    errors.push(name + " (" + tags.cred + "): must not embed credentials");
     return null;
   }
   return value;
@@ -210,11 +211,11 @@ function loadConfig(filePath, options) {
   const errors = [];
   const numbers = checkOq14(raw, required, errors);
   const config = Object.assign({}, numbers, {
-    oracleLocation: checkLocation(raw.oracleLocation, "oracleLocation", errors),
+    oracleLocation: checkLocation(raw.oracleLocation, "oracleLocation", errors, { type: "FR-260", cred: "FR-261" }),
     retryOnFailure: checkRetry(raw, errors),
     judgeEnabled: checkBoolean(raw.judgeEnabled, "judgeEnabled", errors),
     judgeAgreementFloor: resolveFloor(raw, errors),
-    labeledSamplePath: checkLocation(raw.labeledSamplePath, "labeledSamplePath", errors),
+    labeledSamplePath: checkLocation(raw.labeledSamplePath, "labeledSamplePath", errors, { type: "FR-286", cred: "FR-286" }),
   });
   if (errors.length > 0) {
     return { ok: false, config: null, errors };

@@ -109,8 +109,8 @@
 | FR-301 | WHEN two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. | UR-082 | Should | 2.84 |
 | FR-302 | At an escalation under FR-218 or FR-301, the orchestrator MUST show, for each round, the number of new, fixed, open, and withdrawn findings. | UR-082 | Should | 2.85 |
 | FR-303 | A reviewer MUST NOT return verdict `approved` when it did not examine every artifact path that the dispatch names. | UR-083 | Should | 2.86 |
-| FR-304 | The PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads immediately before it posts. | UR-085 | Should | 2.87 |
-| FR-305 | WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews before any retry. | UR-085 | Should | 2.88 |
+| FR-304 | For a GitHub PR, the PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads with the `gh` CLI immediately before it posts. Bitbucket is out of scope (U-9). | UR-085 | Should | 2.87 |
+| FR-305 | For a GitHub PR, WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews with the `gh` CLI before any retry. Bitbucket is out of scope (U-9). | UR-085 | Should | 2.88 |
 | FR-306 | A finding whose rule identifier is in the severity catalog MUST take its severity from that catalog entry. | UR-086 | Should | 2.89 |
 | FR-307 | A finding with no rule identifier in the severity catalog and no CWE identifier MUST be marked `unmapped` and MUST route no higher than `inline-comment`. | UR-086 | Should | 2.90 |
 | FR-308 | A score from a critic or filtering model MUST NOT set a finding's severity and MUST NOT remove a finding from the report. | UR-086 | Should | 2.91 |
@@ -2036,40 +2036,40 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### 2.87 FR-304: Review posted only against the current head
 
-**Statement:** The PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads immediately before it posts.
+**Statement:** For a GitHub PR, the PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads with the `gh` CLI immediately before it posts. Bitbucket is out of scope for this head check (U-9: the Bitbucket head-revision read command is not named).
 **Traces to:** UR-085
 **Priority:** Should
 **Origin:** Extends FR-195 and FR-214 (confirmation per PR and verdict) in `FR-NFR-assist-plugin.md`. Gap: a verdict confirmed for a PR can post after new commits arrive. This requirement adds to FR-214 and does not replace it.
 
 ##### Scenario: Head unchanged
 
-- **GIVEN** a review drafted against head revision H and a PR whose head is still H
+- **GIVEN** a review drafted against head revision H and a GitHub PR whose head, read with the `gh` CLI, is still H
 - **WHEN** the workflow reaches the post step
 - **THEN** the workflow MAY post, subject to the FR-214 confirmation
 
 ##### Scenario: Head moved
 
-- **GIVEN** a review drafted against head revision H and a PR whose head is now H2
+- **GIVEN** a review drafted against head revision H and a GitHub PR whose head, read with the `gh` CLI, is now H2
 - **WHEN** the workflow reaches the post step
 - **THEN** the workflow MUST NOT post
 - **AND** the workflow MUST tell the user the draft is stale
 
 #### 2.88 FR-305: Read back after an unknown posting outcome
 
-**Statement:** WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews before any retry.
+**Statement:** For a GitHub PR, WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews with the `gh` CLI before any retry. Bitbucket is out of scope for this read-back (U-9: the Bitbucket read command is not named).
 **Traces to:** UR-085
 **Priority:** Should
 **Origin:** Extends FR-214 and FR-195. Gap: a server error during a post may or may not have created the review, and a blind retry can post twice.
 
 ##### Scenario: Review exists after the error
 
-- **GIVEN** a posting command that ended with a server error and a PR that now holds the review
+- **GIVEN** a posting command that ended with a server error and a GitHub PR that now holds the review, read back with the `gh` CLI
 - **WHEN** the workflow handles the error
 - **THEN** the workflow MUST NOT post again
 
 ##### Scenario: Review absent after the error
 
-- **GIVEN** a posting command that ended with a server error and a PR that holds no such review
+- **GIVEN** a posting command that ended with a server error and a GitHub PR that holds no such review, read back with the `gh` CLI
 - **WHEN** the workflow handles the error
 - **THEN** the workflow MAY retry, subject to the FR-214 confirmation
 
@@ -2078,7 +2078,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** A finding whose rule identifier is in the severity catalog MUST take its severity from that catalog entry. The severity catalog is a table, held with the severity policy, that maps each rule identifier to a fixed severity; every checklist item and every in-plugin scanner rule has an entry (D-14).
 **Traces to:** UR-086
 **Priority:** Should
-**Origin:** Extends FR-237 and FR-240, where the reviewer sets `severity` from the policy text. Gap: the same defect class can carry different severities in different reviews. Adding a catalog changes the severity policy and needs the re-approval that FR-237 requires. **Status:** Approved and active. The user re-approved FR-237 with the catalog added (D-14; `DECISIONS.md`, 2026-11-25). This authorizes the capability and does not implement it.
+**Origin:** Extends FR-237 and FR-240, where the reviewer sets `severity` from the policy text. Gap: the same defect class can carry different severities in different reviews. Adding a catalog changes the severity policy and needs the re-approval that FR-237 requires. **Status:** Approved and active. The user re-approved FR-237 with the catalog added (D-14; `DECISIONS.md`, 2026-11-25). The capability is implemented per the Group B build (commit a1582f0): `rules/severity-catalog.yaml` is read by `hooks/lib/severity.js` (`routeWithCatalog`). It remains under the FR-237 re-approval (D-14).
 
 ##### Scenario: Catalog severity applied
 
@@ -2098,7 +2098,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** A finding with no rule identifier in the severity catalog and no CWE identifier MUST be marked `unmapped` and MUST route no higher than `inline-comment`.
 **Traces to:** UR-086
 **Priority:** Should
-**Origin:** Extends FR-239 (only high-confidence, HIGH or CRITICAL findings route as blocking) with a further clamp for a finding that no fixed rule backs. **Status:** Approved and active, on the same D-14 re-approval as FR-306; this authorizes the capability and does not implement it.
+**Origin:** Extends FR-239 (only high-confidence, HIGH or CRITICAL findings route as blocking) with a further clamp for a finding that no fixed rule backs. **Status:** Approved and active, on the same D-14 re-approval as FR-306. The capability is implemented per the Group B build (commit a1582f0): `rules/severity-catalog.yaml` is read by `hooks/lib/severity.js` (`routeWithCatalog`). It remains under the FR-237 re-approval (D-14).
 
 ##### Scenario: Unmapped high finding
 
@@ -2519,7 +2519,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | D-12 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): add `.claude/settings.json` and `.agent/governance/profile.json` to the protected paths that every subagent is denied (Write guard lists, `rules/assist-plugin-rule.md:420-434`) | FR-245, FR-231, FR-243 |
 | D-13 | Settled (`DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", PN-1): the FR-219 alignment check stays rule-based and advisory-first (FR-238), not a model-calling hook, because it reads attacker-controlled text | FR-219 |
 
-| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): FR-237 is re-approved with the severity catalog added, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. Catalog severity (FR-306, FR-307) is active and approved (OQ-19 settled). This authorizes the capability and does not implement it; implementing the catalog stays future build work | FR-237, FR-306, FR-307 |
+| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): FR-237 is re-approved with the severity catalog added, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. Catalog severity (FR-306, FR-307) is active and approved (OQ-19 settled). The capability is implemented per the Group B build (commit a1582f0): `rules/severity-catalog.yaml` is read by `hooks/lib/severity.js` (`routeWithCatalog`). | FR-237, FR-306, FR-307 |
 | D-15 | Applied (Group A): the benchmark section is added to the section list of FR-250 in `FR-NFR-assist-plugin.md` as its statement (benchmark section): the section reports the last stored scoreboard and does not auto-run the suite. A default release-check run never runs the suite (OQ-13 settled) | FR-273, FR-274 |
 | D-16 | Open (Group A): decide where reference solutions and hidden suites live, because the marketplace repository is published and the report's layout (Report:78-91) puts `reference/` under the shipped plugin tree (OQ-15) | FR-260, FR-261, NFR-039 |
 | D-17 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): the `qa` agent owns applying the Testing Gate's test-integrity lane (OQ-18 settled) | FR-291 |
@@ -2629,4 +2629,5 @@ Gap traceability:
 | 1.3 (note 5) | 2026-11-20 | [Author] | Strict JSON parser for governance-config readers, settled by the user, no new elicitation. FR-248 (strict parser: duplicate key at any depth, depth over 32, position-only error per NFR-016) and FR-249 (wired into the rule-modes, profile, and confirmation-store readers only; rejection uses the existing malformed-file path; health check reports it) added. Other plain `JSON.parse` readers recorded as a follow-up in section 4. No UR row names these requirements; they trace to the nearest rows. No version bump |
 | 1.4 | 2026-11-24 | [Author] | Two DRAFT requirement groups added in place, existing entries unchanged. Group A (Theme 5): evaluation benchmark harness, FR-254 to FR-287 and NFR-037 to NFR-039, from `docs/research/research-eval-benchmarks-coding-spec-20261124.md` (golden tasks, execution grading, structural score and optional separate judge score, pass@1 over k runs, release-over-release regression through the release-check runner, and controls for contamination, overfitting, judge bias, and flakiness). Group B (Theme 6): reviewer and review-machinery capabilities, FR-288 to FR-316 and NFR-040 to NFR-042 (lane checklists, a round-by-round iteration record, a feedback loop from user labels to checklist changes, and review patterns that extend FR-218, FR-221, FR-222, and FR-237 to FR-241). IDs start at FR-254 and NFR-037 because FR-250 to FR-253 are taken in `FR-NFR-assist-plugin.md`. D-14 to D-17 and OQ-13 to OQ-19 added. Version bumped to 1.4 in lockstep with the BRD, URD, and JSON |
 | 1.4 (note) | 2026-11-25 | [Author] | Cleanup and reconciliation, no renumbering. FR-308 reworded as MUST NOT; FR-300 and FR-301 use the same re-review count language; NFR-038 figures labeled as estimates; two checklist line anchors corrected (FR-292, FR-308) and the same anchor in BRD A-15; BRD and URD status headers aligned with this file. FR-282 now requires a same-family judge with three bias mitigations and records a different-family judge as a future enhancement (section 4; OQ-16 settled). FR-273 and D-15 record the FR-250 benchmark-section delta, now stated in `FR-NFR-assist-plugin.md`. No version bump |
-| 1.4 (note 2) | 2026-11-25 | [Author] | Apply the settled decisions of `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups". FR-288 register: TI-05, TI-06, and AS-04 read "planning document" in the applies-to column. D-14: FR-237 re-approved with the severity catalog added; FR-306 and FR-307 Approved and active (documentation activation only; nothing implemented); the section 6 row for UR-086 splits so FR-308 stays DRAFT; OQ-19 settled. D-17 and OQ-18 settled: `qa` applies the test-integrity lane in the Testing Gate (FR-291). OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite. OQ-17 provisionally settled with labeled provisional values (section 5). A glossary row separates the Group A benchmark section from the FR-250 benchmark scoreboard section. No renumbering, no version bump |
+| 1.4 (note 2) | 2026-11-25 | [Author] | Apply the settled decisions of `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups". FR-288 register: TI-05, TI-06, and AS-04 read "planning document" in the applies-to column. D-14: FR-237 re-approved with the severity catalog added; FR-306 and FR-307 Approved and active (documentation activation; the catalog was implemented later, see note 3); the section 6 row for UR-086 splits so FR-308 stays DRAFT; OQ-19 settled. D-17 and OQ-18 settled: `qa` applies the test-integrity lane in the Testing Gate (FR-291). OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite. OQ-17 provisionally settled with labeled provisional values (section 5). A glossary row separates the Group A benchmark section from the FR-250 benchmark scoreboard section. No renumbering, no version bump |
+| 1.4 (note 3) | 2026-11-25 | [Author] | Reconcile requirements with the shipped build. FR-304 and FR-305 are scoped to the GitHub `gh` path, with Bitbucket out of scope per U-9 (the Bitbucket head-revision read command is not named). FR-306 and FR-307 catalog severity is recorded as implemented and active, shipped in commit a1582f0 (`rules/severity-catalog.yaml` read by `hooks/lib/severity.js`); the D-14 dependency row and the FR-306 and FR-307 Status notes are updated to match. No renumbering, no version bump |

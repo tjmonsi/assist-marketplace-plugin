@@ -13,13 +13,13 @@
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: Group B (Theme 6) of `docs/requirements/FR-NFR-harness-governance.md` v1.4 (2026-11-24), FR-288 to FR-316 and NFR-040 to NFR-042, DRAFT. This spec extends `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, 7, and the Change Log 2026-11-06 Requirement 14) and does not restate or replace it; it adds no gate, no cap, and no reviewer tool. Paths are relative to `plugins/assist-plugin/` unless stated otherwise. Every behavior below is Planned (harness-governance Group B); nothing here ships before the user approves Group B.
+Baseline: Group B (Theme 6) of `docs/requirements/FR-NFR-harness-governance.md` v1.4 (2026-11-24), FR-288 to FR-316 and NFR-040 to NFR-042, DRAFT. This spec extends `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, 7, and the Change Log 2026-11-06 Requirement 14) and does not restate or replace it; it adds no gate, no cap, and no reviewer tool. Paths are relative to `plugins/assist-plugin/` unless stated otherwise. Catalog-fixed severity (Requirement 18, FR-306 and FR-307) is implemented and active: the user re-approved the severity policy with the catalog added (D-14; `DECISIONS.md`, 2026-11-25) and commit a1582f0 shipped it. The other behaviors below stay Planned (harness-governance Group B) pending their own build work and approval.
 
 ## Description
 
 The review machinery of `/do` extends the existing review gates with named reviewer checklists by lane, a finding-level iteration record that survives across rounds, guards that keep an approval tied to the artifact and the posting tied to the current head, and a feedback loop that turns the user's own labels into checklist changes the user approves. Reviewers (`reviewer`, `code-reviewer`) stay read-only; the `/do` orchestrator reads their evidence and writes every finding, status, label, and gate record (FR-222, NFR-040). The machinery closes four gaps in the current review controls: a clean review that never states which recurring defect classes it checked, a re-review that cannot name which earlier finding a later one is, an approval that may name a stale revision or an unexamined path, and a noisy checklist that no measured signal retires.
 
-One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and FR-307), is approved and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25), which authorizes the capability. This spec designs it; implementing the catalog stays future build work. Until the catalog is implemented, reviewers set `severity` from the approved severity-policy text as they do today, and the orchestrator does not override a reviewer's severity from a catalog.
+One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and FR-307), is implemented and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25), which authorized the capability, and commit a1582f0 shipped it. `rules/severity-catalog.yaml` holds the maintainer-editable map of each rule identifier to a fixed severity with a recorded basis per entry, and `hooks/lib/severity.js` reads it through pure functions (`parseCatalog`, `catalogEntry`, `resolveSeverity`, `routeWithCatalog`), with the caller passing the file text so the module does no I/O. The orchestrator records a finding's severity from its catalog entry and notes any difference from the reviewer's written severity; a finding with no catalog entry and no CWE identifier reads `unmapped` and routes no higher than `inline-comment`. A catalog the strict reader discards as malformed, or an absent catalog, falls back to each reviewer's `severity` set from the approved severity-policy text.
 
 ## Triggered by
 
@@ -43,8 +43,8 @@ One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and 
 | Changed-paths list | The fix pass diff | Paths | Present only on a re-review (FR-298) |
 | Reviewed revision | The reviewer report | Content digest or commit identifier | Tied to the artifact at the gate (FR-296, FR-297) |
 | User finding labels | The labelling step record | true, false, deferred, or unlabeled, with writer | Only the user's label counts (FR-309) |
-| Severity catalog | `rules/severity-policy.md` (D-14, approved) | Rule id to fixed severity | Approved and active under the FR-237 re-approval; implementation is future build work (Requirement 18) |
-| Current PR head revision | The code-hosting platform, read at the post step | Revision identifier | Read immediately before posting (FR-304) |
+| Severity catalog | `rules/severity-catalog.yaml`, governed by `rules/severity-policy.md` (D-14) | Rule id to fixed severity with a recorded basis | Implemented and active, read by `hooks/lib/severity.js` (Requirement 18) |
+| Current PR head revision | The GitHub PR, read with the `gh` CLI at the post step | Revision identifier | Read immediately before posting on the GitHub path (FR-304, U-9) |
 
 ## Preconditions
 
@@ -393,44 +393,44 @@ A reviewer SHALL NOT return verdict `approved` when it did not examine every art
 - **THEN** the verdict SHALL NOT read `approved`
 - **AND** the `skipped:` field SHALL name the unexamined path
 
-### Requirement 16: Post a PR review only against the current head
+### Requirement 16: Post a GitHub PR review only against the current head
 
-The PR-review workflow SHALL read the PR's current head revision immediately before it posts and SHALL NOT post a review drafted against a different head revision; a stale draft SHALL be reported to the user. (FR-304; extends FR-195 and FR-214, the confirmation per PR and verdict. This requirement adds to FR-214 and does not replace it)
+On a GitHub PR, the PR-review workflow SHALL read the PR's current head revision with the `gh` CLI immediately before it posts and SHALL NOT post a review drafted against a different head revision; a stale draft SHALL be reported to the user. Bitbucket is out of scope for this head-check: U-9 leaves the Bitbucket head-revision read command unnamed, so the requirement binds the GitHub path only (U-9, unset). (FR-304; extends FR-195 and FR-214, the confirmation per PR and verdict. This requirement adds to FR-214 and does not replace it)
 
 A post against the current head stays subject to the FR-214 confirmation and the `pr-post-ask` prompt (spec-orchestration-dispatch.md, FR-214).
 
 #### Scenario: Head unchanged
 
-- **GIVEN** a review drafted against head revision H and a PR whose head is still H
+- **GIVEN** a review drafted against head revision H and a GitHub PR whose head the `gh` CLI reports is still H
 - **WHEN** the workflow reaches the post step
 - **THEN** the workflow MAY post, subject to the FR-214 confirmation
 
 #### Scenario: Head moved
 
-- **GIVEN** a review drafted against head revision H and a PR whose head is now H2
+- **GIVEN** a review drafted against head revision H and a GitHub PR whose head the `gh` CLI reports is now H2
 - **WHEN** the workflow reaches the post step
 - **THEN** the workflow SHALL NOT post
 - **AND** the workflow SHALL tell the user the draft is stale
 
-### Requirement 17: Read back the PR reviews after an unknown posting outcome
+### Requirement 17: Read back the GitHub PR reviews after an unknown posting outcome
 
-When a posting command ends with an unknown outcome, the PR-review workflow SHALL read back the PR's reviews before any retry. (FR-305; extends FR-214 and FR-195. A server error during a post may or may not have created the review, and a blind retry can post twice)
+When a GitHub posting command ends with an unknown outcome, the PR-review workflow SHALL read back the PR's reviews with the `gh` CLI before any retry. Bitbucket is out of scope for this read-back: U-9 leaves the Bitbucket review read-back command unnamed, so the requirement binds the GitHub path only (U-9, unset). (FR-305; extends FR-214 and FR-195. A server error during a post may or may not have created the review, and a blind retry can post twice)
 
 #### Scenario: Review exists after the error
 
-- **GIVEN** a posting command that ended with a server error and a PR that now holds the review
+- **GIVEN** a GitHub posting command that ended with a server error and a PR whose `gh` review list now holds the review
 - **WHEN** the workflow handles the error
 - **THEN** the workflow SHALL NOT post again
 
 #### Scenario: Review absent after the error
 
-- **GIVEN** a posting command that ended with a server error and a PR that holds no such review
+- **GIVEN** a GitHub posting command that ended with a server error and a PR whose `gh` review list holds no such review
 - **WHEN** the workflow handles the error
 - **THEN** the workflow MAY retry, subject to the FR-214 confirmation
 
 ### Requirement 18: Take severity from the catalog
 
-Status: approved and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25). This authorizes the capability; the catalog's implementation stays future build work. Until the catalog is implemented, reviewers set `severity` from the approved severity-policy text (`rules/severity-policy.md`) as in FR-240, and the orchestrator does not override a reviewer's severity from a catalog.
+Status: implemented and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25), and commit a1582f0 shipped it. The catalog `rules/severity-catalog.yaml` maps each rule identifier to a fixed severity with a recorded basis (a CWE identifier or a short token), and `hooks/lib/severity.js` reads it through pure functions (`parseCatalog`, `catalogEntry`, `resolveSeverity`, `routeWithCatalog`): the caller passes the file text, so the module does no I/O. When the catalog is absent or the strict reader discards it as malformed, the orchestrator keeps each reviewer's `severity` set from the approved severity-policy text (`rules/severity-policy.md`) as in FR-240.
 
 A finding whose rule identifier is in the severity catalog SHALL take its severity from that catalog entry, and a finding with no catalog rule identifier and no CWE identifier SHALL be marked `unmapped` and SHALL route no higher than `inline-comment`. (FR-306, FR-307; extends FR-237, FR-239, FR-240. The severity catalog is a table held with the severity policy that maps each rule identifier, every checklist item and in-plugin scanner rule included, to a fixed severity, D-14)
 
@@ -450,12 +450,12 @@ Adding the catalog changed the severity policy, so it took the re-approval FR-23
 - **THEN** the finding SHALL read `unmapped`
 - **AND** the routing SHALL NOT read `block-merge`
 
-#### Scenario: Catalog not yet implemented
+#### Scenario: Catalog discarded as malformed
 
-- **GIVEN** the severity policy is re-approved with the catalog (D-14) and the catalog override is not yet built
-- **WHEN** the orchestrator reads a report whose finding rule identifier would map a catalog entry
+- **GIVEN** a severity catalog the strict reader discards as malformed
+- **WHEN** the orchestrator reads a report whose finding rule identifier would otherwise map a catalog entry
 - **THEN** the orchestrator SHALL keep the reviewer's severity from the approved policy text
-- **AND** the orchestrator SHALL NOT override it from the catalog until the capability is implemented
+- **AND** the orchestrator SHALL NOT override it from the catalog
 
 ### Requirement 19: Keep a critic or filtering score out of severity and inclusion
 
@@ -647,8 +647,8 @@ Every finding, status, label, merge, and gate record is written by the orchestra
 | RULE-006 | A re-review marks a fix-induced finding; two in a row trigger a code-reviewer design pass; a finding open after two fixes with no new evidence stops the loop | FR-299, FR-300, FR-301 | Requirements 11, 12, 13 | Two fix-induced passes trigger a whole-artifact code-reviewer pass |
 | RULE-007 | An escalation shows the per-round counts of new, fixed, open, and withdrawn findings | FR-302 | Requirement 14 | A four-round escalation lists four rows |
 | RULE-008 | A reviewer does not approve over an unexamined path; the unexamined path goes in `skipped:` | FR-303 | Requirement 15 | Two of three paths read yields no `approved` |
-| RULE-009 | A PR review posts only against the current head, read immediately before the post; an unknown outcome forces a read-back before retry | FR-304, FR-305 | Requirements 16, 17 | A moved head blocks the post and reports a stale draft |
-| RULE-010 | The severity catalog is approved and active under the FR-237 re-approval (D-14); the orchestrator takes severity from it once implemented, and until then the reviewer's policy-set severity stands | FR-306, FR-307 | Requirement 18 | Catalog authorized; override applies when built |
+| RULE-009 | A GitHub PR review posts only against the current head, read with the `gh` CLI immediately before the post; an unknown outcome forces a read-back before retry; Bitbucket is out of scope (U-9) | FR-304, FR-305 | Requirements 16, 17 | A moved GitHub head blocks the post and reports a stale draft |
+| RULE-010 | The severity catalog is implemented and active under the FR-237 re-approval (D-14); the orchestrator takes a finding's severity from its catalog entry and notes any difference, and falls back to the reviewer's policy-set severity when the catalog is absent or malformed | FR-306, FR-307 | Requirement 18 | DD-01 at MEDIUM overrides a reviewer's HIGH and notes the difference |
 | RULE-011 | A critic or filtering model score never sets severity or removes a finding | FR-308 | Requirement 19 | A likely-false score leaves the finding in the report |
 | RULE-012 | Only the user's label sets a disposition; an agent judgment leaves the finding unlabeled | FR-309 | Requirement 20 | Precision counts no agent-set label |
 | RULE-013 | Precision is true / (true + false); all-unlabeled reads not available, never 0 | FR-310 | Requirement 21 | 8 true, 2 false reads 0.8 |
@@ -684,8 +684,8 @@ Every finding, status, label, merge, and gate record is written by the orchestra
 | Report omits an applicable item, a rule id, a finding id, a prior-finding status, or the reviewed revision | Reject and ask for a corrected report, as for a missing terminal block | No fix dispatched, no gate outcome recorded (Requirements 2, 3, 6, 7, 8) |
 | Reviewed revision is stale at the gate | Do not count the verdict | Gate stays open (Requirement 9) |
 | Reviewer did not examine a named path | Verdict cannot be `approved`; path listed in `skipped:` | Gate stays open (Requirement 15) |
-| PR head moved since the draft | Block the post; report a stale draft | No review posted (Requirement 16) |
-| Posting outcome unknown | Read back the PR reviews before any retry | No duplicate review (Requirement 17) |
+| GitHub PR head moved since the draft | Block the post; report a stale draft | No review posted (Requirement 16) |
+| GitHub posting outcome unknown | Read back the PR reviews with the `gh` CLI before any retry | No duplicate review (Requirement 17) |
 | Two consecutive fix-induced passes | One code-reviewer design pass over the whole artifact | Loop continues or escalates (Requirement 12) |
 | Finding open after two fixes with no new evidence | Early stop and escalate with the per-round history | User chooses continue, waive, or abort (Requirements 13, 14) |
 | Checklist or catalog edit without user approval | Report the edit as unapproved at the merge policy review | Change does not merge (Requirement 24) |
@@ -706,11 +706,11 @@ Every finding, status, label, merge, and gate record is written by the orchestra
 |---|---|---|---|
 | Reviewer terminal block | reviewer, code-reviewer, qa | verdict, skipped, findings with rule ids, stable ids, severity, confidence, routing, reviewed revision | Requirements 2 to 9, 11, 15 |
 | User label | The labelling step | Finding id, label (true, false, deferred) | Requirements 20, 21, 22 |
-| PR head revision | The code-hosting platform read step | Current head revision | Requirements 16, 17 |
+| PR head revision | The GitHub `gh` read step | Current head revision | Requirements 16, 17 (GitHub path; U-9) |
 
 ## Sub-feature breakdown
 
-Not applicable: no smaller unit has its own spec. The severity catalog of Requirement 18 lives with `rules/severity-policy.md` and is approved under the FR-237 re-approval (D-14); the routing function `route(finding)` and the advisory-only severity routing stay in spec-hooks-code-scan.md and spec-orchestration-review-gates.md.
+Not applicable: no smaller unit has its own spec. The severity catalog of Requirement 18 lives in `rules/severity-catalog.yaml`, governed by `rules/severity-policy.md` and read by `hooks/lib/severity.js`; it is implemented and active under the FR-237 re-approval (D-14). The routing function `route(finding)` and the advisory-only severity routing stay in spec-hooks-code-scan.md and spec-orchestration-review-gates.md.
 
 ## Performance considerations
 
@@ -739,9 +739,9 @@ Not applicable: no smaller unit has its own spec. The severity catalog of Requir
 | FR-301 | Requirement 13: Stop early on a finding that stays open | F-4 open after two fixes with no new evidence stops the loop; new evidence continues it |
 | FR-302 | Requirement 14: Show the per-round history at an escalation | Four rounds yield four history rows; a status-less round marked |
 | FR-303 | Requirement 15: Refuse approval over an unexamined path | Two of three paths read yields no approved; unexamined path in `skipped:` |
-| FR-304 | Requirement 16: Post a PR review only against the current head | Moved head blocks the post and reports a stale draft |
-| FR-305 | Requirement 17: Read back the PR reviews after an unknown posting outcome | Review present after error suppresses retry; absent allows retry |
-| FR-306, FR-307 | Requirement 18: Take severity from the catalog | Catalog severity applied once implemented (approved under the FR-237 re-approval, D-14); unmapped high clamped to inline-comment |
+| FR-304 | Requirement 16: Post a GitHub PR review only against the current head | Moved GitHub head blocks the post and reports a stale draft |
+| FR-305 | Requirement 17: Read back the GitHub PR reviews after an unknown posting outcome | Review present after error suppresses retry; absent allows retry |
+| FR-306, FR-307 | Requirement 18: Take severity from the catalog | Catalog severity applied and the difference noted (D-14; `hooks/lib/severity.js`); unmapped high clamped to inline-comment |
 | FR-308 | Requirement 19: Keep a critic or filtering score out of severity and inclusion | A likely-false score keeps the finding; a critic score does not raise severity |
 | FR-309, NFR-042 | Requirement 20: Record a disposition only from the user's label | User label recorded with writer user; agent judgment unlabeled; secret kept out of the record |
 | FR-310, FR-313, FR-314, FR-316 | Requirement 21: Report precision per lane and item, and drive checklist changes | 8 true, 2 false reads 0.8; all-unlabeled reads not available; retirement, addition, and before-and-after cases |
@@ -758,6 +758,7 @@ Not applicable: no smaller unit has its own spec. The severity catalog of Requir
 
 | ID | Item | Affects |
 |---|---|---|
-| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25): the user re-approved the severity policy under FR-237 with the severity catalog added, so catalog severity (FR-306, FR-307) is approved and active. This authorizes the capability; implementing the catalog is future build work | Requirement 18 (FR-306, FR-307) |
+| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25): the user re-approved the severity policy under FR-237 with the severity catalog added, so catalog severity (FR-306, FR-307) is implemented and active, shipped in commit a1582f0 (`rules/severity-catalog.yaml`, read by `hooks/lib/severity.js`) | Requirement 18 (FR-306, FR-307) |
 | D-17 | Settled (Group B; `DECISIONS.md`, 2026-11-25): the `qa` agent owns applying the Testing Gate's test-integrity lane | Requirement 1 (FR-291) |
 | OQ-17 | Provisionally settled, not closed (`FR-NFR-harness-governance.md` section 5): the escalation counts of Requirements 12 and 13 are 2, the retirement floor of Requirement 21 is 0.5, its minimum labeled findings 10, and its addition count 3; each is provisional and still overridable | Requirements 12, 13, 21 |
+| U-9 | Unset: this spec names no Bitbucket command to read a PR head revision or to read back reviews, so the current-head check (FR-304) and the post read-back (FR-305) bind the GitHub `gh` CLI path only; Bitbucket is out of scope for both until U-9 is settled | Requirements 16, 17 (FR-304, FR-305) |
