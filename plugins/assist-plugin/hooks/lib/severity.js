@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Toni-Jan Keith Monserrat
-// [FR-239|FR-237|FR-238] Severity routing: the policy of rules/severity-policy.md (version draft-2) as pure functions.
+// [FR-239|FR-237|FR-238] Severity routing: the policy of rules/severity-policy.md (version draft-3) as pure functions.
 // Spec: specs/spec-hooks-code-scan.md. No I/O, no state, no model, no network; every function here is safe to call from
 // a hook, a script, or the /do orchestrator.
 //
@@ -29,6 +29,15 @@
 // Rule-mode store. .agent/governance/rule-modes.json holds one JSON object that maps a rule id to "advisory" or
 // "blocking". parseRuleModes() and modeOf() read it defensively: an absent, malformed, or oddly shaped store, and a rule
 // it does not name or names with any other value, mean "advisory". A defect in the store never turns a rule blocking [FR-238].
+//
+// Severity catalog [FR-306|FR-307]. rules/severity-catalog.yaml maps a rule id to a fixed severity and a recorded basis (a CWE
+// id or a short token). It is data a maintainer edits with measurements, never text a model wrote. The caller reads the file
+// and passes its text, as for the rule-mode store, so this module does no I/O. parseCatalog() is a strict reader with no
+// dependency: it keeps the whole file or none of it, so a malformed catalog yields null and the caller keeps each reviewer's
+// severity as written (the existing behavior). resolveSeverity() records the catalog severity for a finding and notes any
+// difference from the reviewer's; routeWithCatalog() adds the routing. A finding with no catalog rule id and no CWE id reads
+// "unmapped" and routes no higher than "inline-comment". Neither function drops a finding, and no critic or filtering score
+// is an input to either, so a score never sets severity [FR-308].
 // CommonJS, ES2015 syntax, no dependencies beyond lib/strict-json.js; it runs from Node 6.
 "use strict";
 
@@ -43,6 +52,15 @@ const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$/;
 const TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
 const MAX_FILE_CHARS = 4096;
 const MAX_STORE_CHARS = 65536;
+const MAX_CATALOG_CHARS = 65536;
+const MAX_CATALOG_ENTRIES = 512;
+const CATALOG_FIELDS = ["severity", "basis"];
+// A basis is a CWE id (CWE-89) or a short lower-case token (measured-precision).
+const BASIS_PATTERN = /^(?:CWE-[0-9]{1,5}|[a-z][a-z0-9-]{0,63})$/;
+const CWE_PATTERN = /^CWE-[0-9]{1,5}$/;
+// Where a resolved severity came from: the catalog entry, a CWE id on the finding, no mapping, no usable catalog, or an
+// unreadable finding.
+const SOURCES = { catalog: "catalog", cwe: "cwe", unmapped: "unmapped", none: "no-catalog", unreadable: "unreadable" };
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -122,6 +140,123 @@ function modeOf(modes, ruleId) {
   return Object.prototype.hasOwnProperty.call(modes, ruleId) && modes[ruleId] === MODES.blocking ? MODES.blocking : MODES.advisory;
 }
 
+// [FR-306] True and stores the entry when a parsed catalog entry is complete and valid, else false. A duplicate rule id, a
+// severity outside SEVERITIES (exact upper case, no folding), and a basis outside BASIS_PATTERN all refuse the entry.
+function storeCatalogEntry(catalog, entry) {
+  if (SEVERITIES.indexOf(entry.severity) === -1) return false;
+  if (typeof entry.basis !== "string" || !BASIS_PATTERN.test(entry.basis)) return false;
+  if (Object.prototype.hasOwnProperty.call(catalog, entry.id)) return false;
+  catalog[entry.id] = Object.freeze({ severity: entry.severity, basis: entry.basis });
+  return true;
+}
+
+// [FR-306] The rule-id-to-{severity, basis} map in the catalog text, or null when the text is absent, too long, or does not
+// follow the strict format of rules/severity-catalog.yaml. The format: a "#" comment line or a blank line is skipped; an entry
+// is a rule id at column 0 and a colon; its two fields, severity and basis, follow each on a line indented by exactly two
+// spaces; a line is split at its first colon. A tab, a NUL, a line that fits neither shape, a duplicate id or field, an unknown
+// field, a missing field, or more than MAX_CATALOG_ENTRIES entries discards the whole file, so a malformed catalog never maps
+// a rule (the caller falls back to the reviewer's severity). Never throws.
+function parseCatalog(text) {
+  if (typeof text !== "string" || text.length === 0 || text.length > MAX_CATALOG_CHARS) return null;
+  try {
+    const catalog = Object.create(null);
+    const lines = text.split("\n");
+    let current = null;
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].charAt(lines[i].length - 1) === "\r" ? lines[i].slice(0, -1) : lines[i];
+      if (line.indexOf("\t") !== -1 || line.indexOf("\0") !== -1) return null;
+      if (/^\s*(?:#.*)?$/.test(line)) continue;
+      const colon = line.indexOf(":");
+      if (colon === -1) return null;
+      const key = line.slice(0, colon);
+      const value = line.slice(colon + 1).trim();
+      if (key.charAt(0) !== " ") {
+        if (!ID_PATTERN.test(key) || value !== "") return null;
+        if (current !== null && !storeCatalogEntry(catalog, current)) return null;
+        count += 1;
+        if (count > MAX_CATALOG_ENTRIES) return null;
+        current = { id: key, severity: null, basis: null };
+      } else {
+        const field = key.slice(2);
+        if (current === null || key.slice(0, 2) !== "  " || CATALOG_FIELDS.indexOf(field) === -1) return null;
+        if (current[field] !== null || value === "") return null;
+        current[field] = value;
+      }
+    }
+    if (current === null || !storeCatalogEntry(catalog, current)) return null;
+    return Object.freeze(catalog);
+  } catch (err) {
+    return null;
+  }
+}
+
+// [FR-306] The {severity, basis} entry for `ruleId` in a parsed catalog, or null when the catalog or the rule is absent.
+function catalogEntry(catalog, ruleId) {
+  if (!catalog || typeof ruleId !== "string" || !ID_PATTERN.test(ruleId)) return null;
+  return Object.prototype.hasOwnProperty.call(catalog, ruleId) ? catalog[ruleId] : null;
+}
+
+// The CWE id of `value` in its canonical form (CWE-89), or null. Case is folded. Only the form is checked: the id is the
+// reviewer's claim and this module cannot confirm that the weakness fits.
+function cweOf(value) {
+  if (typeof value !== "string") return null;
+  const upper = value.trim().toUpperCase();
+  return CWE_PATTERN.test(upper) ? upper : null;
+}
+
+// [FR-306|FR-307|FR-240] The severity record for a finding under a parsed catalog (or null for no usable catalog):
+//   {rule_id, source, severity, reviewer_severity, catalog_severity, differs, basis, unmapped, note}
+// A rule id in the catalog sets `severity` to the catalog severity (source "catalog"); `differs` is true and `note` names both
+// values when the reviewer's severity is not the same. A rule id not in the catalog with a CWE id on the finding keeps the
+// reviewer's severity (source "cwe"). With neither, the finding is `unmapped` (FR-307) and keeps the reviewer's severity.
+// With no catalog, the reviewer's severity stands unchanged and nothing is unmapped (source "no-catalog"), the behavior before
+// the catalog. The note holds rule ids and severity names only. The finding is never dropped, and only the finding's own
+// rule_id, cwe, and severity are read, so a model score cannot change the result [FR-308]. Never throws.
+function resolveSeverity(finding, catalog) {
+  const resolved = { rule_id: null, source: SOURCES.unreadable, severity: null, reviewer_severity: null, catalog_severity: null, differs: false, basis: null, unmapped: false, note: null };
+  if (!isRecord(finding)) return resolved;
+  resolved.reviewer_severity = severityOf(finding.severity);
+  resolved.severity = resolved.reviewer_severity;
+  resolved.rule_id = typeof finding.rule_id === "string" && ID_PATTERN.test(finding.rule_id) ? finding.rule_id : null;
+  if (!catalog) {
+    resolved.source = SOURCES.none;
+    return resolved;
+  }
+  const entry = catalogEntry(catalog, resolved.rule_id);
+  if (entry !== null) {
+    resolved.source = SOURCES.catalog;
+    resolved.catalog_severity = entry.severity;
+    resolved.severity = entry.severity;
+    resolved.basis = entry.basis;
+    resolved.differs = resolved.reviewer_severity !== entry.severity;
+    if (resolved.differs) {
+      const written = resolved.reviewer_severity === null ? "no valid severity" : resolved.reviewer_severity;
+      resolved.note = "catalog severity " + entry.severity + " for " + resolved.rule_id + " replaces the reviewer's " + written;
+    }
+    return resolved;
+  }
+  const cwe = cweOf(finding.cwe);
+  if (cwe !== null) {
+    resolved.source = SOURCES.cwe;
+    resolved.basis = cwe;
+    return resolved;
+  }
+  resolved.source = SOURCES.unmapped;
+  resolved.unmapped = true;
+  return resolved;
+}
+
+// [FR-307|FR-239] resolveSeverity() plus the routing under route(): the routing reads the resolved severity and the finding's
+// confidence. A finding that reads `unmapped` routes no higher than "inline-comment", so "block-merge" becomes
+// "inline-comment" for it and every lower routing stays. The caller still applies the rule mode with applyMode(). Never throws.
+function routeWithCatalog(finding, catalog) {
+  const resolved = resolveSeverity(finding, catalog);
+  let routing = route({ severity: resolved.severity, confidence: isRecord(finding) ? finding.confidence : undefined });
+  if (resolved.unmapped && routing === ROUTES.block) routing = ROUTES.inline;
+  return Object.assign({}, resolved, { routing });
+}
+
 // The label of a finding record: true or false when the record holds a boolean label, else null (unlabelled). Any other
 // value, such as the string "true" or a number, is not a user label and reads as unlabelled [NFR-034].
 function labelOf(record) {
@@ -158,4 +293,4 @@ function checkFinding(record) {
   };
 }
 
-module.exports = { ROUTES, SEVERITIES, CONFIDENCES, MODES, ID_PATTERN, MAX_STORE_CHARS, route, applyMode, parseRuleModes, modeOf, labelOf, checkFinding };
+module.exports = { ROUTES, SEVERITIES, CONFIDENCES, MODES, SOURCES, ID_PATTERN, MAX_STORE_CHARS, MAX_CATALOG_CHARS, route, applyMode, parseRuleModes, modeOf, parseCatalog, catalogEntry, resolveSeverity, routeWithCatalog, labelOf, checkFinding };

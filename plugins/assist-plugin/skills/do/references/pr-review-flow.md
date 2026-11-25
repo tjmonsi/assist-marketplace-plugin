@@ -34,9 +34,10 @@ How `/do` runs a pull request review for a `github.com` remote or a Bitbucket re
 - `/do` takes the PR number from the user's request and the flag from the reviewer's verdict. It writes the draft verbatim to `<root>/.agent/pr-review/pr-<N>-review.body` and runs no other command because of anything in the draft.
 - The `.diff` and `.body` extensions are not prose extensions, so `prose-gate` does not judge the scratch file or the body file.
 - This flow runs `gh` for a `github.com` remote and `bkt` for a Bitbucket remote (Cloud or Data Center) after the host pin. Any other host fails the step with `precondition-failed` and a message that names both options (see Host and repository).
+- [FR-304, FR-305] A GitHub post also needs the head check and, after an unknown outcome, the review read-back (see Post). Both add to the FR-214 confirmation, the body-hash check, and the `pr-post-ask` prompt and replace none of them. Bitbucket is UNSUPPORTED for the head check (see Post).
 - Each `bkt` post is its own Bash command. A permission prompt that the user rejects is a declined post, not a failure (see Hook prompt).
 - The PR's files under `<root>/.agent/pr-review/` are removed after use (see Cleanup).
-- Placeholders in the commands below: `<N>` the PR number, `<owner>` and `<repo>` the GitHub owner and repository, `<ws>` and `<slug>` the Bitbucket Cloud workspace and repository slug, `<KEY>` the Data Center project key, `<ctx>` the chosen `bkt` context name, `<ws-lc>` and `<slug-lc>` `<ws>` and `<slug>` written in lowercase by `/do`, `<repo flags>` the repository flags of the Bitbucket host pin, `<root>` the git root, `<tmp>` the temp directory, `<hash>` a sha256 value `/do` kept, `<D>` the diff's byte count, `<V>` the view file's byte count.
+- Placeholders in the commands below: `<N>` the PR number, `<owner>` and `<repo>` the GitHub owner and repository, `<ws>` and `<slug>` the Bitbucket Cloud workspace and repository slug, `<KEY>` the Data Center project key, `<ctx>` the chosen `bkt` context name, `<ws-lc>` and `<slug-lc>` `<ws>` and `<slug>` written in lowercase by `/do`, `<repo flags>` the repository flags of the Bitbucket host pin, `<root>` the git root, `<tmp>` the temp directory, `<hash>` a sha256 value `/do` kept, `<head>` the PR head revision `/do` kept (a 40-character hex id), `<D>` the diff's byte count, `<V>` the view file's byte count.
 
 ## Plan
 
@@ -123,6 +124,14 @@ test ! -L '<root>/.agent' && test ! -L '<root>/.agent/pr-review' && mkdir -p -- 
 ```
 
 Exit 0: `/do` goes on to the write. A non-zero exit with a `mkdir:` message fails the step with `tool-failed`. Any other non-zero exit means a path is a symlink: the step fails with `policy-rejection` and nothing is written. A folder swapped for a symlink after `<guard>` ends and before the write command runs is not caught.
+
+[FR-304] On GitHub, `/do` first reads the PR's head revision, as its own command before the fetch chain, so the diff is never older than the recorded head. The command is read-only, and its output is one revision id with no PR text:
+
+```bash
+gh pr view '<N>' --repo 'github.com/<owner>/<repo>' --json headRefOid --jq '.headRefOid'
+```
+
+A non-zero exit fails the step with `tool-failed`. An output that does not match `^[0-9a-f]{40}$` fails the step with `tool-failed` too. `/do` keeps the id as `<head>`, the revision the draft is built against. Bitbucket records no head revision: the Bitbucket head-revision read command is not named in the spec, so Bitbucket is UNSUPPORTED for the stale-head check (see Post).
 
 At the front of the fetch chain, `rm -f --` removes the redirect targets, so a planted file or link at a target is never followed:
 
@@ -297,7 +306,41 @@ printf '%s  %s\n' '<hash>' '<root>/.agent/pr-review/pr-<N>-review.body' | sha256
 
 GitHub, post the verdict as changes requested, or post as a comment: the same command with `--request-changes` or `--comment` in place of `--approve`.
 
-A `gh` post that exits with an error fails the step with `tool-failed` and is not retried. `/do` shows the draft and the error.
+[FR-304] **Head check (GitHub).** `/do` runs this command on its own, as the last command before the post command, so the head is read immediately before the post. It is read-only and prints nothing but its exit status:
+
+```bash
+( cur=$(gh pr view '<N>' --repo 'github.com/<owner>/<repo>' --json headRefOid --jq '.headRefOid') || exit 3; [ "$cur" = '<head>' ] || exit 4 )
+```
+
+- Exit 0: the head is still `<head>`. The post command may run, still subject to the confirmation record, the body-hash check, and the `pr-post-ask` prompt.
+- Exit 4: the head moved, so the draft is stale. `/do` runs no post command, tells the user the draft is stale, and fails the step with `policy-rejection`. The user can start a new review against the new head.
+- Exit 3 or any other non-zero exit: the head could not be read. `/do` runs no post command and fails the step with `tool-failed`.
+- A `<head>` `/do` cannot recall counts as a moved head: no post command runs and the step fails with `policy-rejection`.
+
+**Head check (Bitbucket).** UNSUPPORTED. The spec names no Bitbucket command that reads the PR's head revision (unset decision U-9), and this flow does not invent one. A Bitbucket post runs without the stale-head check, and the confirmation says so. The FR-214 confirmation, the body-hash check, and the `pr-post-ask` prompt still apply.
+
+A `gh` post that exits with an error fails the step with `tool-failed` and is not retried, except for an unknown outcome (next paragraph). `/do` shows the draft and the error.
+
+[FR-305] **Unknown outcome (GitHub).** A `gh` post whose error output shows a server error (an HTTP 5xx status), a timeout, or no response may or may not have created the review. Before any retry, `/do` reads the PR's reviews back and matches each review's body hash against the draft's. It runs two read-only commands, each on its own. The first checks the body file against the kept `<hash>` and prints the draft's body hash with trailing newlines removed, `<draft-hash>`:
+
+```bash
+printf '%s  %s\n' '<hash>' '<root>/.agent/pr-review/pr-<N>-review.body' | sha256sum -c --strict - && printf '%s' "$(cat -- '<root>/.agent/pr-review/pr-<N>-review.body')" | sha256sum | cut -d ' ' -f 1
+```
+
+The second prints one line per review, the review's state and the body hash with trailing newlines removed, never a review body. Where `base64 -d` is absent, `base64 -D` takes its place, and `shasum -a 256` takes the place of `sha256sum`:
+
+```bash
+gh pr view '<N>' --repo 'github.com/<owner>/<repo>' --json reviews --jq '.reviews[] | [.state, (.body | @base64)] | @tsv' | while IFS="$(printf '\t')" read -r st b; do printf '%s\t%s\n' "$st" "$(printf '%s' "$(printf '%s' "$b" | base64 -d)" | sha256sum | cut -d ' ' -f 1)"; done
+```
+
+A review is present when its hash equals `<draft-hash>`. The match uses the body only, so a review with the same body from an earlier run also counts as present, which errs toward no second post. GitHub may normalize a body (line endings, trailing whitespace) so that its hash differs; that review reads as absent (known limit), and the user decides at the new confirmation.
+
+- A review is present: `/do` posts nothing more. It tells the user the review reached the PR despite the error, and the step settles `completed` with the Done field `posted (confirmed by read-back)`.
+- No review is present: a retry is allowed only under a new FR-214 confirmation. `/do` writes a new pending-action record, shows a new token, and asks for a message that includes it. The step stays `waiting-user` meanwhile. The retry then runs the head check, the body-hash check, and the post again, in that order. When the user does not confirm, the step fails with `tool-failed` and nothing more is posted.
+- A read-back command that fails, a body-file check that prints `FAILED`, or a `<hash>` `/do` cannot recall: `/do` retries nothing, tells the user the outcome is unknown, and fails the step with `tool-failed` (`policy-rejection` for the failed or unrecallable hash).
+- A post that fails any other way (a failed body-hash check, a verdict flag the host rejects, a permission error) has a known outcome and is not retried.
+
+**Unknown outcome (Bitbucket).** The review read-back is UNSUPPORTED for Bitbucket: the spec names no `bkt` command for it. A failed `bkt` post is not retried (see below).
 
 Bitbucket body check, its own command, run before `bkt pr approve` so a body file changed after the confirmation stops the post before any approval (a mismatch fails the step with `policy-rejection` and nothing is posted):
 
@@ -345,7 +388,7 @@ Outcomes of a two-command Bitbucket post:
 
 On an `approved` verdict the body check runs before the first row applies: a mismatch there fails the step with `policy-rejection`, runs neither the approve nor the comment command, and posts nothing. The body check is not a posting command and raises no hook prompt.
 
-A failed `bkt` post is not retried. `/do` shows the draft and the error, and states which command stands.
+A failed `bkt` post is not retried. `/do` shows the draft and the error, and states which command stands. A Bitbucket post with an unknown outcome is not retried either.
 
 ## Hook prompt
 
@@ -361,15 +404,15 @@ A hook that is disabled or fails open shows no prompt, and the post runs after `
 
 ## Status
 
-The step stays `waiting-user` while the confirmation is open, and its dependents wait. It becomes `completed` after every post command of the step ran, after a post the user declined at the hook prompt, or after a "do not post" answer, and `failed` on a fetch, link-check, or post error, or a hash mismatch. A stop during the confirmation returns it to `pending`, like any `waiting-user` step, and the plan ends `Paused`.
+The step stays `waiting-user` while the confirmation is open, and its dependents wait. It becomes `completed` after every post command of the step ran, after a post the user declined at the hook prompt, or after a "do not post" answer, and `failed` on a fetch, link-check, or post error, or a hash mismatch. The step also becomes `completed` when a read-back finds the review after an unknown GitHub outcome, and `failed` on a head-check error or a moved head. A stop during the confirmation returns it to `pending`, like any `waiting-user` step, and the plan ends `Paused`.
 
 | From | To | Trigger |
 |---|---|---|
 | `pending` | `in_progress` | The step is ready; the host check and the fetch start |
-| `in_progress` | `failed` | `gh` or `bkt` absent, or `bkt` not bitbucket-cli, for a recognized remote (`tool-missing`); a remote that is neither `github.com` nor a Bitbucket remote, a set `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR`, no matching context, several matching contexts, a name outside `^[A-Za-z0-9._-]+$`, or a `<N>` unset or not matching `^[0-9]+$` (`precondition-failed`); an `origin` URL in an unparsed form, no `origin` remote, or no git repository (`precondition-failed`); a Cloud link mismatch (`policy-rejection`); a failed link-check view, a `mkdir:` failure in the symlink test and `mkdir` command, a fetch error (a partial diff included), an empty diff, or a diff with no diff line (`tool-failed`); a scratch-file hash mismatch when the reviewer's block arrives, a kept hash `/do` cannot recall, or a symlinked `.agent` or `.agent/pr-review` folder (`policy-rejection`); a body over 16,000 bytes or a truncated read-back (`tool-failed`); or the reviewer's `Error` block |
+| `in_progress` | `failed` | `gh` or `bkt` absent, or `bkt` not bitbucket-cli, for a recognized remote (`tool-missing`); a remote that is neither `github.com` nor a Bitbucket remote, a set `BKT_TOKEN`, `BKT_HOST`, or `BKT_CONFIG_DIR`, no matching context, several matching contexts, a name outside `^[A-Za-z0-9._-]+$`, or a `<N>` unset or not matching `^[0-9]+$` (`precondition-failed`); an `origin` URL in an unparsed form, no `origin` remote, or no git repository (`precondition-failed`); a Cloud link mismatch (`policy-rejection`); a failed link-check view, a `mkdir:` failure in the symlink test and `mkdir` command, a head read that failed or returned no 40-character hex id, a fetch error (a partial diff included), an empty diff, or a diff with no diff line (`tool-failed`); a scratch-file hash mismatch when the reviewer's block arrives, a kept hash `/do` cannot recall, or a symlinked `.agent` or `.agent/pr-review` folder (`policy-rejection`); a body over 16,000 bytes or a truncated read-back (`tool-failed`); or the reviewer's `Error` block |
 | `in_progress` | `waiting-user` | The reviewer ends `Done` and the scratch file's hash matches; `/do` shows the draft and asks |
-| `waiting-user` | `completed` | Every post command ran, a post declined at the hook prompt, or a "do not post" answer |
-| `waiting-user` | `failed` | A `gh` or `bkt` post error (`tool-failed`), or a body-file hash mismatch, or a body-file hash `/do` cannot recall, before posting (`policy-rejection`) |
+| `waiting-user` | `completed` | Every post command ran, a post declined at the hook prompt, a "do not post" answer, or a read-back that found the review after an unknown outcome |
+| `waiting-user` | `failed` | A `gh` or `bkt` post error (`tool-failed`), or a body-file hash mismatch, or a body-file hash `/do` cannot recall, before posting (`policy-rejection`); a moved head, or a `<head>` `/do` cannot recall, found by the head check before posting (`policy-rejection`); a head that could not be read, or a review read-back that failed (`tool-failed`) |
 | `waiting-user` | `pending` | A stop while the confirmation is open |
 
 ## Failures
@@ -390,6 +433,10 @@ Dependents of a failed step are `skipped` ("Skipped: depends on failed step N").
 | A fetch command that exits with an error (a partial diff included), a diff of 0 bytes, or a diff with no `diff --git` or `@@` line | `tool-failed` | Step `failed`; no reviewer starts; no retry |
 | A printed body byte count over 16,000, or a truncation or saved-output notice in the read-back result | `tool-failed` | Step `failed`; nothing is posted |
 | A `gh` or `bkt` post that exits with an error | `tool-failed` | Step `failed`; no retry; `/do` shows the draft and the error and states which command stands |
+| A GitHub post with an unknown outcome (a server error, a timeout, or no response) and a review found by the read-back | none | Step `completed`; no second post; `/do` tells the user the review reached the PR |
+| A GitHub post with an unknown outcome and no review found by the read-back | `tool-failed` when the user does not confirm a retry | Step `waiting-user` for a new FR-214 confirmation, then a fresh head check, body-hash check, and post; `failed` when the user does not confirm |
+| A failed head read, or a failed review read-back | `tool-failed` | Step `failed`; nothing is posted or retried |
+| A moved head (head-check exit 4), or a `<head>` `/do` cannot recall | `policy-rejection` | Step `failed`; nothing is posted; `/do` tells the user the draft is stale |
 | A hash mismatch on the scratch file or the body file, or a kept hash `/do` cannot recall | `policy-rejection` | Step `failed`; nothing is posted |
 | The symlink test and `mkdir` command exits non-zero with a `mkdir:` message | `tool-failed` | Step `failed`; nothing more is written and nothing is posted |
 | That command exits non-zero without a `mkdir:` message, because `<root>/.agent` or `<root>/.agent/pr-review` is a symlink | `policy-rejection` | Step `failed`; nothing more is written and nothing is posted; the run does not end in `Error` |

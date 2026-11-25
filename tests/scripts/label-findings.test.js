@@ -9,14 +9,23 @@
 // NFR-034: the user labels each baseline finding true or false), and the usage header of the script (the command line,
 // the rewrite rules, and the exit codes). The spec carries no SPEC-NNN id, so it is cited by file name.
 //
+// Reviewer machinery addition (task plan docs/task-plans/task-plan-reviewer-machinery-20261125-0717.md, Step 22):
+// specs/spec-reviewer-machinery.md Requirement 20 (Record a disposition only from the user's label; scenario User label
+// recorded), FR-309, NFR-034. The labeller also accepts a third label, deferred, and writes `labelled_by: "user"` with each
+// label. A deferred record still reads as unlabelled to labelOf of hooks/lib/severity.js, so baseline-report.js and
+// promote-rule.js precision does not change.
+//
 // Traceability format: [AC-N | spec-hooks-code-scan.md Requirement | FR/NFR ids]. AC-N is the position of the Scenario
-// inside the Requirement: "Unlabelled finding is not counted" is AC-1 and "Precision from the user's labels" is AC-2.
+// inside the Requirement: "Unlabelled finding is not counted" is AC-1 and "Precision from the user's labels" is AC-2. The
+// reviewer-machinery cases use [AC-1 | spec-reviewer-machinery Requirement 20 | FR-309 | NFR-034], AC-1 being "User label
+// recorded".
 //
 // Contract used (documented behavior; the script body is never read):
 //   node scripts/label-findings.js --list [--rule RULE_ID] [--root DIR]
-//   node scripts/label-findings.js <finding-id> true|false [--root DIR]
-//   --list prints the unlabelled findings (id, rule, severity, confidence, file, line). The second form sets `label` (a
-//   boolean) and `labelled_at` (the time, UTC) on the one record with that id in .agent/governance/review-findings.jsonl,
+//   node scripts/label-findings.js <finding-id> true|false|deferred [--root DIR]
+//   --list prints the unlabelled findings (id, rule, severity, confidence, file, line); a deferred finding holds no true or
+//   false label, so it is listed again. The second form sets `label` (a boolean, or the string "deferred"), `labelled_by`
+//   ("user"), and `labelled_at` (the time, UTC) on the one record with that id in .agent/governance/review-findings.jsonl,
 //   replacing an earlier label. The rewrite changes only the named record: every other line, a line that is not a valid
 //   finding included, is kept as written. The file is replaced through a temporary file in the same directory and a rename.
 //   Exit 0 listed or set; exit 1 refused (the id is unknown or appears on more than one line); exit 2 cannot run (bad
@@ -36,10 +45,12 @@ const path = require("node:path");
 
 const fx = require("../fixtures/audit/chain-fixture.js");
 const severity = require(path.join(fx.PLUGIN, "hooks", "lib", "severity.js"));
+const reviewLabels = require(path.join(fx.PLUGIN, "hooks", "lib", "review-labels.js"));
 
 const SCRIPT = path.join(fx.PLUGIN, "scripts", "label-findings.js");
 const SPEC = "spec-hooks-code-scan.md";
 const BASELINE = SPEC + " Requirement: Advisory baseline and precision from user labels";
+const MACHINERY = "spec-reviewer-machinery Requirement 20";
 const RULE = "sql-from-input";
 const OTHER = "shell-from-variable";
 
@@ -194,6 +205,127 @@ test("[AC-2 | " + BASELINE + " | FR-238] a labelled finding no longer appears in
   const res = run(["--list"], root);
   assert.strictEqual(res.status, 0, res.out);
   assert.ok(res.out.indexOf("f-1") === -1 && res.out.indexOf("f-2") !== -1, res.out);
+});
+
+// ---------------------------------------------------------------------------
+// Reviewer machinery: labelled_by on every label, and the deferred label
+// ---------------------------------------------------------------------------
+
+test("[AC-1 | " + MACHINERY + " | FR-309 | NFR-034] a true label records the writer as the user, and the disposition reads true", () => {
+  const root = makeRoot([j(record("f-1")), j(record("f-2"))]);
+  assert.strictEqual(run(["f-1", "true"], root).status, 0);
+  const row = JSON.parse(linesOf(root)[0]);
+  assert.strictEqual(row.label, true);
+  assert.strictEqual(row.labelled_by, "user");
+  assert.strictEqual(reviewLabels.dispositionOf(row), true);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309 | NFR-034] a false label records the writer as the user, and the disposition reads false", () => {
+  const root = makeRoot([j(record("f-1"))]);
+  assert.strictEqual(run(["f-1", "false"], root).status, 0);
+  const row = JSON.parse(linesOf(root)[0]);
+  assert.strictEqual(row.label, false);
+  assert.strictEqual(row.labelled_by, "user");
+  assert.strictEqual(reviewLabels.dispositionOf(row), false);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309 | NFR-034] a finding id with deferred sets the label deferred, the writer user, and a UTC labelled_at", () => {
+  const root = makeRoot([j(record("f-1")), j(record("f-2")), j(record("f-3"))]);
+  const res = run(["f-2", "deferred"], root);
+  assert.strictEqual(res.status, 0, res.out);
+  const rows = linesOf(root).map((l) => JSON.parse(l));
+  assert.strictEqual(rows.length, 3);
+  assert.strictEqual(rows[1].id, "f-2");
+  assert.strictEqual(rows[1].label, "deferred");
+  assert.strictEqual(rows[1].labelled_by, "user");
+  assert.ok(Number.isFinite(Date.parse(rows[1].labelled_at)) && /Z$/.test(rows[1].labelled_at), "labelled_at is a UTC time: " + rows[1].labelled_at);
+  assert.strictEqual(reviewLabels.dispositionOf(rows[1]), "deferred");
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309 | NFR-034] a deferred record reads as unlabelled to labelOf, so the code-scan baseline never counts it", () => {
+  const root = makeRoot([j(record("f-1"))]);
+  assert.strictEqual(run(["f-1", "deferred"], root).status, 0);
+  const row = JSON.parse(linesOf(root)[0]);
+  assert.strictEqual(severity.labelOf(row), null);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a deferred label changes the named record only: every other line stays byte for byte", () => {
+  const original = [j(record("f-1")), j(record("f-2")), j(record("f-3", { label: true })), "{not json", j(record("f-4", { rule_id: OTHER }))];
+  const root = makeRoot(original);
+  assert.strictEqual(run(["f-2", "deferred"], root).status, 0);
+  const lines = text(root).split("\n");
+  assert.strictEqual(lines[0], original[0]);
+  assert.strictEqual(lines[2], original[2]);
+  assert.strictEqual(lines[3], original[3]);
+  assert.strictEqual(lines[4], original[4]);
+  assert.notStrictEqual(lines[1], original[1]);
+  const row = JSON.parse(lines[1]);
+  ["id", "rule_id", "severity", "confidence", "file", "line", "timestamp", "review_id"].forEach((key) => {
+    assert.strictEqual(row[key], record("f-2")[key], key + " of the labelled record is unchanged");
+  });
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a deferred finding is listed again by --list, because it holds no true or false label", () => {
+  const root = makeRoot([j(record("f-1")), j(record("f-2"))]);
+  assert.strictEqual(run(["f-1", "deferred"], root).status, 0);
+  const res = run(["--list"], root);
+  assert.strictEqual(res.status, 0, res.out);
+  assert.ok(res.out.indexOf("f-1") !== -1 && res.out.indexOf("f-2") !== -1, "a deferred finding is listed again; output: " + res.out);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a later true or false label replaces a deferred one, and deferred replaces an earlier true", () => {
+  const root = makeRoot([j(record("f-1"))]);
+  assert.strictEqual(run(["f-1", "deferred"], root).status, 0);
+  assert.strictEqual(run(["f-1", "true"], root).status, 0);
+  let rows = linesOf(root);
+  assert.strictEqual(rows.length, 1, "no second record is added");
+  assert.strictEqual(JSON.parse(rows[0]).label, true);
+  assert.strictEqual(JSON.parse(rows[0]).labelled_by, "user");
+
+  assert.strictEqual(run(["f-1", "deferred"], root).status, 0);
+  rows = linesOf(root);
+  assert.strictEqual(rows.length, 1);
+  assert.strictEqual(JSON.parse(rows[0]).label, "deferred");
+  assert.strictEqual(severity.labelOf(JSON.parse(rows[0])), null, "deferred over true leaves the finding unlabelled for the baseline");
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a deferred label on an unknown id is refused with exit 1, and on an id that appears twice the store is left unchanged", () => {
+  const root = makeRoot([j(record("f-dup")), j(record("f-dup", { line: 99 })), j(record("f-1"))]);
+  const before = text(root);
+  assert.strictEqual(run(["f-nope", "deferred"], root).status, 1);
+  assert.strictEqual(run(["f-dup", "deferred"], root).status, 1);
+  assert.strictEqual(text(root), before);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a label word other than true, false, or deferred exits 2 and changes nothing", () => {
+  const root = makeRoot([j(record("f-1"))]);
+  const before = text(root);
+  [["f-1", "defer"], ["f-1", "postponed"], ["f-1", "later"], ["f-1", "deferred", "extra"], ["f-1", "true,deferred"]].forEach((args) => {
+    const res = run(args, root);
+    assert.notStrictEqual(res.status, 0, "args " + JSON.stringify(args) + " must not succeed; output: " + res.out);
+    assert.ok(res.status === 1 || res.status === 2, "args " + JSON.stringify(args) + "; status " + res.status);
+    assert.strictEqual(text(root), before, "args " + JSON.stringify(args));
+  });
+  assert.strictEqual(run(["f-1", "defer"], root).status, 2);
+});
+
+test("[AC-2 | " + MACHINERY + " | FR-309 | NFR-034] the baseline report ignores a deferred finding: one true and one deferred give precision 100%, not 50%", () => {
+  const root = makeRoot([j(record("f-1")), j(record("f-2"))]);
+  assert.strictEqual(run(["f-1", "true"], root).status, 0);
+  assert.strictEqual(run(["f-2", "deferred"], root).status, 0);
+  const report = childProcess.spawnSync(process.execPath, [path.join(fx.PLUGIN, "scripts", "baseline-report.js"), "--root", root], { cwd: fx.tempDir("label-cwd-"), env: fx.cleanEnv(), encoding: "utf8", timeout: 60000 });
+  assert.strictEqual(report.status, 0, report.stdout + report.stderr);
+  assert.ok(/100(\.0+)?\s*%/.test(report.stdout), "precision of 1 true and 0 false is 100%; output: " + report.stdout);
+  assert.ok(!/(^|[^0-9.])50(\.0+)?\s*%/.test(report.stdout), "the deferred finding must not count as a false label; output: " + report.stdout);
+});
+
+test("[AC-1 | " + MACHINERY + " | FR-309] a labeller run never labels another record: only the id named gains labelled_by", () => {
+  const root = makeRoot([j(record("f-1")), j(record("f-2")), j(record("f-3"))]);
+  assert.strictEqual(run(["f-2", "deferred"], root).status, 0);
+  const rows = linesOf(root).map((l) => JSON.parse(l));
+  assert.strictEqual("labelled_by" in rows[0], false);
+  assert.strictEqual("labelled_by" in rows[2], false);
+  assert.strictEqual(reviewLabels.dispositionOf(rows[0]), "unlabeled");
 });
 
 // ---------------------------------------------------------------------------

@@ -5,14 +5,19 @@
 // finding) or false (a false positive), and baseline-report.js computes precision from those labels only. Spec:
 // specs/spec-hooks-code-scan.md; the labeller is the PN-3 decision of DECISIONS.md (2026-10-30). No hook, agent, or
 // orchestrator runs this script: the labels are the user's judgment, never an agent's.
+// [spec-reviewer-machinery Req 20 -> FR-309] The same labels cover a reviewer finding in the same store. A third label,
+// deferred, records that the user postponed the decision, and every label carries `labelled_by: "user"` so a reader can
+// tell the user's label from any other writer's (assumption A-3).
 //
 // Usage:
 //   node scripts/label-findings.js --list [--rule RULE_ID] [--root DIR]
-//   node scripts/label-findings.js <finding-id> true|false [--root DIR]
-// --list prints the unlabelled findings (id, rule, severity, confidence, file, line) so the user can review each one.
-// The second form sets `label` (a boolean) and `labelled_at` (the time, UTC) on the one record with that id in
-// .agent/governance/review-findings.jsonl, replacing an earlier label. --root is the project root that holds .agent/
-// (default: CLAUDE_PROJECT_DIR, else the working directory, then its git root).
+//   node scripts/label-findings.js <finding-id> true|false|deferred [--root DIR]
+// --list prints the unlabelled findings (id, rule, severity, confidence, file, line) so the user can review each one. A
+// deferred finding holds no true or false label, so it is listed again.
+// The second form sets `label` (a boolean, or the string "deferred"), `labelled_by` ("user"), and `labelled_at` (the time,
+// UTC) on the one record with that id in .agent/governance/review-findings.jsonl, replacing an earlier label. A deferred
+// record reads as unlabelled to hooks/lib/severity.js labelOf, so baseline-report.js and promote-rule.js never count it.
+// --root is the project root that holds .agent/ (default: CLAUDE_PROJECT_DIR, else the working directory, then its git root).
 //
 // The rewrite changes only the named record. Every other line, including a line that is not a valid finding, is kept as
 // written. The file is replaced through a temporary file in the same directory and a rename, so an interrupted run leaves
@@ -22,7 +27,7 @@
 // Exit codes:
 //   0  listed, or the label was set
 //   1  refused: the id is unknown or appears on more than one line
-//   2  cannot run: bad arguments (no id, no label, a label other than true or false, an unknown flag), a project root that
+//   2  cannot run: bad arguments (no id, no label, a label other than true, false, or deferred, an unknown flag), a project root that
 //      does not exist or cannot be read, or an unreadable or unwritable store
 // No dependencies; ES2015 syntax only.
 "use strict";
@@ -37,7 +42,10 @@ const EXIT_OK = 0;
 const EXIT_REFUSED = 1;
 const EXIT_CANNOT = 2;
 
-const USAGE = "Usage: node scripts/label-findings.js --list [--rule RULE_ID] [--root DIR]  |  node scripts/label-findings.js <finding-id> true|false [--root DIR]";
+const LABEL_WORDS = { true: true, false: false, deferred: "deferred" };
+const WRITER_USER = "user";
+
+const USAGE = "Usage: node scripts/label-findings.js --list [--rule RULE_ID] [--root DIR]  |  node scripts/label-findings.js <finding-id> true|false|deferred [--root DIR]";
 
 function errorCode(err) {
   return err && typeof err.code === "string" ? err.code : "unknown";
@@ -69,12 +77,18 @@ function list(options) {
   if (found.problem) return cannot(found.problem);
   const store = baseline.readFindings(found.root);
   const open = store.findings.filter((finding) => finding.label === null && (options.rule === undefined || finding.rule_id === options.rule));
-  const lines = ["Unlabelled findings: " + open.length + " (label each true or false with: node scripts/label-findings.js <finding-id> true|false)"];
+  const lines = ["Unlabelled findings: " + open.length + " (label each true, false, or deferred with: node scripts/label-findings.js <finding-id> true|false|deferred)"];
   open.forEach((finding) => lines.push("  " + finding.id + "  " + finding.rule_id + "  " + finding.severity + "/" + finding.confidence + "  " + finding.file + ":" + finding.line));
   return { code: EXIT_OK, lines };
 }
 
-// Sets the label of the finding `id` to the boolean `value`. `nowIso` is the time for `labelled_at`.
+function describe(value) {
+  if (value === "deferred") return "deferred (decision postponed)";
+  return value ? "true (a real finding)" : "false (a false positive)";
+}
+
+// Sets the label of the finding `id` to `value` (true, false, or "deferred") and marks the user as the writer. `nowIso` is the
+// time for `labelled_at`.
 function setLabel(options, id, value, nowIso) {
   const found = usableRoot(options);
   if (found.problem) return cannot(found.problem);
@@ -101,6 +115,7 @@ function setLabel(options, id, value, nowIso) {
   if (matches.length > 1) return { code: EXIT_REFUSED, lines: ["Refused: id " + id + " appears on " + matches.length + " lines, so the right record is unclear. Fix the duplicate ids in the store first."] };
   const record = matches[0].parsed;
   record.label = value;
+  record.labelled_by = WRITER_USER;
   record.labelled_at = nowIso;
   lines[matches[0].index] = JSON.stringify(record);
   const temp = file + "." + process.pid + ".tmp";
@@ -115,7 +130,7 @@ function setLabel(options, id, value, nowIso) {
     }
     throw err;
   }
-  return { code: EXIT_OK, lines: ["Labelled finding " + id + " as " + (value ? "true (a real finding)" : "false (a false positive)") + "."] };
+  return { code: EXIT_OK, lines: ["Labelled finding " + id + " as " + describe(value) + "."] };
 }
 
 // Runs the labeller for parsed CLI input {list, rule, root, id, label}. Returns {code, lines}. Never throws. `now` is a
@@ -127,9 +142,9 @@ function check(options, now) {
     if (opts.root === null) return cannot("--root needs a directory. " + USAGE);
     if (opts.list) return list(opts);
     if (typeof opts.id !== "string" || !severity.ID_PATTERN.test(opts.id)) return cannot("give a finding id. " + USAGE);
-    if (opts.label !== "true" && opts.label !== "false") return cannot("the label must be exactly true or false. " + USAGE);
+    if (!Object.prototype.hasOwnProperty.call(LABEL_WORDS, opts.label)) return cannot("the label must be exactly true, false, or deferred. " + USAGE);
     const ms = typeof now === "function" && Number.isFinite(now()) ? now() : Date.now();
-    return setLabel(opts, opts.id, opts.label === "true", new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z"));
+    return setLabel(opts, opts.id, LABEL_WORDS[opts.label], new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z"));
   } catch (err) {
     return cannot("the finding store could not be read or written (" + errorCode(err) + ").");
   }

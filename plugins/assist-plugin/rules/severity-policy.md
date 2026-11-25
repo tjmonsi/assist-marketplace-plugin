@@ -2,9 +2,9 @@
 
 **Purpose:** Define CRITICAL, HIGH, MEDIUM, and LOW for this repo, a per-finding confidence level, the SARIF level mapping, and the rule that decides when a finding blocks.
 
-**Status:** Approved at version draft-2. The user approved this policy at draft-1 in `DECISIONS.md` under "2026-10-30: Severity policy approved"; reconciling this status line raised the version to draft-2, which the user re-approved in `DECISIONS.md` under a "Severity policy approved" entry naming draft-2. A rule may block on severity, subject to the FR-238 advisory-baseline-first gate. Traces to FR-237, FR-238, FR-239, FR-240, FR-241 (`docs/requirements/FR-NFR-harness-governance.md`) and NFR-033, NFR-034. Basis settled in `DECISIONS.md` under "2026-10-30: Severity-policy basis and SARIF writer settled".
+**Status:** Version draft-3 adds the severity catalog (FR-306, FR-307). The user approved this policy at draft-1 in `DECISIONS.md` under "2026-10-30: Severity policy approved", and re-approved draft-2 under "2026-10-31: Severity policy approved". The user then re-approved the policy under FR-237 with the catalog added (D-14) in `DECISIONS.md` under "2026-11-25: Resolve evaluation-harness and reviewer-machinery follow-ups", and settled in the entry "2026-11-25: Implement the evaluation harness (Group A) and reviewer machinery (Group B)" that the catalog is this repo's own deterministic data file. The promotion check of `scripts/promote-rule.js` still matches only a `Severity policy approved` heading that names the current version, so a rule promotes to blocking after the user records that heading for draft-3. A rule may block on severity, subject to the FR-238 advisory-baseline-first gate. Traces to FR-237, FR-238, FR-239, FR-240, FR-241, FR-306, FR-307, FR-308 (`docs/requirements/FR-NFR-harness-governance.md`) and NFR-033, NFR-034. Basis settled in `DECISIONS.md` under "2026-10-30: Severity-policy basis and SARIF writer settled".
 
-**Policy version:** draft-2
+**Policy version:** draft-3
 
 **Approval entry (exact heading):** The user approves this policy by adding an entry to `DECISIONS.md` whose heading line is exactly
 
@@ -12,7 +12,7 @@
 ## <YYYY-MM-DD>: Severity policy approved
 ```
 
-where `<YYYY-MM-DD>` is the approval date (for example `## 2026-11-02: Severity policy approved`). A check treats the policy as approved only when `DECISIONS.md` holds a line matching `^## [0-9]{4}-[0-9]{2}-[0-9]{2}: Severity policy approved$` and the entry body names `plugins/assist-plugin/rules/severity-policy.md` and the policy version it approves (`draft-2` above). Editing this file after approval raises the version; the old approval then no longer covers it. Approval amendments the user wants (any choice in "Choices and trade-offs") go into the entry body or into a new draft version before the entry is written. Subagents are denied writes to `DECISIONS.md` (`CLAUDE.md`, fsa-write-bar), so only the user or the orchestrator can create the entry.
+where `<YYYY-MM-DD>` is the approval date (for example `## 2026-11-02: Severity policy approved`). A check treats the policy as approved only when `DECISIONS.md` holds a line matching `^## [0-9]{4}-[0-9]{2}-[0-9]{2}: Severity policy approved$` and the entry body names `plugins/assist-plugin/rules/severity-policy.md` and the policy version it approves (`draft-3` above). Editing this file after approval raises the version; the old approval then no longer covers it. Approval amendments the user wants (any choice in "Choices and trade-offs") go into the entry body or into a new draft version before the entry is written. Subagents are denied writes to `DECISIONS.md` (`CLAUDE.md`, fsa-write-bar), so only the user or the orchestrator can create the entry.
 
 **Scope of this file:** Because this file sits under `rules/`, a change to it is on the LLM surface and needs the OWASP for LLM gate (`llm-security-checklist.md:11`).
 
@@ -78,6 +78,19 @@ Every finding carries one confidence level, set by the reviewer from its evidenc
 
 A finding with no file and line is Low confidence at most, and SARIF leaves it out (see below). A reviewer never raises confidence on a model-emitted claim alone; a sign-off string clears nothing (`DECISIONS.md`, D-8 entry).
 
+## Severity catalog
+
+`rules/severity-catalog.yaml` maps each rule identifier to one fixed severity and a recorded basis. It covers every checklist item of `rules/reviewer-checklists.md` (DD, TI, and AS), each rule of the in-plugin code scanner (`hooks/lib/code-rules.js`), and the `goal-guard` finding. The file is the editable, measurable source of truth: a value is a number a maintainer revises from data (a CWE mapping, a CVSS band, the reviewer-precision report), and no value comes from text a model wrote. Each entry names its basis, either a CWE id or a short token; the token `measured-precision` marks a provisional value that the reviewer-precision data is meant to revise.
+
+How the orchestrator uses it (`hooks/lib/severity.js`; the functions read no file, so `/do` passes the file text):
+
+- A finding whose rule identifier is in the catalog takes the catalog severity. `/do` records that severity and notes any difference from the severity the reviewer wrote (`resolveSeverity`). The Rubric and Levels sections guide a reviewer for a finding the catalog does not name.
+- A finding with no catalog rule identifier and no CWE identifier reads `unmapped` (FR-307) and routes no higher than `inline-comment` (`routeWithCatalog`). A finding with a CWE identifier but no catalog entry keeps the reviewer's severity.
+- The catalog drops no finding, and no critic or filtering score sets a finding's severity or removes a finding (FR-308).
+- A catalog that is absent or does not follow the strict format of the file reads as no catalog: the reviewer's severity stands and nothing reads `unmapped`, as before the catalog.
+
+Changing a value, adding a rule, or removing one is a change to this policy. It raises the policy version and needs the re-approval that FR-237 requires.
+
 ## Routing
 
 The `routing` field of FR-240 follows from severity and confidence. Routing in the right-hand column of the first row applies only to a rule whose mode is blocking; a rule in advisory mode routes that row as `inline-comment`.
@@ -90,7 +103,7 @@ The `routing` field of FR-240 follows from severity and confidence. Routing in t
 | MEDIUM | Low | `log-only` |
 | LOW | any | `log-only` |
 
-Only the first row blocks (FR-239). Every other finding routes as advisory.
+Only the first row blocks (FR-239). Every other finding routes as advisory. A finding that reads `unmapped` under the severity catalog routes no higher than `inline-comment`, whatever its severity and confidence (FR-307).
 
 ## SARIF level mapping
 

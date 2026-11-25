@@ -77,7 +77,7 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
 
 **Status:** pending | in_progress | waiting-user | completed | failed | skipped  
 **Done:** [YYYY-MM-DD HH:mm]: [Brief summary of what was accomplished]  
-**Review:** [LGTM (N approvals) | Revision requested | N/A]  
+**Review:** [LGTM (N approvals) | Revision requested | N/A; for a reviewer gate also the gate record: merged findings, per-round statuses, dispatch count, reviewed revision]  
 **Writer:** orchestrator  
 **Out of scope:** [Work the agent reported but may not do; omit when none]
 
@@ -172,7 +172,7 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
   - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved at the gate's cap and the user chose `abort` (no further round runs at the cap). A PR review step is also `failed` on a fetch, link-check, or post error
   - `skipped`: a step it depends on failed, or the user cancelled at DocSignOff ("Skipped: documents not approved"). An intake review step that fails skips nothing
 - **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
-- **Review:** Review outcome if applicable (LGTM, Revision requested, N/A)
+- **Review:** Review outcome if applicable (LGTM, Revision requested, N/A). For a gate that ran `reviewer` or `code-reviewer`, it also holds the gate record fields listed under "Reviewer gate record" below. `/do` writes them; no reviewer writes any of them
 - **Writer:** Who recorded the Review outcome and the gate record, always `orchestrator`. The orchestrator (`/do`) writes every review verdict and approval status in the plan file and marks each record `Writer: orchestrator`. A producer agent never writes the status of the artifact it produced, so no record names a producer as its writer. A hook may write an approval record of its own, such as the confirmation store, and marks it `Writer: hook`. The write bar already denies a subagent's write to `.agent/main-plan/**`; the `Writer:` field makes the sole writer visible in the record.
 - **Out of scope:** Work the agent reported in `out_of_scope` but may not do. The orchestrator does not dispatch it; Display raises it as a new request.
 
@@ -188,6 +188,20 @@ Present for a build plan. A build step writes code, config, pipelines, infrastru
 - **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`, never the producer). The gate clears on the FR-217 scanner's recorded exit plus that reviewer's verdict with `file:line` findings, not on a sign-off string
 - **Testing (>=70% coverage):** Code coverage must meet minimum (validated by `qa`). The gate clears only on the `gate-evidence` hook's record of the run (command, exit code, value), never on a qa sign-off string
 - **Code Review (sign-off):** Formal approval required (from a `code-reviewer` that did not produce the artifact). The gate clears on the recorded exits of the other gates plus that verdict with `file:line` findings
+
+Each gate that ran `reviewer` or `code-reviewer` also records the reviewer gate record below.
+
+### Reviewer gate record
+
+For a gate that ran `reviewer` or `code-reviewer`, `/do` records these fields in the step's **Review** field, marked `Writer: orchestrator`. No reviewer writes any of them:
+
+- **merged findings:** the findings of the pass after `mergeFindings`, each with its stable id, rule id, `file:line`, severity, confidence, and routing, never finding text beyond the citation
+- **per-round statuses:** one row per round with the counts of new, fixed, open, withdrawn, and fix-induced findings, or "no status data" for a round whose report held no statuses
+- **dispatch count:** the number of reviewer dispatches the gate used (at most three run at once)
+- **reviewed revision:** the revision the counted verdicts name, which must equal the artifact's current revision for an approval to count
+- **Writer:** `orchestrator`
+
+See dispatch.md ("Lane dispatch, merge, and records") for how `/do` computes each field.
 
 ### Gate Record (FR-221)
 

@@ -13,6 +13,13 @@
 // docs/requirements/FR-NFR-harness-governance.md (FR-240, FR-239, FR-237, NFR-027, NFR-036). The specs carry no SPEC-NNN id,
 // so they are cited by file name.
 //
+// Reviewer machinery update (task plan docs/task-plans/task-plan-reviewer-machinery-20261125-0717.md, Step 13): the rejection
+// rule of read-each-result.md now covers five more protocol errors (an applicable checklist item the report does not account
+// for, a finding raised from a checklist item with no rule id, a finding with no stable id, a prior finding with no status, a
+// report that names no reviewed revision) and an approved verdict with an unexamined path, and asks for one corrected report
+// that fixes every listed error. The test that checked the earlier wording ("all three fields on every finding") now checks the
+// extended wording and still checks that the three finding fields are among the rejected errors.
+//
 // Traceability format: [AC-N | spec Requirement | FR/NFR ids]. AC-N is the position of the Scenario inside its Requirement.
 //
 // The files are prompt text, so the tests read them as text and assert the binding strings: the field names, the routing
@@ -196,8 +203,24 @@ test("[AC-1 | " + DISPATCH + " | FR-240] do/SKILL.md rejects a reviewer or code-
   ["`severity`", "`confidence`", "`routing`"].forEach((field) => assert.ok(REJECT.indexOf(field) !== -1, "the rule names " + field));
 });
 
-test("[AC-1 | " + DISPATCH + " | FR-240] do/SKILL.md sends one SendMessage asking for a corrected report with all three fields on every finding, pasting the dispatch prompt text", () => {
-  assert.ok(/send one SendMessage asking the agent for a corrected report with all three fields on every finding, pasting the "Dispatch prompt text"/.test(REJECT));
+test("[AC-1 | " + DISPATCH + " | FR-240] do/SKILL.md sends one SendMessage asking for a corrected report that fixes every listed error, the three finding fields and the five review-machinery protocol errors included, pasting the dispatch prompt text", () => {
+  // The rule was "a corrected report with all three fields on every finding". Step 13 of the reviewer-machinery task plan
+  // extended it: one corrected report that fixes every listed error. A report missing any required field is still a protocol
+  // error that /do rejects and asks a corrected one for.
+  assert.ok(/send one SendMessage asking the agent for a corrected report that fixes every listed error, pasting the "Dispatch prompt text"/.test(REJECT));
+  // The three finding fields stay among the errors the rejection names.
+  ["`severity`", "`confidence`", "`routing`"].forEach((field) => assert.ok(REJECT.indexOf(field) !== -1, "the rule still names " + field));
+  // The five protocol errors the extended rule adds, and the approved verdict with an unexamined path.
+  const plain = REJECT.replace(/`/g, "");
+  [
+    "an applicable checklist item the report does not account for as evaluated or skipped with a reason",
+    "a finding raised from a checklist item with no rule id",
+    "a finding with no stable id",
+    "a prior finding with no status of fixed, open, or withdrawn",
+    "a report that names no reviewed revision",
+    "An approved verdict while a named path is unexamined",
+  ].forEach((phrase) => assert.ok(plain.indexOf(phrase) !== -1, "the rejection rule must name: " + phrase));
+  assert.ok(/pasting the "Dispatch prompt text" as for a missing block/.test(REJECT));
 });
 
 test("[AC-1 | " + DISPATCH + " | FR-240] do/SKILL.md dispatches no fix and records no gate outcome from the rejected report, and fails the step if the corrected report is still incomplete", () => {

@@ -1,0 +1,148 @@
+# Severity catalog: assist-plugin
+#
+# This file is the editable, measurable source of truth for the fixed severity of each rule identifier. A maintainer
+# revises a value with data (a CWE mapping, a CVSS band, the reviewer-precision report), never with text a model wrote.
+# Nothing here is derived from model-interpreted text. The policy that governs it is rules/severity-policy.md (see
+# "Severity catalog" there); hooks/lib/severity.js reads it. Editing this file raises the policy version and needs the
+# re-approval entry that FR-237 requires.
+#
+# Format (a strict, flat-map subset of YAML; the reader in hooks/lib/severity.js has no dependency):
+#   - A comment is a line whose first non-space character is "#". No comment may follow a value on the same line.
+#   - An entry is a rule identifier at column 0 followed by a colon and nothing else.
+#   - Each entry has exactly two fields, each on its own line indented by exactly two spaces: "severity" and "basis".
+#   - severity is CRITICAL, HIGH, MEDIUM, or LOW (upper case).
+#   - basis is a CWE identifier written CWE-<number> when the rule maps to a known weakness class, else a short lower-case
+#     token. The token "measured-precision" marks a value revisable from the reviewer-precision report: the initial value
+#     is provisional and ranks the item by the nature of what it finds, until labelled findings give it a measured basis.
+#   - A duplicate identifier, an unknown field, a missing field, a bad severity, a tab, or any other line makes the reader
+#     discard the whole file; the orchestrator then keeps each reviewer's severity as written.
+#
+# Ranking rule for the initial values (rules/severity-policy.md, Rubric and Levels): an item whose finding is an
+# injection, an authorization, a credential, or a fail-open defect ranks HIGH; a defect that harms availability, data
+# correctness, or a rendered page ranks MEDIUM; hygiene and test-quality drift with no direct path to a protected asset
+# ranks LOW. An item that a reviewer finds as a real bug never ranks below a style or wording item.
+#
+# Scanner rules (the last block) carry the severity the scanner in hooks/lib/code-rules.js already assigns, so the catalog
+# and the scanner agree. The scanner's confidence stays in code-rules.js; the catalog fixes severity only.
+
+# Defect-depth lane (rules/reviewer-checklists.md)
+DD-01:
+  severity: MEDIUM
+  basis: CWE-400
+DD-02:
+  severity: MEDIUM
+  basis: CWE-770
+DD-03:
+  severity: MEDIUM
+  basis: CWE-222
+DD-04:
+  severity: HIGH
+  basis: CWE-182
+DD-05:
+  severity: MEDIUM
+  basis: CWE-1286
+DD-06:
+  severity: MEDIUM
+  basis: CWE-180
+DD-07:
+  severity: MEDIUM
+  basis: CWE-682
+DD-08:
+  severity: MEDIUM
+  basis: measured-precision
+DD-09:
+  severity: LOW
+  basis: measured-precision
+
+# Test-integrity lane
+TI-01:
+  severity: MEDIUM
+  basis: measured-precision
+TI-02:
+  severity: LOW
+  basis: measured-precision
+TI-03:
+  severity: MEDIUM
+  basis: measured-precision
+TI-04:
+  severity: MEDIUM
+  basis: measured-precision
+TI-05:
+  severity: LOW
+  basis: measured-precision
+TI-06:
+  severity: LOW
+  basis: measured-precision
+TI-07:
+  severity: MEDIUM
+  basis: CWE-20
+TI-08:
+  severity: LOW
+  basis: measured-precision
+
+# Architecture-safety lane
+AS-01:
+  severity: HIGH
+  basis: CWE-284
+AS-02:
+  severity: HIGH
+  basis: CWE-732
+AS-03:
+  severity: HIGH
+  basis: CWE-312
+AS-04:
+  severity: MEDIUM
+  basis: CWE-657
+AS-05:
+  severity: HIGH
+  basis: CWE-636
+AS-06:
+  severity: MEDIUM
+  basis: CWE-79
+
+# In-plugin scanner rules (hooks/lib/code-rules.js) and the goal-guard hijack finding (hooks/impl/goal-guard.js)
+sql-string-concat:
+  severity: HIGH
+  basis: CWE-89
+sql-string-interpolation:
+  severity: HIGH
+  basis: CWE-89
+sql-string-format:
+  severity: HIGH
+  basis: CWE-89
+shell-exec-interpolation:
+  severity: HIGH
+  basis: CWE-78
+shell-os-command-from-input:
+  severity: HIGH
+  basis: CWE-78
+php-command-from-request:
+  severity: HIGH
+  basis: CWE-78
+shell-eval-variable:
+  severity: HIGH
+  basis: CWE-78
+subprocess-shell-true:
+  severity: MEDIUM
+  basis: CWE-78
+code-eval-dynamic:
+  severity: HIGH
+  basis: CWE-95
+unsafe-deserialization:
+  severity: HIGH
+  basis: CWE-502
+tls-verification-disabled:
+  severity: HIGH
+  basis: CWE-295
+dom-xss-sink:
+  severity: MEDIUM
+  basis: CWE-79
+hardcoded-credential:
+  severity: HIGH
+  basis: CWE-798
+weak-hash-algorithm:
+  severity: MEDIUM
+  basis: CWE-327
+goal-guard:
+  severity: HIGH
+  basis: CWE-1427

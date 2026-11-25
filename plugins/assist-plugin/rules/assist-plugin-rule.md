@@ -153,6 +153,11 @@ folders, the instruction files, and `.claude/settings*.json`) are this plugin's 
 
 **Approval:** `/do` records `✓ LLM Security Clear` as `Writer: orchestrator`, only on the evidence basis in [Evidence for Gate Approvals](#evidence-for-gate-approvals-fr-221): the exits of `check-fsa-tables.js --check`, `sync-writing-standard.js --check`, the health self-tests, and the FR-217 scanner, plus a non-producer reviewer verdict with `file:line` findings
 
+### Reviewer checklists and reviewer tools
+
+- [FR-315, NFR-036] A diff to [reviewer-checklists.md](reviewer-checklists.md) is reported as unapproved unless the user approved it and `DECISIONS.md` holds the entry. No agent applies a checklist-change report on its own: the report only informs the user, who decides. The `DECISIONS.md` entry is written only by the user.
+- [NFR-040] A change that gives `reviewer` or `code-reviewer` a write or shell tool is rejected on this review, a Group B change included, and does not merge. The `tools:` of each stays `Read, Grep, Glob, LSP`.
+
 ---
 
 ## Planning Document Review Gate
@@ -358,6 +363,7 @@ Escalate to code-reviewer if:
 
 - [ ] Security review: ✓ OWASP Clear, backed by the FR-217 scanner exit and a non-producer reviewer verdict
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches the LLM surface named under [LLM Security Review Gate](#llm-security-review-gate): `agents/`, `skills/` at any depth with `metadata.json`, `rules/`, and `hooks/` at the repository root, under any `plugins/<name>/`, or under `.claude/`; any `CLAUDE.md`, `CLAUDE.local.md`, or `AGENTS.md` at any depth; and `.claude/settings*.json`)
+- [ ] Reviewer checklists: a diff to `rules/reviewer-checklists.md` is reported as unapproved unless the user approved it and `DECISIONS.md` holds the entry (the entry is written only by the user, and no agent applies a checklist-change report on its own); a change that gives `reviewer` or `code-reviewer` a write or shell tool is rejected on the LLM surface review (see [Reviewer checklists and reviewer tools](#reviewer-checklists-and-reviewer-tools))
 - [ ] Testing: ✓ >=70% coverage, backed by a `gate-evidence` record (command, exit code, value)
 - [ ] Code review: ✓ Approved (if applicable), backed by a non-producer `code-reviewer` verdict with `file:line` findings
 - [ ] Code review iterations tracked in plan file (one cap of 10, then escalation to the user; or 2 consecutive LGTMs = approved)
@@ -367,6 +373,8 @@ Escalate to code-reviewer if:
 **Merge blocked if:**
 - Any gate fails
 - Any gate has no evidence reference (a sign-off string alone never clears a gate)
+- A diff to `rules/reviewer-checklists.md` has no user approval or no `DECISIONS.md` entry
+- A change gives `reviewer` or `code-reviewer` a write or shell tool
 - Test suite fails
 - Conflicts with main
 - Author has < 2 hours since last commit (prevents race conditions)

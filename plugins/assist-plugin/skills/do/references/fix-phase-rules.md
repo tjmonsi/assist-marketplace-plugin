@@ -8,6 +8,7 @@ Rules governing the fix phase that follows a reviewer's request for changes. App
 - [Rule 1b: Route Each Finding to the Agent That May Write the File](#rule-1b-route-each-finding-to-the-agent-that-may-write-the-file)
 - [Rule 2: Identified Items Only](#rule-2-identified-items-only)
 - [Rule 3: Modification Checklist](#rule-3-modification-checklist)
+- [Rule 4: Fix-Induced Findings and Unchanged Open Findings](#rule-4-fix-induced-findings-and-unchanged-open-findings)
 - [Example](#example)
 - [Hard Constraint: Fix Phase Failure](#hard-constraint-fix-phase-failure)
 - [Procedure Summary](#procedure-summary)
@@ -88,6 +89,17 @@ If any item fails this checklist, remove the unrelated change before resubmittin
 
 ---
 
+## Rule 4: Fix-Induced Findings and Unchanged Open Findings
+
+A re-review marks a finding `fix-induced` when a change since the previous pass causes it, and names the prior finding whose fix caused it. `/do` reads two signals from `loopGuard` in `hooks/lib/review-gate.js` (the call is in dispatch.md). Both counts are two by default. That count is a PROVISIONAL configured default, to be revised with data, and the user can override it.
+
+- **Design pass.** When consecutive re-reviews each return a fix-induced finding, `/do` dispatches one whole-artifact `code-reviewer` pass before the next fix pass. The pass reviews the whole artifact, not only the changed paths, to find the design problem behind the repeated side effects. A single fix-induced pass does not trigger it: the normal fix pass runs. The design pass counts toward the gate's cap of 10, and the reviewer makes no edit.
+- **Early stop.** When the same finding stays open across consecutive passes and the re-review cites no new evidence for it, `/do` stops the loop and escalates to the user with continue, waive, or abort (see review-protocol.md, "Exhausting a gate"). A re-review that cites new evidence keeps the loop going.
+
+Both signals sit next to the existing escalation for repeated scope violations. They do not change Rule 1 or Rule 2: the fix phase still runs on Sonnet, the fixing agent still fixes only the listed findings, and the cap of 10 and the three escalation choices stay as they are.
+
+---
+
 ## Example
 
 **Reviewer finding:**
@@ -120,6 +132,7 @@ If the fixing agent adds unrelated changes:
 4. The failed attempt counts toward the gate's one cap of 10 iterations (see review-protocol.md)
 5. Repeated scope violations (2+ in the same gate) escalate to code-reviewer for review of the fixing agent's output before continuing
 6. A gate that reaches the cap of 10 ends as review-protocol.md describes: no further developer or reviewer round, and escalation to the user with continue, waive, or abort
+7. Consecutive fix-induced findings add a design pass, and an open finding with no new evidence stops the loop early (see Rule 4)
 
 ---
 
