@@ -1,0 +1,31 @@
+flowchart LR
+  subgraph PUB["Published marketplace repo (public)"]
+    CFG["Oracle-location configuration (pointer, no secrets)"]
+    CAT["Golden-task catalog: prompt.md, graders/, metadata, rubric"]
+    RUN["claude plugin eval runner (reused)"]
+    GDET["Deterministic graders: coding exit-code, spec checklist + reference coverage"]
+    JUDGE["Judge grader (optional, LLM-as-judge)"]
+    SCORE["Scoring and aggregation: pass@1, structural, judge (kept separate)"]
+    RESF[("evals/results/ (git-ignored): run JSON + cost + elapsed")]
+    SB[("Scoreboard (version-controlled): per-suite + per-case scores, ids, versions only")]
+    RC["release-check benchmark section (on request)"]
+  end
+  subgraph PRIV["Separate private repo / configured location (not published)"]
+    ORACLE["Reference solutions + hidden test suites"]
+  end
+  AUT["Agent under test: developer / requirements-gatherer / solutions-architect"]
+  RESOLV["Oracle resolver + workspace preparer (withhold, leak-check, admission)"]
+
+  CAT -->|"prompt"| RUN
+  RUN -->|"prepared workspace"| AUT
+  CFG -->|"private location"| RESOLV
+  ORACLE -->|"read at run time"| RESOLV
+  RESOLV -->|"hidden suite (never to the agent)"| GDET
+  AUT -->|"candidate output"| GDET
+  AUT -->|"candidate spec"| JUDGE
+  GDET -->|"pass/fail, structural fraction"| SCORE
+  JUDGE -->|"per-item judge score"| SCORE
+  SCORE --> RESF
+  SCORE --> SB
+  RC -->|"on request: run suites"| RUN
+  RC -->|"compare current vs previous"| SB

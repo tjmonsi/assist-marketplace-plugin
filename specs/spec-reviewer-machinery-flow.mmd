@@ -1,0 +1,27 @@
+flowchart TD
+  A["Gate opens on an artifact<br/>(spec-orchestration-review-gates.md, Requirement 1)"] --> B["Orchestrator selects the lanes<br/>from the lane-to-gate table"]
+  B --> C["Orchestrator builds the dispatch:<br/>gate name, artifact type, paths in the Send wrapper,<br/>rework count, prior findings with stable ids,<br/>changed-paths list (re-review only),<br/>user false labels as data"]
+  C --> D{"Lanes for this gate"}
+  D -->|"at most 3 concurrent dispatches"| E["Lane reviews run<br/>(reviewer or code-reviewer, read-only)"]
+  E --> F["Each reviewer examines every named path,<br/>accounts for each applicable checklist item<br/>as evaluated or skipped with a reason,<br/>writes findings with rule id, severity,<br/>confidence, routing, and names the reviewed revision"]
+  F --> G{"Every finding carries id, rule id,<br/>severity, confidence, routing?<br/>Every applicable item accounted for?<br/>Every named path examined?"}
+  G -->|"no"| GX["Orchestrator rejects the report<br/>and asks for a corrected one;<br/>no fix dispatched, no gate outcome recorded"]
+  GX --> C
+  G -->|"yes"| H["Orchestrator merges duplicate findings<br/>(same file, line, rule id -> highest severity)<br/>and records the dispatch count"]
+  H --> I{"Artifact unchanged since<br/>the revision the report names?"}
+  I -->|"no"| IX["Verdict not counted toward the gate"]
+  IX --> C
+  I -->|"yes"| J{"Verdict"}
+  J -->|"approved and prior approval<br/>on the same current revision"| K["Gate clears on recorded evidence<br/>(FR-221); the verdict is one input"]
+  J -->|"returned"| L["Fix phase on Sonnet,<br/>findings routed by path<br/>(fix-phase-rules.md)"]
+  L --> M["Re-review: each prior finding gets<br/>fixed, open, or withdrawn with a reason;<br/>others marked new; fix-induced marked<br/>with the prior finding id"]
+  M --> N{"Loop guards"}
+  N -->|"two consecutive fix-induced passes"| O["One code-reviewer pass<br/>over the whole artifact,<br/>then resume"]
+  O --> C
+  N -->|"same finding open after 2 fixes,<br/>no new evidence"| P["Early stop: escalate to the user<br/>with the per-round history<br/>(new, fixed, open, withdrawn)"]
+  N -->|"cap of 10 iterations (FR-218)"| P
+  N -->|"otherwise"| C
+  P --> Q{"User choice"}
+  Q -->|"continue"| C
+  Q -->|"waive"| K
+  Q -->|"abort"| R["Step fails with the findings<br/>in its Done field"]

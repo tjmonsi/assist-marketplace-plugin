@@ -1,7 +1,7 @@
 ## assist-plugin Harness Governance: User Requirements Document
 
-**Version:** 1.3
-**Date:** 2026-10-30
+**Version:** 1.4
+**Date:** 2026-11-24
 **Author:** [Author]
 **Status:** DRAFT
 
@@ -11,7 +11,7 @@
 
 **Purpose:** This document captures what plugin maintainers, security leads, compliance officers, and auditors need from the harness-governance roadmap.
 
-**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-022). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-076 are used here).
+**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-024). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-086 are used here). Version 1.4 adds two DRAFT groups: Group A (UR-077 to UR-080), an evaluation benchmark harness, and Group B (UR-081 to UR-086), reviewer and review-machinery capabilities.
 
 ### 2. Stakeholder map
 
@@ -45,6 +45,16 @@
 | UR-074 | The security lead shall be able to see reviewer findings in the GitHub Security tab. | Security lead | BR-022 | Should |
 | UR-075 | The compliance officer shall be able to rely on a compliance profile being turned off only through a change to the committed project settings that the user applies, with each disablement logged and recorded in `DECISIONS.md`, so that a personal settings file cannot silently disable enforcement. | Compliance officer | BR-020 | Must |
 | UR-076 | The compliance officer shall be able to see each disclosure of education-record data to an outside party, with the receiving party and the legitimate interest (FERPA). | Compliance officer | BR-020 | Should |
+| UR-077 | Group A. The maintainer shall be able to define in-house golden tasks for coding and for spec writing, each with a reference and a way to grade it. | Plugin maintainer | BR-023 | Should |
+| UR-078 | Group A. The maintainer shall be able to read, for each suite, a pass@1 value for coding and a structural score and a separate judge score for specs. | Plugin maintainer | BR-023 | Should |
+| UR-079 | Group A. The maintainer shall be able to see at release time whether the score of a suite fell compared with the previous release. | Plugin maintainer | BR-023 | Should |
+| UR-080 | Group A. The maintainer shall be able to rely on benchmark scores not being inflated by training-data contamination, overfitting to the cases, judge bias, or flaky tests. | Plugin maintainer | BR-023 | Should |
+| UR-081 | Group B. The plugin user shall be able to rely on every review checking the recurring defect classes of a named checklist, with each unchecked item shown. | Plugin user | BR-024 | Should |
+| UR-082 | Group B. The maintainer shall be able to see, for each review round, which findings are new, fixed, open, or withdrawn, and to rely on the loop escalating when fixes keep producing new findings. | Plugin maintainer | BR-024 | Should |
+| UR-083 | Group B. The security lead shall be able to rely on an approval only when the reviewer examined every path it was sent, against the revision that is current at the gate. | Security lead | BR-019, BR-024 | Should |
+| UR-084 | Group B. The maintainer shall be able to see, for each reviewer lane and checklist item, how many findings the user judged true or false, and to approve the checklist changes that follow. | Plugin maintainer | BR-022, BR-024 | Should |
+| UR-085 | Group B. The plugin user shall be able to rely on a PR review being posted only against the head revision it reviewed, and on a posting retry never duplicating a review. | Plugin user | BR-018, BR-024 | Should |
+| UR-086 | Group B. The maintainer shall be able to rely on a finding's severity coming from a fixed catalog entry and not from the reviewer's free text. | Plugin maintainer | BR-022, BR-024 | Should |
 
 ### 4. Use case summaries
 
@@ -72,6 +82,22 @@
 - **Main scenario:** The auditor sets a date range; the verifier walks the chain; the exporter lists denies, asks, gates, and approvals
 - **Key extensions:** A broken link marks the range unverified and names the first bad line
 
+#### UC-004: Measure a release against the previous one (Group A)
+
+- **Primary actor:** Plugin maintainer
+- **Precondition:** Golden tasks exist and the previous release's scores are stored
+- **Success guarantee:** The maintainer sees, per suite, the current and previous scores and any regression finding, and the scoreboard holds a row for the release
+- **Main scenario:** The maintainer requests the benchmark section in the release check; the harness runs each coding case k times and scores it from the hidden suite exit code; it scores each spec case by the structural checklist and, when a judge is configured, by the judge; it compares the scores over the cases both releases hold
+- **Key extensions:** No sandbox backend, so coding cases read not-run; no previous release, so the section reports no baseline; a judge-score decline alone is advisory
+
+#### UC-005: Re-review after a fix round (Group B)
+
+- **Primary actor:** Plugin maintainer
+- **Precondition:** A gate returned findings and a fix pass changed the artifact
+- **Success guarantee:** The re-review gives a status for every prior finding, marks any finding the fix caused, and names the revision it reviewed
+- **Main scenario:** The orchestrator dispatches the re-review with the prior findings, the user's false labels, and the changed paths; the reviewer evaluates the checklist items that apply and reports each prior finding as fixed, open, or withdrawn; the orchestrator counts the gate only on a verdict for the current revision
+- **Key extensions:** A fix causes a new finding, so it reads fix-induced; the same finding stays open after two fix passes, so the orchestrator offers continue, waive, or abort with the round history
+
 ### 5. Scope
 
 #### In scope (user-facing capabilities)
@@ -80,6 +106,8 @@
 - Evidence-backed gates, orchestrator-written approvals, a verifiable audit log.
 - Attribution records, SOC 2 evidence export, FERPA and HIPAA profiles (enforced by default, governed opt-out), a user-declared session purpose, FERPA disclosure recordation, control mapping.
 - Severity policy, advisory baseline, severity-routed findings, SARIF output.
+- Group A (DRAFT): golden tasks, execution and checklist grading, an optional separate judge score, pass@1 over k runs, release-over-release regression, and controls for contamination, overfitting, judge bias, and flakiness.
+- Group B (DRAFT): reviewer checklists by lane, a per-round iteration record, stale-verdict and head-revision guards, catalog-fixed severity, and a feedback loop from the user's labels to checklist changes.
 
 #### Out of scope (user-facing exclusions)
 
@@ -88,12 +116,17 @@
 | A dashboard for audit data | The roadmap routes findings to the GitHub Security tab, not a separate dashboard | Never (by this roadmap) |
 | Automatic edits to a user's Claude Code settings | The plugin never edits a settings file (`rules/assist-plugin-rule.md:400`) | Never |
 | Compliance certification or legal determination | Adopter responsibility | Never |
+| A public leaderboard or a score comparison with outside models (Group A) | Only in-house runs on one harness version compare | Never |
+| A dashboard for benchmark or reviewer-precision data (Groups A and B) | The scoreboard and the checklist-change report are files in the repository | Never (by this roadmap) |
+| A merge gate that blocks on a judge score or a critic score (Groups A and B) | Both are advisory signals | Future roadmap |
 
 ### 6. Assumptions
 
 - The user answers the confirmation prompt in their own message; a quote block or file text never counts as confirmation.
 - Compliance profiles (SOC 2, HIPAA, FERPA) are enforced by default and a project opts out per project; core logging is always on (BRD A-9).
 - Adopters under HIPAA hold a BAA with each external service before enabling the profile; the plugin records the reference and does not assess the agreement.
+- Group A: the maintainer authors the golden tasks and the hidden suites in-house. A full benchmark run costs an estimated $25 to $75, so the maintainer requests it for a release and does not run it on every change (BRD A-12).
+- Group B: the user labels reviewer findings through a user-run step. An agent's judgment of a finding is never a label (NFR-034, FR-309).
 
 ### 7. Open questions
 
@@ -109,6 +142,13 @@
 - OQ-10: Resolved (`DECISIONS.md`, 2026-10-30, "Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)"). A `UserPromptSubmit` hook writes the confirmation store as JSONL under a path in `.agent/` protected under FR-245; the FR-214 guard reads it with file reads alone (FR-242).
 - OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records `unstated` and flags the record (FR-247; `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection").
 - OQ-12: Resolved (`DECISIONS.md`, "2026-10-30: Severity policy approved", re-approved by "2026-10-31: Severity policy approved"). The user approved `severity-policy.md` version `draft-2` (first approved at `draft-1`, superseded). The policy basis was settled earlier (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); a rule may block on severity only after the FR-238 advisory baseline (FR-237).
+- OQ-13: Open (Group A). Does the benchmark section run only on request, as FR-274 states, or by default in every release check? A full run is an estimated $25 to $75 (BRD A-12). The section also needs a delta to the section list of FR-250 in `FR-NFR-assist-plugin.md` (D-15).
+- OQ-14: Open (Group A). No default is settled for the run count k, the regression margin (FR-277), the validation run count (FR-259), or the judge run count (FR-285); each is a configured value.
+- OQ-15: Open (Group A). Where do reference solutions and hidden suites live? The marketplace repository is published, and the research report's layout puts `reference/` under the shipped plugin tree, which conflicts with FR-261 (D-16).
+- OQ-16: Open (Group A). The judge must use a model family other than the agent's (FR-282), and the plugin's agents run on one vendor's models today. Does a judge of another family exist for this project, or does the judge wait for a later release?
+- OQ-17: Open (Group B). The escalation counts of FR-300 and FR-301 (two each) and the precision floor and minimum label count of FR-313 and FR-314 are estimates. Which values does the user set?
+- OQ-18: Open (Group B). Which agent applies each lane in each gate, in particular the test-integrity lane in the Testing Gate that `qa` reviews today (FR-291, D-17)?
+- OQ-19: Open (Group B). The severity catalog changes the severity policy, so FR-237 requires the user's approval of the catalog contents before FR-306 and FR-307 take effect (D-14).
 
 ### 8. Glossary
 
@@ -118,6 +158,13 @@
 | Attribution record | The per-event record of operation, data accessed, agent identity, human authorizer, and timestamp |
 | Advisory-only | A check that records findings and never blocks |
 | Session purpose record | The record of the purpose the user declared for the session, written by a hook |
+| Golden task | A task with a reference and a way to grade it, written in-house (Group A) |
+| pass@1 | The probability that one run of a coding case passes, estimated as passes over completed runs (Group A) |
+| Structural score | The fraction of a spec case's deterministic checklist items that pass; a floor, not a measure of quality (Group A) |
+| Judge score | The mean score an LLM-as-judge gives the subjective rubric items of a spec case; advisory (Group A) |
+| Review lane | A review focus with its own checklist: defect-depth, test-integrity, or architecture-safety (Group B) |
+| Fix-induced finding | A finding that a change made since the previous review pass causes (Group B) |
+| Disposition | The user's label of a reviewer finding as true, false, or deferred (Group B) |
 
 ### 9. Revision history
 
@@ -127,3 +174,4 @@
 | 1.1 | 2026-10-28 | [Author] | Enforced-by-default assumption; UR-069 reworded; UR-075 added for governed opt-out; OQ-5 settled |
 | 1.2 | 2026-10-30 | [Author] | UR-068 reworded to the user-declared purpose; UR-076 added for FERPA disclosure recordation; OQ-6, OQ-9, OQ-11 resolved; OQ-10 narrowed to location and format |
 | 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entries: OQ-1, OQ-2, OQ-3, OQ-4, OQ-7, OQ-8, OQ-10 resolved; OQ-12 added for the pending formal approval of the severity-policy text, then resolved by `DECISIONS.md`, "2026-10-30: Severity policy approved" (draft-1; no version bump) |
+| 1.4 | 2026-11-24 | [Author] | UR-077 to UR-080 (Group A, evaluation benchmark harness) and UR-081 to UR-086 (Group B, reviewer and review machinery) added as DRAFT; UC-004 and UC-005, scope, assumptions, glossary terms, and OQ-13 to OQ-19 added. Existing entries unchanged |

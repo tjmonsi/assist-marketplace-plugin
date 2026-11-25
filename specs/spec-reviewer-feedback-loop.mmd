@@ -1,0 +1,20 @@
+flowchart TD
+  A["Reviewer finding recorded by the orchestrator<br/>(id, location, rule id, severity, confidence)"] --> B{"Who labels it?"}
+  B -->|"the user labels true, false, or deferred"| C["Disposition recorded with writer = user"]
+  B -->|"an agent judges it"| D["Finding stays unlabeled;<br/>an agent judgement is never a label"]
+  C --> E["Precision report per lane and item:<br/>counts of true, false, deferred, unlabeled,<br/>and precision = true / (true + false)"]
+  D --> E
+  E --> F{"Item precision vs configured floor,<br/>over enough labeled findings"}
+  F -->|"below the floor"| G["Retirement candidate"]
+  F -->|"at or above, or too few labels"| H["No retirement entry"]
+  E --> I{"Unmapped finding class count<br/>vs configured threshold"}
+  I -->|"at or above"| J["Addition candidate"]
+  I -->|"below"| K["No addition entry"]
+  G --> L["Checklist-change report for the user"]
+  J --> L
+  L --> M["Before-and-after precision and recall<br/>on a seeded-defect sample"]
+  M --> N{"User approves the edit<br/>with a DECISIONS.md entry?"}
+  N -->|"no"| O["Checklist unchanged;<br/>the edit is reported as unapproved"]
+  N -->|"yes"| P["Change carries LLM Security Clear before merge;<br/>the checklist, severity catalog, or screening rule updates"]
+  C --> Q["User false labels pass into the next dispatch as data"]
+  Q --> R["Reviewer does not re-raise a false-labeled finding<br/>at the same item and location without new evidence"]

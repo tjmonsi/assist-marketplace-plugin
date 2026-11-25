@@ -1,0 +1,56 @@
+flowchart TD
+  S(["Benchmark run requested (manual or opt-in CI)"]) --> LOAD["Load golden-task catalog (public): prompt.md, graders/, metadata, rubric"]
+  LOAD --> RES["Resolve oracle from the configured private location"]
+  RES --> QLOC{"Private oracle location reachable?"}
+  QLOC -->|"no"| ERRLOC(["Report error: oracle unavailable; run not scored"])
+  QLOC -->|"yes"| VAL["Validate task: contents, AC naming, provenance + cutoff, not a public dataset, graders present"]
+  VAL --> QVAL{"Task valid?"}
+  QVAL -->|"no"| REJ(["Reject task; name the missing or offending part"])
+  QVAL -->|"yes"| ADM{"Reference solution passes the hidden suite on each of N consecutive runs?"}
+  ADM -->|"no"| NADM(["Do not admit; name the failing run"])
+  ADM -->|"yes"| PREP["Prepare agent workspace: withhold reference solution and hidden suite"]
+  PREP --> LEAK{"Workspace holds reference or hidden-suite file?"}
+  LEAK -->|"yes"| ABORT(["Abort run; name the leaked path"])
+  LEAK -->|"no"| FAM{"Task family"}
+
+  FAM -->|"coding"| RUNK["Run agent case k times on the claude plugin eval runner"]
+  RUNK --> QBK{"Sandbox backend available for Write, Edit, Bash grant?"}
+  QBK -->|"no"| NR(["Run = not-run; excluded from c and k"])
+  NR --> WRITE
+  QBK -->|"yes"| SUITE["Run hidden test suite (no model call)"]
+  SUITE --> QEXIT{"Suite exit code"}
+  QEXIT -->|"0"| PASS["Run = pass"]
+  QEXIT -->|"non-zero"| FAIL["Run = fail"]
+  PASS --> FLAKE{"Same candidate, different results across runs?"}
+  FAIL --> FLAKE
+  FLAKE -->|"yes"| FLAG["Flag test flaky; keep it in the result; never skip or retry"]
+  FLAKE -->|"no"| PK
+  FLAG --> PK["pass@1 = c / k with k, c, and harness version"]
+  PK --> QK{"k completed runs = 0?"}
+  QK -->|"yes"| PKABS["pass@1 = absent (not 0)"]
+  QK -->|"no"| PKVAL["pass@1 value recorded"]
+  PKABS --> WRITE
+  PKVAL --> WRITE
+
+  FAM -->|"spec"| STRUCT["Run deterministic checklist (no model call): review-mode + gather-requirements + reference coverage"]
+  STRUCT --> QREAD{"Reference readable and checklist runnable?"}
+  QREAD -->|"no"| SERR(["Run = error; structural score not 0"])
+  QREAD -->|"yes"| SSCORE["structural score = passed items / total items"]
+  SSCORE --> QCLEAR{"Every deterministic item passed (cleared)?"}
+  QCLEAR -->|"no"| JABS["judge score = absent"]
+  QCLEAR -->|"yes"| QJUDGE{"Judge configured and available?"}
+  QJUDGE -->|"no"| JABS
+  QJUDGE -->|"yes"| JUDGE["Judge each rubric item; both orders averaged; mean over J runs"]
+  JUDGE --> SEP["Report structural score and judge score as two values; never averaged"]
+  JABS --> SEP
+  SEP --> WRITE
+
+  WRITE["Write run result to evals/results/ (version, total cost USD, elapsed)"] --> SBUP["Update version-keyed scoreboard (scores, identifiers, versions only)"]
+  SBUP --> CMP["Benchmark section compares current vs previous stored scoreboard over cases in both releases"]
+  CMP --> QPREV{"Previous release stored?"}
+  QPREV -->|"no"| NOBASE(["Report no baseline; no regression finding"])
+  QPREV -->|"yes"| QREG{"Suite structural or pass@1 score below previous by more than the margin?"}
+  QREG -->|"yes"| REG(["Regression finding; release-check exit 1"])
+  QREG -->|"no"| QJD{"Judge score declined?"}
+  QJD -->|"yes"| ADV(["Advisory note only; no regression finding"])
+  QJD -->|"no"| OK(["No regression"])

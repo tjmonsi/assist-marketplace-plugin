@@ -1,7 +1,7 @@
 {
   "project_name": "assist-plugin Harness Governance",
-  "version": "1.3",
-  "date": "2026-10-30",
+  "version": "1.4",
+  "date": "2026-11-24",
   "status": "draft",
   "requirements": [
     {"id": "BR-018", "type": "business", "text": "To stop the plugin's documented high and medium security gaps from being exploited, the business must close gaps 2, 3, and 6 of the LLM security checklist and add a blocking guardrail layer.", "priority": "must", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
@@ -9,6 +9,8 @@
     {"id": "BR-020", "type": "business", "text": "To let adopters use the plugin under SOC 2, HIPAA, and FERPA, the business must provide compliance profiles built on one attributable audit trail.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-021", "type": "business", "text": "To assign ownership and review cadence for every control, the business must map controls to the OWASP Agentic AI Top 10 and the NIST AI RMF functions.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-022", "type": "business", "text": "To catch defects early without alert fatigue, the business must route findings by severity, blocking only high-confidence, high-severity ones.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
+    {"id": "BR-023", "type": "business", "text": "To know whether each release makes the coding and spec-writing agents better or worse, the business must measure their output on in-house golden tasks, graded by execution for code and by checklist plus an optional separate judge for specs, and track the scores release over release. (Group A, DRAFT)", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
+    {"id": "BR-024", "type": "business", "text": "To shorten review rounds and keep reviewer findings trustworthy, the business must give reviewers named checklists, a round-by-round iteration record, fixed-severity findings, and a feedback loop from the user's labels to checklist changes. (Group B, DRAFT)", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
 
     {"id": "UR-059", "type": "user", "text": "The plugin user shall be able to rely on a PR verdict being posted only after the user's recorded confirmation, even when attacker-controlled PR text is in the session.", "priority": "must", "category": null, "stakeholder": "Plugin user", "traces_to": ["BR-018"], "scenarios": []},
     {"id": "UR-060", "type": "user", "text": "The plugin user shall be able to commit and push without staging secrets or pushing to an unexpected remote.", "priority": "must", "category": null, "stakeholder": "Plugin user", "traces_to": ["BR-018"], "scenarios": []},
@@ -28,6 +30,16 @@
     {"id": "UR-074", "type": "user", "text": "The security lead shall be able to see reviewer findings in the GitHub Security tab.", "priority": "should", "category": null, "stakeholder": "Security lead", "traces_to": ["BR-022"], "scenarios": []},
     {"id": "UR-075", "type": "user", "text": "The compliance officer shall be able to rely on a compliance profile being turned off only through a change to the committed project settings that the user applies, with each disablement logged and recorded in DECISIONS.md, so that a personal settings file cannot silently disable enforcement.", "priority": "must", "category": null, "stakeholder": "Compliance officer", "traces_to": ["BR-020"], "scenarios": []},
     {"id": "UR-076", "type": "user", "text": "The compliance officer shall be able to see each disclosure of education-record data to an outside party, with the receiving party and the legitimate interest (FERPA).", "priority": "should", "category": null, "stakeholder": "Compliance officer", "traces_to": ["BR-020"], "scenarios": []},
+    {"id": "UR-077", "type": "user", "text": "Group A. The maintainer shall be able to define in-house golden tasks for coding and for spec writing, each with a reference and a way to grade it.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-023"], "scenarios": []},
+    {"id": "UR-078", "type": "user", "text": "Group A. The maintainer shall be able to read, for each suite, a pass@1 value for coding and a structural score and a separate judge score for specs.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-023"], "scenarios": []},
+    {"id": "UR-079", "type": "user", "text": "Group A. The maintainer shall be able to see at release time whether the score of a suite fell compared with the previous release.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-023"], "scenarios": []},
+    {"id": "UR-080", "type": "user", "text": "Group A. The maintainer shall be able to rely on benchmark scores not being inflated by training-data contamination, overfitting to the cases, judge bias, or flaky tests.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-023"], "scenarios": []},
+    {"id": "UR-081", "type": "user", "text": "Group B. The plugin user shall be able to rely on every review checking the recurring defect classes of a named checklist, with each unchecked item shown.", "priority": "should", "category": null, "stakeholder": "Plugin user", "traces_to": ["BR-024"], "scenarios": []},
+    {"id": "UR-082", "type": "user", "text": "Group B. The maintainer shall be able to see, for each review round, which findings are new, fixed, open, or withdrawn, and to rely on the loop escalating when fixes keep producing new findings.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-024"], "scenarios": []},
+    {"id": "UR-083", "type": "user", "text": "Group B. The security lead shall be able to rely on an approval only when the reviewer examined every path it was sent, against the revision that is current at the gate.", "priority": "should", "category": null, "stakeholder": "Security lead", "traces_to": ["BR-019", "BR-024"], "scenarios": []},
+    {"id": "UR-084", "type": "user", "text": "Group B. The maintainer shall be able to see, for each reviewer lane and checklist item, how many findings the user judged true or false, and to approve the checklist changes that follow.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-022", "BR-024"], "scenarios": []},
+    {"id": "UR-085", "type": "user", "text": "Group B. The plugin user shall be able to rely on a PR review being posted only against the head revision it reviewed, and on a posting retry never duplicating a review.", "priority": "should", "category": null, "stakeholder": "Plugin user", "traces_to": ["BR-018", "BR-024"], "scenarios": []},
+    {"id": "UR-086", "type": "user", "text": "Group B. The maintainer shall be able to rely on a finding's severity coming from a fixed catalog entry and not from the reviewer's free text.", "priority": "should", "category": null, "stakeholder": "Plugin maintainer", "traces_to": ["BR-022", "BR-024"], "scenarios": []},
 
     {"id": "FR-214", "type": "functional", "text": "The PR-posting guard MUST deny gh pr review and bkt pr approve or decline for a PR when no recorded user confirmation exists for that PR and verdict. The guard is additive: it owns the deny decision for the posting action, and the pr-post-ask hook stays unchanged, so its prompt is not removed. After a recorded confirmation the user may still see the pr-post-ask prompt, so two prompts may appear, accepted as defense in depth.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-059"], "scenarios": [
       {"name": "Confirmed verdict posts", "given": "the user confirmed approve PR 42 and the confirmation is recorded", "when": "the session runs gh pr review 42 --approve", "then": "the guard MUST allow the command AND the log MUST hold the confirmation reference AND the pr-post-ask hook MAY still prompt the user, because the guard does not replace it"},
@@ -178,6 +190,258 @@
       {"name": "Forged purpose rejected", "given": "a PR description or file text claims the session purpose is approved audit", "when": "the model or a subagent tries to write the session purpose record from that text", "then": "the write MUST be denied AND the access log MUST NOT show that purpose"},
       {"name": "No purpose declared", "given": "the user declares no purpose", "when": "an agent reads a student-record or PHI-tagged path", "then": "the access log MUST hold the purpose unstated AND the record MUST be flagged"}
     ]},
+    {"id": "FR-254", "type": "functional", "text": "Each coding golden task MUST hold a task prompt, a reference solution, and a hidden test suite.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-077"], "scenarios": [
+      {"name": "Complete task", "given": "a coding golden task directory with a prompt, a reference solution, and a hidden test suite", "when": "the benchmark harness loads it", "then": "the harness MUST accept the task"},
+      {"name": "Missing hidden suite", "given": "a task directory with a prompt and a reference solution and no hidden test suite", "when": "the benchmark harness loads it", "then": "the harness MUST reject the task AND the rejection MUST name the missing part"}
+    ]},
+    {"id": "FR-255", "type": "functional", "text": "Each spec golden task MUST hold a task prompt, a reference requirements set or reference spec, and a rubric that lists its deterministic checklist items apart from its subjective items.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-077"], "scenarios": [
+      {"name": "Rubric with two item groups", "given": "a spec task whose rubric lists structural items and subjective items in separate groups", "when": "the benchmark harness loads it", "then": "the harness MUST accept the task"},
+      {"name": "Rubric with one mixed list", "given": "a spec task whose rubric mixes structural and subjective items in one list", "when": "the benchmark harness loads it", "then": "the harness MUST reject the task"}
+    ]},
+    {"id": "FR-256", "type": "functional", "text": "Each test in a hidden test suite MUST carry the identifier of the acceptance-criteria scenario it checks, in the [AC-n | spec | FR-n] naming form that the repository's own tests use.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-077"], "scenarios": [
+      {"name": "Named test", "given": "a hidden test named [AC-2 | spec-foo | FR-045] rejects an empty name", "when": "the benchmark harness loads the suite", "then": "the harness MUST accept the test"},
+      {"name": "Unnamed test", "given": "a hidden test whose name holds no scenario identifier", "when": "the benchmark harness loads the suite", "then": "the harness MUST reject the task AND the rejection MUST name the test"}
+    ]},
+    {"id": "FR-257", "type": "functional", "text": "Each golden task MUST record its provenance (in-house or private repository), its creation date, and the model cutoff date it is valid against.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Complete record", "given": "a golden task whose metadata holds provenance, creation date, and valid-against cutoff", "when": "the benchmark harness loads it", "then": "the harness MUST accept the task"},
+      {"name": "Missing cutoff", "given": "a golden task whose metadata holds no valid-against cutoff", "when": "the benchmark harness loads it", "then": "the harness MUST reject the task"}
+    ]},
+    {"id": "FR-258", "type": "functional", "text": "A golden task MUST NOT be derived from a public benchmark dataset.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "In-house task", "given": "a golden task whose provenance reads in-house", "when": "the benchmark harness loads it", "then": "the harness MUST accept the task"},
+      {"name": "Public-dataset task", "given": "a golden task whose provenance names a public benchmark dataset", "when": "the benchmark harness loads it", "then": "the harness MUST reject the task"}
+    ]},
+    {"id": "FR-259", "type": "functional", "text": "The benchmark harness MUST admit a coding golden task only after its reference solution passes its hidden test suite in each of a configured number of consecutive runs.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Stable reference", "given": "the configured count is 3 and the reference solution passes the hidden suite on 3 consecutive runs", "when": "the benchmark harness validates the task", "then": "the harness MUST admit the task"},
+      {"name": "Reference fails once", "given": "the configured count is 3 and the reference solution fails the hidden suite on run 2", "when": "the benchmark harness validates the task", "then": "the harness MUST NOT admit the task AND the report MUST name the failing run"}
+    ]},
+    {"id": "FR-260", "type": "functional", "text": "The benchmark harness MUST withhold the reference solution and the hidden test suite from the agent under test.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Agent workspace", "given": "a coding run for a golden task", "when": "the benchmark harness prepares the agent's workspace", "then": "the workspace MUST hold no reference solution and no hidden test suite file"},
+      {"name": "Leak detected", "given": "a prepared workspace that holds a file from the reference directory", "when": "the benchmark harness checks the workspace before the run", "then": "the harness MUST abort the run AND the report MUST name the leaked path"}
+    ]},
+    {"id": "FR-261", "type": "functional", "text": "The benchmark harness MUST keep each reference solution and hidden test suite out of every published artifact.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Package without reference material", "given": "the list of files in a published plugin package", "when": "the list is searched for golden-task reference and hidden-suite paths", "then": "the search MUST find none"},
+      {"name": "Reference path in the package", "given": "a published package list that holds a golden-task reference path", "when": "the benchmark harness validates the package list", "then": "the validation MUST fail AND the result MUST name the path"}
+    ]},
+    {"id": "FR-262", "type": "functional", "text": "The benchmark harness MUST score a coding run as pass when the hidden test suite exits 0 and as fail when it exits non-zero, with no model call in the scoring.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Suite passes", "given": "a coding run whose hidden suite exits 0", "when": "the benchmark harness scores the run", "then": "the run MUST score pass AND the scoring MUST make no model call"},
+      {"name": "Suite fails", "given": "a coding run whose hidden suite exits 1", "when": "the benchmark harness scores the run", "then": "the run MUST score fail"}
+    ]},
+    {"id": "FR-263", "type": "functional", "text": "The benchmark harness MUST run each golden task as a case in the existing claude plugin eval layout (a prompt.md and a graders/ folder under evals/).", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Case listed by the runner", "given": "a golden task directory with prompt.md and a graders/ folder under evals/", "when": "claude plugin eval lists the cases", "then": "the list MUST include the golden task"},
+      {"name": "Task without graders", "given": "a golden task directory with no graders/ folder", "when": "the benchmark harness loads it", "then": "the harness MUST reject the task"}
+    ]},
+    {"id": "FR-264", "type": "functional", "text": "The benchmark harness MUST report a coding run as not-run, never as pass or fail, when the sandbox backend that the run's Write, Edit, and Bash grant requires is unavailable.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Backend absent", "given": "a coding case that needs a shell grant and a machine with no sandbox backend", "when": "the benchmark harness runs the case", "then": "the run MUST read not-run AND the run MUST count in neither c nor k of FR-271"},
+      {"name": "Backend present", "given": "the same case and a machine with the sandbox backend", "when": "the benchmark harness runs the case", "then": "the run MUST read pass or fail from the hidden suite"}
+    ]},
+    {"id": "FR-265", "type": "functional", "text": "The benchmark harness MUST score a spec run as the fraction of its deterministic checklist items that pass, with no model call in the scoring.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Partial score", "given": "a spec run that passes 8 of 10 deterministic checklist items", "when": "the benchmark harness scores the run", "then": "the structural score MUST read 0.8"},
+      {"name": "Checklist cannot run", "given": "a spec run whose reference file is unreadable", "when": "the benchmark harness scores the run", "then": "the run MUST read error AND the structural score MUST NOT read 0"}
+    ]},
+    {"id": "FR-266", "type": "functional", "text": "The deterministic checklist MUST be built from the checks that spec-from-requirements review mode and the gather-requirements quality criteria already define.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Item with a source", "given": "a checklist item that every Requirement has a Scenario", "when": "the harness validates the checklist", "then": "the harness MUST accept the item because spec-from-requirements review mode defines it"},
+      {"name": "Item with no source", "given": "a checklist item that no existing check or quality criterion defines", "when": "the harness validates the checklist", "then": "the harness MUST reject the item"}
+    ]},
+    {"id": "FR-267", "type": "functional", "text": "The deterministic checklist MUST confirm that each requirement identifier, scenario, and error path of the reference appears in the output.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Full coverage", "given": "a reference with FR-1 to FR-3 and one error path each, and an output that holds all of them", "when": "the checklist runs", "then": "the reference-coverage items MUST pass"},
+      {"name": "Missing error path", "given": "an output that omits the error path of FR-3", "when": "the checklist runs", "then": "the item for that error path MUST fail AND the result MUST name FR-3"}
+    ]},
+    {"id": "FR-268", "type": "functional", "text": "The benchmark harness MAY score the subjective rubric items of a spec case with an LLM-as-judge grader.", "priority": "may", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Judge off", "given": "a spec case and no judge configured", "when": "the benchmark harness scores the case", "then": "the result MUST hold a structural score AND the judge score MUST read absent"},
+      {"name": "Judge on", "given": "a spec case and a judge configured", "when": "the benchmark harness scores the case", "then": "the result MUST hold both a structural score and a judge score"}
+    ]},
+    {"id": "FR-269", "type": "functional", "text": "The benchmark harness MUST run the judge grader only on a spec case that cleared the structural checklist. A case clears the checklist when every deterministic item passes (assumption A-13).", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Cleared case judged", "given": "a spec case with every deterministic item passed and a judge configured", "when": "the benchmark harness scores the case", "then": "the judge grader MUST run"},
+      {"name": "Uncleared case not judged", "given": "a spec case with one deterministic item failed and a judge configured", "when": "the benchmark harness scores the case", "then": "the judge grader MUST NOT run AND the judge score MUST read absent"}
+    ]},
+    {"id": "FR-270", "type": "functional", "text": "The benchmark harness MUST report the structural score and the judge score as two separate values and MUST NOT combine them into one number.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Separate values", "given": "a spec case with a structural score 0.9 and a judge score 0.6", "when": "the result is written", "then": "the result MUST hold 0.9 and 0.6 as two values"},
+      {"name": "Combined field", "given": "a result that holds a field averaging the two scores", "when": "the result is validated", "then": "the validation MUST fail and name the field"}
+    ]},
+    {"id": "FR-271", "type": "functional", "text": "The benchmark harness MUST report pass@1 for a coding case as c divided by k, where k is the number of completed runs of that case and c is the number of those runs that pass.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Three of five pass", "given": "a coding case run 5 times with 3 passes", "when": "the benchmark harness reports pass@1", "then": "the value MUST read 0.6"},
+      {"name": "No completed run", "given": "a coding case whose every run read not-run", "when": "the benchmark harness reports pass@1", "then": "the value MUST read absent AND the value MUST NOT read 0"}
+    ]},
+    {"id": "FR-272", "type": "functional", "text": "The benchmark result MUST state k, c, and the benchmark harness version beside each pass@1 value.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-078"], "scenarios": [
+      {"name": "Full basis", "given": "a pass@1 value of 0.6", "when": "the result is written", "then": "the result MUST hold k = 5, c = 3, and the harness version beside it"},
+      {"name": "Missing version", "given": "a result that holds a pass@1 value and no harness version", "when": "the result is validated", "then": "the validation MUST fail"}
+    ]},
+    {"id": "FR-273", "type": "functional", "text": "The release-check runner MUST provide a benchmark section that runs the coding and spec suites and compares the scores of each suite with the scores stored for the previous release. The suite score is the mean pass@1 of a coding suite and the mean structural score of a spec suite.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Comparison reported", "given": "stored scores for the previous release and a benchmark request", "when": "the benchmark section runs", "then": "the section MUST report, for each suite, the current score and the previous score"},
+      {"name": "No previous release", "given": "no stored scores for a previous release", "when": "the benchmark section runs", "then": "the section MUST report no baseline AND the section MUST NOT report a regression finding"}
+    ]},
+    {"id": "FR-274", "type": "functional", "text": "The benchmark section MUST run only when the user requests it.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Plain release check", "given": "a release check started with no benchmark request", "when": "the runner runs its sections", "then": "the benchmark section MUST NOT run AND every other section MUST behave as before"},
+      {"name": "Requested run", "given": "a release check started with the benchmark request", "when": "the runner runs its sections", "then": "the benchmark section MUST run"}
+    ]},
+    {"id": "FR-275", "type": "functional", "text": "The benchmark harness MUST key each stored result to the plugin version that the run result records.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Keyed result", "given": "a run result that records plugin version 1.14.7", "when": "the harness stores the result", "then": "the stored result MUST be keyed to 1.14.7"},
+      {"name": "Result without a version", "given": "a run result that records no plugin version", "when": "the harness stores the result", "then": "the harness MUST refuse to store it"}
+    ]},
+    {"id": "FR-276", "type": "functional", "text": "The repository MUST hold, under version control, a scoreboard that lists for each release and suite the version, pass@1, structural score, and judge score.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Row added for a release", "given": "a completed benchmark section for version 1.14.7", "when": "the scoreboard is read", "then": "it MUST hold a row for 1.14.7 for each suite run"},
+      {"name": "Row missing", "given": "a completed benchmark section and a scoreboard with no row for that version", "when": "the benchmark section ends", "then": "the section MUST report a finding that names the version"}
+    ]},
+    {"id": "FR-277", "type": "functional", "text": "The benchmark section MUST report a regression finding when the score of a suite is below the previous release's score for that suite by more than a configured margin.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Drop beyond the margin", "given": "a margin of 0.05, a previous suite score of 0.80, and a current score of 0.70", "when": "the benchmark section compares them", "then": "the section MUST report a regression finding for that suite"},
+      {"name": "Drop within the margin", "given": "a margin of 0.05, a previous suite score of 0.80, and a current score of 0.78", "when": "the benchmark section compares them", "then": "the section MUST report no regression finding"}
+    ]},
+    {"id": "FR-278", "type": "functional", "text": "The release comparison MUST be computed over the cases present in both releases.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Case added", "given": "the current release holds a case that the previous release lacks", "when": "the benchmark section compares scores", "then": "the added case MUST NOT enter either score"},
+      {"name": "Case removed", "given": "the previous release holds a case that the current release lacks", "when": "the benchmark section compares scores", "then": "the removed case MUST NOT enter either score"}
+    ]},
+    {"id": "FR-279", "type": "functional", "text": "The benchmark section MUST report a judge-score decline as advisory only.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-079"], "scenarios": [
+      {"name": "Judge drops alone", "given": "a judge score down 0.2 and structural scores within the margin", "when": "the benchmark section compares releases", "then": "the section MUST report an advisory note AND the section MUST report no regression finding"},
+      {"name": "Structural score drops too", "given": "a judge score down 0.2 and a structural score down beyond the margin", "when": "the benchmark section compares releases", "then": "the section MUST report a regression finding for the structural score"}
+    ]},
+    {"id": "FR-280", "type": "functional", "text": "The benchmark harness MUST run its held-out cases only in the benchmark section of a release check.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Ordinary eval run", "given": "a case flagged held-out", "when": "an ordinary claude plugin eval run lists cases", "then": "the harness MUST exclude the held-out case from the run"},
+      {"name": "Release benchmark", "given": "a case flagged held-out and a benchmark request", "when": "the benchmark section runs", "then": "the section MUST include the held-out case"}
+    ]},
+    {"id": "FR-281", "type": "functional", "text": "The benchmark harness SHOULD add at least one new golden task to each suite in each release that runs the benchmark section.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "New task added", "given": "a release that runs the benchmark section and a suite with one case not present in the previous release", "when": "the scoreboard is compared with the previous release", "then": "the check MUST find a new case in that suite"},
+      {"name": "No new task", "given": "a suite with no new case in a benchmark release", "when": "the benchmark section runs", "then": "the section MUST report an advisory note that names the suite"}
+    ]},
+    {"id": "FR-282", "type": "functional", "text": "The judge MUST use a model family different from the family of the agent under test.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Different family", "given": "an agent under test of one model family and a judge of another", "when": "the judge grader starts", "then": "the grader MUST run"},
+      {"name": "Same family", "given": "an agent under test and a judge of the same family", "when": "the judge grader starts", "then": "the grader MUST refuse to run AND the judge score MUST read absent"}
+    ]},
+    {"id": "FR-283", "type": "functional", "text": "The judge MUST score each subjective rubric item separately against the text of that item.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Per-item scores", "given": "a rubric with 3 subjective items", "when": "the judge scores a spec", "then": "the result MUST hold 3 item scores"},
+      {"name": "One overall score", "given": "a judge result that holds a single overall score and no item scores", "when": "the result is validated", "then": "the validation MUST fail"}
+    ]},
+    {"id": "FR-284", "type": "functional", "text": "WHEN the judge compares two texts, the benchmark harness MUST run the comparison in both orders and average the two results.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Pairwise comparison", "given": "a judge comparison of an output against the reference", "when": "the harness runs it", "then": "the harness MUST run output-then-reference and reference-then-output AND the reported result MUST be the mean of the two"},
+      {"name": "One order only", "given": "a comparison result built from one order", "when": "the result is validated", "then": "the validation MUST fail"}
+    ]},
+    {"id": "FR-285", "type": "functional", "text": "The benchmark result MUST report each judge score as the mean of a configured number of judge runs and MUST state that number.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Mean of three", "given": "a configured count of 3 and judge runs scoring 0.6, 0.7, and 0.8", "when": "the result is written", "then": "the judge score MUST read 0.7 AND the result MUST state 3 runs"},
+      {"name": "Count not stated", "given": "a result that holds a judge score and no run count", "when": "the result is validated", "then": "the validation MUST fail"}
+    ]},
+    {"id": "FR-286", "type": "functional", "text": "WHERE a human-labeled sample of spec outputs exists, the benchmark harness SHOULD report the judge's agreement with the human scores as Spearman rho or Cohen kappa.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Labeled sample", "given": "a labeled sample of 20 spec outputs with human scores", "when": "the benchmark harness reports the judge", "then": "the report SHOULD hold a Spearman rho or a Cohen kappa for the sample"},
+      {"name": "No sample", "given": "no labeled sample", "when": "the benchmark harness reports the judge", "then": "the report SHOULD state that no agreement figure exists"}
+    ]},
+    {"id": "FR-287", "type": "functional", "text": "The benchmark harness MUST report a hidden-suite test that gives different results on repeated runs of the same candidate as flaky, without skipping or retrying it.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-080"], "scenarios": [
+      {"name": "Flaky test flagged", "given": "a hidden test that passes on run 1 and fails on run 2 for the same candidate", "when": "the benchmark harness reports the suite", "then": "the report MUST list the test as flaky AND the test MUST still count in the suite result"},
+      {"name": "Retry-until-pass configured", "given": "a configuration that retries a failing hidden test until it passes", "when": "the benchmark harness loads the configuration", "then": "the harness MUST reject the configuration"}
+    ]},
+    {"id": "FR-288", "type": "functional", "text": "The plugin MUST keep one reviewer checklist for each of three review lanes (defect-depth, test-integrity, and architecture-safety), and each checklist item MUST have an identifier, a check, and the evidence that clears it. Initial content: items DD-01 to DD-09, TI-01 to TI-08, and AS-01 to AS-06 (FR-NFR-harness-governance.md, section 2.71).", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "Checklist valid", "given": "three lane checklists whose every item has an identifier, a check, and an evidence entry", "when": "the checklist validation runs", "then": "the validation MUST pass"},
+      {"name": "Item without evidence", "given": "a checklist item with no evidence entry", "when": "the checklist validation runs", "then": "the validation MUST fail AND the result MUST name the item"}
+    ]},
+    {"id": "FR-289", "type": "functional", "text": "The reviewer and code-reviewer agents MUST account for each checklist item that applies to the artifact type as evaluated or as skipped with a reason.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "All items accounted for", "given": "a code artifact for which 5 checklist items apply", "when": "the reviewer reports", "then": "the report MUST list 5 items as evaluated or skipped with a reason"},
+      {"name": "Item missing from the report", "given": "a report that lists 4 of the 5 applicable items", "when": "the orchestrator reads it", "then": "the orchestrator MUST reject the report and ask for a corrected one"}
+    ]},
+    {"id": "FR-290", "type": "functional", "text": "A finding raised from a checklist item MUST carry that item's identifier as its rule identifier.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "Item cited", "given": "a reviewer finds an unbounded repeated pattern at src/parse.js:12", "when": "the reviewer writes the finding", "then": "the finding MUST carry DD-01 as its rule identifier"},
+      {"name": "Item not cited", "given": "a finding raised from checklist item DD-01 with no rule identifier", "when": "the orchestrator reads the report", "then": "the orchestrator MUST reject the report and ask for a corrected one"}
+    ]},
+    {"id": "FR-291", "type": "functional", "text": "Each lane checklist MUST be applied within the existing gates that the lane-to-gate table assigns.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "Lane in an assigned gate", "given": "the Security Gate runs on a code change", "when": "the reviewer audits it", "then": "the reviewer MUST evaluate the defect-depth items that apply"},
+      {"name": "Lane assigned to no gate", "given": "a lane that the lane-to-gate table assigns to no existing gate", "when": "the checklist validation runs", "then": "the validation MUST fail and name the lane"}
+    ]},
+    {"id": "FR-292", "type": "functional", "text": "The orchestrator MAY dispatch the lane reviews of one gate concurrently, with at most three reviewer dispatches running at once.", "priority": "may", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "Three lanes at once", "given": "a gate with three lane reviews ready", "when": "the orchestrator dispatches them", "then": "the orchestrator MAY run all three at once"},
+      {"name": "Fourth dispatch held", "given": "three reviewer dispatches running", "when": "a fourth reviewer dispatch is ready", "then": "the orchestrator MUST hold it until one dispatch ends"}
+    ]},
+    {"id": "FR-293", "type": "functional", "text": "WHEN lane reviews ran concurrently, the orchestrator MUST merge findings that share a file, a line, and a rule identifier into one finding that keeps the highest severity among them.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-081"], "scenarios": [
+      {"name": "Same finding from two lanes", "given": "two lanes report DD-01 at src/parse.js:12, one as HIGH and one as MEDIUM", "when": "the orchestrator merges the reports", "then": "the merged report MUST hold one finding at src/parse.js:12 with severity HIGH"},
+      {"name": "Different lines", "given": "two lanes report DD-01 at src/parse.js:12 and src/parse.js:40", "when": "the orchestrator merges the reports", "then": "the merged report MUST hold both findings"}
+    ]},
+    {"id": "FR-294", "type": "functional", "text": "Each finding MUST carry an identifier that stays the same in every round of one gate.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Identifier carried across rounds", "given": "finding F-3 in round 1 that is still open in round 2", "when": "the reviewer writes the round-2 report", "then": "the report MUST list that finding as F-3"},
+      {"name": "Finding without an identifier", "given": "a report whose finding holds no identifier", "when": "the orchestrator reads it", "then": "the orchestrator MUST reject the report and ask for a corrected one"}
+    ]},
+    {"id": "FR-295", "type": "functional", "text": "On a re-review the reviewer MUST give each prior finding exactly one status of fixed, open, or withdrawn with a one-line reason, and MUST mark every other finding as new.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Statuses given", "given": "3 prior findings and 1 new defect", "when": "the reviewer writes the re-review report", "then": "each prior finding MUST hold one of fixed, open, or withdrawn with a reason AND the new defect MUST read new"},
+      {"name": "Prior finding without a status", "given": "a re-review report that omits the status of prior finding F-2", "when": "the orchestrator reads it", "then": "the orchestrator MUST reject the report and ask for a corrected one"}
+    ]},
+    {"id": "FR-296", "type": "functional", "text": "Each review report MUST name the revision of the artifact it reviewed, as a content digest or a commit identifier.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-083"], "scenarios": [
+      {"name": "Revision named", "given": "a reviewer report for a task whose artifact has a known digest", "when": "the reviewer writes the report", "then": "the report MUST hold that digest or a commit identifier"},
+      {"name": "Revision missing", "given": "a report with no revision", "when": "the orchestrator reads it", "then": "the orchestrator MUST reject the report and ask for a corrected one"}
+    ]},
+    {"id": "FR-297", "type": "functional", "text": "The orchestrator MUST NOT count a reviewer verdict toward a gate when the artifact has changed since the revision that the report names.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-083"], "scenarios": [
+      {"name": "Both approvals on one revision", "given": "two consecutive approved reports that name the same revision, which is still current", "when": "the orchestrator counts the gate", "then": "the gate MUST end approved"},
+      {"name": "Artifact changed between approvals", "given": "an approved report on revision A and a later artifact change to revision B", "when": "the orchestrator counts the gate", "then": "the report on revision A MUST NOT count toward the gate"}
+    ]},
+    {"id": "FR-298", "type": "functional", "text": "On a re-review the dispatch MUST list the paths changed since the previous pass.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Paths listed", "given": "a fix pass that changed src/a.js and src/b.js", "when": "the orchestrator dispatches the re-review", "then": "the dispatch MUST list src/a.js and src/b.js"},
+      {"name": "First review", "given": "a gate at rework count 0", "when": "the orchestrator dispatches the review", "then": "the dispatch MUST hold no changed-path list"}
+    ]},
+    {"id": "FR-299", "type": "functional", "text": "On a re-review the reviewer MUST mark a finding as fix-induced, with the identifier of the prior finding, when a change made since the previous pass causes it.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Fix causes a new defect", "given": "a fix for F-2 that makes a previously correct path reject valid input", "when": "the reviewer re-reviews", "then": "the new finding MUST read fix-induced with the identifier F-2"},
+      {"name": "Unrelated new defect", "given": "a new defect in code that no change since the previous pass touched", "when": "the reviewer re-reviews", "then": "the finding MUST read new and MUST NOT read fix-induced"}
+    ]},
+    {"id": "FR-300", "type": "functional", "text": "WHEN two consecutive passes of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Two fix-induced passes", "given": "pass 2 and pass 3 of one gate each return a fix-induced finding", "when": "the orchestrator plans the next step", "then": "the orchestrator SHOULD dispatch one code-reviewer pass over the whole artifact"},
+      {"name": "One fix-induced pass", "given": "only pass 2 returns a fix-induced finding", "when": "the orchestrator plans the next step", "then": "the orchestrator SHOULD dispatch the normal fix pass"}
+    ]},
+    {"id": "FR-301", "type": "functional", "text": "WHEN the same finding stays open after two consecutive fix passes and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "Finding open after two fixes", "given": "finding F-4 open after fix passes 1 and 2, with no new evidence in the re-review", "when": "the orchestrator plans the next step", "then": "the orchestrator SHOULD stop the loop and offer continue, waive, or abort"},
+      {"name": "New evidence cited", "given": "finding F-4 open after two fix passes and the re-review cites new evidence", "when": "the orchestrator plans the next step", "then": "the orchestrator SHOULD continue the loop"}
+    ]},
+    {"id": "FR-302", "type": "functional", "text": "At an escalation under FR-218 or FR-301, the orchestrator MUST show, for each round, the number of new, fixed, open, and withdrawn findings.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-082"], "scenarios": [
+      {"name": "History shown", "given": "an escalation after 4 rounds", "when": "the orchestrator presents the choices", "then": "the presentation MUST list 4 rows with counts of new, fixed, open, and withdrawn findings"},
+      {"name": "Statuses missing", "given": "a round whose report held no statuses", "when": "the orchestrator builds the history", "then": "the orchestrator MUST mark that round as having no status data"}
+    ]},
+    {"id": "FR-303", "type": "functional", "text": "A reviewer MUST NOT return verdict approved when it did not examine every artifact path that the dispatch names.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-083"], "scenarios": [
+      {"name": "All paths examined", "given": "a dispatch that names 3 paths and a reviewer that read all 3", "when": "the reviewer finds no defect", "then": "the verdict MAY read approved"},
+      {"name": "One path not examined", "given": "a dispatch that names 3 paths and a reviewer that read 2", "when": "the reviewer finds no defect in those 2", "then": "the verdict MUST NOT read approved AND the skipped field MUST name the unexamined path"}
+    ]},
+    {"id": "FR-304", "type": "functional", "text": "The PR-review workflow MUST NOT post a review that was drafted against a head revision other than the PR's current head revision, which the workflow reads immediately before it posts.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-085"], "scenarios": [
+      {"name": "Head unchanged", "given": "a review drafted against head revision H and a PR whose head is still H", "when": "the workflow reaches the post step", "then": "the workflow MAY post, subject to the FR-214 confirmation"},
+      {"name": "Head moved", "given": "a review drafted against head revision H and a PR whose head is now H2", "when": "the workflow reaches the post step", "then": "the workflow MUST NOT post AND the workflow MUST tell the user the draft is stale"}
+    ]},
+    {"id": "FR-305", "type": "functional", "text": "WHEN a posting command ends with an unknown outcome, the PR-review workflow MUST read back the PR's reviews before any retry.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-085"], "scenarios": [
+      {"name": "Review exists after the error", "given": "a posting command that ended with a server error and a PR that now holds the review", "when": "the workflow handles the error", "then": "the workflow MUST NOT post again"},
+      {"name": "Review absent after the error", "given": "a posting command that ended with a server error and a PR that holds no such review", "when": "the workflow handles the error", "then": "the workflow MAY retry, subject to the FR-214 confirmation"}
+    ]},
+    {"id": "FR-306", "type": "functional", "text": "A finding whose rule identifier is in the severity catalog MUST take its severity from that catalog entry. The severity catalog is a table, held with the severity policy, that maps each rule identifier to a fixed severity; every checklist item and every in-plugin scanner rule has an entry (D-14).", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-086"], "scenarios": [
+      {"name": "Catalog severity applied", "given": "catalog entry DD-01 with severity MEDIUM and a finding with rule identifier DD-01 that the reviewer wrote as HIGH", "when": "the orchestrator reads the report", "then": "the recorded severity MUST read MEDIUM AND the report MUST note the difference"},
+      {"name": "Rule identifier absent from the catalog", "given": "a finding whose rule identifier is not in the catalog", "when": "the orchestrator reads the report", "then": "the finding MUST be handled under FR-307"}
+    ]},
+    {"id": "FR-307", "type": "functional", "text": "A finding with no rule identifier in the severity catalog and no CWE identifier MUST be marked unmapped and MUST route no higher than inline-comment.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-086"], "scenarios": [
+      {"name": "Unmapped high finding", "given": "a finding with severity HIGH, confidence High, and no catalog rule or CWE identifier", "when": "routing runs", "then": "the finding MUST read unmapped AND the routing MUST NOT read block-merge"},
+      {"name": "Mapped high finding", "given": "a finding with a catalog rule identifier, severity HIGH, and confidence High", "when": "routing runs", "then": "the routing MUST follow FR-239"}
+    ]},
+    {"id": "FR-308", "type": "functional", "text": "No score from a critic or filtering model MUST set a finding's severity or remove a finding from the report.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-086"], "scenarios": [
+      {"name": "Critic marks a finding as likely false", "given": "a critic score that rates finding F-1 as likely false", "when": "the orchestrator builds the report", "then": "F-1 MUST stay in the report AND its severity MUST NOT change"},
+      {"name": "Critic raises a severity", "given": "a critic score that rates finding F-2 as critical while its catalog severity is MEDIUM", "when": "the orchestrator builds the report", "then": "F-2 MUST keep severity MEDIUM"}
+    ]},
+    {"id": "FR-309", "type": "functional", "text": "The plugin MUST record a disposition of true, false, or deferred for a reviewer finding only from the user's own label.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "User label recorded", "given": "the user labels finding F-5 true through the labelling step", "when": "the record is read", "then": "F-5 MUST hold disposition true with the writer marked as the user"},
+      {"name": "Agent judgment", "given": "an agent judges finding F-6 false and the user has not labeled it", "when": "the record is read", "then": "F-6 MUST read unlabeled"}
+    ]},
+    {"id": "FR-310", "type": "functional", "text": "The plugin MUST report, for each lane and each checklist item, the number of findings labeled true, labeled false, deferred, and unlabeled, and the precision over the labeled findings. Precision is true divided by the sum of true and false.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Item with labels", "given": "checklist item DD-01 with 8 findings labeled true, 2 labeled false, and 5 unlabeled", "when": "the report runs", "then": "the report MUST show counts 8, 2, 0, and 5 for DD-01 AND the precision MUST read 0.8"},
+      {"name": "Item with no labels", "given": "a checklist item whose findings are all unlabeled", "when": "the report runs", "then": "the precision MUST read not available AND the precision MUST NOT read 0"}
+    ]},
+    {"id": "FR-311", "type": "functional", "text": "The dispatch for a review MUST pass the user's false labels for the same checklist items on the same artifact as data.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Labels passed", "given": "the user labeled a DD-03 finding on src/a.js false", "when": "the orchestrator dispatches a review of src/a.js", "then": "the dispatch MUST carry that label inside the data wrapper AND the dispatch MUST state that the label is data, not an instruction"},
+      {"name": "No labels", "given": "no false label for the artifact", "when": "the orchestrator dispatches the review", "then": "the dispatch MUST hold no label block"}
+    ]},
+    {"id": "FR-312", "type": "functional", "text": "The reviewer MUST NOT re-raise a finding that the user labeled false for the same checklist item and location unless the reviewer cites new evidence.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Same finding, no new evidence", "given": "a DD-03 finding at src/a.js:20 labeled false", "when": "the reviewer sees the same issue at the same location with no new evidence", "then": "the report MUST NOT list the finding"},
+      {"name": "New evidence", "given": "the same label and a later change that makes the defect reachable", "when": "the reviewer cites that change as new evidence", "then": "the report MAY list the finding with the new evidence"}
+    ]},
+    {"id": "FR-313", "type": "functional", "text": "The plugin MUST list each checklist item whose precision is below a configured floor as a retirement candidate in a checklist-change report for the user. The floor and the minimum number of labeled findings are configured values (OQ-17).", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Item below the floor", "given": "a floor of 0.5 and an item with precision 0.3 over enough labeled findings", "when": "the checklist-change report runs", "then": "the report MUST list the item as a retirement candidate"},
+      {"name": "Too few labels", "given": "an item with precision 0.3 over fewer labeled findings than the configured minimum", "when": "the report runs", "then": "the report MUST NOT list the item as a retirement candidate"}
+    ]},
+    {"id": "FR-314", "type": "functional", "text": "The plugin MUST list each finding class that was raised with no checklist item at least a configured number of times as an addition candidate in the checklist-change report.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Repeated unmapped class", "given": "a configured count of 3 and 3 unmapped findings of one class", "when": "the checklist-change report runs", "then": "the report MUST list the class as an addition candidate"},
+      {"name": "Below the count", "given": "a configured count of 3 and 2 unmapped findings of one class", "when": "the report runs", "then": "the report MUST NOT list the class"}
+    ]},
+    {"id": "FR-315", "type": "functional", "text": "A reviewer checklist MUST change only through an edit that the user approves and that has a DECISIONS.md entry.", "priority": "must", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Approved edit", "given": "the user approved retiring item TI-06 and DECISIONS.md holds the entry", "when": "the merge policy review runs", "then": "the checklist edit MUST be accepted"},
+      {"name": "Edit without approval", "given": "a diff that retires item TI-06 and no DECISIONS.md entry", "when": "the merge policy review runs", "then": "the review MUST report the checklist edit as unapproved"}
+    ]},
+    {"id": "FR-316", "type": "functional", "text": "Before a change to a lane checklist, the severity catalog, or a screening rule ships, the plugin SHOULD report finding precision and recall on a seeded-defect sample, before and after the change.", "priority": "should", "category": null, "stakeholder": null, "traces_to": ["UR-084"], "scenarios": [
+      {"name": "Measured change", "given": "a seeded sample of 20 defects and a proposed checklist change", "when": "the plugin reports the change", "then": "the report SHOULD hold precision and recall before and after"},
+      {"name": "No sample", "given": "no seeded-defect sample", "when": "the plugin reports the change", "then": "the report SHOULD state that no measurement exists"}
+    ]},
 
     {"id": "NFR-026", "type": "nonfunctional", "text": "Every deny, ask, guardrail, and gate decision MUST produce a log record with timestamp, agent identity, decision, and rule id.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-019", "BR-020"], "scenarios": []},
     {"id": "NFR-027", "type": "nonfunctional", "text": "Each new hook, agent, or skill MUST hold the fewest tools it needs; the guardrail MUST NOT hold write tools and no new unscoped Bash grant MUST appear.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-018"], "scenarios": []},
@@ -208,7 +472,25 @@
       {"name": "Agent self-judgment does not set precision", "given": "a baseline finding has no user label and an agent judges it true", "when": "the baseline report computes precision", "then": "the report MUST NOT count the agent's judgment as a label AND the report MUST show the finding as unlabelled"}
     ]},
     {"id": "NFR-035", "type": "nonfunctional", "text": "Each new guard or filter MUST ship a self-test corpus with a known-safe and a known-prohibited case, report through the health check, and pass the table sync checks.", "priority": "must", "category": "reliability", "stakeholder": null, "traces_to": ["FR-214", "FR-219", "FR-233", "FR-246"], "scenarios": []},
-    {"id": "NFR-036", "type": "nonfunctional", "text": "Every change to the LLM surface made for this roadmap MUST carry LLM Security Clear before merge, and any write-guard narrowing MUST follow a DECISIONS.md entry.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-018", "BR-019"], "scenarios": []}
+    {"id": "NFR-036", "type": "nonfunctional", "text": "Every change to the LLM surface made for this roadmap MUST carry LLM Security Clear before merge, and any write-guard narrowing MUST follow a DECISIONS.md entry.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-018", "BR-019"], "scenarios": []},
+    {"id": "NFR-037", "type": "nonfunctional", "text": "Scoring the same spec output with the deterministic checklist MUST give an identical structural score on every repetition.", "priority": "must", "category": "reliability", "stakeholder": null, "traces_to": ["FR-265"], "scenarios": [
+      {"name": "Repeated scoring", "given": "one spec output and the deterministic checklist", "when": "the harness scores it 10 times", "then": "all 10 structural scores MUST be equal"}
+    ]},
+    {"id": "NFR-038", "type": "nonfunctional", "text": "Each benchmark run result MUST record its total model cost in USD and its elapsed time. Context: one recorded run of 8 cases took 165 seconds and about 4.85 USD; a full run of 10 coding and 10 spec cases at 5 runs each is estimated at 25 to 75 USD, not measured on this repository.", "priority": "must", "category": "performance", "stakeholder": null, "traces_to": ["BR-023"], "scenarios": [
+      {"name": "Cost recorded", "given": "a completed benchmark run", "when": "the run result is read", "then": "the result MUST hold a total cost and an elapsed time"}
+    ]},
+    {"id": "NFR-039", "type": "nonfunctional", "text": "The scoreboard and the benchmark logs MUST hold scores, identifiers, and versions only, and MUST NOT hold reference solutions, hidden-suite text, or agent output text.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-023", "FR-261"], "scenarios": [
+      {"name": "Scoreboard content", "given": "a scoreboard row for a release", "when": "the row is read", "then": "it MUST hold the version, suite, and scores only AND it MUST NOT hold hidden-suite text"}
+    ]},
+    {"id": "NFR-040", "type": "nonfunctional", "text": "A capability of Group B MUST NOT add a write or shell tool to reviewer or code-reviewer, whose tools MUST stay Read, Grep, Glob, LSP.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-024"], "scenarios": [
+      {"name": "Reviewer tools unchanged", "given": "the reviewer and code-reviewer agent files after a Group B change", "when": "the tools frontmatter is read", "then": "each MUST list only Read, Grep, Glob, LSP"}
+    ]},
+    {"id": "NFR-041", "type": "nonfunctional", "text": "The gate outcome MUST record the number of reviewer dispatches used, so the extra cost of concurrent lane review is measurable. Concurrent lanes cost about three times one pass (estimate, to confirm by measurement).", "priority": "must", "category": "performance", "stakeholder": null, "traces_to": ["BR-024", "FR-292"], "scenarios": [
+      {"name": "Dispatch count recorded", "given": "a gate that ran three lane reviews", "when": "the gate outcome is read", "then": "it MUST state 3 reviewer dispatches"}
+    ]},
+    {"id": "NFR-042", "type": "nonfunctional", "text": "The disposition and finding records MUST hold identifiers, locations, rule identifiers, severity, confidence, and the user's label only, and MUST NOT hold file contents, secret values, or matched text.", "priority": "must", "category": "security", "stakeholder": null, "traces_to": ["BR-024", "FR-309"], "scenarios": [
+      {"name": "Record content", "given": "a finding whose text quotes a secret value from the reviewed file", "when": "the finding record is written", "then": "the record MUST hold the path, line, and rule identifier AND the record MUST NOT hold the secret value"}
+    ]}
   ],
   "traceability": [
     {"requirement_id": "FR-214", "traces_to": ["UR-059", "BR-018"], "verified_by": "hook self-test and acceptance test: PR verdict deny"},
@@ -255,7 +537,76 @@
     {"requirement_id": "NFR-033", "traces_to": ["BR-020", "BR-021"], "verified_by": "control register status check"},
     {"requirement_id": "NFR-034", "traces_to": ["BR-022"], "verified_by": "promotion check"},
     {"requirement_id": "NFR-035", "traces_to": ["FR-214", "FR-219", "FR-233", "FR-246"], "verified_by": "health check and sync scripts"},
-    {"requirement_id": "NFR-036", "traces_to": ["BR-018", "BR-019"], "verified_by": "merge policy review"}
+    {"requirement_id": "NFR-036", "traces_to": ["BR-018", "BR-019"], "verified_by": "merge policy review"},
+    {"requirement_id": "FR-254", "traces_to": ["UR-077", "BR-023"], "verified_by": "golden task loader test"},
+    {"requirement_id": "FR-255", "traces_to": ["UR-077", "BR-023"], "verified_by": "golden task loader test"},
+    {"requirement_id": "FR-256", "traces_to": ["UR-077", "BR-023"], "verified_by": "hidden suite name check"},
+    {"requirement_id": "FR-257", "traces_to": ["UR-080", "BR-023"], "verified_by": "task metadata check"},
+    {"requirement_id": "FR-258", "traces_to": ["UR-080", "BR-023"], "verified_by": "task metadata check"},
+    {"requirement_id": "FR-259", "traces_to": ["UR-080", "BR-023"], "verified_by": "reference validation run with an injected failure"},
+    {"requirement_id": "FR-260", "traces_to": ["UR-080", "BR-023"], "verified_by": "workspace content test with a seeded reference file"},
+    {"requirement_id": "FR-261", "traces_to": ["UR-080", "BR-023"], "verified_by": "package file list search"},
+    {"requirement_id": "FR-262", "traces_to": ["UR-078", "BR-023"], "verified_by": "grader unit test on exit codes 0 and 1"},
+    {"requirement_id": "FR-263", "traces_to": ["UR-078", "BR-023"], "verified_by": "claude plugin eval case listing"},
+    {"requirement_id": "FR-264", "traces_to": ["UR-078", "BR-023"], "verified_by": "run on a machine without the sandbox backend"},
+    {"requirement_id": "FR-265", "traces_to": ["UR-078", "BR-023"], "verified_by": "checklist grader unit test"},
+    {"requirement_id": "FR-266", "traces_to": ["UR-078", "BR-023"], "verified_by": "checklist source mapping check"},
+    {"requirement_id": "FR-267", "traces_to": ["UR-078", "BR-023"], "verified_by": "checklist grader test with a seeded omission"},
+    {"requirement_id": "FR-268", "traces_to": ["UR-078", "BR-023"], "verified_by": "run with the judge off and on"},
+    {"requirement_id": "FR-269", "traces_to": ["UR-078", "BR-023"], "verified_by": "run with a cleared and an uncleared case"},
+    {"requirement_id": "FR-270", "traces_to": ["UR-078", "BR-023"], "verified_by": "result schema validation"},
+    {"requirement_id": "FR-271", "traces_to": ["UR-078", "BR-023"], "verified_by": "pass@1 unit test with k=5, c=3"},
+    {"requirement_id": "FR-272", "traces_to": ["UR-078", "BR-023"], "verified_by": "result schema validation"},
+    {"requirement_id": "FR-273", "traces_to": ["UR-079", "BR-023"], "verified_by": "release-check run with a stored previous release"},
+    {"requirement_id": "FR-274", "traces_to": ["UR-079", "BR-023"], "verified_by": "release-check run with and without the request"},
+    {"requirement_id": "FR-275", "traces_to": ["UR-079", "BR-023"], "verified_by": "result store unit test"},
+    {"requirement_id": "FR-276", "traces_to": ["UR-079", "BR-023"], "verified_by": "scoreboard row check"},
+    {"requirement_id": "FR-277", "traces_to": ["UR-079", "BR-023"], "verified_by": "comparison unit test around the margin"},
+    {"requirement_id": "FR-278", "traces_to": ["UR-079", "BR-023"], "verified_by": "comparison unit test with an added and a removed case"},
+    {"requirement_id": "FR-279", "traces_to": ["UR-079", "BR-023"], "verified_by": "comparison unit test with a judge-only decline"},
+    {"requirement_id": "FR-280", "traces_to": ["UR-080", "BR-023"], "verified_by": "case listing in an ordinary run and a release run"},
+    {"requirement_id": "FR-281", "traces_to": ["UR-080", "BR-023"], "verified_by": "scoreboard comparison between releases"},
+    {"requirement_id": "FR-282", "traces_to": ["UR-080", "BR-023"], "verified_by": "judge configuration test with the same family"},
+    {"requirement_id": "FR-283", "traces_to": ["UR-080", "BR-023"], "verified_by": "judge result schema validation"},
+    {"requirement_id": "FR-284", "traces_to": ["UR-080", "BR-023"], "verified_by": "judge run log showing both orders"},
+    {"requirement_id": "FR-285", "traces_to": ["UR-080", "BR-023"], "verified_by": "result schema validation and mean unit test"},
+    {"requirement_id": "FR-286", "traces_to": ["UR-080", "BR-023"], "verified_by": "agreement report on a labeled fixture"},
+    {"requirement_id": "FR-287", "traces_to": ["UR-080", "BR-023"], "verified_by": "suite run with a seeded flaky test"},
+    {"requirement_id": "FR-288", "traces_to": ["UR-081", "BR-024"], "verified_by": "checklist validation"},
+    {"requirement_id": "FR-289", "traces_to": ["UR-081", "BR-024"], "verified_by": "reviewer output acceptance test and orchestrator rejection test"},
+    {"requirement_id": "FR-290", "traces_to": ["UR-081", "BR-024"], "verified_by": "reviewer output acceptance test"},
+    {"requirement_id": "FR-291", "traces_to": ["UR-081", "BR-024"], "verified_by": "checklist validation and gate prompt inspection"},
+    {"requirement_id": "FR-292", "traces_to": ["UR-081", "BR-024"], "verified_by": "dispatch test with four ready reviews"},
+    {"requirement_id": "FR-293", "traces_to": ["UR-081", "BR-024"], "verified_by": "merge unit test"},
+    {"requirement_id": "FR-294", "traces_to": ["UR-082", "BR-024"], "verified_by": "two-round review test"},
+    {"requirement_id": "FR-295", "traces_to": ["UR-082", "BR-024"], "verified_by": "re-review output acceptance test"},
+    {"requirement_id": "FR-296", "traces_to": ["UR-083", "BR-024", "BR-019"], "verified_by": "reviewer output acceptance test"},
+    {"requirement_id": "FR-297", "traces_to": ["UR-083", "BR-024", "BR-019"], "verified_by": "gate counting test with a change between approvals"},
+    {"requirement_id": "FR-298", "traces_to": ["UR-082", "BR-024"], "verified_by": "gate prompt inspection"},
+    {"requirement_id": "FR-299", "traces_to": ["UR-082", "BR-024"], "verified_by": "re-review test with a seeded fix-induced defect"},
+    {"requirement_id": "FR-300", "traces_to": ["UR-082", "BR-024"], "verified_by": "gate loop test with two fix-induced passes"},
+    {"requirement_id": "FR-301", "traces_to": ["UR-082", "BR-024"], "verified_by": "gate loop test with a finding that stays open"},
+    {"requirement_id": "FR-302", "traces_to": ["UR-082", "BR-024"], "verified_by": "escalation display test"},
+    {"requirement_id": "FR-303", "traces_to": ["UR-083", "BR-024", "BR-019"], "verified_by": "reviewer test with an unreadable path"},
+    {"requirement_id": "FR-304", "traces_to": ["UR-085", "BR-024", "BR-018"], "verified_by": "PR-review workflow test with a moved head"},
+    {"requirement_id": "FR-305", "traces_to": ["UR-085", "BR-024", "BR-018"], "verified_by": "PR-review workflow test with an injected server error"},
+    {"requirement_id": "FR-306", "traces_to": ["UR-086", "BR-024", "BR-022"], "verified_by": "routing unit test with a catalog mismatch"},
+    {"requirement_id": "FR-307", "traces_to": ["UR-086", "BR-024", "BR-022"], "verified_by": "routing unit test with an unmapped finding"},
+    {"requirement_id": "FR-308", "traces_to": ["UR-086", "BR-024", "BR-022"], "verified_by": "report build test with a critic score"},
+    {"requirement_id": "FR-309", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "label record test"},
+    {"requirement_id": "FR-310", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "precision report test on a labeled fixture"},
+    {"requirement_id": "FR-311", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "gate prompt inspection"},
+    {"requirement_id": "FR-312", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "reviewer test with a false-labeled finding"},
+    {"requirement_id": "FR-313", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "checklist-change report test"},
+    {"requirement_id": "FR-314", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "checklist-change report test"},
+    {"requirement_id": "FR-315", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "merge policy review"},
+    {"requirement_id": "FR-316", "traces_to": ["UR-084", "BR-024", "BR-022"], "verified_by": "before and after report on a seeded sample"},
+    {"requirement_id": "NFR-037", "traces_to": ["FR-265"], "verified_by": "repeated scoring test"},
+    {"requirement_id": "NFR-038", "traces_to": ["BR-023"], "verified_by": "run result inspection"},
+    {"requirement_id": "NFR-039", "traces_to": ["BR-023", "FR-261"], "verified_by": "scoreboard and log content test"},
+    {"requirement_id": "NFR-040", "traces_to": ["BR-024"], "verified_by": "tools frontmatter review"},
+    {"requirement_id": "NFR-041", "traces_to": ["BR-024", "FR-292"], "verified_by": "gate outcome inspection"},
+    {"requirement_id": "NFR-042", "traces_to": ["BR-024", "FR-309"], "verified_by": "record content test"}
   ],
   "out_of_scope": [
     {"item": "Gaps 5, 7, 8, 9 of the LLM security checklist", "reason": "Not in the supplied roadmap", "deferred_to": "future roadmap"},
@@ -264,7 +615,17 @@
     {"item": "Session-level taint tracking that denies a payload holding content earlier read from a PHI-tagged path or student-record path (FR-233, FR-246)", "reason": "A per-call hook has no session state; no tracking mechanism is named", "deferred_to": "future roadmap"},
     {"item": "Bash write coverage through symlinks and variable-built commands", "reason": "Existing known limit of the write bar", "deferred_to": "future roadmap"},
     {"item": "Vendor SOC 2 report, HIPAA attestation, or FERPA certification for the plugin", "reason": "Evidence comes from the plugin's own hooks; certification is the adopter's process", "deferred_to": "never"},
-    {"item": "A dashboard for audit data", "reason": "Findings go to the GitHub Security tab, not a separate dashboard", "deferred_to": "never"}
+    {"item": "A dashboard for audit data", "reason": "Findings go to the GitHub Security tab, not a separate dashboard", "deferred_to": "never"},
+    {"item": "Comparing in-house benchmark scores with public leaderboard numbers (Group A)", "reason": "Scores move with the scaffold, so only in-house runs on one harness version compare", "deferred_to": "never"},
+    {"item": "Grading a coding case by a single run (Group A)", "reason": "The agent is non-deterministic; pass@1 needs k runs (FR-271)", "deferred_to": "never"},
+    {"item": "A merge gate that blocks on the judge score (Group A)", "reason": "The judge is a noisy, advisory signal (FR-279)", "deferred_to": "future roadmap, after judge-human agreement is measured"},
+    {"item": "Reporting line coverage of new code and traceability-marker resolution as benchmark metrics (Group A)", "reason": "Named in the research report but by no user requirement", "deferred_to": "follow-up release"},
+    {"item": "Recording the random seed of a randomized hidden-suite run for replay (Group A)", "reason": "Useful for flake triage, not needed to score", "deferred_to": "follow-up release"},
+    {"item": "Ingesting scanner output as structured findings for the reviewer (Group B)", "reason": "The reviewers hold no shell; the orchestrator would need a new scanner-to-finding step", "deferred_to": "future roadmap"},
+    {"item": "Suppressing a repeated finding by similarity match to past false labels (Group B)", "reason": "FR-311 and FR-312 cover exact checklist item and location; a similarity match needs a measured threshold", "deferred_to": "future roadmap"},
+    {"item": "Impact-graph or prior-pattern context for the reviewer (Group B)", "reason": "Needs an index the plugin does not hold", "deferred_to": "future roadmap"},
+    {"item": "A reviewer or critic model that approves a gate, blocks a merge, or sets severity by its own score (Group B)", "reason": "Excluded by FR-308 and FR-221", "deferred_to": "never"},
+    {"item": "Automatic application of a checklist change (Group B)", "reason": "Excluded by FR-315", "deferred_to": "never"}
   ],
   "open_questions": [
     "OQ-1: Resolved (DECISIONS.md, 2026-10-30, Judgement-gate evidence and the /do human authorizer settled). A judgement-based gate clears on a scanner exit code from the plugin's own scripts plus a distinct reviewer-agent verdict with file:line findings; an external scanner is optional additional evidence (FR-221).",
@@ -278,6 +639,13 @@
     "OQ-9: Resolved (DECISIONS.md, 2026-10-28, OQ-9 resolved; FERPA control reframed, HIPAA scope tightened). HIPAA: FR-232 is verified against 45 CFR 164.312(b) as one required technical safeguard that records and supports review, not full HIPAA compliance. FERPA: the internal access log (FR-230) is general governance support and does not implement 34 CFR 99.32; FR-246 adds disclosure recordation for outbound education-record data and is the only control cited against 99.32.",
     "OQ-10: Resolved (DECISIONS.md, 2026-10-30, Audit-logging stores settled (per-access split, rotation and retention, confirmation-store writer)). A UserPromptSubmit hook writes the confirmation store as JSONL under a path in .agent/ protected under FR-245; the FR-214 guard reads it with file reads alone (FR-242). Refined (DECISIONS.md, 2026-10-30, PN-10 pending-action store split and token lifetime settled): the store is a directory with confirmations.jsonl (hook-only, denied to every tool caller) and pending.jsonl (main-session /do writable, denied to every subagent); the token is single-use and time-expiring, with the window an estimate until measured (FR-242, FR-245).",
     "OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records unstated and flags the record (FR-247).",
-    "OQ-12: Resolved (DECISIONS.md, 2026-10-30: Severity policy approved, re-approved by 2026-10-31: Severity policy approved). The user approved severity-policy.md version draft-2 (first approved at draft-1, superseded). The policy basis was settled earlier (DECISIONS.md, 2026-10-30, Severity-policy basis and SARIF writer settled); a rule may block on severity only after the FR-238 advisory baseline (FR-237)."
+    "OQ-12: Resolved (DECISIONS.md, 2026-10-30: Severity policy approved, re-approved by 2026-10-31: Severity policy approved). The user approved severity-policy.md version draft-2 (first approved at draft-1, superseded). The policy basis was settled earlier (DECISIONS.md, 2026-10-30, Severity-policy basis and SARIF writer settled); a rule may block on severity only after the FR-238 advisory baseline (FR-237).",
+    "OQ-13: Open (Group A). Does the benchmark section run only on request, as FR-274 states, or by default in every release check? A full run is an estimated 25 to 75 USD. The section also needs a delta to the section list of FR-250 in FR-NFR-assist-plugin.md (D-15).",
+    "OQ-14: Open (Group A). No default is settled for the run count k, the regression margin (FR-277), the validation run count (FR-259), or the judge run count (FR-285); each is a configured value.",
+    "OQ-15: Open (Group A). Where do reference solutions and hidden suites live? The marketplace repository is published, and the research report layout puts reference/ under the shipped plugin tree, which conflicts with FR-261 (D-16).",
+    "OQ-16: Open (Group A). The judge must use a model family other than the agent's (FR-282), and the plugin's agents run on one vendor's models today. Does a judge of another family exist for this project, or does the judge wait for a later release?",
+    "OQ-17: Open (Group B). The escalation counts of FR-300 and FR-301 (two each) and the precision floor and minimum label count of FR-313 and FR-314 are estimates. Which values does the user set?",
+    "OQ-18: Open (Group B). Which agent applies each lane in each gate, in particular the test-integrity lane in the Testing Gate that qa reviews today (FR-291, D-17)?",
+    "OQ-19: Open (Group B). The severity catalog changes the severity policy, so FR-237 requires the user's approval of the catalog contents before FR-306 and FR-307 take effect (D-14)."
   ]
 }
