@@ -19,7 +19,7 @@ Baseline: Group B (Theme 6) of `docs/requirements/FR-NFR-harness-governance.md` 
 
 The review machinery of `/do` extends the existing review gates with named reviewer checklists by lane, a finding-level iteration record that survives across rounds, guards that keep an approval tied to the artifact and the posting tied to the current head, and a feedback loop that turns the user's own labels into checklist changes the user approves. Reviewers (`reviewer`, `code-reviewer`) stay read-only; the `/do` orchestrator reads their evidence and writes every finding, status, label, and gate record (FR-222, NFR-040). The machinery closes four gaps in the current review controls: a clean review that never states which recurring defect classes it checked, a re-review that cannot name which earlier finding a later one is, an approval that may name a stale revision or an unexamined path, and a noisy checklist that no measured signal retires.
 
-One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and FR-307), is designed here but is inactive. It changes the severity policy, so it activates only after the user re-approves the severity policy under FR-237 with the severity catalog added (dependency D-14). Until that re-approval, reviewers set `severity` from the approved severity-policy text as they do today, and the orchestrator does not override a reviewer's severity from a catalog.
+One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and FR-307), is approved and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25), which authorizes the capability. This spec designs it; implementing the catalog stays future build work. Until the catalog is implemented, reviewers set `severity` from the approved severity-policy text as they do today, and the orchestrator does not override a reviewer's severity from a catalog.
 
 ## Triggered by
 
@@ -43,7 +43,7 @@ One capability in this spec, catalog-fixed severity (Requirement 18, FR-306 and 
 | Changed-paths list | The fix pass diff | Paths | Present only on a re-review (FR-298) |
 | Reviewed revision | The reviewer report | Content digest or commit identifier | Tied to the artifact at the gate (FR-296, FR-297) |
 | User finding labels | The labelling step record | true, false, deferred, or unlabeled, with writer | Only the user's label counts (FR-309) |
-| Severity catalog | `rules/severity-policy.md` (Planned, D-14) | Rule id to fixed severity | Inactive until FR-237 re-approval (Requirement 18) |
+| Severity catalog | `rules/severity-policy.md` (D-14, approved) | Rule id to fixed severity | Approved and active under the FR-237 re-approval; implementation is future build work (Requirement 18) |
 | Current PR head revision | The code-hosting platform, read at the post step | Revision identifier | Read immediately before posting (FR-304) |
 
 ## Preconditions
@@ -111,14 +111,14 @@ Reviewer checklist register (initial DRAFT content):
 | TI-02 | test-integrity | The boundary value and the value on each side of it have a case | The cases at file:line | test |
 | TI-03 | test-integrity | No assertion passes when the guarded value is empty or removed | The assertion text | test |
 | TI-04 | test-integrity | Each test reaches the branch or option it names, and no default setup hides it | The setup at file:line | test |
-| TI-05 | test-integrity | Each behavior a docstring, comment, or document claims matches the code and has a test | The claim and the test or code line | code, test, document |
-| TI-06 | test-integrity | A count or list stated in prose is derived or checked, not hand-written | The check or the matching count | document |
+| TI-05 | test-integrity | Each behavior a docstring, comment, or document claims matches the code and has a test | The claim and the test or code line | code, test, planning document |
+| TI-06 | test-integrity | A count or list stated in prose is derived or checked, not hand-written | The check or the matching count | planning document |
 | TI-07 | test-integrity | Validators and constraints agree with the contract the code states for them | The two lines compared | code |
 | TI-08 | test-integrity | A test that replaces a boundary with a recorder is not the only proof of that boundary's behavior | A test against the real boundary | test |
 | AS-01 | architecture-safety | In a multi-owner data model, every table, unique key, and relation carries the owner key | The schema lines | code, config |
 | AS-02 | architecture-safety | An access policy is scoped to the account and resource it serves | The policy lines | config |
 | AS-03 | architecture-safety | A credential is not written to a location that outlives the job | The write at file:line | config, pipeline |
-| AS-04 | architecture-safety | The author of a control change is not its only approver | The change record | config, document |
+| AS-04 | architecture-safety | The author of a control change is not its only approver | The change record | config, planning document |
 | AS-05 | architecture-safety | A failed privacy or permission check denies the operation | The failure path at file:line | code |
 | AS-06 | architecture-safety | Untrusted text that reaches rendered output cannot create a live control or link | The escaping at file:line | code |
 
@@ -127,10 +127,10 @@ Lane-to-gate table:
 | Lane | Existing gates that apply it |
 |------|------------------------------|
 | defect-depth | Pre-Test Code Review Gate; Security Gate |
-| test-integrity | Testing Gate (reviewed by `qa`); Code Review Gate |
+| test-integrity | Testing Gate (applied by `qa`, D-17); Code Review Gate |
 | architecture-safety | Code Review Gate |
 
-No new gate is added, so the cap of FR-218 and every gate bound stay unchanged. Which agent applies the test-integrity lane in the Testing Gate, which `qa` reviews today, is an open dependency (D-17).
+No new gate is added, so the cap of FR-218 and every gate bound stay unchanged. The `qa` agent owns applying the test-integrity lane in the Testing Gate (D-17 settled; `DECISIONS.md`, 2026-11-25).
 
 #### Scenario: Checklist valid
 
@@ -330,7 +330,7 @@ On a re-review the reviewer SHALL mark a finding as `fix-induced`, with the iden
 
 ### Requirement 12: Run a design pass after repeated fix-induced findings
 
-When two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. (FR-300; parallels the escalation to `code-reviewer` after two scope violations, spec-orchestration-review-gates.md Requirement 7. The count of two is a configured estimate, OQ-17)
+When two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass. (FR-300; parallels the escalation to `code-reviewer` after two scope violations, spec-orchestration-review-gates.md Requirement 7. The count of two is a provisional value, still overridable (OQ-17; `FR-NFR-harness-governance.md` section 5))
 
 #### Scenario: Two fix-induced passes
 
@@ -346,7 +346,7 @@ When two consecutive re-reviews of one gate each return a fix-induced finding, t
 
 ### Requirement 13: Stop early on a finding that stays open
 
-When two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. (FR-301; extends FR-218, which escalates only at iteration 10. The count of two is a configured estimate, OQ-17; the choices are those of FR-218)
+When two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort. (FR-301; extends FR-218, which escalates only at iteration 10. The count of two is a provisional value, still overridable (OQ-17; `FR-NFR-harness-governance.md` section 5); the choices are those of FR-218)
 
 #### Scenario: Finding open after two fixes
 
@@ -428,34 +428,34 @@ When a posting command ends with an unknown outcome, the PR-review workflow SHAL
 - **WHEN** the workflow handles the error
 - **THEN** the workflow MAY retry, subject to the FR-214 confirmation
 
-### Requirement 18: Take severity from the catalog (INACTIVE, pending FR-237 re-approval)
+### Requirement 18: Take severity from the catalog
 
-Status: designed, inactive. This Requirement activates only after the user re-approves the severity policy under FR-237 with the severity catalog added (dependency D-14). Until then, reviewers set `severity` from the approved severity-policy text (`rules/severity-policy.md`) as in FR-240, and the orchestrator does not override a reviewer's severity from a catalog.
+Status: approved and active. The user re-approved the severity policy under FR-237 with the severity catalog added (dependency D-14; `DECISIONS.md`, 2026-11-25). This authorizes the capability; the catalog's implementation stays future build work. Until the catalog is implemented, reviewers set `severity` from the approved severity-policy text (`rules/severity-policy.md`) as in FR-240, and the orchestrator does not override a reviewer's severity from a catalog.
 
-When active, a finding whose rule identifier is in the severity catalog SHALL take its severity from that catalog entry, and a finding with no catalog rule identifier and no CWE identifier SHALL be marked `unmapped` and SHALL route no higher than `inline-comment`. (FR-306, FR-307; extends FR-237, FR-239, FR-240. The severity catalog is a table held with the severity policy that maps each rule identifier, every checklist item and in-plugin scanner rule included, to a fixed severity, D-14)
+A finding whose rule identifier is in the severity catalog SHALL take its severity from that catalog entry, and a finding with no catalog rule identifier and no CWE identifier SHALL be marked `unmapped` and SHALL route no higher than `inline-comment`. (FR-306, FR-307; extends FR-237, FR-239, FR-240. The severity catalog is a table held with the severity policy that maps each rule identifier, every checklist item and in-plugin scanner rule included, to a fixed severity, D-14)
 
-Adding the catalog changes the severity policy, so it needs the re-approval FR-237 requires before any severity-based rule acts on it. The orchestrator records the catalog severity and notes any difference from the reviewer's written severity; it drops no finding and raises no severity on a model score (Requirement 19).
+Adding the catalog changed the severity policy, so it took the re-approval FR-237 requires; the user granted that re-approval (D-14). The orchestrator records the catalog severity and notes any difference from the reviewer's written severity; it drops no finding and raises no severity on a model score (Requirement 19).
 
-#### Scenario: Catalog severity applied (when active)
+#### Scenario: Catalog severity applied
 
-- **GIVEN** FR-237 has re-approved the severity policy with the catalog, catalog entry DD-01 has severity MEDIUM, and a finding with rule identifier DD-01 that the reviewer wrote as HIGH
+- **GIVEN** catalog entry DD-01 has severity MEDIUM and a finding with rule identifier DD-01 that the reviewer wrote as HIGH
 - **WHEN** the orchestrator reads the report
 - **THEN** the recorded severity SHALL read MEDIUM
 - **AND** the report SHALL note the difference
 
-#### Scenario: Unmapped high finding (when active)
+#### Scenario: Unmapped high finding
 
-- **GIVEN** the catalog is active and a finding with severity HIGH, confidence High, and no catalog rule or CWE identifier
+- **GIVEN** a finding with severity HIGH, confidence High, and no catalog rule or CWE identifier
 - **WHEN** routing runs
 - **THEN** the finding SHALL read `unmapped`
 - **AND** the routing SHALL NOT read `block-merge`
 
-#### Scenario: Catalog not yet re-approved
+#### Scenario: Catalog not yet implemented
 
-- **GIVEN** FR-237 has not re-approved the severity policy with the catalog
+- **GIVEN** the severity policy is re-approved with the catalog (D-14) and the catalog override is not yet built
 - **WHEN** the orchestrator reads a report whose finding rule identifier would map a catalog entry
 - **THEN** the orchestrator SHALL keep the reviewer's severity from the approved policy text
-- **AND** the orchestrator SHALL NOT override it from the catalog
+- **AND** the orchestrator SHALL NOT override it from the catalog until the capability is implemented
 
 ### Requirement 19: Keep a critic or filtering score out of severity and inclusion
 
@@ -505,7 +505,7 @@ The record holds no file contents, secret values, or matched text (NFR-042, foll
 
 The plugin SHALL report, for each lane and each checklist item, the counts of findings labeled true, labeled false, deferred, and unlabeled and the precision over the labeled findings, SHALL list each item below a configured precision floor as a retirement candidate and each unmapped finding class at or above a configured count as an addition candidate in a checklist-change report, and SHOULD report finding precision and recall on a seeded-defect sample before and after a proposed change. (FR-310, FR-313, FR-314, FR-316; extends NFR-034 and FR-238, the advisory baseline with finding counts and precision)
 
-Precision is true divided by the sum of true and false. An item whose findings are all unlabeled reports precision not available, never 0. The floor, the minimum number of labeled findings, and the unmapped-class count are configured values with no settled default (OQ-17, assumption A-14). A seeded-defect sample MAY reuse the review tasks of the Group A seeded sample; the reuse is optional.
+Precision is true divided by the sum of true and false. An item whose findings are all unlabeled reports precision not available, never 0. The floor, the minimum number of labeled findings, and the unmapped-class count are provisional values, still overridable (OQ-17; `FR-NFR-harness-governance.md` section 5): a retirement floor of 0.5, a minimum of 10 labeled findings, and an addition count of 3; the seeded-defect sample size (FR-316) is provisionally 20. A seeded-defect sample MAY reuse the review tasks of the Group A seeded sample; the reuse is optional.
 
 ```mermaid
 flowchart TD
@@ -648,7 +648,7 @@ Every finding, status, label, merge, and gate record is written by the orchestra
 | RULE-007 | An escalation shows the per-round counts of new, fixed, open, and withdrawn findings | FR-302 | Requirement 14 | A four-round escalation lists four rows |
 | RULE-008 | A reviewer does not approve over an unexamined path; the unexamined path goes in `skipped:` | FR-303 | Requirement 15 | Two of three paths read yields no `approved` |
 | RULE-009 | A PR review posts only against the current head, read immediately before the post; an unknown outcome forces a read-back before retry | FR-304, FR-305 | Requirements 16, 17 | A moved head blocks the post and reports a stale draft |
-| RULE-010 | Severity comes from the catalog only after FR-237 re-approves the policy with it; until then the reviewer's policy-set severity stands | FR-306, FR-307 | Requirement 18 | No catalog override before re-approval |
+| RULE-010 | The severity catalog is approved and active under the FR-237 re-approval (D-14); the orchestrator takes severity from it once implemented, and until then the reviewer's policy-set severity stands | FR-306, FR-307 | Requirement 18 | Catalog authorized; override applies when built |
 | RULE-011 | A critic or filtering model score never sets severity or removes a finding | FR-308 | Requirement 19 | A likely-false score leaves the finding in the report |
 | RULE-012 | Only the user's label sets a disposition; an agent judgment leaves the finding unlabeled | FR-309 | Requirement 20 | Precision counts no agent-set label |
 | RULE-013 | Precision is true / (true + false); all-unlabeled reads not available, never 0 | FR-310 | Requirement 21 | 8 true, 2 false reads 0.8 |
@@ -710,7 +710,7 @@ Every finding, status, label, merge, and gate record is written by the orchestra
 
 ## Sub-feature breakdown
 
-Not applicable: no smaller unit has its own spec. The severity catalog of Requirement 18 lives with `rules/severity-policy.md` and activates under FR-237; the routing function `route(finding)` and the advisory-only severity routing stay in spec-hooks-code-scan.md and spec-orchestration-review-gates.md.
+Not applicable: no smaller unit has its own spec. The severity catalog of Requirement 18 lives with `rules/severity-policy.md` and is approved under the FR-237 re-approval (D-14); the routing function `route(finding)` and the advisory-only severity routing stay in spec-hooks-code-scan.md and spec-orchestration-review-gates.md.
 
 ## Performance considerations
 
@@ -741,7 +741,7 @@ Not applicable: no smaller unit has its own spec. The severity catalog of Requir
 | FR-303 | Requirement 15: Refuse approval over an unexamined path | Two of three paths read yields no approved; unexamined path in `skipped:` |
 | FR-304 | Requirement 16: Post a PR review only against the current head | Moved head blocks the post and reports a stale draft |
 | FR-305 | Requirement 17: Read back the PR reviews after an unknown posting outcome | Review present after error suppresses retry; absent allows retry |
-| FR-306, FR-307 | Requirement 18: Take severity from the catalog (INACTIVE, pending FR-237 re-approval) | Catalog override only after FR-237 re-approval; no override before; unmapped high clamped to inline-comment when active |
+| FR-306, FR-307 | Requirement 18: Take severity from the catalog | Catalog severity applied once implemented (approved under the FR-237 re-approval, D-14); unmapped high clamped to inline-comment |
 | FR-308 | Requirement 19: Keep a critic or filtering score out of severity and inclusion | A likely-false score keeps the finding; a critic score does not raise severity |
 | FR-309, NFR-042 | Requirement 20: Record a disposition only from the user's label | User label recorded with writer user; agent judgment unlabeled; secret kept out of the record |
 | FR-310, FR-313, FR-314, FR-316 | Requirement 21: Report precision per lane and item, and drive checklist changes | 8 true, 2 false reads 0.8; all-unlabeled reads not available; retirement, addition, and before-and-after cases |
@@ -758,6 +758,6 @@ Not applicable: no smaller unit has its own spec. The severity catalog of Requir
 
 | ID | Item | Affects |
 |---|---|---|
-| D-14 | Open (Group B): approve the severity catalog, a table mapping each rule identifier to a fixed severity, held with `rules/severity-policy.md`. FR-237 requires the user to approve the severity policy before a rule blocks on severity, so a catalog added to it needs the same approval | Requirement 18 (FR-306, FR-307) |
-| D-17 | Open (Group B): settle which agent applies each lane in each gate, in particular who applies the test-integrity lane in the Testing Gate, which `qa` reviews today | Requirement 1 (FR-291) |
-| OQ-17 | The escalation counts of Requirements 12 and 13, the precision floor and minimum labels of Requirement 21, and the unmapped-class count are configured values with no settled default | Requirements 12, 13, 21 |
+| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25): the user re-approved the severity policy under FR-237 with the severity catalog added, so catalog severity (FR-306, FR-307) is approved and active. This authorizes the capability; implementing the catalog is future build work | Requirement 18 (FR-306, FR-307) |
+| D-17 | Settled (Group B; `DECISIONS.md`, 2026-11-25): the `qa` agent owns applying the Testing Gate's test-integrity lane | Requirement 1 (FR-291) |
+| OQ-17 | Provisionally settled, not closed (`FR-NFR-harness-governance.md` section 5): the escalation counts of Requirements 12 and 13 are 2, the retirement floor of Requirement 21 is 0.5, its minimum labeled findings 10, and its addition count 3; each is provisional and still overridable | Requirements 12, 13, 21 |

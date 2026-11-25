@@ -633,7 +633,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** A severity policy MUST define CRITICAL, HIGH, MEDIUM, and LOW for this repo, with examples and confidence levels, and MUST be approved by the user (recorded in `DECISIONS.md`) before any rule blocks on severity.
 **Traces to:** UR-071
 **Priority:** Must
-**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional). The policy basis is settled by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-4 basis): four levels aligned to a recognized rubric (OWASP risk rating or CVSS bands) with repo-specific examples drawn from this plugin's hook and LLM-surface risks, a per-finding confidence of High, Medium, or Low, and a SARIF mapping of CRITICAL and HIGH to error, MEDIUM to warning, and LOW to note. The user approved the concrete policy text, `severity-policy.md` version `draft-2`, in `DECISIONS.md` (first approved at `draft-1`, "2026-10-30: Severity policy approved"; re-approved at `draft-2` after the Status-line reconciliation, "2026-10-31: Severity policy approved"). A rule may now block on severity, but only after the advisory-baseline-first promotion gate of FR-238.
+**Origin:** Roadmap theme 4. Reference: https://helpmetest.com/blog/devsecops-testing-pipeline/ (vendor blog, directional). The policy basis is settled by `DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled" (D-4 basis): four levels aligned to a recognized rubric (OWASP risk rating or CVSS bands) with repo-specific examples drawn from this plugin's hook and LLM-surface risks, a per-finding confidence of High, Medium, or Low, and a SARIF mapping of CRITICAL and HIGH to error, MEDIUM to warning, and LOW to note. The user approved the concrete policy text, `severity-policy.md` version `draft-2`, in `DECISIONS.md` (first approved at `draft-1`, "2026-10-30: Severity policy approved"; re-approved at `draft-2` after the Status-line reconciliation, "2026-10-31: Severity policy approved"). A rule may now block on severity, but only after the advisory-baseline-first promotion gate of FR-238. The user re-approved this policy with the severity catalog added (D-14; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"), which activates FR-306 and FR-307.
 
 ##### Scenario: Policy approved
 
@@ -1414,7 +1414,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The benchmark section MUST run only when the user requests it.
 **Traces to:** UR-079
 **Priority:** Must
-**Origin:** Report:114. A full benchmark run is estimated at $25 to $75, so it must not start with every release check (OQ-13).
+**Origin:** Report:114. A full benchmark run is estimated at $25 to $75, so it must not start with every release check (OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite). This Group A "benchmark section" is the suite runner. It is not the "benchmark scoreboard section" of FR-250 in `FR-NFR-assist-plugin.md`, the reporting view that reads the stored scoreboard.
 
 ##### Scenario: Plain release check
 
@@ -1689,7 +1689,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### Theme 6, Group B: Reviewer and review machinery
 
-**Status:** DRAFT. **System:** the `reviewer` and `code-reviewer` agents, the `/do` orchestrator's review gates, and the PR-review workflow. **Relationship to existing controls:** Group B extends and does not replace FR-218 (revision cap and escalation), FR-221 and FR-222 (evidence-backed gates, approval writer), FR-237 to FR-241 (severity policy, advisory baseline, routing, finding fields, SARIF), NFR-027 (fewest tools), NFR-034 (user-set labels), and NFR-036 (LLM Security Clear). The current controls are `plugins/assist-plugin/agents/reviewer.md`, `plugins/assist-plugin/agents/code-reviewer.md`, `plugins/assist-plugin/skills/do/references/review-protocol.md` (Review Output Rules, `:133-143`), `plugins/assist-plugin/skills/do/references/fix-phase-rules.md`, and `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, and 7). Each requirement below names the control it extends and the gap it closes. Reviewers stay read-only; the orchestrator writes every record (NFR-040). **Terms:** "lane" is a review focus with its own checklist; "rule identifier" is the identifier of a severity-catalog entry, and every checklist item is also a catalog entry (FR-306). Cost figures for concurrent lanes are estimates to confirm by measurement.
+**Status:** DRAFT, except FR-306 and FR-307, which are Approved and active (D-14; `DECISIONS.md`, 2026-11-25). **System:** the `reviewer` and `code-reviewer` agents, the `/do` orchestrator's review gates, and the PR-review workflow. **Relationship to existing controls:** Group B extends and does not replace FR-218 (revision cap and escalation), FR-221 and FR-222 (evidence-backed gates, approval writer), FR-237 to FR-241 (severity policy, advisory baseline, routing, finding fields, SARIF), NFR-027 (fewest tools), NFR-034 (user-set labels), and NFR-036 (LLM Security Clear). The current controls are `plugins/assist-plugin/agents/reviewer.md`, `plugins/assist-plugin/agents/code-reviewer.md`, `plugins/assist-plugin/skills/do/references/review-protocol.md` (Review Output Rules, `:133-143`), `plugins/assist-plugin/skills/do/references/fix-phase-rules.md`, and `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, and 7). Each requirement below names the control it extends and the gap it closes. Reviewers stay read-only; the orchestrator writes every record (NFR-040). **Terms:** "lane" is a review focus with its own checklist; "rule identifier" is the identifier of a severity-catalog entry, and every checklist item is also a catalog entry (FR-306). Cost figures for concurrent lanes are estimates to confirm by measurement.
 
 #### 2.71 FR-288: Reviewer checklists per lane
 
@@ -1715,23 +1715,23 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | TI-02 | test-integrity | The boundary value and the value on each side of it have a case | The cases at file:line | test |
 | TI-03 | test-integrity | No assertion passes when the guarded value is empty or removed | The assertion text | test |
 | TI-04 | test-integrity | Each test reaches the branch or option it names, and no default setup hides it | The setup at file:line | test |
-| TI-05 | test-integrity | Each behavior that a docstring, comment, or document claims matches the code and has a test | The claim and the test or code line | code, test, document |
-| TI-06 | test-integrity | A count or list stated in prose is derived or checked, not hand-written | The check or the matching count | document |
+| TI-05 | test-integrity | Each behavior that a docstring, comment, or document claims matches the code and has a test | The claim and the test or code line | code, test, planning document |
+| TI-06 | test-integrity | A count or list stated in prose is derived or checked, not hand-written | The check or the matching count | planning document |
 | TI-07 | test-integrity | Validators and constraints agree with the contract that the code states for them | The two lines compared | code |
 | TI-08 | test-integrity | A test that replaces a boundary with a recorder is not the only proof of that boundary's behavior | A test against the real boundary | test |
 | AS-01 | architecture-safety | In a multi-owner data model, every table, unique key, and relation carries the owner key | The schema lines | code, config |
 | AS-02 | architecture-safety | An access policy is scoped to the account and resource it serves | The policy lines | config |
 | AS-03 | architecture-safety | A credential is not written to a location that outlives the job | The write at file:line | config, pipeline |
-| AS-04 | architecture-safety | The author of a control change is not its only approver | The change record | config, document |
+| AS-04 | architecture-safety | The author of a control change is not its only approver | The change record | config, planning document |
 | AS-05 | architecture-safety | A failed privacy or permission check denies the operation | The failure path at file:line | code |
 | AS-06 | architecture-safety | Untrusted text that reaches rendered output cannot create a live control or link | The escaping at file:line | code |
 
-**Lane-to-gate table (FR-291; OQ-18):**
+**Lane-to-gate table (FR-291; OQ-18 settled):**
 
 | Lane | Existing gates that apply it |
 |------|------------------------------|
 | defect-depth | Pre-Test Code Review Gate; Security Gate |
-| test-integrity | Testing Gate (reviewed by `qa`); Code Review Gate |
+| test-integrity | Testing Gate (applied by `qa`, D-17); Code Review Gate |
 | architecture-safety | Code Review Gate |
 
 ##### Scenario: Checklist valid
@@ -1790,7 +1790,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** Each lane checklist MUST be applied within the existing gates that the lane-to-gate table assigns.
 **Traces to:** UR-081
 **Priority:** Should
-**Origin:** Extends `review-protocol.md` (gate list) and `specs/spec-orchestration-review-gates.md` Requirement 1. No gate is added, so the cap of FR-218 and the gate bounds stay unchanged. Which agent applies the test-integrity lane in the Testing Gate is open (OQ-18).
+**Origin:** Extends `review-protocol.md` (gate list) and `specs/spec-orchestration-review-gates.md` Requirement 1. No gate is added, so the cap of FR-218 and the gate bounds stay unchanged. The `qa` agent applies the test-integrity lane in the Testing Gate (D-17 settled; OQ-18 settled; `DECISIONS.md`, 2026-11-25).
 
 ##### Scenario: Lane in an assigned gate
 
@@ -1962,7 +1962,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** WHEN two consecutive re-reviews of one gate each return a fix-induced finding, the orchestrator SHOULD run one code-reviewer pass over the whole artifact before it dispatches another fix pass.
 **Traces to:** UR-082
 **Priority:** Should
-**Origin:** Parallels the escalation to `code-reviewer` after two scope violations (`specs/spec-orchestration-review-gates.md` Requirement 7). The count of two is an estimate (OQ-17).
+**Origin:** Parallels the escalation to `code-reviewer` after two scope violations (`specs/spec-orchestration-review-gates.md` Requirement 7). The count of two is a provisional value, to be revised with data (OQ-17).
 
 ##### Scenario: Two fix-induced passes
 
@@ -1981,7 +1981,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** WHEN two consecutive re-reviews of one gate report the same finding as open and the reviewer cites no new evidence, the orchestrator SHOULD stop that loop and offer the choices continue, waive, or abort.
 **Traces to:** UR-082
 **Priority:** Should
-**Origin:** Extends FR-218, which escalates only at iteration 10. The count of two is an estimate (OQ-17). The choices are those of FR-218.
+**Origin:** Extends FR-218, which escalates only at iteration 10. The count of two is a provisional value, to be revised with data (OQ-17). The choices are those of FR-218.
 
 ##### Scenario: Finding open after two fixes
 
@@ -2078,7 +2078,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** A finding whose rule identifier is in the severity catalog MUST take its severity from that catalog entry. The severity catalog is a table, held with the severity policy, that maps each rule identifier to a fixed severity; every checklist item and every in-plugin scanner rule has an entry (D-14).
 **Traces to:** UR-086
 **Priority:** Should
-**Origin:** Extends FR-237 and FR-240, where the reviewer sets `severity` from the policy text. Gap: the same defect class can carry different severities in different reviews. Adding a catalog changes the severity policy and needs the re-approval that FR-237 requires.
+**Origin:** Extends FR-237 and FR-240, where the reviewer sets `severity` from the policy text. Gap: the same defect class can carry different severities in different reviews. Adding a catalog changes the severity policy and needs the re-approval that FR-237 requires. **Status:** Approved and active. The user re-approved FR-237 with the catalog added (D-14; `DECISIONS.md`, 2026-11-25). This authorizes the capability and does not implement it.
 
 ##### Scenario: Catalog severity applied
 
@@ -2098,7 +2098,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** A finding with no rule identifier in the severity catalog and no CWE identifier MUST be marked `unmapped` and MUST route no higher than `inline-comment`.
 **Traces to:** UR-086
 **Priority:** Should
-**Origin:** Extends FR-239 (only high-confidence, HIGH or CRITICAL findings route as blocking) with a further clamp for a finding that no fixed rule backs.
+**Origin:** Extends FR-239 (only high-confidence, HIGH or CRITICAL findings route as blocking) with a further clamp for a finding that no fixed rule backs. **Status:** Approved and active, on the same D-14 re-approval as FR-306; this authorizes the capability and does not implement it.
 
 ##### Scenario: Unmapped high finding
 
@@ -2214,7 +2214,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### 2.96 FR-313: Retirement candidates
 
-**Statement:** The plugin MUST list each checklist item whose precision is below a configured floor as a retirement candidate in a checklist-change report for the user. The floor and the minimum number of labeled findings are configured values (OQ-17).
+**Statement:** The plugin MUST list each checklist item whose precision is below a configured floor as a retirement candidate in a checklist-change report for the user. The floor and the minimum number of labeled findings are configured values with provisional settings of 0.5 and 10, to be revised with data (OQ-17; section 5, provisional values).
 **Traces to:** UR-084
 **Priority:** Should
 **Origin:** Extends NFR-034, which sets a precision bar for promotion to blocking and none for retiring a noisy rule.
@@ -2236,7 +2236,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The plugin MUST list each finding class that was raised with no checklist item at least a configured number of times as an addition candidate in the checklist-change report.
 **Traces to:** UR-084
 **Priority:** Should
-**Origin:** Gap: findings that match no checklist item (FR-307, `unmapped`) are the evidence that a checklist item is missing. The count is a configured value (OQ-17).
+**Origin:** Gap: findings that match no checklist item (FR-307, `unmapped`) are the evidence that a checklist item is missing. The count is a configured value with a provisional setting of 3, to be revised with data (OQ-17; section 5, provisional values).
 
 ##### Scenario: Repeated unmapped class
 
@@ -2519,10 +2519,23 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | D-12 | Settled (`DECISIONS.md`, 2026-10-28, "Compliance profile flags, enforced by default"): add `.claude/settings.json` and `.agent/governance/profile.json` to the protected paths that every subagent is denied (Write guard lists, `rules/assist-plugin-rule.md:420-434`) | FR-245, FR-231, FR-243 |
 | D-13 | Settled (`DECISIONS.md`, 2026-10-30, "Build-time open items resolved (PN-1, PN-7, Step 18, Step 34, Step 3 binding)", PN-1): the FR-219 alignment check stays rule-based and advisory-first (FR-238), not a model-calling hook, because it reads attacker-controlled text | FR-219 |
 
-| D-14 | Open (Group B): approve the severity catalog, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. FR-237 requires the user to approve the severity policy before a rule blocks on severity, so a catalog added to it needs the same approval (OQ-19) | FR-306, FR-307 |
-| D-15 | Applied (Group A): the benchmark section is added to the section list of FR-250 in `FR-NFR-assist-plugin.md` as its statement (benchmark section): the section reports the last stored scoreboard and does not auto-run the suite. Whether a default run should also run the suite stays OQ-13 | FR-273, FR-274 |
+| D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): FR-237 is re-approved with the severity catalog added, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. Catalog severity (FR-306, FR-307) is active and approved (OQ-19 settled). This authorizes the capability and does not implement it; implementing the catalog stays future build work | FR-237, FR-306, FR-307 |
+| D-15 | Applied (Group A): the benchmark section is added to the section list of FR-250 in `FR-NFR-assist-plugin.md` as its statement (benchmark section): the section reports the last stored scoreboard and does not auto-run the suite. A default release-check run never runs the suite (OQ-13 settled) | FR-273, FR-274 |
 | D-16 | Open (Group A): decide where reference solutions and hidden suites live, because the marketplace repository is published and the report's layout (Report:78-91) puts `reference/` under the shipped plugin tree (OQ-15) | FR-260, FR-261, NFR-039 |
-| D-17 | Open (Group B): settle which agent applies each lane in each gate, in particular who applies the test-integrity lane in the Testing Gate, which `qa` reviews today (OQ-18) | FR-291 |
+| D-17 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): the `qa` agent owns applying the Testing Gate's test-integrity lane (OQ-18 settled) | FR-291 |
+
+**Provisional values (OQ-17; provisionally settled, not closed).** Each value below is provisional and to be revised with data. A value taken from a figure already in these requirements cites it; a value with no such figure is a conservative round number labeled "provisional, no empirical basis yet".
+
+| Value | Setting | Basis |
+|-------|---------|-------|
+| Escalation count, FR-300 and FR-301 | 2 | Provisional, to be revised with data. The estimate already stated in FR-300 and FR-301 (parallels `specs/spec-orchestration-review-gates.md` Requirement 7) |
+| Retirement floor, FR-313 (precision) | 0.5 | Provisional, to be revised with data. The floor used in the FR-313 scenario |
+| Minimum labeled findings, FR-313 | 10 | Provisional, no empirical basis yet |
+| Addition count, FR-314 | 3 | Provisional, to be revised with data. The count used in the FR-314 scenario |
+| Judge-agreement floor, FR-286 | Spearman rho at least 0.7, or Cohen kappa at least 0.6 | Provisional, no empirical basis yet. The one measured figure in the research report, G-Eval at 0.514 Spearman (FR-286 Origin), falls below it |
+| Seeded-defect sample size, FR-316 | 20 defects | Provisional, to be revised with data. The size used in the FR-316 scenario |
+| Reviewer precision floor, FR-316 | 0.7 | Provisional, no empirical basis yet. Held below the 90% promotion bar of NFR-034, which governs blocking rules only |
+| Reviewer recall floor, FR-316 | 0.5 | Provisional, no empirical basis yet |
 
 Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when it happens; it is not a standing dependency.
 
@@ -2558,7 +2571,8 @@ Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when 
 | BR-019, BR-024 | UR-083 | FR-296, FR-297, FR-303 | NFR-040 | DRAFT (Group B) |
 | BR-022, BR-024 | UR-084 | FR-309, FR-310, FR-311, FR-312, FR-313, FR-314, FR-315, FR-316 | NFR-034, NFR-036, NFR-042 | DRAFT (Group B) |
 | BR-018, BR-024 | UR-085 | FR-304, FR-305 | NFR-040 | DRAFT (Group B) |
-| BR-022, BR-024 | UR-086 | FR-306, FR-307, FR-308 | NFR-040 | DRAFT (Group B) |
+| BR-022, BR-024 | UR-086 | FR-306, FR-307 | NFR-040 | Approved (Group B; catalog severity active, D-14) |
+| BR-022, BR-024 | UR-086 | FR-308 | NFR-040 | DRAFT (Group B) |
 
 No orphans. No BR is a dead end. NFR-029 to NFR-036 trace to BR or FR as their origin requires; NFR-037 to NFR-042 trace to BR-023, BR-024, or the FR named in their row.
 
@@ -2598,6 +2612,7 @@ Gap traceability:
 | Fix-induced finding | A finding that a change made since the previous pass causes (FR-299) |
 | Disposition | The user's label of a reviewer finding as true, false, or deferred (FR-309) |
 | Unmapped finding | A finding with no catalog rule identifier and no CWE identifier (FR-307) |
+| Benchmark section vs benchmark scoreboard section | The Group A "benchmark section" is the suite runner that runs only on request (FR-273, FR-274). The "benchmark scoreboard section" of FR-250 in `FR-NFR-assist-plugin.md` is the release-check reporting view that shows the last stored scoreboard and never runs the suite |
 
 ### 8. Revision history
 
@@ -2614,3 +2629,4 @@ Gap traceability:
 | 1.3 (note 5) | 2026-11-20 | [Author] | Strict JSON parser for governance-config readers, settled by the user, no new elicitation. FR-248 (strict parser: duplicate key at any depth, depth over 32, position-only error per NFR-016) and FR-249 (wired into the rule-modes, profile, and confirmation-store readers only; rejection uses the existing malformed-file path; health check reports it) added. Other plain `JSON.parse` readers recorded as a follow-up in section 4. No UR row names these requirements; they trace to the nearest rows. No version bump |
 | 1.4 | 2026-11-24 | [Author] | Two DRAFT requirement groups added in place, existing entries unchanged. Group A (Theme 5): evaluation benchmark harness, FR-254 to FR-287 and NFR-037 to NFR-039, from `docs/research/research-eval-benchmarks-coding-spec-20261124.md` (golden tasks, execution grading, structural score and optional separate judge score, pass@1 over k runs, release-over-release regression through the release-check runner, and controls for contamination, overfitting, judge bias, and flakiness). Group B (Theme 6): reviewer and review-machinery capabilities, FR-288 to FR-316 and NFR-040 to NFR-042 (lane checklists, a round-by-round iteration record, a feedback loop from user labels to checklist changes, and review patterns that extend FR-218, FR-221, FR-222, and FR-237 to FR-241). IDs start at FR-254 and NFR-037 because FR-250 to FR-253 are taken in `FR-NFR-assist-plugin.md`. D-14 to D-17 and OQ-13 to OQ-19 added. Version bumped to 1.4 in lockstep with the BRD, URD, and JSON |
 | 1.4 (note) | 2026-11-25 | [Author] | Cleanup and reconciliation, no renumbering. FR-308 reworded as MUST NOT; FR-300 and FR-301 use the same re-review count language; NFR-038 figures labeled as estimates; two checklist line anchors corrected (FR-292, FR-308) and the same anchor in BRD A-15; BRD and URD status headers aligned with this file. FR-282 now requires a same-family judge with three bias mitigations and records a different-family judge as a future enhancement (section 4; OQ-16 settled). FR-273 and D-15 record the FR-250 benchmark-section delta, now stated in `FR-NFR-assist-plugin.md`. No version bump |
+| 1.4 (note 2) | 2026-11-25 | [Author] | Apply the settled decisions of `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups". FR-288 register: TI-05, TI-06, and AS-04 read "planning document" in the applies-to column. D-14: FR-237 re-approved with the severity catalog added; FR-306 and FR-307 Approved and active (documentation activation only; nothing implemented); the section 6 row for UR-086 splits so FR-308 stays DRAFT; OQ-19 settled. D-17 and OQ-18 settled: `qa` applies the test-integrity lane in the Testing Gate (FR-291). OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite. OQ-17 provisionally settled with labeled provisional values (section 5). A glossary row separates the Group A benchmark section from the FR-250 benchmark scoreboard section. No renumbering, no version bump |
