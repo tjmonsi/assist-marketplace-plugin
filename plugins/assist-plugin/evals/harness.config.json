@@ -1,0 +1,16 @@
+{
+  "oracleLocation": null,
+  "runCount": null,
+  "regressionMargin": null,
+  "referenceValidationRuns": null,
+  "judgeRuns": null,
+  "newTasksPerRelease": null,
+  "retryOnFailure": 0,
+  "judgeEnabled": false,
+  "judgeAgreementFloor": {
+    "spearmanRho": 0.7,
+    "cohenKappa": 0.6,
+    "label": "provisional, no empirical basis yet"
+  },
+  "labeledSamplePath": null
+}

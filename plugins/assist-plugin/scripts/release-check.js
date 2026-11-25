@@ -11,12 +11,15 @@
 //   scan-staged-secrets       scripts/scan-staged-secrets.js (clean when nothing is staged) [FR-252|FR-217]
 //   version-agreement         scripts/release/version-agreement.js, the six-place version check [FR-251]
 //   agent-hygiene             scripts/release/agent-hygiene.js, .agent ignored, untracked, and not reopened [FR-253]
+//   benchmark-scoreboard      scripts/release/benchmark-scoreboard.js, the last stored evaluation scoreboard [FR-250]
 //
 // Usage:
-//   node scripts/release-check.js [--root DIR] [--release]
+//   node scripts/release-check.js [--root DIR] [--release] [--benchmark]
 // `--root` names the repository root for the git queries and the version places (default: the current directory).
 // The section scripts are always located from this script's own folder. `--release` makes the root CHANGELOG.md newest
-// heading a version place that must agree [FR-251].
+// heading a version place that must agree [FR-251]. `--benchmark` requests an evaluation suite run: the
+// benchmark-scoreboard section then starts the Group A harness (a full run costs an estimated $25 to $75). Without it the
+// section only reports the stored scoreboard and starts no suite [FR-250|FR-274].
 //
 // Output: one "<clean|finding|error>: <section name>" line per section, followed by indented detail lines. A section
 // script that errors prints a fixed reason, never its stderr. A secret scan finding prints the scanner's own
@@ -33,6 +36,7 @@ const { spawnSync } = require("child_process");
 
 const versionAgreement = require(path.join(__dirname, "release", "version-agreement.js"));
 const agentHygiene = require(path.join(__dirname, "release", "agent-hygiene.js"));
+const benchmarkScoreboard = require(path.join(__dirname, "release", "benchmark-scoreboard.js"));
 
 const OUTCOME_CLEAN = "clean";
 const OUTCOME_FINDING = "finding";
@@ -44,7 +48,7 @@ const EXIT_ERROR = 2;
 
 const SECTION_TIMEOUT_MS = 180 * 1000;
 const MAX_OUTPUT_BYTES = 16 * 1024 * 1024;
-const USAGE = "Usage: node scripts/release-check.js [--root DIR] [--release]";
+const USAGE = "Usage: node scripts/release-check.js [--root DIR] [--release] [--benchmark]";
 
 // Reasons printed for a section that errors. Fixed text, never raw stderr.
 const REASON_NOT_STARTED = "could not start";
@@ -109,6 +113,15 @@ function hygieneSection() {
   };
 }
 
+// [FR-250] The benchmark scoreboard section. A default run reports the stored scoreboard and starts no suite; a
+// `--benchmark` request starts the Group A harness.
+function benchmarkSection() {
+  return {
+    name: "benchmark-scoreboard",
+    run: (context) => benchmarkScoreboard.check(context.root, { benchmark: context.benchmark }),
+  };
+}
+
 // The real, ordered section list.
 function defaultSections() {
   const script = (file) => path.join(__dirname, file);
@@ -119,6 +132,7 @@ function defaultSections() {
     scriptSection("scan-staged-secrets", script("scan-staged-secrets.js"), []),
     versionSection(),
     hygieneSection(),
+    benchmarkSection(),
   ];
 }
 
@@ -154,11 +168,11 @@ function report(entry) {
   entry.details.forEach((line) => console.log("  " + line));
 }
 
-// run({ root, release, sections }) runs every section in order, prints each outcome, and returns
+// run({ root, release, benchmark, sections }) runs every section in order, prints each outcome, and returns
 // { outcomes, exitCode }. It also sets process.exitCode to that exit code.
 function run(options) {
   const settings = options || {};
-  const context = { root: settings.root || process.cwd(), release: Boolean(settings.release) };
+  const context = { root: settings.root || process.cwd(), release: Boolean(settings.release), benchmark: Boolean(settings.benchmark) };
   const sections = settings.sections || defaultSections();
   const outcomes = [];
   sections.forEach((section) => {
@@ -172,11 +186,13 @@ function run(options) {
 }
 
 function parseArgs(argv) {
-  const options = { root: process.cwd(), release: false };
+  const options = { root: process.cwd(), release: false, benchmark: false };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--release") {
       options.release = true;
+    } else if (arg === "--benchmark") {
+      options.benchmark = true;
     } else if (arg === "--root") {
       i += 1;
       if (i >= argv.length || argv[i] === "") {
