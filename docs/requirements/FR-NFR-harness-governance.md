@@ -3,13 +3,13 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 4, and Theme 6, Group B); DRAFT (Theme 5, Group A)
+**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries open operational items OQ-14 and OQ-15)
 
 ---
 
 ### 1. Introduction
 
-**Purpose:** This document specifies the behaviors and quality attributes of the assist-plugin harness roadmap in four themes: harness security, integrity, governance and compliance profiles, and shift-left severity routing. Version 1.4 adds two clearly separated requirement groups: Group A (Theme 5), an evaluation benchmark harness for the coding and spec-writing agents, and Group B (Theme 6), reviewer and review-machinery capabilities. Group B (Theme 6) is approved (2026-11-26); Group A (Theme 5) remains DRAFT until the user approves it.
+**Purpose:** This document specifies the behaviors and quality attributes of the assist-plugin harness roadmap in four themes: harness security, integrity, governance and compliance profiles, and shift-left severity routing. Version 1.4 adds two clearly separated requirement groups: Group A (Theme 5), an evaluation benchmark harness for the coding and spec-writing agents, and Group B (Theme 6), reviewer and review-machinery capabilities. Group B (Theme 6) is approved (2026-11-26); Group A (Theme 5) is also approved (2026-11-26), carrying OQ-14 and OQ-15 as open operational items.
 
 **Relationship to URD:** This document derives from `URD-harness-governance.md`. Every functional requirement traces to at least one user requirement. IDs continue `FR-NFR-assist-plugin.md` (FR-200 to FR-213, NFR-001 to NFR-025 are taken there; FR-250 to FR-253 are also taken there, so the IDs added in 1.4 start at FR-254 and NFR-037 and leave FR-250 to FR-253 untouched).
 
@@ -123,7 +123,7 @@
 | FR-315 | A reviewer checklist MUST change only through an edit that the user approves and that has a `DECISIONS.md` entry. | UR-084 | Must | 2.98 |
 | FR-316 | Before a change to a lane checklist, the severity catalog, or a screening rule ships, the plugin SHOULD report finding precision and recall on a seeded-defect sample, before and after the change. | UR-084 | Should | 2.99 |
 
-Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to FR-287 (sections 2.37 to 2.70) are Group A. FR-288 to FR-316 (sections 2.71 to 2.99) are Group B. Group A is DRAFT; Group B is Approved (2026-11-26).
+Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to FR-287 (sections 2.37 to 2.70) are Group A. FR-288 to FR-316 (sections 2.71 to 2.99) are Group B. Group A and Group B are Approved (2026-11-26).
 
 #### Theme 1: Harness security
 
@@ -1014,7 +1014,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 #### Theme 5, Group A: Evaluation benchmark harness
 
-**Status:** DRAFT. **Source:** the repository's research report `docs/research/research-eval-benchmarks-coding-spec-20261124.md`, cited below as "Report" with a line number. **System:** the benchmark harness, a set of golden tasks, graders, and a release-check section that measures the `developer` agent (code from specs) and the `requirements-gatherer` and `solutions-architect` agents (requirements and specs). It is not the plugin's hook harness of Themes 1 to 4; the BRD glossary term "Harness" does not apply here. **Reuse:** the harness extends the `evals/` suites that `claude plugin eval` already runs (`plugins/assist-plugin/evals/README.md:3`, `:28`) and the `tests/` suite, and adds no second runner (Report:93; FR-218 in `FR-NFR-assist-plugin.md`). The recorded run graded 8 cases in 165 seconds for about $4.85 (Report:6), which anchors the cost estimates in NFR-038.
+**Status:** Approved. **Source:** the repository's research report `docs/research/research-eval-benchmarks-coding-spec-20261124.md`, cited below as "Report" with a line number. **System:** the benchmark harness, a set of golden tasks, graders, and a release-check section that measures the `developer` agent (code from specs) and the `requirements-gatherer` and `solutions-architect` agents (requirements and specs). It is not the plugin's hook harness of Themes 1 to 4; the BRD glossary term "Harness" does not apply here. **Reuse:** the harness extends the `evals/` suites that `claude plugin eval` already runs (`plugins/assist-plugin/evals/README.md:3`, `:28`) and the `tests/` suite, and adds no second runner (Report:93; FR-218 in `FR-NFR-assist-plugin.md`). The recorded run graded 8 cases in 165 seconds for about $4.85 (Report:6), which anchors the cost estimates in NFR-038.
 
 #### 2.37 FR-254: Coding golden task contents
 
@@ -2406,7 +2406,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 - **THEN** the report MUST NOT count the agent's judgment as a label
 - **AND** the report MUST show the finding as unlabelled
 
-#### 3.6 Group A: Evaluation benchmark harness (DRAFT)
+#### 3.6 Group A: Evaluation benchmark harness (Approved)
 
 | ID | Requirement | Traces to | Metric |
 |----|-------------|-----------|--------|
@@ -2465,7 +2465,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 #### In scope (system behaviors)
 
 - All behaviors FR-214 to FR-249 and NFR-026 to NFR-036.
-- Group A (DRAFT): FR-254 to FR-287 and NFR-037 to NFR-039, the evaluation benchmark harness.
+- Group A (Approved): FR-254 to FR-287 and NFR-037 to NFR-039, the evaluation benchmark harness.
 - Group B (Approved): FR-288 to FR-316 and NFR-040 to NFR-042, the reviewer and review-machinery capabilities.
 
 #### Out of scope (system exclusions)
@@ -2561,11 +2561,11 @@ Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when 
 | BR-022 | UR-072 | FR-239 | NFR-034 | Approved |
 | BR-022 | UR-073 | FR-240 | | Approved |
 | BR-022 | UR-074 | FR-241 | | Approved |
-| BR-018, BR-019, BR-020, BR-022 | UR-059, UR-068, UR-069, UR-071, UR-075 | FR-248, FR-249 | NFR-016 (spec), NFR-028 | PLANNED |
-| BR-023 | UR-077 | FR-254, FR-255, FR-256 | NFR-039 | DRAFT (Group A) |
-| BR-023 | UR-078 | FR-262, FR-263, FR-264, FR-265, FR-266, FR-267, FR-268, FR-269, FR-270, FR-271, FR-272 | NFR-037, NFR-038 | DRAFT (Group A) |
-| BR-023 | UR-079 | FR-273, FR-274, FR-275, FR-276, FR-277, FR-278, FR-279 | NFR-038 | DRAFT (Group A) |
-| BR-023 | UR-080 | FR-257, FR-258, FR-259, FR-260, FR-261, FR-280, FR-281, FR-282, FR-283, FR-284, FR-285, FR-286, FR-287 | NFR-039 | DRAFT (Group A) |
+| BR-018, BR-019, BR-020, BR-022 | UR-059, UR-068, UR-069, UR-071, UR-075 | FR-248, FR-249 | NFR-016 (spec), NFR-028 | Approved |
+| BR-023 | UR-077 | FR-254, FR-255, FR-256 | NFR-039 | Approved (Group A) |
+| BR-023 | UR-078 | FR-262, FR-263, FR-264, FR-265, FR-266, FR-267, FR-268, FR-269, FR-270, FR-271, FR-272 | NFR-037, NFR-038 | Approved (Group A) |
+| BR-023 | UR-079 | FR-273, FR-274, FR-275, FR-276, FR-277, FR-278, FR-279 | NFR-038 | Approved (Group A) |
+| BR-023 | UR-080 | FR-257, FR-258, FR-259, FR-260, FR-261, FR-280, FR-281, FR-282, FR-283, FR-284, FR-285, FR-286, FR-287 | NFR-039 | Approved (Group A) |
 | BR-024 | UR-081 | FR-288, FR-289, FR-290, FR-291, FR-292, FR-293 | NFR-040, NFR-041 | Approved (Group B) |
 | BR-024 | UR-082 | FR-294, FR-295, FR-298, FR-299, FR-300, FR-301, FR-302 | NFR-040 | Approved (Group B) |
 | BR-019, BR-024 | UR-083 | FR-296, FR-297, FR-303 | NFR-040 | Approved (Group B) |
@@ -2632,3 +2632,4 @@ Gap traceability:
 | 1.4 (note 2) | 2026-11-25 | [Author] | Apply the settled decisions of `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups". FR-288 register: TI-05, TI-06, and AS-04 read "planning document" in the applies-to column. D-14: FR-237 re-approved with the severity catalog added; FR-306 and FR-307 Approved and active (documentation activation; the catalog was implemented later, see note 3); the section 6 row for UR-086 splits so FR-308 stays DRAFT; OQ-19 settled. D-17 and OQ-18 settled: `qa` applies the test-integrity lane in the Testing Gate (FR-291). OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite. OQ-17 provisionally settled with labeled provisional values (section 5). A glossary row separates the Group A benchmark section from the FR-250 benchmark scoreboard section. No renumbering, no version bump |
 | 1.4 (note 3) | 2026-11-25 | [Author] | Reconcile requirements with the shipped build. FR-304 and FR-305 are scoped to the GitHub `gh` path, with Bitbucket out of scope per U-9 (the Bitbucket head-revision read command is not named). FR-306 and FR-307 catalog severity is recorded as implemented and active, shipped in commit a1582f0 (`rules/severity-catalog.yaml` read by `hooks/lib/severity.js`); the D-14 dependency row and the FR-306 and FR-307 Status notes are updated to match. No renumbering, no version bump |
 | 1.4 (note 4) | 2026-11-26 | [Author] | Group B (Theme 6, FR-288 to FR-316, NFR-040 to NFR-042) approved, per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the group-intro sentences, the Theme 6 section status, the section 3.7 header, the Group B scope line, and the section 6 Group B traceability rows. Group A (Theme 5) stays DRAFT. FR-306 and FR-307 remain additionally implemented and active (D-14). The lockstep JSON flips the Group B inline marker. No renumbering, no version bump |
+| 1.4 (note 5) | 2026-11-26 | [Author] | Group A (Theme 5, FR-254 to FR-287, NFR-037 to NFR-039) approved. OQ-14 and OQ-15 are carried as open operational items. The Status labels flip from DRAFT to Approved in the document status, the Purpose paragraph, the group-intro sentence, the Theme 5 section status, the section 3.6 header, the Group A scope line, and the four section 6 Group A traceability rows. The section 6 row for FR-248 and FR-249 is corrected from PLANNED to Approved (the strict JSON parser is implemented). No requirement text changed, no version bump |

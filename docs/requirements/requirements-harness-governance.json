@@ -2,14 +2,14 @@
   "project_name": "assist-plugin Harness Governance",
   "version": "1.4",
   "date": "2026-11-24",
-  "status": "draft",
+  "status": "approved",
   "requirements": [
     {"id": "BR-018", "type": "business", "text": "To stop the plugin's documented high and medium security gaps from being exploited, the business must close gaps 2, 3, and 6 of the LLM security checklist and add a blocking guardrail layer.", "priority": "must", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-019", "type": "business", "text": "To make governance sign-offs trustworthy, the business must back every gate and approval with verified evidence and keep a tamper-evident audit log.", "priority": "must", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-020", "type": "business", "text": "To let adopters use the plugin under SOC 2, HIPAA, and FERPA, the business must provide compliance profiles built on one attributable audit trail.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-021", "type": "business", "text": "To assign ownership and review cadence for every control, the business must map controls to the OWASP Agentic AI Top 10 and the NIST AI RMF functions.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-022", "type": "business", "text": "To catch defects early without alert fatigue, the business must route findings by severity, blocking only high-confidence, high-severity ones.", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
-    {"id": "BR-023", "type": "business", "text": "To know whether each release makes the coding and spec-writing agents better or worse, the business must measure their output on in-house golden tasks, graded by execution for code and by checklist plus an optional separate judge for specs, and track the scores release over release. (Group A, DRAFT)", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
+    {"id": "BR-023", "type": "business", "text": "To know whether each release makes the coding and spec-writing agents better or worse, the business must measure their output on in-house golden tasks, graded by execution for code and by checklist plus an optional separate judge for specs, and track the scores release over release. (Group A, Approved)", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
     {"id": "BR-024", "type": "business", "text": "To shorten review rounds and keep reviewer findings trustworthy, the business must give reviewers named checklists, a round-by-round iteration record, fixed-severity findings, and a feedback loop from the user's labels to checklist changes. (Group B, Approved)", "priority": "should", "category": null, "stakeholder": null, "traces_to": [], "scenarios": []},
 
     {"id": "UR-059", "type": "user", "text": "The plugin user shall be able to rely on a PR verdict being posted only after the user's recorded confirmation, even when attacker-controlled PR text is in the session.", "priority": "must", "category": null, "stakeholder": "Plugin user", "traces_to": ["BR-018"], "scenarios": []},

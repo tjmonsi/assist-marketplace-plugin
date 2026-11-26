@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 4, and Theme 6, Group B); DRAFT (Theme 5, Group A)
+**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries open operational items OQ-14 and OQ-15)
 
 ---
 
@@ -11,7 +11,7 @@
 
 **Purpose:** This document captures what plugin maintainers, security leads, compliance officers, and auditors need from the harness-governance roadmap.
 
-**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-024). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-086 are used here). Version 1.4 adds two groups: Group A (UR-077 to UR-080, DRAFT), an evaluation benchmark harness, and Group B (UR-081 to UR-086, Approved 2026-11-26), reviewer and review-machinery capabilities.
+**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-024). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-086 are used here). Version 1.4 adds two groups: Group A (UR-077 to UR-080, Approved 2026-11-26), an evaluation benchmark harness, and Group B (UR-081 to UR-086, Approved 2026-11-26), reviewer and review-machinery capabilities.
 
 ### 2. Stakeholder map
 
@@ -106,7 +106,7 @@
 - Evidence-backed gates, orchestrator-written approvals, a verifiable audit log.
 - Attribution records, SOC 2 evidence export, FERPA and HIPAA profiles (enforced by default, governed opt-out), a user-declared session purpose, FERPA disclosure recordation, control mapping.
 - Severity policy, advisory baseline, severity-routed findings, SARIF output.
-- Group A (DRAFT): golden tasks, execution and checklist grading, an optional separate judge score, pass@1 over k runs, release-over-release regression, and controls for contamination, overfitting, judge bias, and flakiness.
+- Group A (Approved): golden tasks, execution and checklist grading, an optional separate judge score, pass@1 over k runs, release-over-release regression, and controls for contamination, overfitting, judge bias, and flakiness.
 - Group B (Approved): reviewer checklists by lane, a per-round iteration record, stale-verdict and head-revision guards, catalog-fixed severity, and a feedback loop from the user's labels to checklist changes.
 
 #### Out of scope (user-facing exclusions)
@@ -143,8 +143,8 @@
 - OQ-11: Resolved. A hook writes the session purpose record from a purpose the user declares, and the access-logging hooks read it; with no declared purpose the log records `unstated` and flags the record (FR-247; `DECISIONS.md`, 2026-10-28, "FERPA/HIPAA purpose capture, missing-purpose handling, and governance path protection").
 - OQ-12: Resolved (`DECISIONS.md`, "2026-10-30: Severity policy approved", re-approved by "2026-10-31: Severity policy approved"). The user approved `severity-policy.md` version `draft-2` (first approved at `draft-1`, superseded). The policy basis was settled earlier (`DECISIONS.md`, 2026-10-30, "Severity-policy basis and SARIF writer settled"); a rule may block on severity only after the FR-238 advisory baseline (FR-237).
 - OQ-13: Settled (Group A; `DECISIONS.md`, 2026-11-25). A default release-check run reports the last stored evaluation scoreboard and never runs the suite; an on-request run goes through the Group A harness (FR-273, FR-274). The question of a default full run is answered no. A full run is an estimated $25 to $75 (BRD A-12). The FR-250 delta in `FR-NFR-assist-plugin.md` is applied (D-15). The Group A "benchmark section" is the suite runner; the FR-250 "benchmark scoreboard section" is the reporting view.
-- OQ-14: Open (Group A). No default is settled for the run count k, the regression margin (FR-277), the validation run count (FR-259), or the judge run count (FR-285); each is a configured value.
-- OQ-15: Open (Group A). Where do reference solutions and hidden suites live? The marketplace repository is published, and the research report's layout puts `reference/` under the shipped plugin tree, which conflicts with FR-261 (D-16).
+- OQ-14: Open (Group A). No default is settled for the run count k, the regression margin (FR-277), the validation run count (FR-259), or the judge run count (FR-285); each is a configured value. Carried into the Group A approval (2026-11-26) as an open operational item to settle before a real benchmark run.
+- OQ-15: Open (Group A). Where do reference solutions and hidden suites live? The marketplace repository is published, and the research report's layout puts `reference/` under the shipped plugin tree, which conflicts with FR-261 (D-16). Carried into the Group A approval (2026-11-26) as an open operational item to settle before a real benchmark run.
 - OQ-16: Settled (Group A). The judge is of the same model family as the agent now, with candidate-order randomization, rubric anchoring, and a human-agreement check at each benchmark release (FR-282). A judge of a different family is a future enhancement, not a current requirement.
 - OQ-17: Provisionally settled (Group B; `DECISIONS.md`, 2026-11-25), not closed. Each value is provisional and to be revised with data: escalation count 2 for FR-300 and FR-301; FR-313 retirement floor 0.5 and minimum 10 labeled findings; FR-314 addition count 3; judge-agreement floor Spearman rho at least 0.7 or Cohen kappa at least 0.6; seeded-defect sample 20; reviewer precision floor 0.7 and recall floor 0.5. Values with no figure already in the requirements are labeled "provisional, no empirical basis yet" (table in `FR-NFR-harness-governance.md`, section 5).
 - OQ-18: Settled (Group B; `DECISIONS.md`, 2026-11-25). The `qa` agent applies the test-integrity lane in the Testing Gate (FR-291, D-17).
@@ -177,3 +177,4 @@
 | 1.4 | 2026-11-24 | [Author] | UR-077 to UR-080 (Group A, evaluation benchmark harness) and UR-081 to UR-086 (Group B, reviewer and review machinery) added as DRAFT; UC-004 and UC-005, scope, assumptions, glossary terms, and OQ-13 to OQ-19 added. Existing entries unchanged |
 | 1.4 (note) | 2026-11-25 | [Author] | Status header aligned with `FR-NFR-harness-governance.md`. OQ-13, OQ-18, and OQ-19 settled and OQ-17 provisionally settled per `DECISIONS.md`, 2026-11-25. No version bump |
 | 1.4 (note 2) | 2026-11-26 | [Author] | Group B (UR-081 to UR-086, Theme 6) approved per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the overview, and the Group B scope line. OQ-19 now states the capability is implemented (commit a1582f0), matching `FR-NFR-harness-governance.md`. Group A (Theme 5) stays DRAFT. No requirement text changed, no version bump |
+| 1.4 (note 3) | 2026-11-26 | [Author] | Group A (UR-077 to UR-080, Theme 5) approved. The Status labels flip from DRAFT to Approved in the document status, the overview, and the Group A scope line. OQ-14 and OQ-15 stay Open, each carried into the approval as an open operational item to settle before a real benchmark run. No requirement text changed, no version bump |

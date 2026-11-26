@@ -16,7 +16,7 @@
 
 The feature gives `reviewer` and `code-reviewer` three named checklists, keeps a finding-level iteration record across review rounds, ties approvals to the reviewed revision and the PR post to the current head, and turns the user's own finding labels into checklist-change reports the user approves. Reviewers stay read-only; the `/do` orchestrator writes every record.
 
-**Status gate.** Every behavior in the spec is Planned (harness-governance Group B, DRAFT). Nothing here ships before the user approves Group B (`spec-reviewer-machinery.md` line 16). Writing the code and text is allowed now; merging it waits on that approval. Catalog-fixed severity (Requirement 18) is approved and active under the FR-237 re-approval (D-14, `DECISIONS.md`, 2026-11-25); that authorizes the capability, and its implementation (Steps 25 and 26) is future build work.
+**Status gate.** Every behavior in the spec is Planned (harness-governance Group B, DRAFT). Nothing here ships before the user approves Group B (`spec-reviewer-machinery.md` line 16). Writing the code and text is allowed now; merging it waits on that approval. Catalog-fixed severity (Requirement 18) is approved and active under the FR-237 re-approval (D-14, `DECISIONS.md`, 2026-11-25); that authorizes the capability, and its implementation (Steps 25 and 26) is done: the catalog is implemented and active (commit a1582f0).
 
 ### Validation (Intake)
 
@@ -122,7 +122,7 @@ Spec Requirement and scenario titles. Numeric values in the GIVEN column are the
 | R17 Review absent after the error | server error, PR holds no such review | workflow handles the error | may retry, subject to the FR-214 confirmation |
 | R18 Catalog severity applied | catalog entry DD-01 is MEDIUM; reviewer wrote HIGH | orchestrator reads | recorded severity MEDIUM; difference noted. Active; implemented by Steps 25, 26 |
 | R18 Unmapped high finding | HIGH, High confidence, no catalog or CWE id | routing runs | reads `unmapped`; routing is not `block-merge`. Active; implemented by Steps 25, 26 |
-| R18 Catalog not yet implemented | severity policy re-approved with the catalog (D-14); override not yet built | orchestrator reads a report whose finding rule id would map a catalog entry | keeps the reviewer's severity from the policy text; no catalog override until implemented. Interim guard (Steps 8, 9, 11, 23); Step 25 supersedes it |
+| R18 Catalog not yet implemented | severity policy re-approved with the catalog (D-14); override now built (catalog implemented and active, commit a1582f0) | orchestrator reads a report whose finding rule id would map a catalog entry | keeps the reviewer's severity from the policy text; no catalog override until implemented. Interim guard (Steps 8, 9, 11, 23); superseded by the shipped Step 25 (a1582f0) |
 | R19 Critic marks a finding as likely false | a critic score rates F-1 likely false | orchestrator builds the report | F-1 stays; severity unchanged |
 | R19 Critic raises a severity | a critic score rates F-2 critical, recorded MEDIUM | orchestrator builds the report | F-2 keeps MEDIUM |
 | R20 User label recorded | user labels F-5 true through the labelling step | record is read | F-5 holds true, writer user |
@@ -319,7 +319,7 @@ Paths start at the repository root. Plugin files sit under `plugins/assist-plugi
 
 ### Step 25: Catalog-fixed severity (Requirement 18, FR-306, FR-307)
 
-- **Status:** ACTIVE. Moved from the blocked section; id and position unchanged. The user re-approved the severity policy under FR-237 with the severity catalog added (D-14; `DECISIONS.md`, 2026-11-25), which authorizes this step. Implementation is future build work: this plan authorizes the step and does not implement it. It replaces the interim severity wording written by Steps 8, 9, and 11.
+- **Status:** ACTIVE. Moved from the blocked section; id and position unchanged. The user re-approved the severity policy under FR-237 with the severity catalog added (D-14; `DECISIONS.md`, 2026-11-25), which authorizes this step. Implemented (commit a1582f0): the catalog is active. It replaces the interim severity wording written by Steps 8, 9, and 11.
 - **Files:** `P/rules/severity-policy.md` (modify: catalog table, new policy version), `P/hooks/lib/severity.js` (modify: catalog lookup and the `unmapped` clamp), `P/agents/reviewer.md`, `P/agents/code-reviewer.md`, `P/skills/do/references/review-protocol.md`, `P/skills/do/references/read-each-result.md` (modify)
 - **Satisfies:** [spec-reviewer-machinery Req 18 -> FR-306 -> AC: Catalog severity applied], [spec-reviewer-machinery Req 18 -> FR-307 -> AC: Unmapped high finding], [FR-237], [FR-239], [FR-240], [RULE-010]
 - **Code references:** `languages/javascript.md`, `error-handling-standards.md`, `traceability-comment-format.md`
@@ -331,7 +331,7 @@ Paths start at the repository root. Plugin files sit under `plugins/assist-plugi
 - **Files:** `tests/hooks/severity-catalog.test.js` (create), `tests/hooks/severity.test.js` (modify), `tests/skills/contracts-reviewer-machinery.test.js` (modify: replace the Step 23 interim severity assertion)
 - **Satisfies:** [spec-reviewer-machinery Req 18 -> FR-306 -> AC: Catalog severity applied], [spec-reviewer-machinery Req 18 -> FR-307 -> AC: Unmapped high finding]
 - **Code references:** n/a (test step)
-- **Notes:** Cover the two catalog scenarios (catalog severity MEDIUM replaces a reviewer's HIGH with the difference noted; a HIGH, High-confidence finding with no catalog or CWE id reads `unmapped` and does not route `block-merge`). The "Catalog not yet implemented" scenario holds only until Step 25 lands; once it does, replace the Step 23 interim assertion with one that checks the catalog rule text. Existing `route()` cases stay unchanged.
+- **Notes:** Cover the two catalog scenarios (catalog severity MEDIUM replaces a reviewer's HIGH with the difference noted; a HIGH, High-confidence finding with no catalog or CWE id reads `unmapped` and does not route `block-merge`). The "Catalog not yet implemented" scenario held only until Step 25 landed; Step 25 has landed (a1582f0), so the interim scenario is superseded and replace the Step 23 interim assertion with one that checks the catalog rule text. Existing `route()` cases stay unchanged.
 
 ### Step 27: Test-integrity lane in the Testing Gate, applied by qa (D-17)
 
@@ -352,7 +352,7 @@ Paths start at the repository root. Plugin files sit under `plugins/assist-plugi
 - **Steps 16 to 17:** PR post-step guards, independent of the review loop.
 - **Step 18:** The merge-policy rule for checklist edits, after the register exists.
 - **Steps 19 to 24:** Tests, owned by `developer-tester`; test paths only (the developer never writes test paths).
-- **Steps 25 to 27:** Active steps, formerly blocked, kept after Step 24 so ids stay stable. Step 25 (catalog severity) replaces the interim severity wording that Steps 8, 9, and 11 write; Step 26 (tests, `developer-tester`) follows it and updates the Step 23 assertion; Step 27 (test-integrity lane in the Testing Gate, applied by `qa`) follows. Steps 25 and 27 are authorized by D-14 and D-17; their implementation is future build work.
+- **Steps 25 to 27:** Active steps, formerly blocked, kept after Step 24 so ids stay stable. Step 25 (catalog severity) replaces the interim severity wording that Steps 8, 9, and 11 write; Step 26 (tests, `developer-tester`) follows it and updates the Step 23 assertion; Step 27 (test-integrity lane in the Testing Gate, applied by `qa`) follows. Steps 25 and 27 are authorized by D-14 and D-17; Steps 25 to 27 are implemented in the build (a1582f0).
 
 Each subsequent step can depend on previous steps' outputs.
 
