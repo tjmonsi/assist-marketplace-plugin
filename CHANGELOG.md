@@ -2,6 +2,23 @@
 
 All notable changes to assist-plugin-marketplace are documented in this file.
 
+## [1.15.0] - 2026-11-26
+
+### Added
+
+- Evaluation benchmark harness (Group A) for the developer, requirements-gatherer, and solutions-architect agents, graded release over release. Coding tasks are scored by a hidden suite's exit code (pass@1). Spec tasks are scored by a deterministic structural checklist plus an optional same-family LLM judge, kept as a separate score with both-orders bias mitigation. Reference solutions and hidden suites resolve from a configured private location and never enter this repo, and the scoreboard stores scores, identifiers, and versions only. The code lives in `scripts/eval-harness/`, with `evals/harness.config.json` and `evals/README.md`
+- `release-check.js` reports the stored benchmark scoreboard by default and starts no suite. A `--benchmark` request runs the harness. The config numbers (OQ-14) ship unset, and the config loader errors until they are set
+- Reviewer machinery (Group B) for `reviewer` and `code-reviewer`: three lane checklists (defect-depth, test-integrity, architecture-safety) in `rules/reviewer-checklists.md`, a finding-level iteration record across rounds, revision-tied approvals, and PR head-check and review read-back guards. `qa` applies the test-integrity lane in the Testing Gate. Reviewers stay read-only and the orchestrator writes every record
+- Iteration guards and deterministic review rules as pure libraries under `hooks/lib`: report completeness and merge (`review-report.js`), gate and approval counting (`review-gate.js`), and label precision and checklist-change candidates (`review-labels.js`). New scripts `check-reviewer-checklists.js` and `reviewer-precision-report.js`. The provisional thresholds (escalation 2, retirement floor 0.5, minimum 10 labeled findings, addition count 3) are labeled provisional and can be overridden
+- Severity catalog `rules/severity-catalog.yaml`, read by a dependency-free parser in `severity.js`. It maps each rule id to a fixed severity with a recorded basis, and an unmapped finding clamps to inline-comment
+
+### Changed
+
+- The requirements and spec now mark the severity catalog as implemented and active (Requirement 18, FR-306, FR-307), and the catalog-not-yet-implemented scenario is replaced by the shipped malformed-fallback behavior
+- The PR-review head-check (FR-304, FR-305) is scoped to the GitHub `gh` path. Bitbucket is out of scope
+- Eval harness `labeledSamplePath` validation errors now cite FR-286 instead of the shared FR-260 tag. No behavior change beyond the reason string
+- Group A (Theme 5) and Group B (Theme 6) requirements and specs move from DRAFT to Approved across the BRD, URD, FR-NFR, and JSON files. OQ-14 and OQ-15 stay open operational items. No requirement statement changed. The FR-248/FR-249 traceability row now reads Approved, and the reviewer-machinery task plan catalog wording matches the shipped state
+
 ## [1.14.6] - 2026-11-23
 
 ### Changed
