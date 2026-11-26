@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries open operational items OQ-14 and OQ-15)
+**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries OQ-14 and OQ-15 as provisionally settled operational items, 2026-11-26)
 
 ---
 
@@ -96,9 +96,9 @@
 - A-11: Outbound disclosure detection for education-record data is imperfect, as for PHI (FR-233): a paraphrase or a payload assembled from earlier reads can escape a pattern or path match. FR-246 reduces the risk and does not remove it.
 - A-12: A full benchmark run costs an estimated $25 to $75 (10 coding and 10 spec cases at 5 runs each), derived from one recorded 8-case run of about $4.85 and not measured on this repository (`docs/research/research-eval-benchmarks-coding-spec-20261124.md:112-116`). The benchmark section therefore runs on request only (FR-274; OQ-13 settled: a default release-check run reports the last stored scoreboard and never runs the suite).
 - A-13: A spec case "clears" the structural checklist when every deterministic item passes (FR-269). A looser level is a later choice.
-- A-14: Numeric values left to configuration have no settled default: the run count k, the regression margin, the validation run count (FR-259), the judge run count (FR-285), the escalation counts of FR-300 and FR-301, and the precision floor of FR-313 (OQ-14, OQ-17). Any figure shown in a scenario is an example. OQ-17 is provisionally settled: the values in `FR-NFR-harness-governance.md` (section 5, provisional values) are provisional and to be revised with data.
+- A-14: Numeric values left to configuration have no empirically settled default: the run count k, the regression margin, the validation run count (FR-259), the judge run count (FR-285), the escalation counts of FR-300 and FR-301, and the precision floor of FR-313 (OQ-14, OQ-17). Any figure shown in a scenario is an example. OQ-17 and OQ-14 are provisionally settled: the values in `FR-NFR-harness-governance.md` (section 5, provisional values) are provisional and to be revised with data. For OQ-14 (`DECISIONS.md`, 2026-11-26) the values are run count 5, regression margin 0.05, validation runs 3, judge runs 3, and 1 new golden task per release, to be revised with run-to-run variance data; none has an empirical basis yet.
 - A-15: Concurrent lane review costs about three times one reviewer pass (estimate, not measured), and the plugin's existing cap on parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:321-345`) sets at most three concurrent dispatches (FR-292).
-- A-16: Group A is approved (2026-11-26), carrying OQ-14 and OQ-15 as open operational items; Group B is approved (2026-11-26). Neither changes the status or the approved text of FR-214 to FR-249 or NFR-026 to NFR-036.
+- A-16: Group A is approved (2026-11-26), carrying OQ-14 and OQ-15 as open operational items that the user then provisionally settled the same day (`DECISIONS.md`, 2026-11-26): the benchmark numbers are provisional (A-14), and the reference solutions and hidden suites live in a local directory outside the published repository, reached through an uncommitted override or an environment variable, with a private git repository later (D-16: principle settled, concrete location provisional). Group B is approved (2026-11-26). Neither changes the status or the approved text of FR-214 to FR-249 or NFR-026 to NFR-036.
 
 ### 7. Success criteria
 
@@ -151,3 +151,4 @@
 | 1.4 (note) | 2026-11-25 | [Author] | Status header aligned with `FR-NFR-harness-governance.md`. A-15 line anchor corrected (`llm-security-checklist.md:321-345`). A-12 and A-14 updated for OQ-13 settled and OQ-17 provisionally settled (`DECISIONS.md`, 2026-11-25). No version bump |
 | 1.4 (note 2) | 2026-11-26 | [Author] | Group B (BR-024, Theme 6) approved per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the overview, the BR-024 row, the Theme 6 scope line, and A-16. Group A (Theme 5) stays DRAFT. No requirement text changed, no version bump |
 | 1.4 (note 3) | 2026-11-26 | [Author] | Group A (BR-023, Theme 5) approved, with OQ-14 and OQ-15 carried as open operational items. The Status labels flip from DRAFT to Approved in the document status, the overview, the BR-023 row, the Theme 5 scope line, and A-16. No requirement text changed, no version bump |
+| 1.4 (note 4) | 2026-11-26 | [Author] | OQ-14 and OQ-15 provisionally settled per `DECISIONS.md`, 2026-11-26, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run". The Status line, A-14, and A-16 are updated: OQ-14 values (5, 0.05, 3, 3, 1) are provisional and to be revised with run-to-run variance data; the oracle lives in a local directory outside the published repository for now, a private git repository later, and the committed public configuration holds only a placeholder. No requirement text changed, no version bump |

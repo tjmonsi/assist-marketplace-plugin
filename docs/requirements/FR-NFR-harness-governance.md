@@ -3,13 +3,13 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries open operational items OQ-14 and OQ-15)
+**Status:** Approved (Themes 1 to 6; Theme 5 / Group A carries OQ-14 and OQ-15 as provisionally settled operational items, 2026-11-26)
 
 ---
 
 ### 1. Introduction
 
-**Purpose:** This document specifies the behaviors and quality attributes of the assist-plugin harness roadmap in four themes: harness security, integrity, governance and compliance profiles, and shift-left severity routing. Version 1.4 adds two clearly separated requirement groups: Group A (Theme 5), an evaluation benchmark harness for the coding and spec-writing agents, and Group B (Theme 6), reviewer and review-machinery capabilities. Group B (Theme 6) is approved (2026-11-26); Group A (Theme 5) is also approved (2026-11-26), carrying OQ-14 and OQ-15 as open operational items.
+**Purpose:** This document specifies the behaviors and quality attributes of the assist-plugin harness roadmap in four themes: harness security, integrity, governance and compliance profiles, and shift-left severity routing. Version 1.4 adds two clearly separated requirement groups: Group A (Theme 5), an evaluation benchmark harness for the coding and spec-writing agents, and Group B (Theme 6), reviewer and review-machinery capabilities. Group B (Theme 6) is approved (2026-11-26); Group A (Theme 5) is also approved (2026-11-26), carrying OQ-14 and OQ-15 as open operational items, which the user then provisionally settled the same day (see section 5, provisional values for OQ-14, and D-16).
 
 **Relationship to URD:** This document derives from `URD-harness-governance.md`. Every functional requirement traces to at least one user requirement. IDs continue `FR-NFR-assist-plugin.md` (FR-200 to FR-213, NFR-001 to NFR-025 are taken there; FR-250 to FR-253 are also taken there, so the IDs added in 1.4 start at FR-254 and NFR-037 and leave FR-250 to FR-253 untouched).
 
@@ -1118,7 +1118,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The benchmark harness MUST admit a coding golden task only after its reference solution passes its hidden test suite in each of a configured number of consecutive runs.
 **Traces to:** UR-080
 **Priority:** Must
-**Origin:** Report:106. A suite that fails on its own reference, or fails on some runs, scores noise. The run count is a configured value (OQ-14).
+**Origin:** Report:106. A suite that fails on its own reference, or fails on some runs, scores noise. The run count is a configured value with a provisional setting of 3, to be revised with run-to-run variance data (OQ-14; section 5, provisional values).
 
 ##### Scenario: Stable reference
 
@@ -1158,7 +1158,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The benchmark harness MUST keep each reference solution and hidden test suite out of every published artifact.
 **Traces to:** UR-080
 **Priority:** Must
-**Origin:** Report:103 (keep hidden suites out of any published docs). The report's layout (`:78-91`) places `reference/` beside each case under the plugin tree, which ships with the marketplace repository; where the material lives is open (OQ-15, D-16).
+**Origin:** Report:103 (keep hidden suites out of any published docs). The report's layout (`:78-91`) places `reference/` beside each case under the plugin tree, which ships with the marketplace repository; the principle that the material lives outside the published repository is settled, and its concrete location is provisional (a local directory now, a private git repository later; OQ-15, D-16).
 
 ##### Scenario: Package without reference material
 
@@ -1472,7 +1472,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The benchmark section MUST report a regression finding when the score of a suite is below the previous release's score for that suite by more than a configured margin.
 **Traces to:** UR-079
 **Priority:** Must
-**Origin:** Report:97. The margin is a configured value (OQ-14). A finding yields the existing release-check exit code 1 (FR-250 in `FR-NFR-assist-plugin.md`).
+**Origin:** Report:97. The margin is a configured value with a provisional setting of 0.05, to be revised with run-to-run variance data (OQ-14; section 5, provisional values). A finding yields the existing release-check exit code 1 (FR-250 in `FR-NFR-assist-plugin.md`).
 
 ##### Scenario: Drop beyond the margin
 
@@ -1633,7 +1633,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 **Statement:** The benchmark result MUST report each judge score as the mean of a configured number of judge runs and MUST state that number.
 **Traces to:** UR-080
 **Priority:** Must
-**Origin:** Report:45, `:106` (the judge is stochastic; a judge score reproduces only as an average over several runs). The number is a configured value (OQ-14).
+**Origin:** Report:45, `:106` (the judge is stochastic; a judge score reproduces only as an average over several runs). The number is a configured value with a provisional setting of 3, to be revised with run-to-run variance data (OQ-14; section 5, provisional values).
 
 ##### Scenario: Mean of three
 
@@ -2521,7 +2521,7 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 
 | D-14 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): FR-237 is re-approved with the severity catalog added, a table that maps each rule identifier (every checklist item and in-plugin scanner rule) to a fixed severity and sits with `rules/severity-policy.md`. Catalog severity (FR-306, FR-307) is active and approved (OQ-19 settled). The capability is implemented per the Group B build (commit a1582f0): `rules/severity-catalog.yaml` is read by `hooks/lib/severity.js` (`routeWithCatalog`). | FR-237, FR-306, FR-307 |
 | D-15 | Applied (Group A): the benchmark section is added to the section list of FR-250 in `FR-NFR-assist-plugin.md` as its statement (benchmark section): the section reports the last stored scoreboard and does not auto-run the suite. A default release-check run never runs the suite (OQ-13 settled) | FR-273, FR-274 |
-| D-16 | Open (Group A): decide where reference solutions and hidden suites live, because the marketplace repository is published and the report's layout (Report:78-91) puts `reference/` under the shipped plugin tree (OQ-15) | FR-260, FR-261, NFR-039 |
+| D-16 | Split (Group A; `DECISIONS.md`, 2026-11-26, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run"). Principle, settled: reference solutions and hidden suites live outside the published repository, because the marketplace repository is published and the report's layout (Report:78-91) puts `reference/` under the shipped plugin tree (OQ-15). Concrete location, provisional: a local directory outside the published repository for now, reached through an uncommitted override or an environment variable, and a private git repository later. The committed public configuration keeps `oracleLocation` as a non-sensitive placeholder and never holds a machine path or a private URL, so FR-261 holds | FR-260, FR-261, NFR-039 |
 | D-17 | Settled (Group B; `DECISIONS.md`, 2026-11-25, "Resolve evaluation-harness and reviewer-machinery follow-ups"): the `qa` agent owns applying the Testing Gate's test-integrity lane (OQ-18 settled) | FR-291 |
 
 **Provisional values (OQ-17; provisionally settled, not closed).** Each value below is provisional and to be revised with data. A value taken from a figure already in these requirements cites it; a value with no such figure is a conservative round number labeled "provisional, no empirical basis yet".
@@ -2536,6 +2536,16 @@ Acceptance criteria are the scenarios below, in GIVEN/WHEN/THEN form. FR-254 to 
 | Seeded-defect sample size, FR-316 | 20 defects | Provisional, to be revised with data. The size used in the FR-316 scenario |
 | Reviewer precision floor, FR-316 | 0.7 | Provisional, no empirical basis yet. Held below the 90% promotion bar of NFR-034, which governs blocking rules only |
 | Reviewer recall floor, FR-316 | 0.5 | Provisional, no empirical basis yet |
+
+**Provisional values (OQ-14; provisionally settled, not closed).** Settled by the user on 2026-11-26 (`DECISIONS.md`, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run") at the recommended estimates of `specs/spec-evaluation-harness.md:584-592`, the same provisional treatment as OQ-17. Each value is provisional and to be revised with run-to-run variance data. None has an empirical basis yet; each is an estimate, not a measurement.
+
+| Value | Setting | Basis |
+|-------|---------|-------|
+| Run count k, FR-271 | 5 | Provisional, no empirical basis yet. The spec's recommended estimate. The A-12 cost estimate also assumes 5 runs per case |
+| Regression margin, FR-277 | 0.05 | Provisional, to be revised with data. The spec's recommended estimate, and the margin used in the FR-277 scenario |
+| Reference-validation runs, FR-259 | 3 | Provisional, to be revised with data. The spec's recommended estimate, and the count used in the FR-259 scenario |
+| Judge runs, FR-285 | 3 | Provisional, to be revised with data. The spec's recommended estimate, and the count used in the FR-285 scenario |
+| New golden tasks per release, FR-281 | 1 | Provisional, to be revised with data. The count of one in the FR-281 statement, which stays an estimate to confirm |
 
 Each later profile disablement (FR-244) needs its own `DECISIONS.md` entry when it happens; it is not a standing dependency.
 
@@ -2633,3 +2643,4 @@ Gap traceability:
 | 1.4 (note 3) | 2026-11-25 | [Author] | Reconcile requirements with the shipped build. FR-304 and FR-305 are scoped to the GitHub `gh` path, with Bitbucket out of scope per U-9 (the Bitbucket head-revision read command is not named). FR-306 and FR-307 catalog severity is recorded as implemented and active, shipped in commit a1582f0 (`rules/severity-catalog.yaml` read by `hooks/lib/severity.js`); the D-14 dependency row and the FR-306 and FR-307 Status notes are updated to match. No renumbering, no version bump |
 | 1.4 (note 4) | 2026-11-26 | [Author] | Group B (Theme 6, FR-288 to FR-316, NFR-040 to NFR-042) approved, per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the group-intro sentences, the Theme 6 section status, the section 3.7 header, the Group B scope line, and the section 6 Group B traceability rows. Group A (Theme 5) stays DRAFT. FR-306 and FR-307 remain additionally implemented and active (D-14). The lockstep JSON flips the Group B inline marker. No renumbering, no version bump |
 | 1.4 (note 5) | 2026-11-26 | [Author] | Group A (Theme 5, FR-254 to FR-287, NFR-037 to NFR-039) approved. OQ-14 and OQ-15 are carried as open operational items. The Status labels flip from DRAFT to Approved in the document status, the Purpose paragraph, the group-intro sentence, the Theme 5 section status, the section 3.6 header, the Group A scope line, and the four section 6 Group A traceability rows. The section 6 row for FR-248 and FR-249 is corrected from PLANNED to Approved (the strict JSON parser is implemented). No requirement text changed, no version bump |
+| 1.4 (note 6) | 2026-11-26 | [Author] | Settle OQ-14 and OQ-15 provisionally per `DECISIONS.md`, 2026-11-26, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run", to enable a real benchmark run. OQ-14: run count k 5, regression margin 0.05, reference-validation runs 3, judge runs 3, new golden tasks per release 1, all provisional and to be revised with run-to-run variance data, none with an empirical basis (new section 5 table, "Provisional values (OQ-14...)"; the Origin notes of FR-259, FR-277, and FR-285 name the setting). OQ-15: the oracle lives in a local directory outside the published repository, reached through an uncommitted override or an environment variable, with a private git repository later; the committed public configuration keeps `oracleLocation` as a non-sensitive placeholder, so FR-261 holds. D-16 split: the principle (oracle outside the published repository) is settled; the concrete location stays provisional. The Status line, the Purpose paragraph, and the FR-261 Origin note are updated to match. No requirement statement changed (only Origin notes, the dependency row, a new section 5 table, and status text), no version bump |

@@ -1,0 +1,8 @@
+{
+  "description": "Template sample: implement a pure slugify(text) function in slugify.js.",
+  "provenance": "in-house",
+  "creation_date": "2026-11-26",
+  "valid_against_cutoff": "2026-11-26",
+  "held_out": false,
+  "template": true
+}

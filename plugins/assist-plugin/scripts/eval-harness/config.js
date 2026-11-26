@@ -8,6 +8,11 @@
 // number for one. The judge-agreement floor is the one configured value that ships with a number: the provisional
 // setting, returned together with its label, replaced by an override when the file holds one.
 //
+// The private oracle location resolves from three sources, first present wins (FR-260, FR-261): the environment variable
+// ASSIST_EVAL_ORACLE_DIR, then the `oracleLocation` key of the uncommitted override file harness.config.local.json beside the
+// config file, then the committed `oracleLocation`, which ships as the placeholder null. `requireOracle` makes a run that
+// resolves none of them an error; no default location is ever substituted.
+//
 // Result shape: { ok: true, config, errors: [] } or { ok: false, config: null, errors: ["<field>: <fixed reason>", ...] }.
 // A reason is fixed text. It never holds raw parser output or the value that failed the check.
 // No dependencies; ES2015 syntax only.
@@ -32,6 +37,10 @@ const OQ14_FIELDS = [
 const RETRY_KEY = "retryOnFailure";
 const RETRY_ALIAS_KEYS = ["retries", "retry", "maxRetries", "rerunOnFailure", "retryUntilPass"];
 
+// [FR-260|FR-261] Where the private oracle location can come from, besides the committed config value.
+const ORACLE_ENV_KEY = "ASSIST_EVAL_ORACLE_DIR";
+const OVERRIDE_FILE_NAME = "harness.config.local.json";
+
 const MAX_LOCATION_LENGTH = 4096;
 const URL_CREDENTIALS = /^[a-z][a-z0-9+.-]*:\/\/[^/@]*@/i;
 
@@ -40,6 +49,7 @@ const REASON_NOT_JSON = "config file is not valid JSON";
 const REASON_NOT_OBJECT = "config file must hold a JSON object";
 const REASON_NOT_SET = "is not set";
 const REASON_NOT_NUMBER = "is not a number";
+const REASON_ORACLE_UNSET = "oracle location is unset; set " + ORACLE_ENV_KEY + " or the uncommitted override file";
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -168,6 +178,72 @@ function checkLocation(value, name, errors, tags) {
   return value;
 }
 
+function isBlank(value) {
+  return typeof value === "string" && value.trim() === "";
+}
+
+// [FR-260|FR-261] Reads the uncommitted override file. An absent file is no override. A file that exists but cannot be read
+// or parsed is an error, never silently ignored, so a mistyped override cannot fall back to the committed value unseen.
+function readOverrideFile(overridePath) {
+  try {
+    fs.statSync(overridePath);
+  } catch (error) {
+    return error && error.code === "ENOENT" ? { absent: true } : { reason: REASON_NOT_READABLE };
+  }
+  return readJson(overridePath);
+}
+
+// [FR-260|FR-261] The oracle location that applies, first present wins like resolveFloor: the environment variable, then the
+// override file beside the config file, then the committed value. Every candidate passes checkLocation, so the type, length,
+// NUL, and embedded-credentials rules hold for each source. A relative override path resolves against the override file's
+// directory and an environment path against the working directory. Returns { location, source }; both are null when none
+// resolves, and then `requireOracle` makes that an error with fixed text that holds no path.
+function resolveOracleLocation(raw, configFile, settings, errors) {
+  const tags = { type: "FR-260", cred: "FR-261" };
+  const env = isObject(settings.env) ? settings.env : process.env;
+  const before = errors.length;
+
+  const fromEnv = env[ORACLE_ENV_KEY];
+  if (!isUnset(fromEnv) && !isBlank(fromEnv)) {
+    const location = checkLocation(fromEnv, "oracleLocation", errors, tags);
+    return { location: location === null ? null : resolveAgainst(process.cwd(), location), source: location === null ? null : "env" };
+  }
+
+  const overridePath = path.join(path.dirname(configFile), OVERRIDE_FILE_NAME);
+  const override = readOverrideFile(overridePath);
+  if (override.reason) {
+    errors.push(OVERRIDE_FILE_NAME + ": " + override.reason);
+    return { location: null, source: null };
+  }
+  if (!override.absent) {
+    if (!isObject(override.value)) {
+      errors.push(OVERRIDE_FILE_NAME + ": " + REASON_NOT_OBJECT);
+      return { location: null, source: null };
+    }
+    const location = checkLocation(override.value.oracleLocation, "oracleLocation", errors, tags);
+    if (location !== null) {
+      return { location: resolveAgainst(path.dirname(overridePath), location), source: "override" };
+    }
+    if (errors.length > before) {
+      return { location: null, source: null };
+    }
+  }
+
+  const committed = checkLocation(raw.oracleLocation, "oracleLocation", errors, tags);
+  if (committed !== null) {
+    return { location: committed, source: "committed" };
+  }
+  if (settings.requireOracle === true && errors.length === before) {
+    errors.push("oracleLocation (FR-260): " + REASON_ORACLE_UNSET);
+  }
+  return { location: null, source: null };
+}
+
+// A URL stays as written; a path becomes absolute against `base`.
+function resolveAgainst(base, location) {
+  return location.indexOf("://") !== -1 ? location : path.resolve(base, location);
+}
+
 function checkBoolean(value, name, errors) {
   if (isUnset(value)) {
     return false;
@@ -193,9 +269,11 @@ function readJson(filePath) {
   }
 }
 
-// loadConfig(filePath, { require }) reads and checks the harness configuration.
+// loadConfig(filePath, { require, requireOracle, env }) reads and checks the harness configuration.
 // `require` lists the OQ-14 keys the caller needs; it defaults to all five. A step that needs only some of them (the
 // admission step needs referenceValidationRuns) passes a shorter list. A listed key that is unset is an error.
+// `requireOracle` (default false, so a caller that never reads the oracle keeps loading) makes an unresolved oracle location
+// an error. `env` (default process.env) is the environment the oracle variable is read from.
 function loadConfig(filePath, options) {
   const settings = options || {};
   const file = filePath || DEFAULT_CONFIG_PATH;
@@ -210,8 +288,10 @@ function loadConfig(filePath, options) {
   const raw = parsed.value;
   const errors = [];
   const numbers = checkOq14(raw, required, errors);
+  const oracle = resolveOracleLocation(raw, file, settings, errors);
   const config = Object.assign({}, numbers, {
-    oracleLocation: checkLocation(raw.oracleLocation, "oracleLocation", errors, { type: "FR-260", cred: "FR-261" }),
+    oracleLocation: oracle.location,
+    oracleLocationSource: oracle.source,
     retryOnFailure: checkRetry(raw, errors),
     judgeEnabled: checkBoolean(raw.judgeEnabled, "judgeEnabled", errors),
     judgeAgreementFloor: resolveFloor(raw, errors),

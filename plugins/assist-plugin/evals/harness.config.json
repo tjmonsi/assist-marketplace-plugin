@@ -1,10 +1,10 @@
 {
   "oracleLocation": null,
-  "runCount": null,
-  "regressionMargin": null,
-  "referenceValidationRuns": null,
-  "judgeRuns": null,
-  "newTasksPerRelease": null,
+  "runCount": 5,
+  "regressionMargin": 0.05,
+  "referenceValidationRuns": 3,
+  "judgeRuns": 3,
+  "newTasksPerRelease": 1,
   "retryOnFailure": 0,
   "judgeEnabled": false,
   "judgeAgreementFloor": {

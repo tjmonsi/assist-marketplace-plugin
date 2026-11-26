@@ -1,0 +1,9 @@
+{
+  "deterministic": [
+    {
+      "id": "hidden-suite-exit-zero",
+      "description": "The hidden test suite, run against the agent's slugify.js with node --test, exits 0."
+    }
+  ],
+  "subjective": []
+}

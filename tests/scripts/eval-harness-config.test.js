@@ -40,9 +40,19 @@ const SHIPPED_CONFIG = path.join(PLUGIN, "evals", "harness.config.json");
 
 const OQ14_KEYS = ["runCount", "regressionMargin", "referenceValidationRuns", "judgeRuns", "newTasksPerRelease"];
 
+// Isolation: an exported ASSIST_EVAL_ORACLE_DIR must not change a result. Clear it for the file, restore it after.
+const ORACLE_ENV = "ASSIST_EVAL_ORACLE_DIR";
+const originalEnvValue = process.env[ORACLE_ENV];
+delete process.env[ORACLE_ENV];
+
 const created = [];
 after(() => {
   created.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true }));
+  if (originalEnvValue === undefined) {
+    delete process.env[ORACLE_ENV];
+  } else {
+    process.env[ORACLE_ENV] = originalEnvValue;
+  }
 });
 
 function tmpDir() {
@@ -266,18 +276,15 @@ test("[R8 | spec-evaluation-harness | FR-286] the shipped configuration file car
   assert.strictEqual(floor.source, "shipped");
 });
 
-test("[R5 | spec-evaluation-harness | FR-271 | FR-277 | FR-259 | FR-285 | FR-281] the shipped configuration file carries no default number for any OQ-14 field", () => {
-  // The numbers are a user decision, so a caller that asks for any of them gets an error, not a value.
+test("[R5 | spec-evaluation-harness | FR-271 | FR-277 | FR-259 | FR-285 | FR-281] the shipped configuration file carries the five provisional OQ-14 values", () => {
+  // The numbers are provisional values settled for the benchmark run (OQ-14); the shipped file must load them exactly.
   const result = config.loadConfig(SHIPPED_CONFIG, { require: OQ14_KEYS });
-  const raw = JSON.parse(fs.readFileSync(SHIPPED_CONFIG, "utf8"));
-  const anySet = OQ14_KEYS.some((key) => raw[key] !== null && raw[key] !== undefined);
-  if (!anySet) {
-    assert.strictEqual(result.ok, false);
-    OQ14_KEYS.forEach((key) => assert.ok(mentions(result.errors, key), "no error names " + key));
-  } else {
-    // The user has since chosen numbers (step B4); the contract then is that a set number loads.
-    assert.ok(result.ok === true || result.errors.length > 0);
-  }
+  assert.strictEqual(result.ok, true, JSON.stringify(result.errors));
+  assert.strictEqual(result.config.runCount, 5);
+  assert.strictEqual(result.config.regressionMargin, 0.05);
+  assert.strictEqual(result.config.referenceValidationRuns, 3);
+  assert.strictEqual(result.config.judgeRuns, 3);
+  assert.strictEqual(result.config.newTasksPerRelease, 1);
 });
 
 test("[R8 | spec-evaluation-harness | FR-286] a loaded provisional floor returns its label and a source of shipped", () => {

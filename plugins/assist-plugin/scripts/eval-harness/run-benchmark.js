@@ -20,7 +20,8 @@
 //   node scripts/eval-harness/run-benchmark.js [--root DIR] [--config FILE] [--scoreboard FILE] [--suite dev|spec] [--case ID]
 //   node scripts/eval-harness/run-benchmark.js --list [--benchmark] [--suite dev|spec] [--case ID]
 // `--root` names the repository root (default: the current directory). `--list` prints the harness's own case list and starts
-// nothing; a held-out case is listed only with `--benchmark`, which is what the ordinary list leaves out (FR-280).
+// nothing; a held-out case is listed only with `--benchmark`, which is what the ordinary list leaves out (FR-280). A template
+// case (`"template": true` in task.json) is listed only when `--case` names it (FR-280, FR-281).
 //
 // Output: plain lines on stdout. The run count and case count print before the first run, with the estimated cost of a full
 // run ($25 to $75, an estimate and not a measurement, BRD A-12). Lines read "error: <fixed reason>", "finding: <text>",
@@ -123,9 +124,18 @@ function isHeldOut(taskDir) {
   return isObject(meta) && meta.held_out === true;
 }
 
+// [FR-280|FR-281] A worked sample marked `template` in task.json is a model for authoring tasks, not a production benchmark task.
+// Strict like `held_out`: only the boolean true marks one.
+function isTemplate(taskDir) {
+  const meta = readJsonFile(path.join(taskDir, "task.json"));
+  return isObject(meta) && meta.template === true;
+}
+
 // [FR-280|ASM-7c] listCases({ evalsDir, benchmark, suite, caseId }) lists the golden tasks under evals/dev/<case>/ and
 // evals/spec/<case>/. A task flagged `held_out` in task.json is left out of an ordinary list and included when `benchmark`
-// is true. The filter is here and not in the runner, which this script does not edit.
+// is true. A task flagged `template` is left out of every list that names no case and is listed only when `caseId` names it,
+// so the worked sample never counts as a production task yet can still be run on request. The filters are independent: a case
+// that is both held out and a template follows both rules. They are here and not in the runner, which this script does not edit.
 function listCases(options) {
   const settings = options || {};
   const evalsDir = typeof settings.evalsDir === "string" ? settings.evalsDir : path.join(PLUGIN_ROOT, "evals");
@@ -149,6 +159,9 @@ function listCases(options) {
         isDirectory = false;
       }
       if (!isDirectory || !scoreboardModule.IDENTIFIER_PATTERN.test(name) || (settings.caseId && settings.caseId !== name)) {
+        return;
+      }
+      if (!settings.caseId && isTemplate(taskDir)) {
         return;
       }
       const heldOut = isHeldOut(taskDir);
@@ -480,12 +493,13 @@ function describeCase(record) {
 // The benchmark
 // ---------------------------------------------------------------------------------------------------------------------
 
-// [FR-271|FR-259|FR-277|FR-285] The OQ-14 numbers every run needs. The judge run count is needed only when the judge is on.
+// [FR-271|FR-259|FR-277|FR-285|FR-260] The OQ-14 numbers every run needs. The judge run count is needed only when the judge is
+// on. A run also needs the oracle location, so one that resolves from none of its sources is a configuration error.
 function loadSettings(configPath) {
   const required = ["runCount", "regressionMargin", "referenceValidationRuns"];
-  const loaded = configModule.loadConfig(configPath, { require: required });
+  const loaded = configModule.loadConfig(configPath, { require: required, requireOracle: true });
   if (loaded.ok && loaded.config.judgeEnabled) {
-    return configModule.loadConfig(configPath, { require: required.concat(["judgeRuns"]) });
+    return configModule.loadConfig(configPath, { require: required.concat(["judgeRuns"]), requireOracle: true });
   }
   return loaded;
 }

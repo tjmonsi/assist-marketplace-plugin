@@ -62,9 +62,19 @@ const SPEC_OUTPUT = [
   "",
 ].join("\n");
 
+// Isolation: an exported ASSIST_EVAL_ORACLE_DIR must not change a result. Clear it for the file, restore it after.
+const ORACLE_ENV = "ASSIST_EVAL_ORACLE_DIR";
+const originalEnvValue = process.env[ORACLE_ENV];
+delete process.env[ORACLE_ENV];
+
 const created = [];
 after(() => {
   created.forEach((dir) => fs.rmSync(dir, { recursive: true, force: true }));
+  if (originalEnvValue === undefined) {
+    delete process.env[ORACLE_ENV];
+  } else {
+    process.env[ORACLE_ENV] = originalEnvValue;
+  }
 });
 
 function tmpDir() {

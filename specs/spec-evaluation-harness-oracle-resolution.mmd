@@ -1,0 +1,14 @@
+flowchart TD
+    A[Benchmark run starts] --> B{Environment variable<br/>ASSIST_EVAL_ORACLE_DIR set?}
+    B -- yes --> R[Use the environment-variable location]
+    B -- no --> C{Uncommitted local override<br/>sets a location?}
+    C -- yes --> R2[Use the override location]
+    C -- no --> D[Committed oracleLocation is a<br/>non-sensitive placeholder, no real path]
+    D --> E[No usable oracle location resolved]
+    E --> F[Report error, score nothing,<br/>name that the location is unset]
+    R --> G{Location reachable?}
+    R2 --> G
+    G -- no --> U[Report error, score nothing,<br/>name the unreachable location]
+    G -- yes --> H[Read reference and hidden suite at run time]
+    H --> I[Prepare agent workspace with the oracle withheld]
+    I --> J[Leak-check the workspace, abort and name a leaked path]

@@ -13,7 +13,9 @@
 
 Status values: Draft, Review, Approved, Implemented.
 
-Citation note: paths that start with `plugins/assist-plugin/` are relative to that directory's position under the repository root; `docs/`, `specs/`, and `evals/results/` resolve against the repository root; `evals/` without the plugin prefix means `plugins/assist-plugin/evals/`. "Report:N" cites line N of `docs/research/research-eval-benchmarks-coding-spec-20261124.md`. Requirement IDs (`FR-254` and so on) cite `docs/requirements/FR-NFR-harness-governance.md`; `UR-` IDs cite `URD-harness-governance.md`; `BR-` and `SC-` IDs cite `BRD-harness-governance.md`. Group A is Approved (2026-11-26) in the requirements documents (`FR-NFR-harness-governance.md:1015`), and the evaluation benchmark harness is implemented per commit 4fea28f and held on the `feat/eval-reviewer-harness` branch for merge, so this spec is Approved. OQ-14 (the benchmark config numbers) and OQ-15 (the oracle and hidden-suite location, with the FR-261 published-repo conflict recorded as D-16) remain open operational items to settle before a real benchmark run, consistent with the requirements approval.
+The 2026-11-26 delta (Change Log at the foot of this file) returns the Status to Review per FR-154: it records the settled design but is not itself approved in the same turn.
+
+Citation note: paths that start with `plugins/assist-plugin/` are relative to that directory's position under the repository root; `docs/`, `specs/`, and `evals/results/` resolve against the repository root; `evals/` without the plugin prefix means `plugins/assist-plugin/evals/`. "Report:N" cites line N of `docs/research/research-eval-benchmarks-coding-spec-20261124.md`. Requirement IDs (`FR-254` and so on) cite `docs/requirements/FR-NFR-harness-governance.md`; `UR-` IDs cite `URD-harness-governance.md`; `BR-` and `SC-` IDs cite `BRD-harness-governance.md`. Group A is Approved (2026-11-26) in the requirements documents (`FR-NFR-harness-governance.md:1015`), and the evaluation benchmark harness is implemented per commit 4fea28f and held on the `feat/eval-reviewer-harness` branch for merge. This spec is in Review pending sign-off on the 2026-11-26 delta (Change Log at the foot of this file), which the orchestrator flips to Approved at sign-off. The user provisionally settled OQ-14 and OQ-15 on 2026-11-26 to enable a real benchmark run: OQ-14 sets the five benchmark config numbers to the provisional values in "Configured values (provisionally settled)", and OQ-15 settles the principle (the oracle and hidden-suite location, reference solutions and hidden suites, live outside the published repo; the FR-261 published-repo conflict recorded as D-16) while the concrete location stays provisional (a local directory now reached through an environment variable or an uncommitted override, a private repository later). The sentences below that describe the concrete location as still provisional remain accurate; the 2026-11-26 Change Log carries the settled state.
 
 ## Description
 
@@ -154,7 +156,7 @@ The harness SHALL admit a coding golden task only after its reference solution p
 
 ### Requirement: Private oracle resolution and withholding
 
-The harness SHALL read each reference solution and hidden test suite from the configured private location at run time, SHALL keep every reference solution and hidden test suite out of the agent's workspace and out of every published artifact, and SHALL abort a run whose prepared workspace holds a file from the oracle. The published marketplace repo holds prompts, graders, metadata, rubrics, and the oracle-location pointer only; the private location holds the oracle content. That the oracle lives outside the published marketplace repo is the settled design decision, which closes the FR-261 in-repo conflict; the concrete private location stays open as OQ-15 and D-16, to settle before a real benchmark run. The "Private oracle location unreachable" scenario below is a design-level elaboration of that private-location decision realizing FR-260 and FR-261; FR-260 governs withholding the oracle from the agent and FR-261 keeping it out of published artifacts, and neither specifies resolution-failure handling, so the spec adds it here to keep the decision implementable.
+The harness SHALL read each reference solution and hidden test suite from the configured private location at run time, SHALL keep every reference solution and hidden test suite out of the agent's workspace and out of every published artifact, and SHALL abort a run whose prepared workspace holds a file from the oracle. The published marketplace repo holds prompts, graders, metadata, rubrics, and the oracle-location pointer only; the private location holds the oracle content. That the oracle lives outside the published marketplace repo is the settled design decision, which closes the FR-261 in-repo conflict; the concrete private location stays provisional (a local directory now, reached by an environment variable or an uncommitted override, a private repository later; OQ-15, D-16 split). The "Private oracle location unreachable" scenario below is a design-level elaboration of that private-location decision realizing FR-260 and FR-261; FR-260 governs withholding the oracle from the agent and FR-261 keeping it out of published artifacts, and neither specifies resolution-failure handling, so the spec adds it here to keep the decision implementable.
 
 #### Scenario: Agent workspace holds no oracle
 
@@ -573,23 +575,23 @@ Not applicable: the harness runs on the maintainer's machine or in CI against a 
 
 | Decision | Options considered | Chosen | Rationale |
 |---|---|---|---|
-| Where the oracle lives (OQ-15, D-16) | Commit `reference/` under the shipped plugin tree (Report:78-91); a separate private repository or configured private path; encrypt in-repo | A separate private location the harness reads at run time | The marketplace repo is published, so committing reference solutions or hidden suites would expose the oracle and break FR-261 and NFR-039. The public repo holds prompts, graders, configuration, and a pointer; the oracle content stays private. That the oracle lives outside the published repo is the settled design decision, which closes the FR-261 in-repo conflict; the concrete private location stays open as OQ-15 and D-16, to settle before a real benchmark run |
+| Where the oracle lives (OQ-15, D-16) | Commit `reference/` under the shipped plugin tree (Report:78-91); a separate private repository or configured private path; encrypt in-repo | A separate private location the harness reads at run time | The marketplace repo is published, so committing reference solutions or hidden suites would expose the oracle and break FR-261 and NFR-039. The public repo holds prompts, graders, configuration, and a pointer; the oracle content stays private. That the oracle lives outside the published repo is the settled design decision, which closes the FR-261 in-repo conflict; the concrete private location stays provisional (a local directory now, reached by an environment variable or an uncommitted override, a private repository later; OQ-15, D-16 split) |
 | When the benchmark runs (OQ-13) | Run on every release check; run on request only; opt-in CI | On request only (manual or opt-in CI); a plain release check reports the last stored scoreboard and does not auto-run the suites | A full run is estimated at $25 to $75 (BRD A-12, Report:114), too costly to run on every check (FR-274). FR-250 in `FR-NFR-assist-plugin.md` now carries the benchmark-scoreboard section (D-15, FR-273, FR-274): a plain release check reports the last stored scoreboard and runs no suite, and a requested run starts the Group A harness and adds no second runner |
 | Judge model family (OQ-16) | A different-family judge now; a same-family judge now with bias mitigations (the reconciled FR-282); no judge | A same-family judge now with the three FR-282 bias mitigations (candidate-order randomization FR-284, rubric anchoring FR-283, human-agreement check FR-286), plus FR-285 mean-over-runs as variance reduction, not a fourth bias mitigation; a different-family judge is a future enhancement | The plugin's agents run on one vendor's models today, so a second family may be unavailable (OQ-16). The judge stays advisory (FR-279) and never gates a merge, so same-family bias is tolerable with the mitigations. This matches the reconciled FR-282, which requires the three bias mitigations when the judge shares the agent's model family and the recording of the judge family and the agent family in the result; a different-family judge is a future enhancement, not a requirement of this version (settled design decision) |
 | Structural and judge scores combined or separate | One combined quality number; two separate scores | Two separate scores, never averaged (FR-270) | A deterministic floor and a noisy judge measure different things; averaging hides a structural failure behind a judge score (Report:69) |
 | One runner or a new one | Build a benchmark runner; reuse `claude plugin eval` and `tests/` | Reuse the existing runner and case layout; add no second runner (FR-263) | The case layout, ablation arms, and `results/` sink already exist (`evals/README.md:3`, `:28`); a second runner is parallel infrastructure (Report:93) |
 
-## Configured values (recommended defaults)
+## Configured values (provisionally settled)
 
-The requirements leave these numeric values to configuration with no settled default (OQ-14, A-14). Each recommended value below is an estimate to confirm by measurement, not a settled figure. A scenario in the requirements that shows a figure is an example, not a default (A-14).
+The user provisionally settled these OQ-14 numeric values on 2026-11-26 at the estimates below (`DECISIONS.md`, 2026-11-26, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run"; `FR-NFR-harness-governance.md` section 5, "Provisional values (OQ-14)"; `URD-harness-governance.md:146`). Each value is provisional and revisable with run-to-run variance data, the same treatment as the OQ-17 provisional values; none has an empirical basis yet. Each stays a configured value the harness reads; the loader still errors naming any field that is unset or non-numeric and substitutes no default (`config.js:21-96`). A scenario in the requirements that shows a figure is an example, not a hard-coded default (A-14). The 2026-11-26 Change Log entry records this change.
 
-| Value | Requirement | Recommended default (estimate to confirm) | Basis of the estimate |
+| Value | Requirement | Provisional setting | Basis |
 |---|---|---|---|
-| Run count k for pass@1 | FR-271 | 5 | The report's full-run cost estimate assumes k = 5 (Report:114); larger k costs more, smaller k gives a noisier pass@1 |
-| Regression margin | FR-277 | 0.05 | The FR-277 scenario uses a 0.05 margin as its example (`FR-NFR-harness-governance.md:1479`); tune against observed run-to-run variance |
-| Reference-solution validation run count | FR-259 | 3 | The FR-259 scenario uses 3 consecutive runs as its example (`FR-NFR-harness-governance.md:1125`) |
-| Judge run count | FR-285 | 3 | The FR-285 scenario uses 3 judge runs as its example (`FR-NFR-harness-governance.md:1634`); averaging more runs cuts judge variance at more cost |
-| New golden tasks per benchmark release | FR-281 | 1 per suite | FR-281 states the count of one is an estimate to confirm (`FR-NFR-harness-governance.md:1552`) |
+| Run count k for pass@1 | FR-271 | 5 | Provisional, no empirical basis yet. The report's full-run cost estimate assumes k = 5 (Report:114); larger k costs more, smaller k gives a noisier pass@1 |
+| Regression margin | FR-277 | 0.05 | Provisional, to be revised with data. The margin used in the FR-277 scenario; tune against observed run-to-run variance |
+| Reference-solution validation run count | FR-259 | 3 | Provisional, to be revised with data. The count used in the FR-259 scenario |
+| Judge run count | FR-285 | 3 | Provisional, to be revised with data. The count used in the FR-285 scenario; averaging more runs cuts judge variance at more cost |
+| New golden tasks per benchmark release | FR-281 | 1 per suite | Provisional, to be revised with data. The count of one that FR-281 states as an estimate to confirm |
 
 ## Sub-feature breakdown
 
@@ -677,3 +679,104 @@ These items this spec names but does not define, so a later spec or delta owns t
 - The release-check wiring of the benchmark section. FR-250 in `FR-NFR-assist-plugin.md` now defines it (report the last stored scoreboard, no auto-run, suites on request only through the Group A harness, FR-273 and FR-274; D-15), and the runner spec `spec-release-check.md` owns the section in the `release-check.js` section list. This spec states the section's behavior. The two names are distinct: the Group A benchmark section (FR-273, FR-274) in this spec is the suite runner that runs the coding and spec suites and compares releases when the user requests it; the benchmark scoreboard section of `release-check.js` (FR-250) is the reporting view that shows the last stored scoreboard in a default run and starts the Group A runner only on request (OQ-13 settled).
 - The FR-282 reconciliation, now complete in the requirements. The reconciled FR-282 requires the three bias mitigations for a same-family judge, which this spec applies, and names a different-family judge a future enhancement, not a requirement of this version. This spec changes no requirement.
 - The exact private location (a private repository, a path, or another store) and its access control. The settled decision fixes that the oracle lives outside the published repo and the harness reads it at run time; the concrete location is a configuration value.
+
+## Change Log: 2026-11-26
+
+**Source:** OQ-14 provisionally settled and OQ-15 settled through a local-override design to enable a real benchmark run (`DECISIONS.md`, 2026-11-26, "Settle OQ-14 (provisional) and OQ-15 (local oracle via override) for the benchmark run"). Requirements updated in lockstep: `FR-NFR-harness-governance.md` section 5, "Provisional values (OQ-14)", and D-16 split; `URD-harness-governance.md:146` (OQ-14) and `:147` (OQ-15). Satisfies FR-259, FR-260, FR-261, FR-271, FR-277, FR-281, FR-285, and NFR-039; no new requirement ID, so the metadata Requirement refs are unchanged.
+
+This delta records the design the user settled for a real benchmark run: how the private oracle location resolves from an uncommitted override, the OQ-14 config values as provisional, and the one worked-sample task that serves as the golden-task template. D-16 is split: the principle (oracle outside the published repo) is settled; the concrete location (a local directory now, a private repository later) is provisional.
+
+### ADDED Requirements
+
+#### Requirement: Oracle-location resolution from an uncommitted override
+
+The harness SHALL resolve the private oracle location from an environment variable (for example `ASSIST_EVAL_ORACLE_DIR`) or an uncommitted local override, taking a present override in preference to the committed value, the same override-wins shape the judge-agreement floor already uses (`config.js:143-151`, `resolveFloor`). The committed `oracleLocation` in `plugins/assist-plugin/evals/harness.config.json` SHALL be a non-sensitive placeholder that holds no machine path and no private URL (FR-261, NFR-039). WHEN neither an override source nor a usable committed location resolves, the harness SHALL report a clear error, SHALL score nothing, and SHALL NOT substitute a default; the error SHALL state that the oracle location is unset and SHALL NOT read as a benchmark score. This is the design-level resolution mechanism for FR-260 and FR-261, which fix withholding and non-publication but leave the resolution source and its failure handling to this spec.
+
+Required start-to-end data-flow flowchart for the resolution path. The agent renders it with mermaid-cli (`mmdc`), which is available on the maintainer's machine.
+
+![Oracle-location resolution data flow](spec-evaluation-harness-oracle-resolution.png)
+
+Render source: [spec-evaluation-harness-oracle-resolution.mmd](spec-evaluation-harness-oracle-resolution.mmd). To regenerate: `mmdc -i specs/spec-evaluation-harness-oracle-resolution.mmd -o specs/spec-evaluation-harness-oracle-resolution.png`.
+
+##### Scenario: Environment variable resolves the location
+
+- **GIVEN** `ASSIST_EVAL_ORACLE_DIR` names a readable oracle directory
+- **WHEN** the harness resolves the oracle location
+- **THEN** the harness SHALL use the environment-variable location
+
+##### Scenario: Uncommitted override resolves the location
+
+- **GIVEN** no environment variable and an uncommitted local override that names a readable oracle directory
+- **WHEN** the harness resolves the oracle location
+- **THEN** the harness SHALL use the override location
+
+##### Scenario: Override preferred over the committed placeholder
+
+- **GIVEN** a committed `oracleLocation` placeholder and an override that names a real location
+- **WHEN** the harness resolves the oracle location
+- **THEN** the harness SHALL use the override location
+- **AND** the harness SHALL NOT treat the committed placeholder as a real path
+
+##### Scenario: No override and no usable committed location
+
+- **GIVEN** no environment variable, no uncommitted override, and the committed `oracleLocation` is the non-sensitive placeholder
+- **WHEN** the harness resolves the oracle location for a run
+- **THEN** the harness SHALL report an error and SHALL score nothing
+- **AND** the error SHALL state that the oracle location is unset
+
+##### Scenario: Committed config holds no machine path
+
+- **GIVEN** the committed `plugins/assist-plugin/evals/harness.config.json`
+- **WHEN** its `oracleLocation` value is read
+- **THEN** the value SHALL be a non-sensitive placeholder
+- **AND** the value SHALL hold no machine path and no private URL
+
+#### Requirement: Worked-sample task as the golden-task template
+
+The harness repository SHALL ship exactly one clearly-marked worked sample task, end to end, as the template the maintainer follows to author the production golden tasks, because an agent cannot author a trustworthy hidden suite from the public repo (task-plan B1). The sample SHALL be marked a template and SHALL NOT be counted as a production benchmark task. The public parts (`prompt.md`, `task.json`, `rubric.json`, and `graders/`) SHALL sit under `plugins/assist-plugin/evals/<suite>/<sample>/` and be committed; the private parts (the reference solution and the hidden test suite) SHALL sit in the gitignored local oracle directory `plugins/assist-plugin/evals/oracle-local/<suite>/<sample>/` under `reference/` and `hidden/`, the private layout the oracle resolver reads (`oracle.js:11-14`); a README template SHALL accompany the sample and mark it a template excluded from production benchmark scoring. The committed public parts SHALL pass `package-check.js` (no oracle path in the published package, FR-261), and the sample's reference solution SHALL pass its hidden suite on the configured number of consecutive runs (FR-259). The maintainer SHALL author the production set from the sample: 1 to 3 in-house tasks per suite with at least one held out (FR-258, FR-259, FR-281).
+
+##### Scenario: Public parts committed, private parts gitignored
+
+- **GIVEN** the worked-sample task
+- **WHEN** the repository is inspected
+- **THEN** the sample's `prompt.md`, `task.json`, `rubric.json`, and `graders/` SHALL be committed under `plugins/assist-plugin/evals/<suite>/<sample>/`
+- **AND** the sample's reference solution and hidden suite SHALL sit only in the gitignored `plugins/assist-plugin/evals/oracle-local/<suite>/<sample>/`
+
+##### Scenario: Sample marked a template
+
+- **GIVEN** the worked-sample task and its README
+- **WHEN** they are read
+- **THEN** they SHALL mark the sample a template
+- **AND** they SHALL state that it is excluded from production benchmark scoring
+
+##### Scenario: Sample public parts pass the package check
+
+- **GIVEN** a published package file list that holds the sample's committed public parts
+- **WHEN** `package-check.js` validates the list
+- **THEN** the check SHALL find no oracle path and SHALL report clean
+
+##### Scenario: Sample reference passes its hidden suite
+
+- **GIVEN** the sample's reference solution, its hidden suite, and the configured reference-validation run count
+- **WHEN** the harness validates the sample
+- **THEN** the reference solution SHALL pass the hidden suite on each consecutive run
+- **AND** the harness SHALL admit the sample
+
+##### Scenario: Production set authored from the sample
+
+- **GIVEN** the worked sample as the template
+- **WHEN** the maintainer authors the production golden tasks
+- **THEN** each suite SHALL hold 1 to 3 in-house tasks
+- **AND** at least one task per suite SHALL be held out
+
+### MODIFIED Requirements
+
+#### Requirement: Configured values settled provisionally (OQ-14)
+
+**Was:** The "Configured values (recommended defaults)" section stated the OQ-14 numbers were left to configuration "with no settled default (OQ-14, A-14)", each a recommended estimate to confirm by measurement.
+**Now:** The "Configured values (provisionally settled)" section states the OQ-14 numbers as provisionally settled on 2026-11-26 at runCount 5 (FR-271), regressionMargin 0.05 (FR-277), referenceValidationRuns 3 (FR-259), judgeRuns 3 (FR-285), and newTasksPerRelease 1 (FR-281), each provisional and revisable with run-to-run variance data, with no empirical basis yet. Each stays a configured value; the loader still errors on an unset or non-numeric field and substitutes no default.
+**Reason:** The user provisionally settled OQ-14 to enable a real benchmark run (`DECISIONS.md`, 2026-11-26; `FR-NFR-harness-governance.md` section 5, "Provisional values (OQ-14)").
+
+### REMOVED Requirements
+
+None.
