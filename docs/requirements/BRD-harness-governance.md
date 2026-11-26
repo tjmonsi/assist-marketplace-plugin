@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 4); DRAFT (Theme 5, Group A, and Theme 6, Group B)
+**Status:** Approved (Themes 1 to 4, and Theme 6, Group B); DRAFT (Theme 5, Group A)
 
 ---
 
@@ -11,7 +11,7 @@
 
 **Purpose:** This document states the business outcomes of a roadmap that hardens, verifies, and audits the assist-plugin harness itself: its hooks, gates, rules, agents, and skills. It is a companion to `BRD-assist-plugin.md`. IDs continue that document's numbering (BR-001 to BR-017, SC-001 to SC-015 are taken), so every ID here is unique across `docs/requirements/`.
 
-**Project overview:** The "system" is the plugin's harness, gates, hooks, and audit surface under `plugins/assist-plugin/` (JS hooks in `hooks/`, markdown in `rules/`, `agents/`, `skills/`). It is not an application. The roadmap has four themes: (1) harness security, closing documented gaps first; (2) integrity, replacing model-attested gates with verified evidence; (3) governance and compliance profiles for SOC 2, HIPAA, and FERPA on one audit trail; (4) shift-left severity routing. Version 1.4 adds two clearly separated DRAFT groups: Group A (theme 5), an evaluation benchmark harness that measures the coding and spec-writing agents release over release, and Group B (theme 6), reviewer and review-machinery capabilities that extend the existing review gates.
+**Project overview:** The "system" is the plugin's harness, gates, hooks, and audit surface under `plugins/assist-plugin/` (JS hooks in `hooks/`, markdown in `rules/`, `agents/`, `skills/`). It is not an application. The roadmap has four themes: (1) harness security, closing documented gaps first; (2) integrity, replacing model-attested gates with verified evidence; (3) governance and compliance profiles for SOC 2, HIPAA, and FERPA on one audit trail; (4) shift-left severity routing. Version 1.4 adds two clearly separated groups: Group A (theme 5, DRAFT), an evaluation benchmark harness that measures the coding and spec-writing agents release over release, and Group B (theme 6, Approved 2026-11-26), reviewer and review-machinery capabilities that extend the existing review gates.
 
 **Origin of the requirements:** The roadmap supplied with the task. Where a requirement closes a documented gap, the gap number and file line are cited. The gap table is `plugins/assist-plugin/rules/llm-security-checklist.md:323-333`. Group A (BR-023) comes from the repository's research report `docs/research/research-eval-benchmarks-coding-spec-20261124.md`. Group B (BR-024) extends the repository's existing reviewer agents, review protocol, and gate specs, and each requirement names the control it extends.
 
@@ -37,7 +37,7 @@
 | BR-021 | To assign ownership and review cadence for every control, the business must map controls to the OWASP Agentic AI Top 10 and the NIST AI RMF functions. | Should | SC-020 |
 | BR-022 | To catch defects early without alert fatigue, the business must route findings by severity, blocking only high-confidence, high-severity ones. | Should | SC-021, SC-022 |
 | BR-023 | To know whether each release makes the coding and spec-writing agents better or worse, the business must measure their output on in-house golden tasks, graded by execution for code and by checklist plus an optional separate judge for specs, and track the scores release over release. (Group A, DRAFT) | Should | SC-023, SC-024, SC-025 |
-| BR-024 | To shorten review rounds and keep reviewer findings trustworthy, the business must give reviewers named checklists, a round-by-round iteration record, fixed-severity findings, and a feedback loop from the user's labels to checklist changes. (Group B, DRAFT) | Should | SC-026, SC-027, SC-028 |
+| BR-024 | To shorten review rounds and keep reviewer findings trustworthy, the business must give reviewers named checklists, a round-by-round iteration record, fixed-severity findings, and a feedback loop from the user's labels to checklist changes. (Group B, Approved) | Should | SC-026, SC-027, SC-028 |
 
 ### 4. Scope
 
@@ -48,7 +48,7 @@
 - Theme 3, governance and compliance: per-agent identity, a per-event attribution record, SOC 2 evidence, FERPA and HIPAA controls (all three profiles enforced by default, with a governed per-project opt-out), a hook-written session purpose record, a FERPA disclosure-recordation control on outbound education-record data, mapping to OWASP Agentic AI Top 10 (ASI01 to ASI10, published December 2025) and NIST AI RMF (GOVERN, MEASURE, MANAGE).
 - Theme 4, shift-left severity routing: a severity policy, advisory-first baseline, blocking only on high confidence and high severity, severity and routing fields in reviewer output, and SARIF output.
 - Theme 5, Group A (DRAFT), evaluation benchmark harness: golden tasks for coding and for spec writing, execution grading for code, a structural checklist score plus an optional separate judge score for specs, pass@1 over k runs, release-over-release regression through the release-check runner, and controls for contamination, overfitting, judge bias, and flaky tests.
-- Theme 6, Group B (DRAFT), reviewer and review machinery: reviewer checklists by lane, a round-by-round iteration record, stale-verdict and head-revision guards, fixed-severity findings from a catalog, and a feedback loop from the user's labels to checklist changes.
+- Theme 6, Group B (Approved), reviewer and review machinery: reviewer checklists by lane, a round-by-round iteration record, stale-verdict and head-revision guards, fixed-severity findings from a catalog, and a feedback loop from the user's labels to checklist changes.
 
 #### Out of scope
 
@@ -98,7 +98,7 @@
 - A-13: A spec case "clears" the structural checklist when every deterministic item passes (FR-269). A looser level is a later choice.
 - A-14: Numeric values left to configuration have no settled default: the run count k, the regression margin, the validation run count (FR-259), the judge run count (FR-285), the escalation counts of FR-300 and FR-301, and the precision floor of FR-313 (OQ-14, OQ-17). Any figure shown in a scenario is an example. OQ-17 is provisionally settled: the values in `FR-NFR-harness-governance.md` (section 5, provisional values) are provisional and to be revised with data.
 - A-15: Concurrent lane review costs about three times one reviewer pass (estimate, not measured), and the plugin's existing cap on parallel agents (`plugins/assist-plugin/rules/llm-security-checklist.md:321-345`) sets at most three concurrent dispatches (FR-292).
-- A-16: Group A and Group B are DRAFT. They do not change the status or the approved text of FR-214 to FR-249 or NFR-026 to NFR-036.
+- A-16: Group A is DRAFT; Group B is approved (2026-11-26). Neither changes the status or the approved text of FR-214 to FR-249 or NFR-026 to NFR-036.
 
 ### 7. Success criteria
 
@@ -149,3 +149,4 @@
 | 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entry on the revision-loop cap: A-4 states the cap of 10 (OQ-2 resolved) |
 | 1.4 | 2026-11-24 | [Author] | BR-023 (Group A, evaluation benchmark harness) and BR-024 (Group B, reviewer and review machinery) added as DRAFT with SC-023 to SC-028, scope, constraints, A-12 to A-16, and glossary terms. Existing entries unchanged |
 | 1.4 (note) | 2026-11-25 | [Author] | Status header aligned with `FR-NFR-harness-governance.md`. A-15 line anchor corrected (`llm-security-checklist.md:321-345`). A-12 and A-14 updated for OQ-13 settled and OQ-17 provisionally settled (`DECISIONS.md`, 2026-11-25). No version bump |
+| 1.4 (note 2) | 2026-11-26 | [Author] | Group B (BR-024, Theme 6) approved per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the overview, the BR-024 row, the Theme 6 scope line, and A-16. Group A (Theme 5) stays DRAFT. No requirement text changed, no version bump |

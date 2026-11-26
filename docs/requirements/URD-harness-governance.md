@@ -3,7 +3,7 @@
 **Version:** 1.4
 **Date:** 2026-11-24
 **Author:** [Author]
-**Status:** Approved (Themes 1 to 4); DRAFT (Theme 5, Group A, and Theme 6, Group B)
+**Status:** Approved (Themes 1 to 4, and Theme 6, Group B); DRAFT (Theme 5, Group A)
 
 ---
 
@@ -11,7 +11,7 @@
 
 **Purpose:** This document captures what plugin maintainers, security leads, compliance officers, and auditors need from the harness-governance roadmap.
 
-**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-024). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-086 are used here). Version 1.4 adds two DRAFT groups: Group A (UR-077 to UR-080), an evaluation benchmark harness, and Group B (UR-081 to UR-086), reviewer and review-machinery capabilities.
+**Relationship to BRD:** This document derives from `BRD-harness-governance.md`. Every user requirement traces to at least one business requirement (BR-018 to BR-024). IDs continue `URD-assist-plugin.md` (UR-001 to UR-058; UR-059 to UR-086 are used here). Version 1.4 adds two groups: Group A (UR-077 to UR-080, DRAFT), an evaluation benchmark harness, and Group B (UR-081 to UR-086, Approved 2026-11-26), reviewer and review-machinery capabilities.
 
 ### 2. Stakeholder map
 
@@ -107,7 +107,7 @@
 - Attribution records, SOC 2 evidence export, FERPA and HIPAA profiles (enforced by default, governed opt-out), a user-declared session purpose, FERPA disclosure recordation, control mapping.
 - Severity policy, advisory baseline, severity-routed findings, SARIF output.
 - Group A (DRAFT): golden tasks, execution and checklist grading, an optional separate judge score, pass@1 over k runs, release-over-release regression, and controls for contamination, overfitting, judge bias, and flakiness.
-- Group B (DRAFT): reviewer checklists by lane, a per-round iteration record, stale-verdict and head-revision guards, catalog-fixed severity, and a feedback loop from the user's labels to checklist changes.
+- Group B (Approved): reviewer checklists by lane, a per-round iteration record, stale-verdict and head-revision guards, catalog-fixed severity, and a feedback loop from the user's labels to checklist changes.
 
 #### Out of scope (user-facing exclusions)
 
@@ -148,7 +148,7 @@
 - OQ-16: Settled (Group A). The judge is of the same model family as the agent now, with candidate-order randomization, rubric anchoring, and a human-agreement check at each benchmark release (FR-282). A judge of a different family is a future enhancement, not a current requirement.
 - OQ-17: Provisionally settled (Group B; `DECISIONS.md`, 2026-11-25), not closed. Each value is provisional and to be revised with data: escalation count 2 for FR-300 and FR-301; FR-313 retirement floor 0.5 and minimum 10 labeled findings; FR-314 addition count 3; judge-agreement floor Spearman rho at least 0.7 or Cohen kappa at least 0.6; seeded-defect sample 20; reviewer precision floor 0.7 and recall floor 0.5. Values with no figure already in the requirements are labeled "provisional, no empirical basis yet" (table in `FR-NFR-harness-governance.md`, section 5).
 - OQ-18: Settled (Group B; `DECISIONS.md`, 2026-11-25). The `qa` agent applies the test-integrity lane in the Testing Gate (FR-291, D-17).
-- OQ-19: Settled (Group B; `DECISIONS.md`, 2026-11-25). The user re-approved FR-237 with the severity catalog added, so FR-306 and FR-307 are approved and active (D-14). This authorizes the capability and does not implement it.
+- OQ-19: Settled (Group B; `DECISIONS.md`, 2026-11-25). The user re-approved FR-237 with the severity catalog added, so FR-306 and FR-307 are approved and active (D-14). The capability is implemented per the Group B build (commit a1582f0).
 
 ### 8. Glossary
 
@@ -176,3 +176,4 @@
 | 1.3 | 2026-10-30 | [Author] | Align with the `DECISIONS.md` 2026-10-30 entries: OQ-1, OQ-2, OQ-3, OQ-4, OQ-7, OQ-8, OQ-10 resolved; OQ-12 added for the pending formal approval of the severity-policy text, then resolved by `DECISIONS.md`, "2026-10-30: Severity policy approved" (draft-1; no version bump) |
 | 1.4 | 2026-11-24 | [Author] | UR-077 to UR-080 (Group A, evaluation benchmark harness) and UR-081 to UR-086 (Group B, reviewer and review machinery) added as DRAFT; UC-004 and UC-005, scope, assumptions, glossary terms, and OQ-13 to OQ-19 added. Existing entries unchanged |
 | 1.4 (note) | 2026-11-25 | [Author] | Status header aligned with `FR-NFR-harness-governance.md`. OQ-13, OQ-18, and OQ-19 settled and OQ-17 provisionally settled per `DECISIONS.md`, 2026-11-25. No version bump |
+| 1.4 (note 2) | 2026-11-26 | [Author] | Group B (UR-081 to UR-086, Theme 6) approved per `DECISIONS.md`, 2026-11-26, "Approve Group B (reviewer machinery), unblock Track B for merge". The Status labels flip from DRAFT to Approved in the document status, the overview, and the Group B scope line. OQ-19 now states the capability is implemented (commit a1582f0), matching `FR-NFR-harness-governance.md`. Group A (Theme 5) stays DRAFT. No requirement text changed, no version bump |

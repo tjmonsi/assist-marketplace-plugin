@@ -9,11 +9,11 @@
 | **Sub-features** | None |
 | **Requirement refs** | BR-018, BR-019, BR-022, BR-024, UR-081, UR-082, UR-083, UR-084, UR-085, UR-086, FR-288, FR-289, FR-290, FR-291, FR-292, FR-293, FR-294, FR-295, FR-296, FR-297, FR-298, FR-299, FR-300, FR-301, FR-302, FR-303, FR-304, FR-305, FR-306, FR-307, FR-308, FR-309, FR-310, FR-311, FR-312, FR-313, FR-314, FR-315, FR-316, NFR-040, NFR-041, NFR-042, SC-026, SC-027, SC-028 |
 | **Feature type** | Functionality |
-| **Status** | Draft |
+| **Status** | Approved |
 
 Status values: Draft, Review, Approved, Implemented.
 
-Baseline: Group B (Theme 6) of `docs/requirements/FR-NFR-harness-governance.md` v1.4 (2026-11-24), FR-288 to FR-316 and NFR-040 to NFR-042, DRAFT. This spec extends `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, 7, and the Change Log 2026-11-06 Requirement 14) and does not restate or replace it; it adds no gate, no cap, and no reviewer tool. Paths are relative to `plugins/assist-plugin/` unless stated otherwise. Catalog-fixed severity (Requirement 18, FR-306 and FR-307) is implemented and active: the user re-approved the severity policy with the catalog added (D-14; `DECISIONS.md`, 2026-11-25) and commit a1582f0 shipped it. The other behaviors below stay Planned (harness-governance Group B) pending their own build work and approval.
+Baseline: Group B (Theme 6) of `docs/requirements/FR-NFR-harness-governance.md` v1.4 (2026-11-24), FR-288 to FR-316 and NFR-040 to NFR-042, Approved (2026-11-26). This spec extends `specs/spec-orchestration-review-gates.md` (Requirements 2, 4, 6, 7, and the Change Log 2026-11-06 Requirement 14) and does not restate or replace it; it adds no gate, no cap, and no reviewer tool. Paths are relative to `plugins/assist-plugin/` unless stated otherwise. Catalog-fixed severity (Requirement 18, FR-306 and FR-307) is implemented and active: the user re-approved the severity policy with the catalog added (D-14; `DECISIONS.md`, 2026-11-25) and commit a1582f0 shipped it. The other Group B behaviors below are implemented per the Group B build (commit a1582f0) and held on `feat/eval-reviewer-harness` for merge.
 
 ## Description
 
